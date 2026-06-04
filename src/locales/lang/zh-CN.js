@@ -2303,7 +2303,7 @@ const locale = {
   },
   'trading-assistant.form.ibkrHost': '主机地址',
   'trading-assistant.form.ibkrPort': '端口',
-  'trading-assistant.form.ibkrPortHint': 'TWS实盘:7497, TWS模拟:7496, Gateway实盘:4001, Gateway模拟:4002',
+  'trading-assistant.form.ibkrPortHint': 'TWS实盘:7496, TWS模拟:7497, Gateway实盘:4001, Gateway模拟:4002',
   'trading-assistant.form.ibkrClientId': '客户端ID',
   'trading-assistant.form.ibkrAccount': '账户号',
   'trading-assistant.form.ibkrAccountHint': '留空自动选择第一个账户，多账户用户可指定账户号',

@@ -2857,7 +2857,7 @@ const locale = {
   'schwab': 'Charles Schwab',
   'trading-assistant.form.ibkrHost': 'โฮสต์',
   'trading-assistant.form.ibkrPort': 'พอร์ต',
-  'trading-assistant.form.ibkrPortHint': 'TWS Live:7497, TWS Paper:7496, Gateway Live:4001, Gateway Paper:4002',
+  'trading-assistant.form.ibkrPortHint': 'TWS Live:7496, TWS Paper:7497, Gateway Live:4001, Gateway Paper:4002',
   'trading-assistant.form.ibkrClientId': 'ไคลเอนต์ ID',
   'trading-assistant.form.ibkrAccount': 'หมายเลขบัญชี',
   'trading-assistant.form.ibkrAccountHint': 'ปล่อยว่างเพื่อเลือกบัญชีแรกอัตโนมัติ ระบุสำหรับผู้ใช้หลายบัญชี',

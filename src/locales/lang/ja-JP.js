@@ -2840,7 +2840,7 @@ const locale = {
   'schwab': 'Charles Schwab',
   'trading-assistant.form.ibkrHost': 'ホストアドレス',
   'trading-assistant.form.ibkrPort': 'ポート',
-  'trading-assistant.form.ibkrPortHint': 'TWS実盤:7497, TWS模擬:7496, Gateway実盤:4001, Gateway模擬:4002',
+  'trading-assistant.form.ibkrPortHint': 'TWS実盤:7496, TWS模擬:7497, Gateway実盤:4001, Gateway模擬:4002',
   'trading-assistant.form.ibkrClientId': 'クライアントID',
   'trading-assistant.form.ibkrAccount': '口座番号',
   'trading-assistant.form.ibkrAccountHint': '空欄の場合は最初の口座が自動選択されます。複数口座ユーザーは指定してください。',
