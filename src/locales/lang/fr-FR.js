@@ -2858,7 +2858,7 @@ const locale = {
   'schwab': 'Charles Schwab',
   'trading-assistant.form.ibkrHost': 'Hôte',
   'trading-assistant.form.ibkrPort': 'Port',
-  'trading-assistant.form.ibkrPortHint': 'TWS réel : 7497, TWS papier : 7496, Gateway réel : 4001, Gateway papier : 4002',
+  'trading-assistant.form.ibkrPortHint': 'TWS réel : 7496, TWS papier : 7497, Gateway réel : 4001, Gateway papier : 4002',
   'trading-assistant.form.ibkrClientId': 'ID client',
   'trading-assistant.form.ibkrAccount': 'Compte',
   'trading-assistant.form.ibkrAccountHint': 'Laissez vide pour sélectionner automatiquement le premier compte. Spécifiez pour les utilisateurs multi-comptes.',

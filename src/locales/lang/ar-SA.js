@@ -2856,7 +2856,7 @@ const locale = {
   'schwab': 'Charles Schwab',
   'trading-assistant.form.ibkrHost': 'عنوان المضيف',
   'trading-assistant.form.ibkrPort': 'المنفذ',
-  'trading-assistant.form.ibkrPortHint': 'TWS مباشر:7497، TWS تجريبي:7496، Gateway مباشر:4001، Gateway تجريبي:4002',
+  'trading-assistant.form.ibkrPortHint': 'TWS مباشر:7496، TWS تجريبي:7497، Gateway مباشر:4001، Gateway تجريبي:4002',
   'trading-assistant.form.ibkrClientId': 'معرف العميل',
   'trading-assistant.form.ibkrAccount': 'رقم الحساب',
   'trading-assistant.form.ibkrAccountHint': 'اتركه فارغًا للاختيار التلقائي للحساب الأول. حدد لمستخدمي الحسابات المتعددة.',

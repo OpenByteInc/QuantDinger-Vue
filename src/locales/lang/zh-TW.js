@@ -1854,7 +1854,7 @@ const locale = {
 },
 'trading-assistant.form.ibkrHost': '主機地址',
 'trading-assistant.form.ibkrPort': '端口',
-'trading-assistant.form.ibkrPortHint': 'TWS實盤:7497, TWS模擬:7496, Gateway實盤:4001, Gateway模擬:4002',
+'trading-assistant.form.ibkrPortHint': 'TWS實盤:7496, TWS模擬:7497, Gateway實盤:4001, Gateway模擬:4002',
 'trading-assistant.form.ibkrClientId': '客戶端ID',
 'trading-assistant.form.ibkrAccount': '賬戶號',
 'trading-assistant.form.ibkrAccountHint': '留空自動選擇第一個賬戶，多賬戶用戶可指定賬戶號',

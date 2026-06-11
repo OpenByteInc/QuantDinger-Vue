@@ -4016,7 +4016,7 @@ const locale = {
   'schwab': 'Charles Schwab',
   'trading-assistant.form.ibkrHost': 'Địa chỉ máy chủ',
   'trading-assistant.form.ibkrPort': 'Cổng',
-  'trading-assistant.form.ibkrPortHint': 'TWS thực:7497, TWS mô phỏng:7496, Gateway thực:4001, Gateway mô phỏng:4002',
+  'trading-assistant.form.ibkrPortHint': 'TWS thực:7496, TWS mô phỏng:7497, Gateway thực:4001, Gateway mô phỏng:4002',
   'trading-assistant.form.ibkrClientId': 'ID máy khách',
   'trading-assistant.form.ibkrAccount': 'Số tài khoản',
   'trading-assistant.form.ibkrAccountHint': 'Để trống để tự động chọn tài khoản đầu tiên. Chỉ định cho người dùng nhiều tài khoản.',

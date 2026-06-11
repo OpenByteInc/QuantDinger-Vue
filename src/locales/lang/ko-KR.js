@@ -2838,7 +2838,7 @@ const locale = {
   'schwab': 'Charles Schwab',
   'trading-assistant.form.ibkrHost': '호스트 주소',
   'trading-assistant.form.ibkrPort': '포트',
-  'trading-assistant.form.ibkrPortHint': 'TWS 실시간:7497, TWS 모의:7496, Gateway 실시간:4001, Gateway 모의:4002',
+  'trading-assistant.form.ibkrPortHint': 'TWS 실시간:7496, TWS 모의:7497, Gateway 실시간:4001, Gateway 모의:4002',
   'trading-assistant.form.ibkrClientId': '클라이언트 ID',
   'trading-assistant.form.ibkrAccount': '계좌 번호',
   'trading-assistant.form.ibkrAccountHint': '첫 번째 계좌 자동 선택을 위해 비워두세요. 다중 계좌 사용자는 계좌 번호를 지정할 수 있습니다.',

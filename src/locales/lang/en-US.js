@@ -2381,7 +2381,7 @@ const locale = {
   },
   'trading-assistant.form.ibkrHost': 'Host',
   'trading-assistant.form.ibkrPort': 'Port',
-  'trading-assistant.form.ibkrPortHint': 'TWS Live:7497, TWS Paper:7496, Gateway Live:4001, Gateway Paper:4002',
+  'trading-assistant.form.ibkrPortHint': 'TWS Live:7496, TWS Paper:7497, Gateway Live:4001, Gateway Paper:4002',
   'trading-assistant.form.ibkrClientId': 'Client ID',
   'trading-assistant.form.ibkrAccount': 'Account',
   'trading-assistant.form.ibkrAccountHint': 'Leave empty to auto-select first account. Specify for multi-account users.',
