@@ -2248,6 +2248,8 @@ const locale = {
   'trading-assistant.table.long': 'Long',
   'trading-assistant.table.short': 'Short',
   'trading-assistant.table.noPositions': 'No positions',
+  'trading-assistant.table.summary': 'Summary',
+  'trading-assistant.table.netProfit': 'Net Profit',
   'trading-assistant.detail.title': 'Strategy Details',
   'trading-assistant.detail.strategyName': 'Strategy Name',
   'trading-assistant.detail.strategyType': 'Strategy Type',

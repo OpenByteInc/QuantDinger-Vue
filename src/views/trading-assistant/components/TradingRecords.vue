@@ -3,46 +3,66 @@
     <div v-if="records.length === 0 && !loading" class="empty-state strategy-tab-empty">
       <a-empty :description="$t('trading-assistant.table.noPositions')" />
     </div>
-    <a-table
-      v-else
-      :columns="columns"
-      :data-source="records"
-      :loading="loading"
-      :pagination="paginationConfig"
-      @change="handleTableChange"
-      size="small"
-      rowKey="id"
-      :scroll="{ x: 800 }"
-    >
-      <template slot="type" slot-scope="text">
-        <div class="trade-type-cell">
-          <a-tag :color="getTradeTypeColor(text)" class="trade-type-tag">
-            {{ getTradeTypeText(text) }}
-          </a-tag>
-          <div class="trade-type-desc">{{ getTradeActionDescription(text) }}</div>
+    <div v-else class="records-container">
+      <div class="records-header-bar">
+        <div class="records-summary-bar">
+          <!-- <span class="summary-title">{{ $t('trading-assistant.table.summary') || '合计统计' }}</span> -->
+          <div class="summary-items">
+            <div class="summary-item">
+              <span class="summary-label">{{ $t('dashboard.indicator.backtest.profit') || '累计盈亏' }}:</span>
+              <span :class="['summary-value', totalGrossProfitClass]">{{ formatTotalGrossProfitText }}</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">{{ $t('trading-assistant.table.commission') || '累计手续费' }}:</span>
+              <span class="summary-value commission-value">{{ formatTotalCommissionText }}</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">{{ $t('trading-assistant.table.netProfit') || '净盈亏(盈亏-手续费)' }}:</span>
+              <span :class="['summary-value', totalNetProfitClass]">{{ formatTotalNetProfitText }}</span>
+            </div>
+          </div>
         </div>
-      </template>
-      <template slot="price" slot-scope="text">
-        ${{ parseFloat(text).toFixed(4) }}
-      </template>
-      <template slot="amount" slot-scope="text">
-        {{ parseFloat(text).toFixed(4) }}
-      </template>
-      <template slot="value" slot-scope="text">
-        ${{ parseFloat(text).toFixed(2) }}
-      </template>
-      <template slot="profit" slot-scope="text, record">
-        <span :class="['ta-pnl', profitToneClass(record)]">
-          {{ formatProfit(record) }}
-        </span>
-      </template>
-      <template slot="commission" slot-scope="text">
-        {{ formatCommission(text) }}
-      </template>
-      <template slot="time" slot-scope="text, record">
-        {{ formatTime(record.created_at || text) }}
-      </template>
-    </a-table>
+      </div>
+      <a-table
+        :columns="columns"
+        :data-source="records"
+        :loading="loading"
+        :pagination="paginationConfig"
+        @change="handleTableChange"
+        size="small"
+        rowKey="id"
+        :scroll="{ x: 800 }"
+      >
+        <template slot="type" slot-scope="text">
+          <div class="trade-type-cell">
+            <a-tag :color="getTradeTypeColor(text)" class="trade-type-tag">
+              {{ getTradeTypeText(text) }}
+            </a-tag>
+            <div class="trade-type-desc">{{ getTradeActionDescription(text) }}</div>
+          </div>
+        </template>
+        <template slot="price" slot-scope="text">
+          ${{ parseFloat(text).toFixed(4) }}
+        </template>
+        <template slot="amount" slot-scope="text">
+          {{ parseFloat(text).toFixed(4) }}
+        </template>
+        <template slot="value" slot-scope="text">
+          ${{ parseFloat(text).toFixed(2) }}
+        </template>
+        <template slot="profit" slot-scope="text, record">
+          <span :class="['ta-pnl', profitToneClass(record)]">
+            {{ formatProfit(record) }}
+          </span>
+        </template>
+        <template slot="commission" slot-scope="text">
+          {{ formatCommission(text) }}
+        </template>
+        <template slot="time" slot-scope="text, record">
+          {{ formatTime(record.created_at || text) }}
+        </template>
+      </a-table>
+    </div>
   </div>
 </template>
 
@@ -73,6 +93,71 @@ export default {
         showTotal: (total) => this.$t('ai-trading-assistant.table.totalRecords', { total })
       }
     },
+    typeFilters () {
+      const types = [...new Set(this.records.map(r => r.type).filter(Boolean))]
+      return types.map(type => ({
+        text: this.getTradeTypeText(type),
+        value: type
+      }))
+    },
+    totalGrossProfit () {
+      let hasValidProfit = false
+      const sum = this.filteredRecords.reduce((acc, record) => {
+        const raw = this.pickTradeProfitRaw(record)
+        if (raw !== null && raw !== undefined && raw !== '') {
+          const p = parseFloat(raw)
+          if (!isNaN(p)) {
+            hasValidProfit = true
+            return acc + p
+          }
+        }
+        return acc
+      }, 0)
+      return hasValidProfit ? sum : null
+    },
+    totalGrossProfitClass () {
+      const val = this.totalGrossProfit
+      if (val === null || Math.abs(val) < 1e-9) return 'ta-pnl-neutral'
+      return val > 0 ? 'ta-pnl-pos' : 'ta-pnl-neg'
+    },
+    formatTotalGrossProfitText () {
+      const val = this.totalGrossProfit
+      if (val === null) return '--'
+      return this.formatMoney(val)
+    },
+    totalCommission () {
+      let hasValidCommission = false
+      const sum = this.filteredRecords.reduce((acc, record) => {
+        const c = record.commission != null ? parseFloat(record.commission) : null
+        if (c !== null && !isNaN(c)) {
+          hasValidCommission = true
+          return acc + c
+        }
+        return acc
+      }, 0)
+      return hasValidCommission ? sum : null
+    },
+    formatTotalCommissionText () {
+      const val = this.totalCommission
+      if (val === null) return '--'
+      return this.formatCommission(val)
+    },
+    totalNetProfit () {
+      const gross = this.totalGrossProfit
+      const comm = this.totalCommission
+      if (gross === null && comm === null) return null
+      return (gross || 0) - (comm || 0)
+    },
+    totalNetProfitClass () {
+      const val = this.totalNetProfit
+      if (val === null || Math.abs(val) < 1e-9) return 'ta-pnl-neutral'
+      return val > 0 ? 'ta-pnl-pos' : 'ta-pnl-neg'
+    },
+    formatTotalNetProfitText () {
+      const val = this.totalNetProfit
+      if (val === null) return '--'
+      return this.formatMoney(val)
+    },
     columns () {
       return [
         {
@@ -87,7 +172,9 @@ export default {
           dataIndex: 'type',
           key: 'type',
           width: 220,
-          scopedSlots: { customRender: 'type' }
+          scopedSlots: { customRender: 'type' },
+          filters: this.typeFilters,
+          onFilter: (value, record) => String(record.type || '').toLowerCase() === String(value || '').toLowerCase()
         },
         {
           title: this.$t('trading-assistant.table.price'),
@@ -130,6 +217,7 @@ export default {
   data () {
     return {
       records: [],
+      filteredRecords: [],
       pagination: {
         current: 1,
         pageSize: 10,
@@ -149,14 +237,19 @@ export default {
     }
   },
   methods: {
-    handleTableChange (pagination) {
+    handleTableChange (pagination, filters, sorter, extra) {
       this.pagination.current = pagination.current
       this.pagination.pageSize = pagination.pageSize
+      if (extra && extra.currentDataSource) {
+        this.filteredRecords = extra.currentDataSource
+      }
     },
     async loadRecords () {
       if (!this.strategyId) return
       this.pagination.current = 1
-
+      this.records = []
+      this.filteredRecords = []
+ 
       try {
         const res = await getStrategyTrades(this.strategyId)
         if (res.code === 1) {
@@ -185,10 +278,15 @@ export default {
             }
             return t
           })
+          this.filteredRecords = [...this.records]
         } else {
+          this.records = []
+          this.filteredRecords = []
           this.$message.error(res.msg || this.$t('trading-assistant.messages.loadTradesFailed'))
         }
       } catch (error) {
+        this.records = []
+        this.filteredRecords = []
       }
     },
     formatTime (time) {
@@ -1471,6 +1569,95 @@ body.realdark .trading-records * {
           border-color: #363c4e !important;
           color: #d1d4dc !important;
         }
+      }
+    }
+  }
+
+  .records-header-bar {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 12px;
+    width: 100%;
+  }
+
+  .records-summary-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: 8px;
+    border: 1px dashed #cbd5e1;
+    font-size: 13px;
+
+    .summary-title {
+      font-weight: 700;
+      color: #334155;
+    }
+
+    .summary-items {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .summary-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .summary-label {
+        color: #64748b;
+      }
+
+      .summary-value {
+        font-weight: 700;
+        font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 14px;
+      }
+
+      .commission-value {
+        color: #334155;
+      }
+    }
+  }
+
+  &.theme-dark,
+  .theme-dark & {
+    .records-summary-bar {
+      background: linear-gradient(135deg, #262a35 0%, #1c1f26 100%) !important;
+      border-color: #3b4252 !important;
+      
+      .summary-title {
+        color: #e5e9f0 !important;
+      }
+
+      .summary-label {
+        color: #81899a !important;
+      }
+
+      .commission-value {
+        color: #d8dee9 !important;
+      }
+    }
+  }
+
+  @media (max-width: 576px) {
+    .records-header-bar {
+      justify-content: stretch;
+    }
+
+    .records-summary-bar {
+      width: 100%;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 8px 12px;
+
+      .summary-items {
+        width: 100%;
+        justify-content: space-between;
+        gap: 12px;
       }
     }
   }
