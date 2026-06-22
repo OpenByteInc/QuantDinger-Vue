@@ -10,8 +10,7 @@
     class="indicator-detail-modal"
   >
     <a-spin :spinning="loading">
-      <div v-if="detail" class="detail-container">
-        <!-- 头部区域 -->
+      <div v-if="detail" class="detail-container indicator-detail-modal" :class="{ 'is-dark': isDarkTheme }">
         <div class="detail-header" :style="headerStyle">
           <div class="header-cover" v-if="detail.preview_image">
             <img :src="detail.preview_image" :alt="detail.name" @error="imageError = true" />
@@ -51,12 +50,15 @@
           </div>
         </div>
 
-        <!-- 内容区域 -->
         <div class="detail-body">
-          <!-- 描述 -->
           <div class="section">
             <h3>{{ $t('community.description') }}</h3>
             <p class="description">{{ detail.description || $t('community.noDescription') }}</p>
+          </div>
+
+          <div class="section" v-if="isBotPreset">
+            <h3>{{ $t('community.botPresetInfo') }}</h3>
+            <p class="description">{{ $t('community.botPresetUseHint') }}</p>
           </div>
 
           <!--
@@ -76,7 +78,7 @@
                  run's symbol/timeframe/return/drawdown printed beneath
                  the chart title so the chart isn't context-less.
           -->
-          <div class="section" v-if="performance">
+          <div class="section" v-if="performance && !isBotPreset">
             <h3>{{ $t('community.performance') }}</h3>
 
             <div class="performance-grid">
@@ -154,7 +156,6 @@
               </div>
             </div>
 
-            <!-- 适用范围 -->
             <div v-if="hasApplicable" class="applicable-row">
               <div class="applicable-row__label">{{ $t('community.applicableSymbols') }}</div>
               <div class="applicable-row__tags">
@@ -178,7 +179,6 @@
               </div>
             </div>
 
-            <!-- 净值曲线 -->
             <div v-if="hasEquityCurve" class="equity-card">
               <div class="equity-card__head">
                 <div class="equity-card__title">{{ $t('community.equityCurveTitle') }}</div>
@@ -210,7 +210,6 @@
             />
           </div>
 
-          <!-- 评论区域 -->
           <div class="section">
             <h3>{{ $t('community.reviews') }} ({{ comments.total || 0 }})</h3>
             <comment-list
@@ -227,7 +226,6 @@
           </div>
         </div>
 
-        <!-- 底部操作区域 -->
         <div class="detail-footer">
           <div class="price-info">
             <a-tag v-if="detail.vip_free" color="gold" style="margin-right: 8px;">
@@ -287,7 +285,8 @@
                 </a-badge>
               </a-tooltip>
               <a-button type="primary" @click="goToUse">
-                <a-icon type="code" /> {{ $t('community.useNow') }}
+                <a-icon :type="isBotPreset ? 'robot' : (isScriptTemplate ? 'code-sandbox' : 'code')" />
+                {{ useNowLabel }}
               </a-button>
             </template>
             <a-button
@@ -378,6 +377,21 @@ export default {
       return !!(this.detail && this.detail.is_purchased &&
         Number(this.detail.your_purchase_price || 0) > 0)
     },
+    isScriptTemplate () {
+      return (this.detail && this.detail.asset_type) === 'script_template'
+    },
+    isBotPreset () {
+      return (this.detail && this.detail.asset_type) === 'bot_preset'
+    },
+    useNowLabel () {
+      if (this.isScriptTemplate) {
+        return this.$t('community.useScriptStrategy')
+      }
+      if (this.isBotPreset) {
+        return this.$t('community.useBotPreset')
+      }
+      return this.$t('community.useNow')
+    },
     hasEquityCurve () {
       return this.performance && Array.isArray(this.performance.equity_curve) &&
         this.performance.equity_curve.length > 1
@@ -387,10 +401,8 @@ export default {
       return (this.performance.applicable_symbols || []).length > 0 ||
         (this.performance.applicable_timeframes || []).length > 0
     },
-    // 头部背景样式
     headerStyle () {
       if (!this.detail) return {}
-      // 根据指标 ID 生成渐变色
       const gradients = [
         'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
@@ -402,7 +414,6 @@ export default {
       const index = (this.detail.id || 0) % gradients.length
       return { background: gradients[index] }
     },
-    // 指标名称首字母
     indicatorInitials () {
       if (!this.detail) return ''
       const name = this.detail.name || 'I'
@@ -425,6 +436,11 @@ export default {
         this.loadMyComment()
       } else {
         this.resetData()
+      }
+    },
+    isDarkTheme () {
+      if (this.hasEquityCurve && this.equityChartInst) {
+        this.$nextTick(() => this.renderEquityChart())
       }
     }
   },
@@ -508,23 +524,35 @@ export default {
         // normalized equity, or initial capital) so a flat-line series
         // doesn't look like it shot to infinity.
         const baseline = ys.length ? ys[0] : 0
+        const dark = this.isDarkTheme
+        const axisLabelColor = dark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.45)'
+        const splitLineColor = dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'
+        const axisLineColor = dark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)'
         inst.setOption({
+          backgroundColor: 'transparent',
           grid: { left: 50, right: 16, top: 16, bottom: 32 },
           tooltip: {
             trigger: 'axis',
             confine: true,
+            backgroundColor: dark ? 'rgba(38,38,38,0.96)' : undefined,
+            borderColor: dark ? '#434343' : undefined,
+            textStyle: dark ? { color: 'rgba(255,255,255,0.85)' } : undefined,
             axisPointer: { type: 'cross' }
           },
           xAxis: {
             type: 'category',
             data: xs,
             boundaryGap: false,
-            axisLabel: { fontSize: 11 }
+            axisLabel: { fontSize: 11, color: axisLabelColor },
+            axisLine: { lineStyle: { color: axisLineColor } },
+            splitLine: { show: false }
           },
           yAxis: {
             type: 'value',
             scale: true,
-            axisLabel: { fontSize: 11 }
+            axisLabel: { fontSize: 11, color: axisLabelColor },
+            axisLine: { lineStyle: { color: axisLineColor } },
+            splitLine: { lineStyle: { color: splitLineColor } }
           },
           series: [{
             name: this.$t('community.equityCurveTitle'),
@@ -626,7 +654,6 @@ export default {
           this.$message.success(this.$t('community.commentSuccess'))
           this.loadComments(1)
           this.loadMyComment()
-          // 刷新详情以更新评分
           this.loadDetail()
         } else {
           const msgKey = `community.${res.msg}`
@@ -651,7 +678,6 @@ export default {
           this.$message.success(this.$t('community.commentUpdateSuccess'))
           this.loadComments(1)
           this.loadMyComment()
-          // 刷新详情以更新评分
           this.loadDetail()
         } else {
           const msgKey = `community.${res.msg}`
@@ -670,7 +696,14 @@ export default {
           method: 'post'
         })
         if (res.code === 1) {
-          this.$message.success(this.$t('community.purchaseSuccess'))
+          const assetType = res.data && res.data.asset_type
+          let successKey = 'community.purchaseSuccess'
+          if (assetType === 'script_template') {
+            successKey = 'community.scriptTemplatePurchased'
+          } else if (assetType === 'bot_preset') {
+            successKey = 'community.botPresetPurchased'
+          }
+          this.$message.success(this.$t(successKey))
           this.loadDetail()
           this.$emit('purchased')
         } else {
@@ -686,6 +719,31 @@ export default {
 
     goToUse () {
       this.$emit('close')
+      const assetType = (this.detail && this.detail.asset_type) || 'indicator'
+      if (assetType === 'script_template') {
+        const sid = this.detail && (this.detail.script_source_id || this.detail.purchased_script_source_id)
+        if (sid) {
+          this.$router.push({
+            path: '/strategy-ide',
+            query: { tab: 'script', source_id: String(sid) }
+          })
+        } else {
+          this.$router.push({ path: '/strategy-ide', query: { tab: 'script' } })
+        }
+        return
+      }
+      if (assetType === 'bot_preset') {
+        const sid = this.detail && this.detail.purchased_strategy_id
+        if (sid) {
+          this.$router.push({
+            path: '/trading-bot',
+            query: { strategy_id: String(sid), action: 'edit' }
+          })
+        } else {
+          this.$router.push('/trading-bot')
+        }
+        return
+      }
       this.$router.push('/indicator-ide')
     },
 
@@ -857,7 +915,7 @@ export default {
         display: flex;
         gap: 24px;
 
-        /deep/ .ant-statistic {
+        ::v-deep .ant-statistic {
           .ant-statistic-title {
             color: rgba(255, 255, 255, 0.8);
             font-size: 12px;
@@ -1076,7 +1134,7 @@ export default {
         padding: 0 6px;
       }
 
-      /deep/ .ant-badge {
+      ::v-deep .ant-badge {
         display: inline-block;
       }
     }
@@ -1120,6 +1178,137 @@ export default {
   }
 }
 
+// Dark theme — scoped overrides beat the light-theme rules above because
+// `.is-dark` adds an extra class on the same [data-v] subtree.
+.detail-container.is-dark {
+  .detail-body {
+    background: #1a1a1a;
+
+    .section h3 {
+      color: rgba(255, 255, 255, 0.88);
+      border-color: #303030;
+    }
+
+    .description {
+      color: rgba(255, 255, 255, 0.72);
+    }
+
+    .performance-grid .perf-item {
+      background: #262626;
+
+      .perf-label {
+        color: rgba(255, 255, 255, 0.55);
+
+        .anticon {
+          color: rgba(255, 255, 255, 0.35);
+        }
+
+        .src-tag {
+          &--bt {
+            background: rgba(24, 144, 255, 0.16);
+            color: #69c0ff;
+          }
+
+          &--live {
+            background: rgba(82, 196, 26, 0.16);
+            color: #95de64;
+          }
+        }
+      }
+
+      .perf-value {
+        color: rgba(255, 255, 255, 0.88);
+
+        .perf-unit {
+          color: rgba(255, 255, 255, 0.45);
+        }
+      }
+
+      &--score {
+        background: linear-gradient(135deg, rgba(245, 175, 25, 0.18) 0%, rgba(241, 39, 17, 0.12) 100%);
+
+        .perf-value {
+          color: #ffa940;
+        }
+      }
+    }
+
+    .applicable-row {
+      &__label {
+        color: rgba(255, 255, 255, 0.65);
+      }
+
+      &__empty {
+        color: rgba(255, 255, 255, 0.3);
+      }
+
+      &__tags {
+        .tag-symbol {
+          background: rgba(24, 144, 255, 0.16);
+          color: #69c0ff;
+        }
+
+        .tag-tf {
+          background: rgba(82, 196, 26, 0.16);
+          color: #95de64;
+        }
+      }
+    }
+
+    .equity-card {
+      background: #262626;
+      border-color: #303030;
+
+      &__title {
+        color: rgba(255, 255, 255, 0.88);
+      }
+
+      &__meta {
+        .tag-symbol {
+          background: rgba(24, 144, 255, 0.16);
+          color: #69c0ff;
+        }
+
+        .tag-tf {
+          background: rgba(82, 196, 26, 0.16);
+          color: #95de64;
+        }
+
+        .positive {
+          color: #95de64;
+        }
+
+        .negative {
+          color: #ff7875;
+        }
+      }
+
+      &__meta-sep {
+        color: rgba(255, 255, 255, 0.25);
+      }
+
+      &__hint {
+        color: rgba(255, 255, 255, 0.45);
+      }
+    }
+  }
+
+  .detail-footer {
+    background: #1f1f1f;
+    border-color: #303030;
+
+    .price-info {
+      .price-line__label {
+        color: rgba(255, 255, 255, 0.45);
+      }
+
+      .price-line--secondary .price-current-aside {
+        color: rgba(255, 255, 255, 0.35);
+      }
+    }
+  }
+}
+
 </style>
 
 <!--
@@ -1150,8 +1339,27 @@ export default {
     }
   }
 
-  .indicator-detail-modal .detail-body {
+  .detail-body {
     background: #1a1a1a;
+    scrollbar-color: #434343 #1a1a1a;
+    scrollbar-width: thin;
+
+    &::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: #1a1a1a;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #434343;
+      border-radius: 4px;
+
+      &:hover {
+        background: #595959;
+      }
+    }
 
     .section h3 {
       color: rgba(255, 255, 255, 0.88);
@@ -1163,7 +1371,7 @@ export default {
     }
 
     .performance-grid .perf-item {
-      background: #262626;
+      background: #262626 !important;
 
       .perf-label {
         color: rgba(255, 255, 255, 0.55);
@@ -1180,7 +1388,7 @@ export default {
       }
 
       &--score {
-        background: linear-gradient(135deg, rgba(245, 175, 25, 0.18) 0%, rgba(241, 39, 17, 0.12) 100%);
+        background: linear-gradient(135deg, rgba(245, 175, 25, 0.18) 0%, rgba(241, 39, 17, 0.12) 100%) !important;
         .perf-value { color: #ffa940; }
       }
     }
@@ -1195,7 +1403,7 @@ export default {
     }
 
     .equity-card {
-      background: #262626;
+      background: #262626 !important;
       border-color: #303030;
 
       &__title { color: rgba(255, 255, 255, 0.88); }
@@ -1208,10 +1416,27 @@ export default {
       &__meta-sep { color: rgba(255, 255, 255, 0.25); }
       &__hint { color: rgba(255, 255, 255, 0.4); }
     }
+
+    .ant-alert-info {
+      background: rgba(24, 144, 255, 0.12);
+      border-color: rgba(24, 144, 255, 0.3);
+
+      .ant-alert-icon {
+        color: #177ddc;
+      }
+
+      .ant-alert-message {
+        color: rgba(255, 255, 255, 0.88);
+      }
+
+      .ant-alert-description {
+        color: rgba(255, 255, 255, 0.65);
+      }
+    }
   }
 
-  .indicator-detail-modal .detail-footer {
-    background: #1f1f1f;
+  .detail-footer {
+    background: #1f1f1f !important;
     border-color: #303030;
 
     .price-info {
@@ -1227,7 +1452,7 @@ export default {
     }
   }
 
-  .indicator-detail-modal .action-buttons {
+  .action-buttons {
     .ant-btn:not(.ant-btn-primary) {
       background: #262626;
       border-color: #434343;
@@ -1248,7 +1473,7 @@ export default {
     }
   }
 
-  .indicator-detail-modal {
+  .detail-header {
     .ant-statistic {
       .ant-statistic-content {
         color: rgba(255, 255, 255, 0.88);

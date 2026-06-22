@@ -250,7 +250,6 @@ export default {
   name: 'ExchangeAccountModal',
   props: {
     visible: { type: Boolean, default: false },
-    /** 返回挂载节点；用于浏览器全屏时与图表同层（如指标 IDE 闪电交易） */
     overlayMount: { type: Function, default: null }
   },
   data () {
@@ -273,7 +272,6 @@ export default {
         { id: 'kucoin', name: 'KuCoin', docsUrl: 'https://www.kucoin.com/docs-new/authentication' },
         { id: 'gate', name: 'Gate.io', docsUrl: 'https://www.gate.com/docs/developers/apiv4/' },
         { id: 'bitfinex', name: 'Bitfinex', docsUrl: 'https://docs.bitfinex.com/docs/create-an-api-key' },
-        { id: 'deepcoin', name: 'Deepcoin', docsUrl: 'https://www.deepcoin.com/docs/authentication' },
         { id: 'htx', name: 'HTX', docsUrl: 'https://www.htx.com/en-us/opend/newApiPages/?id=414' }
       ]
     }
@@ -289,7 +287,6 @@ export default {
       const base = 'profile-exchange-modal'
       return this.isDarkTheme ? `${base} ${base}--dark` : base
     },
-    /** 浅色也带基础类，便于 z-index 高于弹窗层（否则下拉在 Modal 后面）；暗色类名与下方 less 一致 */
     exchangeSelectDropdownClass () {
       const base = 'profile-exchange-select-dropdown'
       return this.isDarkTheme ? `${base} profile-exchange-select-dropdown-dark` : base
@@ -342,7 +339,6 @@ export default {
         kucoin: 'KuCoin',
         gate: 'Gate.io',
         bitfinex: 'Bitfinex',
-        deepcoin: 'Deepcoin',
         htx: 'HTX',
         ibkr: 'IBKR',
         mt5: 'MetaTrader 5',
@@ -533,7 +529,6 @@ export default {
 </script>
 
 <style lang="less">
-/* 弹窗挂载在 body，须非 scoped；与个人中心一致，保证闪电交易等页打开也有样式 */
 @exchange-dark-bg: #1c1c1c;
 @exchange-dark-border: #2a2a2a;
 @exchange-dark-input: #141414;

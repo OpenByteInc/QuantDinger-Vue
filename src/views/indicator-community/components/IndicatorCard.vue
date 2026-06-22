@@ -5,7 +5,6 @@
     :body-style="{ padding: '12px' }"
     @click="$emit('click', indicator)"
   >
-    <!-- 预览图 / 默认生成封面 -->
     <div class="card-cover" :style="coverStyle">
       <img
         v-if="indicator.preview_image && !imageError"
@@ -13,7 +12,6 @@
         :alt="indicator.name"
         @error="handleImageError"
       />
-      <!-- 默认封面：使用渐变背景 + 标题 -->
       <div v-else class="default-cover" :style="{ background: coverGradient }">
         <span class="cover-title">{{ indicatorInitials }}</span>
         <span class="cover-subtitle">{{ indicator.name }}</span>
@@ -31,12 +29,6 @@
         <a-icon type="check-circle" /> {{ $t('community.purchased') }}
       </div>
 
-      <!--
-        Composite-score badge (top-left of cover). Only shown when the
-        indicator actually has backtest data behind it; a brand-new
-        indicator with no successful runs reports score=0 and we hide
-        the badge entirely rather than misleading users with "0 分".
-      -->
       <a-tooltip v-if="hasScore" :title="scoreTooltip">
         <div class="score-badge" :class="scoreBadgeClass">
           <a-icon type="trophy" theme="filled" />
@@ -45,7 +37,6 @@
       </a-tooltip>
     </div>
 
-    <!-- 内容 -->
     <div class="card-content">
       <h3 class="card-title" :title="indicator.name">{{ indicator.name }}</h3>
       <p class="card-desc">{{ indicator.description || $t('community.noDescription') }}</p>
@@ -88,13 +79,11 @@
         <a-tag v-if="extraTimeframeCount > 0" class="tag-extra">+{{ extraTimeframeCount }}</a-tag>
       </div>
 
-      <!-- 作者信息 -->
       <div class="card-author">
         <a-avatar :src="indicator.author.avatar" :size="24" />
         <span class="author-name">{{ indicator.author.nickname || indicator.author.username }}</span>
       </div>
 
-      <!-- 统计信息 -->
       <div class="card-stats">
         <span class="stat-item">
           <a-icon type="download" />
@@ -116,7 +105,6 @@
 <script>
 import OverfitRiskGauge from './OverfitRiskGauge.vue'
 
-// 预定义的渐变色方案
 const GRADIENT_PRESETS = [
   'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
   'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
@@ -150,19 +138,15 @@ export default {
     isPaid () {
       return this.indicator.pricing_type !== 'free' && this.indicator.price > 0
     },
-    // 根据指标 ID 生成固定的渐变色
     coverGradient () {
       const index = (this.indicator.id || 0) % GRADIENT_PRESETS.length
       return GRADIENT_PRESETS[index]
     },
-    // 生成指标名称首字母
     indicatorInitials () {
       const name = this.indicator.name || 'I'
-      // 如果是中文，取前两个字
       if (/[\u4e00-\u9fa5]/.test(name)) {
         return name.slice(0, 2)
       }
-      // 如果是英文，取首字母大写
       const words = name.split(/\s+/)
       if (words.length >= 2) {
         return (words[0][0] + words[1][0]).toUpperCase()
@@ -308,7 +292,6 @@ export default {
       position: relative;
       overflow: hidden;
 
-      // 添加装饰性圆圈
       &::before {
         content: '';
         position: absolute;
@@ -553,7 +536,6 @@ export default {
   }
 }
 
-// 暗色主题适配
 .theme-dark .indicator-card,
 .dark-theme .indicator-card,
 [data-theme='dark'] .indicator-card {

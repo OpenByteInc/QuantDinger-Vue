@@ -48,6 +48,7 @@ module.exports = {
         'beforeStatementContinuationChars': 'never'
       }
     ],
+    'space-before-function-paren': 0,
     'no-delete-var': 2,
     'prefer-const': [
       2,

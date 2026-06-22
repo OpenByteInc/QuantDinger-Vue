@@ -1,9 +1,7 @@
 
 <template>
-  <div class="dashboard-pro" :class="{ 'theme-dark': isDarkTheme }">
-    <!-- 主要KPI指标卡片 -->
+  <div class="dashboard-pro" :class="{ 'theme-dark': isDarkTheme, 'dashboard-pro--embedded': embedded }">
     <div class="kpi-grid">
-      <!-- 总权益 -->
       <div class="kpi-card kpi-primary">
         <div class="kpi-glow"></div>
         <div class="kpi-content">
@@ -26,7 +24,6 @@
         </div>
       </div>
 
-      <!-- 胜率 -->
       <div class="kpi-card kpi-win-rate">
         <div class="kpi-content">
           <div class="kpi-header">
@@ -62,7 +59,6 @@
         </div>
       </div>
 
-      <!-- 盈亏比 -->
       <div class="kpi-card kpi-profit-factor">
         <div class="kpi-content">
           <div class="kpi-header">
@@ -82,7 +78,6 @@
         </div>
       </div>
 
-      <!-- 最大回撤 -->
       <div class="kpi-card kpi-drawdown">
         <div class="kpi-content">
           <div class="kpi-header">
@@ -101,7 +96,6 @@
         </div>
       </div>
 
-      <!-- 总交易数 -->
       <div class="kpi-card kpi-trades">
         <div class="kpi-content">
           <div class="kpi-header">
@@ -122,7 +116,6 @@
         </div>
       </div>
 
-      <!-- 运行策略 -->
       <div class="kpi-card kpi-strategies clickable" @click="goToStrategyManagement">
         <div class="kpi-content">
           <div class="kpi-header">
@@ -132,12 +125,22 @@
             <span class="kpi-label">{{ $t('dashboard.runningStrategies') || '运行中策略' }}</span>
           </div>
           <div class="kpi-value">
-            <span class="amount">{{ summary.indicator_strategy_count }}</span>
+            <span class="amount">{{ summary.running_strategy_count != null ? summary.running_strategy_count : summary.indicator_strategy_count }}</span>
             <span class="unit">{{ $t('dashboard.unit.strategies') }}</span>
           </div>
-          <div class="kpi-sub">
-            <span class="highlight">{{ summary.indicator_strategy_count }}</span>
-            <span class="label"> {{ $t('dashboard.label.indicator') }}</span>
+          <div class="kpi-sub kpi-sub--types">
+            <span class="type-pill type-pill--signal">
+              <em>{{ summary.running_indicator_count != null ? summary.running_indicator_count : 0 }}</em>
+              {{ $t('dashboard.label.indicator') }}
+            </span>
+            <span class="type-pill type-pill--script">
+              <em>{{ summary.running_script_count || 0 }}</em>
+              {{ $t('dashboard.label.script') }}
+            </span>
+            <span class="type-pill type-pill--bot">
+              <em>{{ summary.running_bot_count || 0 }}</em>
+              {{ $t('dashboard.label.bot') }}
+            </span>
           </div>
         </div>
         <div class="card-arrow">
@@ -164,9 +167,7 @@
       </div>
     </div>
 
-    <!-- 图表区域 - 第一行 -->
     <div class="chart-row">
-      <!-- 收益日历 -->
       <div class="chart-panel chart-main">
         <div class="panel-header">
           <div class="panel-title">
@@ -235,7 +236,6 @@
         </div>
       </div>
 
-      <!-- 策略表现饼图 -->
       <div class="chart-panel chart-side">
         <div class="panel-header">
           <div class="panel-title">
@@ -247,9 +247,7 @@
       </div>
     </div>
 
-    <!-- 图表区域 - 第二行 -->
     <div class="chart-row">
-      <!-- 回撤曲线 -->
       <div class="chart-panel chart-half">
         <div class="panel-header">
           <div class="panel-title">
@@ -260,7 +258,6 @@
         <div ref="drawdownChart" class="chart-body chart-sm"></div>
       </div>
 
-      <!-- 交易时段分布 -->
       <div class="chart-panel chart-half">
         <div class="panel-header">
           <div class="panel-title">
@@ -272,7 +269,6 @@
       </div>
     </div>
 
-    <!-- 策略排行榜 -->
     <div class="chart-panel">
       <div class="panel-header">
         <div class="panel-title">
@@ -294,7 +290,12 @@
           >
             <div class="rank-badge" :class="`rank-${idx + 1}`">{{ idx + 1 }}</div>
             <div class="rank-info">
-              <div class="rank-name">{{ s.strategy_name }}</div>
+              <div class="rank-name">
+                <span class="rank-type-tag" :class="`rank-type-tag--${s.strategy_bucket || 'signal'}`">
+                  {{ strategyBucketLabel(s.strategy_bucket) }}
+                </span>
+                {{ s.strategy_name }}
+              </div>
               <div class="rank-stats">
                 <span class="stat">
                   <label>{{ $t('dashboard.ranking.totalProfit') }}</label>
@@ -328,9 +329,7 @@
       </div>
     </div>
 
-    <!-- 数据表格区域 -->
     <div class="table-row">
-      <!-- 当前持仓 -->
       <div class="table-panel">
         <div class="panel-header">
           <div class="panel-title">
@@ -372,7 +371,6 @@
         </a-table>
       </div>
 
-      <!-- 最近交易 -->
       <div class="table-panel">
         <div class="panel-header">
           <div class="panel-title">
@@ -406,7 +404,6 @@
       </div>
     </div>
 
-    <!-- 订单执行记录 -->
     <div class="chart-panel orders-panel">
       <div class="panel-header">
         <div class="panel-title">
@@ -524,6 +521,10 @@ export default {
     hideSetupGuide: {
       type: Boolean,
       default: false
+    },
+    embedded: {
+      type: Boolean,
+      default: false
     }
   },
   data () {
@@ -556,7 +557,6 @@ export default {
         pageSize: 20,
         total: 0
       },
-      // 声音提醒相关
       orderPollTimer: null,
       lastOrderId: 0,
       orderPollIntervalMs: 5000,
@@ -578,7 +578,11 @@ export default {
       return this.summary.strategy_stats || []
     },
     showSetupGuide () {
-      const runningStrategies = Number(this.summary.indicator_strategy_count || 0)
+      const runningStrategies = Number(
+        this.summary.running_strategy_count != null
+          ? this.summary.running_strategy_count
+          : this.summary.indicator_strategy_count || 0
+      )
       const hasPositions = Array.isArray(this.summary.current_positions) && this.summary.current_positions.length > 0
       const hasTrades = Array.isArray(this.summary.recent_trades) && this.summary.recent_trades.length > 0
       return runningStrategies === 0 || (!hasPositions && !hasTrades)
@@ -770,7 +774,15 @@ export default {
   },
   methods: {
     goToStrategyManagement () {
-      this.$router.push({ path: '/strategy-live', query: { tab: 'strategy' } }).catch(() => {})
+      this.$router.push({ path: '/strategy-center', query: { tab: 'overview' } }).catch(() => {})
+    },
+    strategyBucketLabel (bucket) {
+      const map = {
+        signal: this.$t('dashboard.label.indicator'),
+        script: this.$t('dashboard.label.script'),
+        bot: this.$t('dashboard.label.bot')
+      }
+      return map[String(bucket || 'signal')] || map.signal
     },
     goToStrategyCreate () {
       this.$router.push({ path: '/strategy-live', query: { tab: 'strategy', mode: 'create' } }).catch(() => {})
@@ -807,7 +819,6 @@ export default {
         this.ordersLoading = false
       }
     },
-    // ========== 订单声音提醒 ==========
     playOrderBeep () {
       if (!this.soundEnabled) return
       try {
@@ -815,11 +826,9 @@ export default {
         if (!AudioCtx) return
         if (!this.beepCtx) this.beepCtx = new AudioCtx()
         const ctx = this.beepCtx
-        // 部分浏览器需要用户交互后才能播放声音
         if (ctx.state === 'suspended' && typeof ctx.resume === 'function') {
           ctx.resume().catch(() => {})
         }
-        // 播放两声短促的提示音
         const playTone = (startTime, freq) => {
           const o = ctx.createOscillator()
           const g = ctx.createGain()
@@ -840,7 +849,6 @@ export default {
     },
     startOrderPolling () {
       this.stopOrderPolling()
-      // 初始化 lastOrderId
       this.initLastOrderId()
       this.orderPollTimer = setInterval(() => {
         this.pollNewOrders()
@@ -856,7 +864,6 @@ export default {
       try {
         const res = await getPendingOrders({ page: 1, pageSize: 1 })
         if (res.code === 1 && res.data && res.data.list && res.data.list.length > 0) {
-          // 获取最新的订单ID
           this.lastOrderId = res.data.list[0].id || 0
         }
       } catch (e) {
@@ -871,7 +878,6 @@ export default {
         const orders = res.data.list || []
         if (orders.length === 0) return
 
-        // 检查是否有新订单
         let hasNew = false
         let maxId = this.lastOrderId
         for (const order of orders) {
@@ -885,9 +891,7 @@ export default {
         if (hasNew) {
           this.lastOrderId = maxId
           this.playOrderBeep()
-          // 刷新订单列表
           this.fetchPendingOrders()
-          // 显示通知
           this.$notification.info({
             message: this.$t('dashboard.newOrderNotify'),
             description: this.$t('dashboard.newOrderDesc'),
@@ -992,19 +996,16 @@ export default {
       if (num === undefined || num === null) return '0.00'
       return Number(num).toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits })
     },
-    // 格式化盈亏值（处理信号模式下没有实盘的情况）
     formatProfitValue (value, record) {
       if (value === null || value === undefined) return '--'
 
       const numValue = parseFloat(value)
 
-      // 如果值为0且是开仓信号（open_long/open_short），显示--
       const openTypes = ['open_long', 'open_short', 'add_long', 'add_short']
       if (numValue === 0 && record && openTypes.includes(record.type)) {
         return '--'
       }
 
-      // 如果值极小（科学计数法如0E-8），视为0
       if (Math.abs(numValue) < 0.000001) {
         if (record && openTypes.includes(record.type)) {
           return '--'
@@ -1012,7 +1013,6 @@ export default {
         return '$0.00'
       }
 
-      // 正常显示
       const sign = numValue >= 0 ? '+' : ''
       return `${sign}$${this.formatNumber(numValue)}`
     },
@@ -1468,6 +1468,12 @@ export default {
   background: @bg-light;
   transition: background 0.3s;
 
+  &.dashboard-pro--embedded {
+    min-height: auto;
+    padding: 0;
+    background: transparent;
+  }
+
   &.theme-dark {
     background: @bg-dark;
 
@@ -1842,6 +1848,46 @@ export default {
       .label { margin: 0 2px; }
       .divider { margin: 0 6px; opacity: 0.5; }
       .highlight { font-weight: 600; color: @blue; }
+
+      &--types {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 10px;
+      }
+    }
+
+    .type-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      line-height: 1.4;
+      background: rgba(59, 130, 246, 0.08);
+      color: @text-secondary-light;
+
+      em {
+        font-style: normal;
+        font-weight: 700;
+        color: @text-primary-light;
+      }
+
+      &--signal {
+        background: rgba(59, 130, 246, 0.1);
+        em { color: @blue; }
+      }
+
+      &--script {
+        background: rgba(139, 92, 246, 0.1);
+        em { color: @purple; }
+      }
+
+      &--bot {
+        background: rgba(6, 182, 212, 0.12);
+        em { color: @cyan; }
+      }
     }
 
     // Primary card with gradient
@@ -2239,6 +2285,33 @@ export default {
           overflow: hidden;
           text-overflow: ellipsis;
           margin-bottom: 4px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .rank-type-tag {
+          flex-shrink: 0;
+          padding: 1px 6px;
+          border-radius: 4px;
+          font-size: 10px;
+          font-weight: 600;
+          line-height: 1.5;
+
+          &--signal {
+            background: rgba(59, 130, 246, 0.12);
+            color: @blue;
+          }
+
+          &--script {
+            background: rgba(139, 92, 246, 0.12);
+            color: @purple;
+          }
+
+          &--bot {
+            background: rgba(6, 182, 212, 0.14);
+            color: @cyan;
+          }
         }
 
         .rank-stats {

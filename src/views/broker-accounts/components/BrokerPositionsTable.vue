@@ -1,5 +1,5 @@
 <template>
-  <div class="bp-table-wrapper">
+  <div class="bp-table-wrapper" :class="{ 'theme-dark': isDarkTheme }">
     <div class="bp-table-toolbar">
       <a-button size="small" :loading="loading" @click="load">
         <a-icon type="reload" /> {{ $t('brokerAccounts.refresh') }}
@@ -108,4 +108,35 @@ export default {
 .bp-table-count { font-size: 12px; color: #8c8c8c; }
 .pnl-positive { color: #389e0d; font-weight: 600; font-variant-numeric: tabular-nums; }
 .pnl-negative { color: #cf1322; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.bp-table-wrapper.theme-dark {
+  .bp-table-count { color: rgba(255, 255, 255, 0.48); }
+
+  ::v-deep .ant-table {
+    color: rgba(255, 255, 255, 0.82);
+    background: #181818;
+  }
+
+  ::v-deep .ant-table-thead > tr > th {
+    background: #111214;
+    color: rgba(255, 255, 255, 0.78);
+    border-bottom-color: #303030;
+  }
+
+  ::v-deep .ant-table-tbody > tr > td {
+    background: #181818;
+    color: rgba(255, 255, 255, 0.82);
+    border-bottom-color: #2a2a2a;
+  }
+
+  ::v-deep .ant-table-tbody > tr:hover > td {
+    background: #1f2630 !important;
+  }
+
+  ::v-deep .ant-table-placeholder {
+    color: rgba(255, 255, 255, 0.45);
+    background: #181818;
+    border-color: #303030;
+  }
+}
 </style>

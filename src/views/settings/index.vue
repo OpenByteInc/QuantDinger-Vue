@@ -1,6 +1,5 @@
 <template>
   <div class="settings-page" :class="{ 'theme-dark': isDarkTheme }">
-    <!-- 重启提示 -->
     <a-alert
       v-if="showRestartTip"
       class="restart-alert"
@@ -27,7 +26,6 @@
 
     <a-spin :spinning="loading">
       <div class="settings-layout">
-        <!-- 左侧分组导航 -->
         <aside class="settings-nav">
           <div class="settings-search">
             <a-input
@@ -54,9 +52,7 @@
           </a-menu>
         </aside>
 
-        <!-- 右侧详情区 -->
         <section class="settings-detail">
-          <!-- 搜索模式：摊平展示所有命中项 -->
           <div v-if="searchKeyword.trim()" class="settings-detail-inner">
             <div class="detail-header">
               <a-icon type="search" class="detail-icon" />
@@ -69,7 +65,7 @@
               :description="emptySearchLabel"
               style="margin-top: 48px;"
             />
-            <a-form v-else :form="form" layout="vertical" class="settings-form">
+            <a-form v-else :form="form" layout="vertical" class="settings-form" autocomplete="off">
               <a-row :gutter="24">
                 <a-col
                   v-for="entry in searchResults"
@@ -110,6 +106,12 @@
                       <a-input
                         v-decorator="[entry.item.key, { initialValue: getFieldValue(entry.groupKey, entry.item.key) }]"
                         :placeholder="entry.item.default ? `${$t('settings.default')}: ${entry.item.default}` : ''"
+                        :name="getSafeInputName(entry.item)"
+                        :autocomplete="getAutocomplete(entry.item)"
+                        data-lpignore="true"
+                        data-1p-ignore="true"
+                        data-bwignore="true"
+                        data-form-type="other"
                         allowClear
                       />
                     </template>
@@ -117,8 +119,17 @@
                       <div class="password-field">
                         <a-input
                           v-decorator="[entry.item.key, { initialValue: getFieldValue(entry.groupKey, entry.item.key) }]"
-                          :type="passwordVisible[entry.item.key] ? 'text' : 'password'"
+                          type="text"
+                          :class="{ 'secret-masked-input': !passwordVisible[entry.item.key] }"
                           :placeholder="$t('settings.inputApiKey')"
+                          :name="getSafeInputName(entry.item)"
+                          :autocomplete="getAutocomplete(entry.item)"
+                          spellcheck="false"
+                          autocapitalize="off"
+                          data-lpignore="true"
+                          data-1p-ignore="true"
+                          data-bwignore="true"
+                          data-form-type="other"
                           allowClear
                         >
                           <a-icon
@@ -156,6 +167,46 @@
                         </a-select-option>
                       </a-select>
                     </template>
+                    <template v-else-if="entry.item.type === 'market_multiselect'">
+                      <a-checkbox-group
+                        v-decorator="[entry.item.key, { initialValue: getCsvListValue(entry.groupKey, entry.item.key, entry.item.default) }]"
+                        class="market-module-grid"
+                      >
+                        <div
+                          v-for="market in getMarketModuleRows(entry.item)"
+                          :key="market.key"
+                          class="market-module-row"
+                        >
+                          <div class="market-module-main">
+                            <a-checkbox :value="market.key">
+                              <span class="market-module-label">{{ marketModuleLabel(market) }}</span>
+                            </a-checkbox>
+                            <a-tag :color="marketStatusColor(market.status)">
+                              {{ marketStatusText(market.status) }}
+                            </a-tag>
+                          </div>
+                          <div class="market-module-desc">{{ marketModuleDescription(market) }}</div>
+                          <div class="market-module-meta">
+                            <span>{{ market.symbol_hint }}</span>
+                            <span v-if="market.live_brokers && market.live_brokers.length">
+                              {{ marketLiveText(market) }}
+                            </span>
+                            <span v-else>{{ marketResearchOnlyText() }}</span>
+                          </div>
+                          <div v-if="market.data_sources && market.data_sources.length" class="market-data-source-list">
+                            <span
+                              v-for="source in market.data_sources"
+                              :key="source.key"
+                              class="market-data-source"
+                              :class="{ configured: source.configured, missing: !source.configured && (source.required || source.recommended) }"
+                            >
+                              {{ marketSourceLabel(source) }}
+                              <small>{{ sourceStatusText(source) }}</small>
+                            </span>
+                          </div>
+                        </div>
+                      </a-checkbox-group>
+                    </template>
                     <div class="field-default" v-if="entry.item.default && entry.item.type !== 'boolean' && entry.item.type !== 'password'">
                       {{ $t('settings.default') }}: {{ entry.item.default }}
                     </div>
@@ -165,7 +216,6 @@
             </a-form>
           </div>
 
-          <!-- 正常模式：只显示当前选中分组 -->
           <div v-else-if="currentGroup" class="settings-detail-inner">
             <div class="detail-header">
               <a-icon :type="currentGroup.icon || getGroupIcon(activeGroupKey)" class="detail-icon" />
@@ -174,8 +224,7 @@
               </h3>
             </div>
 
-            <!-- AI 组特殊：显示 OpenRouter 余额查询卡片 -->
-            <div v-if="activeGroupKey === 'ai'" class="openrouter-balance-card">
+            <div v-if="activeGroupKey === 'ai' && currentLlmProvider === 'openrouter'" class="openrouter-balance-card">
               <a-card size="small" :bordered="false">
                 <div class="balance-header">
                   <span class="balance-title">
@@ -227,82 +276,276 @@
               </a-card>
             </div>
 
-            <a-form :form="form" layout="vertical" class="settings-form">
-              <a-row :gutter="24">
+            <a-form :form="form" layout="vertical" class="settings-form" autocomplete="off">
+              <div v-if="activeGroupKey === 'ai'" class="ai-settings-panel">
+                <a-alert
+                  class="ai-provider-alert"
+                  type="info"
+                  show-icon
+                  :message="aiProviderAlertTitle"
+                  :description="aiProviderAlertDesc"
+                />
+
+                <section
+                  v-for="section in aiSections"
+                  :key="section.key"
+                  class="ai-settings-section"
+                >
+                  <div class="ai-section-header">
+                    <div>
+                      <h4>{{ section.title }}</h4>
+                      <p v-if="section.description">{{ section.description }}</p>
+                    </div>
+                    <a-tag v-if="section.badge" :color="section.badgeColor || 'blue'">
+                      {{ section.badge }}
+                    </a-tag>
+                  </div>
+
+                  <a-row :gutter="24">
+                    <a-col
+                      v-for="entry in section.entries"
+                      :key="entry.key"
+                      :xs="24"
+                      :sm="24"
+                      :md="entry.type === 'heading' ? 24 : (entry.item.key === 'LLM_PROVIDER' ? 24 : 12)"
+                      :lg="entry.type === 'heading' ? 24 : (entry.item.key === 'LLM_PROVIDER' ? 24 : 12)"
+                    >
+                      <div v-if="entry.type === 'heading'" class="settings-subsection-heading">
+                        <span>{{ entry.title }}</span>
+                        <small>{{ entry.description }}</small>
+                      </div>
+                      <a-form-item v-else>
+                        <template slot="label">
+                          <span class="form-label-with-tooltip">
+                            <span class="label-text">{{ getItemLabel(activeGroupKey, entry.item) }}</span>
+                            <a-tooltip v-if="entry.item.description" placement="top">
+                              <template slot="title">
+                                {{ getItemDescription(activeGroupKey, entry.item) }}
+                              </template>
+                              <a-icon type="question-circle" class="help-icon" />
+                            </a-tooltip>
+                            <a
+                              v-if="entry.item.link"
+                              :href="entry.item.link"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              class="api-link"
+                              @click.stop
+                            >
+                              <a-icon type="link" />
+                              {{ getLinkText(entry.item.link_text) }}
+                            </a>
+                          </span>
+                        </template>
+                        <template v-if="entry.item.type === 'text'">
+                          <a-input
+                            v-decorator="[entry.item.key, { initialValue: getFieldValue(activeGroupKey, entry.item.key) }]"
+                            :placeholder="entry.item.default ? `${$t('settings.default')}: ${entry.item.default}` : ''"
+                            :name="getSafeInputName(entry.item)"
+                            :autocomplete="getAutocomplete(entry.item)"
+                            data-lpignore="true"
+                            data-1p-ignore="true"
+                            data-bwignore="true"
+                            data-form-type="other"
+                            allowClear
+                          />
+                        </template>
+                        <template v-else-if="entry.item.type === 'password'">
+                          <div class="password-field">
+                            <a-input
+                              v-decorator="[entry.item.key, { initialValue: getFieldValue(activeGroupKey, entry.item.key) }]"
+                              type="text"
+                              :class="{ 'secret-masked-input': !passwordVisible[entry.item.key] }"
+                              :placeholder="$t('settings.inputApiKey')"
+                              :name="getSafeInputName(entry.item)"
+                              :autocomplete="getAutocomplete(entry.item)"
+                              spellcheck="false"
+                              autocapitalize="off"
+                              data-lpignore="true"
+                              data-1p-ignore="true"
+                              data-bwignore="true"
+                              data-form-type="other"
+                              allowClear
+                            >
+                              <a-icon
+                                slot="suffix"
+                                :type="passwordVisible[entry.item.key] ? 'eye' : 'eye-invisible'"
+                                @click="togglePasswordVisible(entry.item.key)"
+                                style="cursor: pointer"
+                              />
+                            </a-input>
+                          </div>
+                        </template>
+                        <template v-else-if="entry.item.type === 'number'">
+                          <a-input-number
+                            v-decorator="[entry.item.key, { initialValue: getNumberValue(activeGroupKey, entry.item.key, entry.item.default) }]"
+                            :placeholder="entry.item.default ? `${$t('settings.default')}: ${entry.item.default}` : ''"
+                            style="width: 100%"
+                          />
+                        </template>
+                        <template v-else-if="entry.item.type === 'boolean'">
+                          <a-switch
+                            v-decorator="[entry.item.key, { valuePropName: 'checked', initialValue: getBoolValue(activeGroupKey, entry.item.key, entry.item.default) }]"
+                          />
+                        </template>
+                        <template v-else-if="entry.item.type === 'select'">
+                          <a-select
+                            v-decorator="[entry.item.key, { initialValue: getFieldValue(activeGroupKey, entry.item.key) || entry.item.default }]"
+                            :placeholder="entry.item.default ? `${$t('settings.default')}: ${entry.item.default}` : $t('settings.pleaseSelect')"
+                            @change="onSelectFieldChange(entry.item, $event)"
+                          >
+                            <a-select-option
+                              v-for="opt in getSelectOptions(entry.item)"
+                              :key="opt.value"
+                              :value="opt.value"
+                            >
+                              {{ opt.label }}
+                            </a-select-option>
+                          </a-select>
+                        </template>
+                        <template v-else-if="entry.item.type === 'market_multiselect'">
+                          <a-checkbox-group
+                            v-decorator="[entry.item.key, { initialValue: getCsvListValue(activeGroupKey, entry.item.key, entry.item.default) }]"
+                            class="market-module-grid"
+                          >
+                            <div
+                              v-for="market in getMarketModuleRows(entry.item)"
+                              :key="market.key"
+                              class="market-module-row"
+                            >
+                              <div class="market-module-main">
+                                <a-checkbox :value="market.key">
+                                  <span class="market-module-label">{{ marketModuleLabel(market) }}</span>
+                                </a-checkbox>
+                                <a-tag :color="marketStatusColor(market.status)">
+                                  {{ marketStatusText(market.status) }}
+                                </a-tag>
+                              </div>
+                              <div class="market-module-desc">{{ marketModuleDescription(market) }}</div>
+                              <div class="market-module-meta">
+                                <span>{{ market.symbol_hint }}</span>
+                                <span v-if="market.live_brokers && market.live_brokers.length">
+                                  {{ marketLiveText(market) }}
+                                </span>
+                                <span v-else>{{ marketResearchOnlyText() }}</span>
+                              </div>
+                              <div v-if="market.data_sources && market.data_sources.length" class="market-data-source-list">
+                                <span
+                                  v-for="source in market.data_sources"
+                                  :key="source.key"
+                                  class="market-data-source"
+                                  :class="{ configured: source.configured, missing: !source.configured && (source.required || source.recommended) }"
+                                >
+                                  {{ marketSourceLabel(source) }}
+                                  <small>{{ sourceStatusText(source) }}</small>
+                                </span>
+                              </div>
+                            </div>
+                          </a-checkbox-group>
+                        </template>
+                        <div class="field-default" v-if="entry.item.default && entry.item.type !== 'boolean' && entry.item.type !== 'password'">
+                          {{ $t('settings.default') }}: {{ entry.item.default }}
+                        </div>
+                      </a-form-item>
+                    </a-col>
+                  </a-row>
+                </section>
+              </div>
+
+              <a-row v-else :gutter="24">
                 <a-col
+                  v-for="entry in currentDisplayEntries"
+                  :key="entry.key"
                   :xs="24"
                   :sm="24"
-                  :md="12"
-                  :lg="12"
-                  v-for="item in currentGroup.items"
-                  :key="item.key"
+                  :md="entry.type === 'heading' ? 24 : 12"
+                  :lg="entry.type === 'heading' ? 24 : 12"
                 >
-                  <a-form-item>
+                  <div v-if="entry.type === 'heading'" class="settings-subsection-heading">
+                    <span>{{ entry.title }}</span>
+                    <small>{{ entry.description }}</small>
+                  </div>
+                  <a-form-item v-else>
                     <template slot="label">
                       <span class="form-label-with-tooltip">
-                        <span class="label-text">{{ getItemLabel(activeGroupKey, item) }}</span>
-                        <a-tooltip v-if="item.description" placement="top">
+                        <span class="label-text">{{ getItemLabel(activeGroupKey, entry.item) }}</span>
+                        <a-tooltip v-if="entry.item.description" placement="top">
                           <template slot="title">
-                            {{ getItemDescription(activeGroupKey, item) }}
+                            {{ getItemDescription(activeGroupKey, entry.item) }}
                           </template>
                           <a-icon type="question-circle" class="help-icon" />
                         </a-tooltip>
                         <a
-                          v-if="item.link"
-                          :href="item.link"
+                          v-if="entry.item.link"
+                          :href="entry.item.link"
                           target="_blank"
                           rel="noopener noreferrer"
                           class="api-link"
                           @click.stop
                         >
                           <a-icon type="link" />
-                          {{ getLinkText(item.link_text) }}
+                          {{ getLinkText(entry.item.link_text) }}
                         </a>
                       </span>
                     </template>
-                    <template v-if="item.type === 'text'">
+                    <template v-if="entry.item.type === 'text'">
                       <a-input
-                        v-decorator="[item.key, { initialValue: getFieldValue(activeGroupKey, item.key) }]"
-                        :placeholder="item.default ? `${$t('settings.default')}: ${item.default}` : ''"
+                        v-decorator="[entry.item.key, { initialValue: getFieldValue(activeGroupKey, entry.item.key) }]"
+                        :placeholder="entry.item.default ? `${$t('settings.default')}: ${entry.item.default}` : ''"
+                        :name="getSafeInputName(entry.item)"
+                        :autocomplete="getAutocomplete(entry.item)"
+                        data-lpignore="true"
+                        data-1p-ignore="true"
+                        data-bwignore="true"
+                        data-form-type="other"
                         allowClear
                       />
                     </template>
-                    <template v-else-if="item.type === 'password'">
+                    <template v-else-if="entry.item.type === 'password'">
                       <div class="password-field">
                         <a-input
-                          v-decorator="[item.key, { initialValue: getFieldValue(activeGroupKey, item.key) }]"
-                          :type="passwordVisible[item.key] ? 'text' : 'password'"
+                          v-decorator="[entry.item.key, { initialValue: getFieldValue(activeGroupKey, entry.item.key) }]"
+                          type="text"
+                          :class="{ 'secret-masked-input': !passwordVisible[entry.item.key] }"
                           :placeholder="$t('settings.inputApiKey')"
+                          :name="getSafeInputName(entry.item)"
+                          :autocomplete="getAutocomplete(entry.item)"
+                          spellcheck="false"
+                          autocapitalize="off"
+                          data-lpignore="true"
+                          data-1p-ignore="true"
+                          data-bwignore="true"
+                          data-form-type="other"
                           allowClear
                         >
                           <a-icon
                             slot="suffix"
-                            :type="passwordVisible[item.key] ? 'eye' : 'eye-invisible'"
-                            @click="togglePasswordVisible(item.key)"
+                            :type="passwordVisible[entry.item.key] ? 'eye' : 'eye-invisible'"
+                            @click="togglePasswordVisible(entry.item.key)"
                             style="cursor: pointer"
                           />
                         </a-input>
                       </div>
                     </template>
-                    <template v-else-if="item.type === 'number'">
+                    <template v-else-if="entry.item.type === 'number'">
                       <a-input-number
-                        v-decorator="[item.key, { initialValue: getNumberValue(activeGroupKey, item.key, item.default) }]"
-                        :placeholder="item.default ? `${$t('settings.default')}: ${item.default}` : ''"
+                        v-decorator="[entry.item.key, { initialValue: getNumberValue(activeGroupKey, entry.item.key, entry.item.default) }]"
+                        :placeholder="entry.item.default ? `${$t('settings.default')}: ${entry.item.default}` : ''"
                         style="width: 100%"
                       />
                     </template>
-                    <template v-else-if="item.type === 'boolean'">
+                    <template v-else-if="entry.item.type === 'boolean'">
                       <a-switch
-                        v-decorator="[item.key, { valuePropName: 'checked', initialValue: getBoolValue(activeGroupKey, item.key, item.default) }]"
+                        v-decorator="[entry.item.key, { valuePropName: 'checked', initialValue: getBoolValue(activeGroupKey, entry.item.key, entry.item.default) }]"
                       />
                     </template>
-                    <template v-else-if="item.type === 'select'">
+                    <template v-else-if="entry.item.type === 'select'">
                       <a-select
-                        v-decorator="[item.key, { initialValue: getFieldValue(activeGroupKey, item.key) || item.default }]"
-                        :placeholder="item.default ? `${$t('settings.default')}: ${item.default}` : $t('settings.pleaseSelect')"
+                        v-decorator="[entry.item.key, { initialValue: getFieldValue(activeGroupKey, entry.item.key) || entry.item.default }]"
+                        :placeholder="entry.item.default ? `${$t('settings.default')}: ${entry.item.default}` : $t('settings.pleaseSelect')"
                       >
                         <a-select-option
-                          v-for="opt in getSelectOptions(item)"
+                          v-for="opt in getSelectOptions(entry.item)"
                           :key="opt.value"
                           :value="opt.value"
                         >
@@ -310,8 +553,48 @@
                         </a-select-option>
                       </a-select>
                     </template>
-                    <div class="field-default" v-if="item.default && item.type !== 'boolean' && item.type !== 'password'">
-                      {{ $t('settings.default') }}: {{ item.default }}
+                    <template v-else-if="entry.item.type === 'market_multiselect'">
+                      <a-checkbox-group
+                        v-decorator="[entry.item.key, { initialValue: getCsvListValue(activeGroupKey, entry.item.key, entry.item.default) }]"
+                        class="market-module-grid"
+                      >
+                        <div
+                          v-for="market in getMarketModuleRows(entry.item)"
+                          :key="market.key"
+                          class="market-module-row"
+                        >
+                          <div class="market-module-main">
+                            <a-checkbox :value="market.key">
+                              <span class="market-module-label">{{ marketModuleLabel(market) }}</span>
+                            </a-checkbox>
+                            <a-tag :color="marketStatusColor(market.status)">
+                              {{ marketStatusText(market.status) }}
+                            </a-tag>
+                          </div>
+                          <div class="market-module-desc">{{ marketModuleDescription(market) }}</div>
+                          <div class="market-module-meta">
+                            <span>{{ market.symbol_hint }}</span>
+                            <span v-if="market.live_brokers && market.live_brokers.length">
+                              {{ marketLiveText(market) }}
+                            </span>
+                            <span v-else>{{ marketResearchOnlyText() }}</span>
+                          </div>
+                          <div v-if="market.data_sources && market.data_sources.length" class="market-data-source-list">
+                            <span
+                              v-for="source in market.data_sources"
+                              :key="source.key"
+                              class="market-data-source"
+                              :class="{ configured: source.configured, missing: !source.configured && (source.required || source.recommended) }"
+                            >
+                              {{ marketSourceLabel(source) }}
+                              <small>{{ sourceStatusText(source) }}</small>
+                            </span>
+                          </div>
+                        </div>
+                      </a-checkbox-group>
+                    </template>
+                    <div class="field-default" v-if="entry.item.default && entry.item.type !== 'boolean' && entry.item.type !== 'password'">
+                      {{ $t('settings.default') }}: {{ entry.item.default }}
                     </div>
                   </a-form-item>
                 </a-col>
@@ -320,8 +603,7 @@
 
             <!-- Brand group footer: commercial license notice. Shown only
                  under "Brand & Identity" so it's visible right where an
-                 operator sets up their fork. Single official email channel
-                 to avoid impersonation risk via informal IM handles. -->
+                 operator sets up their fork. -->
             <div v-if="activeGroupKey === 'brand'" class="commercial-license-notice">
               <a-alert
                 type="warning"
@@ -332,8 +614,13 @@
                   <p>{{ $t('settings.commercialLicense.body') }}</p>
                   <p class="license-contact">
                     <span class="contact-label">{{ $t('settings.commercialLicense.contactLabel') }}:</span>
-                    <a href="mailto:support@quantdinger.com" class="contact-link">
-                      <a-icon type="mail" /> support@quantdinger.com
+                    <a
+                      href="https://www.quantdinger.com/#license"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="contact-link"
+                    >
+                      <a-icon type="link" /> {{ $t('settings.commercialLicense.applyLink') }}
                     </a>
                   </p>
                 </div>
@@ -359,6 +646,7 @@
 
 <script>
 import { getSettingsSchema, getSettingsValues, saveSettings, getOpenRouterBalance } from '@/api/settings'
+import { getMarketModules } from '@/api/marketModules'
 import { baseMixin } from '@/store/app-mixin'
 
 export default {
@@ -377,17 +665,18 @@ export default {
       // the right-side detail pane into "search results" mode.
       searchKeyword: '',
       passwordVisible: {},
+      marketModules: [],
       showRestartTip: false,
-      // OpenRouter 余额
       balanceLoading: false,
-      openrouterBalance: null
+      openrouterBalance: null,
+      selectedLlmProvider: '',
+      settingsInputNonce: Math.random().toString(36).slice(2, 10)
     }
   },
   computed: {
     isDarkTheme () {
       return this.navTheme === 'dark' || this.navTheme === 'realdark'
     },
-    // 按 order 排序的 schema
     sortedSchema () {
       const entries = Object.entries(this.schema)
       entries.sort((a, b) => {
@@ -404,6 +693,12 @@ export default {
     // Currently selected group object (right-side detail content).
     currentGroup () {
       return this.sortedSchema[this.activeGroupKey] || null
+    },
+    currentDisplayEntries () {
+      const items = this.currentGroup && Array.isArray(this.currentGroup.items)
+        ? this.currentGroup.items
+        : []
+      return this.buildSettingEntries(items)
     },
     // Flattened, filtered search hits. Match is case-insensitive against the
     // localized label, the localized description and the raw ENV key, so
@@ -441,6 +736,62 @@ export default {
       const k = 'settings.search.empty'
       const t = this.$t(k)
       return (t && t !== k) ? t : 'No matching settings'
+    },
+    aiItems () {
+      return (this.currentGroup && Array.isArray(this.currentGroup.items)) ? this.currentGroup.items : []
+    },
+    currentLlmProvider () {
+      return this.selectedLlmProvider || this.getFieldValue('ai', 'LLM_PROVIDER') || 'openrouter'
+    },
+    currentLlmProviderLabel () {
+      const providerItem = this.aiItems.find(item => item.key === 'LLM_PROVIDER')
+      const option = this.getSelectOptions(providerItem).find(opt => opt.value === this.currentLlmProvider)
+      return option ? option.label : this.currentLlmProvider
+    },
+    aiProviderAlertTitle () {
+      return this.tOr('settings.llm.currentProviderTitle', 'Current provider: {provider}')
+        .replace('{provider}', this.currentLlmProviderLabel)
+    },
+    aiProviderAlertDesc () {
+      return this.tOr(
+        'settings.llm.currentProviderDesc',
+        'Switching providers keeps the other provider settings saved; switch back anytime to edit them.'
+      )
+    },
+    aiSections () {
+      const providerSelection = this.aiItems.filter(item => item.key === 'LLM_PROVIDER')
+      const providerItems = this.aiItems.filter(item => item.group === this.currentLlmProvider)
+      const commonItems = this.aiItems.filter(item => {
+        if (item.key === 'LLM_PROVIDER' || item.group || this.isSearchSetting(item)) return false
+        return true
+      })
+      return [
+        {
+          key: 'provider',
+          title: this.tOr('settings.llm.providerSection', 'Model provider'),
+          description: this.tOr('settings.llm.providerSectionDesc', 'Choose the LLM provider used by analysis, code generation, and strategy review.'),
+          items: providerSelection
+        },
+        {
+          key: 'activeProvider',
+          title: this.tOr('settings.llm.activeProviderSection', 'Provider credentials'),
+          description: this.tOr('settings.llm.activeProviderSectionDesc', 'Fill only the key, model, and endpoint for the selected provider.'),
+          badge: this.currentLlmProviderLabel,
+          badgeColor: 'geekblue',
+          items: providerItems
+        },
+        {
+          key: 'common',
+          title: this.tOr('settings.llm.commonSection', 'Common AI parameters'),
+          description: this.tOr('settings.llm.commonSectionDesc', 'Shared behavior used across providers.'),
+          items: commonItems
+        }
+      ]
+        .filter(section => section.items.length > 0)
+        .map(section => ({
+          ...section,
+          entries: this.buildSettingEntries(section.items)
+        }))
     }
   },
   beforeCreate () {
@@ -448,6 +799,14 @@ export default {
   },
   mounted () {
     this.loadSettings()
+  },
+  watch: {
+    '$route.query.section' () {
+      this.applyRouteSection()
+    },
+    '$route.query.group' () {
+      this.applyRouteSection()
+    }
   },
   methods: {
     // Left-nav click: switch the currently displayed group.  Clearing the
@@ -457,7 +816,128 @@ export default {
       this.activeGroupKey = key
       this.searchKeyword = ''
     },
-    // 兼容后端 schema options 两种格式：
+    tOr (key, fallback) {
+      const text = this.$t(key)
+      return text && text !== key ? text : fallback
+    },
+    isSearchSetting (item) {
+      const key = item && item.key ? item.key : ''
+      return key.startsWith('SEARCH_') ||
+        key === 'TAVILY_API_KEYS' ||
+        key === 'SERPAPI_KEYS'
+    },
+    isAutofillSensitiveSetting (item) {
+      const key = String(item && item.key ? item.key : '').toUpperCase()
+      return item && (item.type === 'password' || /(^|_)(KEY|SECRET|TOKEN|PASSWORD|CLIENT_ID|SITE_KEY)(_|$)/.test(key))
+    },
+    hashSettingKey (key) {
+      let hash = 0
+      const text = String(key || '')
+      for (let i = 0; i < text.length; i += 1) {
+        hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0
+      }
+      return Math.abs(hash).toString(36)
+    },
+    getSafeInputName (item) {
+      return `qd-config-${this.settingsInputNonce}-${this.hashSettingKey(item && item.key)}`
+    },
+    getAutocomplete (item) {
+      return this.isAutofillSensitiveSetting(item) ? 'new-password' : 'off'
+    },
+    isSuspiciousAutofillValue (item, value) {
+      if (!this.isAutofillSensitiveSetting(item)) return false
+      const normalized = String(value || '').trim().toLowerCase()
+      if (!normalized) return false
+      return [
+        'admin',
+        'administrator',
+        'quantdinger',
+        'root',
+        'user',
+        'test',
+        'demo',
+        'password',
+        '123456',
+        'changeme',
+        'change-me',
+        'placeholder',
+        'dummy'
+      ].includes(normalized)
+    },
+    formatMessage (key, fallback, params = {}) {
+      let text = this.tOr(key, fallback)
+      Object.keys(params).forEach((name) => {
+        text = text.replace(new RegExp(`\\{${name}\\}`, 'g'), params[name])
+      })
+      return text
+    },
+    findSuspiciousAutofillFields (formValues) {
+      const hits = []
+      for (const [groupKey, group] of Object.entries(this.schema)) {
+        for (const item of (group.items || [])) {
+          if (!(item.key in formValues)) continue
+          if (this.isSuspiciousAutofillValue(item, formValues[item.key])) {
+            hits.push(this.getItemLabel(groupKey, item) || item.key)
+          }
+        }
+      }
+      return hits
+    },
+    buildSettingEntries (items) {
+      const basicItems = (items || []).filter(item => !item.is_advanced)
+      const advancedItems = (items || []).filter(item => item.is_advanced)
+      const entries = basicItems.map(item => ({
+        type: 'field',
+        key: `field-${item.key}`,
+        item
+      }))
+
+      if (advancedItems.length > 0) {
+        entries.push({
+          type: 'heading',
+          key: 'advanced-heading',
+          title: this.tOr('settings.advanced.title', 'More settings'),
+          description: this.tOr(
+            'settings.advanced.description',
+            'Optional integrations, endpoints, and tuning controls remain available here.'
+          )
+        })
+        entries.push(...advancedItems.map(item => ({
+          type: 'field',
+          key: `advanced-${item.key}`,
+          item
+        })))
+      }
+
+      return entries
+    },
+    onSelectFieldChange (item, value) {
+      if (item && item.key === 'LLM_PROVIDER') {
+        this.selectedLlmProvider = value || 'openrouter'
+      }
+    },
+    normalizeRouteSection (value) {
+      const key = String(value || '').toLowerCase()
+      const map = {
+        llm: 'ai',
+        ai_llm: 'ai',
+        ai: 'ai',
+        data: 'data_source',
+        datasource: 'data_source',
+        data_source: 'data_source',
+        broker: 'trading',
+        broker_accounts: 'trading'
+      }
+      return map[key] || key
+    },
+    applyRouteSection () {
+      const keys = Object.keys(this.sortedSchema || {})
+      const target = this.normalizeRouteSection(this.$route.query.section || this.$route.query.group)
+      if (target && keys.includes(target)) {
+        this.activeGroupKey = target
+        this.searchKeyword = ''
+      }
+    },
     // - string[]: ['openrouter','openai', ...]
     // - {value,label}[]: [{value:'openrouter',label:'OpenRouter'}, ...]
     getSelectOptions (item) {
@@ -484,9 +964,10 @@ export default {
     async loadSettings () {
       this.loading = true
       try {
-        const [schemaRes, valuesRes] = await Promise.all([
+        const [schemaRes, valuesRes, marketModulesRes] = await Promise.all([
           getSettingsSchema(),
-          getSettingsValues()
+          getSettingsValues(),
+          getMarketModules().catch(() => null)
         ])
 
         if (schemaRes.code === 1) {
@@ -495,13 +976,21 @@ export default {
 
         if (valuesRes.code === 1) {
           this.values = valuesRes.data
+          this.selectedLlmProvider = (this.values.ai && this.values.ai.LLM_PROVIDER) || 'openrouter'
+        }
+
+        if (marketModulesRes && marketModulesRes.code === 1 && marketModulesRes.data) {
+          this.marketModules = marketModulesRes.data.markets || []
         }
 
         // After a fresh load: if no group has been picked yet (first mount)
         // or the previously active key disappeared, fall back to the first
         // group in display order.  This avoids a blank right pane.
         const keys = Object.keys(this.sortedSchema)
-        if (keys.length && (!this.activeGroupKey || !keys.includes(this.activeGroupKey))) {
+        const routeGroup = this.normalizeRouteSection(this.$route.query.section || this.$route.query.group)
+        if (routeGroup && keys.includes(routeGroup)) {
+          this.activeGroupKey = routeGroup
+        } else if (keys.length && (!this.activeGroupKey || !keys.includes(this.activeGroupKey))) {
           this.activeGroupKey = keys[0]
         }
       } catch (error) {
@@ -511,7 +1000,6 @@ export default {
       }
     },
 
-    // 查询 OpenRouter 余额
     async queryOpenRouterBalance () {
       this.balanceLoading = true
       try {
@@ -564,19 +1052,16 @@ export default {
     },
 
     getItemDescription (groupKey, item) {
-      // 先尝试从多语言获取描述
       const key = `settings.desc.${item.key}`
       const translated = this.$t(key)
       if (translated !== key) {
         return translated
       }
-      // 回退到后端返回的描述
       return item.description || ''
     },
 
     getLinkText (linkText) {
       if (!linkText) return this.$t('settings.getApi')
-      // 如果是翻译键（以 settings.link. 开头），则翻译
       if (linkText.startsWith('settings.link.')) {
         const translated = this.$t(linkText)
         return translated !== linkText ? translated : linkText
@@ -587,6 +1072,99 @@ export default {
     getFieldValue (groupKey, key) {
       const groupValues = this.values[groupKey] || {}
       return groupValues[key] || ''
+    },
+
+    getCsvListValue (groupKey, key, defaultVal) {
+      const raw = this.getFieldValue(groupKey, key) || defaultVal || ''
+      if (Array.isArray(raw)) return raw
+      return String(raw)
+        .split(',')
+        .map(item => item.trim())
+        .filter(Boolean)
+    },
+
+    getMarketModuleRows (item) {
+      const byKey = {}
+      for (const market of this.marketModules || []) {
+        if (market && market.key) byKey[market.key] = market
+      }
+      const options = this.getSelectOptions(item)
+      return options.map(opt => {
+        const module = byKey[opt.value]
+        if (module) {
+          return {
+            ...module,
+            label: module.label || opt.label
+          }
+        }
+        return {
+          key: opt.value,
+          label: opt.label,
+          description: '',
+          symbol_hint: opt.value,
+          status: 'partial',
+          data_sources: [],
+          live_brokers: [],
+          features: []
+        }
+      })
+    },
+
+    marketStatusColor (status) {
+      const map = {
+        ready: 'green',
+        partial: 'orange',
+        blocked: 'red',
+        disabled: 'default'
+      }
+      return map[status] || 'blue'
+    },
+
+    marketStatusText (status) {
+      const map = {
+        ready: this.tOr('settings.market.status.ready', 'Ready'),
+        partial: this.tOr('settings.market.status.partial', 'Needs setup'),
+        blocked: this.tOr('settings.market.status.blocked', 'Blocked'),
+        disabled: this.tOr('settings.market.status.disabled', 'Disabled')
+      }
+      return map[status] || status || 'Unknown'
+    },
+
+    marketModuleLabel (market) {
+      if (!market) return ''
+      const key = market.key || market.value
+      const i18nKey = `dashboard.analysis.market.${key}`
+      const translated = this.$t(i18nKey)
+      return translated !== i18nKey ? translated : (market.label || key || '')
+    },
+
+    marketModuleDescription (market) {
+      if (!market) return ''
+      const key = market.key || market.value
+      return this.tOr(`settings.market.desc.${key}`, market.description || '')
+    },
+
+    marketLiveText (market) {
+      const brokers = Array.isArray(market && market.live_brokers) ? market.live_brokers.join(', ') : ''
+      return `${this.tOr('settings.market.livePrefix', 'Live')}: ${brokers}`
+    },
+
+    marketResearchOnlyText () {
+      return this.tOr('settings.market.researchOnly', 'Research / paper only')
+    },
+
+    marketSourceLabel (source) {
+      if (!source) return ''
+      const key = source.key || source.value
+      return this.tOr(`settings.market.sourceLabel.${key}`, source.label || key || '')
+    },
+
+    sourceStatusText (source) {
+      if (source.built_in) return this.tOr('settings.market.source.builtin', 'built-in')
+      if (source.configured) return this.tOr('settings.market.source.configured', 'configured')
+      if (source.required) return this.tOr('settings.market.source.required', 'required')
+      if (source.recommended) return this.tOr('settings.market.source.recommended', 'recommended')
+      return this.tOr('settings.market.source.optional', 'optional')
     },
 
     togglePasswordVisible (key) {
@@ -629,9 +1207,18 @@ export default {
           return
         }
 
+        const suspiciousFields = this.findSuspiciousAutofillFields(formValues)
+        if (suspiciousFields.length) {
+          this.$message.warning(this.formatMessage(
+            'settings.sensitiveAutofillBlocked',
+            'Some sensitive settings look like browser autofill values: {fields}. Clear them or enter the real keys before saving.',
+            { fields: suspiciousFields.join(', ') }
+          ))
+          return
+        }
+
         this.saving = true
         try {
-          // 按组整理数据
           const data = {}
           for (const groupKey of Object.keys(this.schema)) {
             data[groupKey] = {}
@@ -639,9 +1226,10 @@ export default {
             for (const item of group.items) {
               if (item.key in formValues) {
                 let value = formValues[item.key]
-                // 布尔值转字符串
                 if (item.type === 'boolean') {
                   value = value ? 'True' : 'False'
+                } else if (item.type === 'market_multiselect') {
+                  value = Array.isArray(value) ? value.join(',') : String(value || '')
                 }
                 data[groupKey][item.key] = value
               }
@@ -680,7 +1268,8 @@ export default {
 @card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 
 .settings-page {
-  padding: 24px;
+  padding: 16px !important;
+  padding-bottom: 104px;
   min-height: calc(100vh - 120px);
   background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
 
@@ -717,7 +1306,7 @@ export default {
   .settings-layout {
     display: flex;
     gap: 20px;
-    margin-bottom: 80px;
+    margin-bottom: 24px;
     align-items: flex-start;
   }
 
@@ -732,7 +1321,7 @@ export default {
     border-radius: @border-radius;
     box-shadow: @card-shadow;
     padding: 16px 0;
-    max-height: calc(100vh - 200px);
+    max-height: calc(100vh - 280px);
     // Allow vertical scroll for long lists, but never let the side rail
     // grow a horizontal scrollbar — overflow is handled by ellipsis on
     // the menu-item label instead.
@@ -742,7 +1331,7 @@ export default {
     .settings-search {
       padding: 0 16px 12px;
 
-      /deep/ .ant-input-affix-wrapper {
+      ::v-deep .ant-input-affix-wrapper {
         border-radius: 8px;
       }
     }
@@ -751,7 +1340,7 @@ export default {
       border: none;
       background: transparent;
 
-      /deep/ .ant-menu-item {
+      ::v-deep .ant-menu-item {
         margin: 4px 8px;
         border-radius: 8px;
         height: 40px;
@@ -847,9 +1436,29 @@ export default {
         font-size: 11px;
       }
     }
+
+    .settings-subsection-heading {
+      margin: 6px 0 16px;
+      padding-top: 18px;
+      border-top: 1px solid #f1f5f9;
+
+      span {
+        display: block;
+        color: #1e3a5f;
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      small {
+        display: block;
+        margin-top: 4px;
+        color: #64748b;
+        font-size: 12px;
+        line-height: 1.6;
+      }
+    }
   }
 
-  // 商业授权提示（Brand 分组底部）
   .commercial-license-notice {
     margin-top: 24px;
 
@@ -893,7 +1502,6 @@ export default {
     }
   }
 
-  // OpenRouter 余额查询卡片
   .openrouter-balance-card {
     margin-bottom: 20px;
 
@@ -919,12 +1527,12 @@ export default {
     .balance-info {
       padding: 8px 0;
 
-      /deep/ .ant-statistic-title {
+      ::v-deep .ant-statistic-title {
         font-size: 12px;
         color: #666;
       }
 
-      /deep/ .ant-statistic-content {
+      ::v-deep .ant-statistic-content {
         font-size: 18px;
       }
 
@@ -941,8 +1549,51 @@ export default {
     }
   }
 
+  .ai-settings-panel {
+    .ai-provider-alert {
+      margin-bottom: 20px;
+      border-radius: 8px;
+    }
+
+    .ai-settings-section {
+      margin-bottom: 22px;
+      padding: 18px 18px 4px;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      background: #ffffff;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    .ai-section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 14px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #f1f5f9;
+
+      h4 {
+        margin: 0 0 4px;
+        color: #1e3a5f;
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      p {
+        margin: 0;
+        color: #64748b;
+        font-size: 12px;
+        line-height: 1.6;
+      }
+    }
+  }
+
   .settings-form {
-    /deep/ .ant-form-item-label {
+    ::v-deep .ant-form-item-label {
       padding-bottom: 4px;
 
       label {
@@ -998,17 +1649,23 @@ export default {
       }
     }
 
-    /deep/ .ant-input,
-    /deep/ .ant-input-number,
-    /deep/ .ant-select-selection {
+    ::v-deep .ant-input,
+    ::v-deep .ant-input-number,
+    ::v-deep .ant-select-selection {
       border-radius: 8px;
     }
 
-    /deep/ .ant-input-number {
+    ::v-deep .ant-input-number {
       width: 100%;
     }
 
     .password-field {
+      ::v-deep .secret-masked-input {
+        -webkit-text-security: disc;
+        text-security: disc;
+        font-family: text-security-disc, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      }
+
       .field-hint {
         margin-top: 4px;
         font-size: 12px;
@@ -1024,12 +1681,97 @@ export default {
       font-size: 12px;
       color: #94a3b8;
     }
+
+    .market-module-grid {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .market-module-row {
+      min-height: 132px;
+      padding: 14px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      background: #f8fafc;
+      transition: border-color 0.2s, background 0.2s;
+
+      &:hover {
+        border-color: rgba(24, 144, 255, 0.45);
+        background: #ffffff;
+      }
+    }
+
+    .market-module-main {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .market-module-label {
+      color: #1e3a5f;
+      font-weight: 700;
+    }
+
+    .market-module-desc {
+      min-height: 34px;
+      color: #64748b;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .market-module-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+      color: #475569;
+      font-size: 12px;
+    }
+
+    .market-data-source-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .market-data-source {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 2px 7px;
+      border: 1px solid #dbeafe;
+      border-radius: 4px;
+      color: #2563eb;
+      background: #eff6ff;
+      font-size: 11px;
+
+      small {
+        color: #64748b;
+      }
+
+      &.configured {
+        border-color: #bbf7d0;
+        color: #15803d;
+        background: #f0fdf4;
+      }
+
+      &.missing {
+        border-color: #fed7aa;
+        color: #c2410c;
+        background: #fff7ed;
+      }
+    }
   }
 
   .settings-footer {
     position: fixed;
     bottom: 0;
-    left: 208px;
+    left: 0;
     right: 0;
     padding: 16px 24px;
     background: #fff;
@@ -1047,9 +1789,8 @@ export default {
     }
   }
 
-  // 暗黑主题
   &.theme-dark {
-    background: linear-gradient(180deg, #141414 0%, #1c1c1c 100%);
+    background: #0f0f10;
 
     .restart-alert {
       background: #1c1c1c;
@@ -1077,10 +1818,10 @@ export default {
     }
 
     .settings-nav {
-      background: #1c1c1c;
+      background: #181818;
       box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
 
-      /deep/ .ant-menu-item {
+      ::v-deep .ant-menu-item {
         color: #c9d1d9;
         .anticon { color: #8b949e; }
 
@@ -1099,7 +1840,7 @@ export default {
     }
 
     .settings-detail {
-      background: #1c1c1c;
+      background: #181818;
       box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
 
       .detail-header {
@@ -1113,10 +1854,52 @@ export default {
         background: rgba(88, 166, 255, 0.18);
         color: #58a6ff;
       }
+
+      .settings-subsection-heading {
+        border-top-color: rgba(255, 255, 255, 0.08);
+
+        span {
+          color: #e0e6ed;
+        }
+
+        small {
+          color: #8b949e;
+        }
+      }
+    }
+
+    .ai-settings-panel {
+      .ai-settings-section {
+        background: #141414;
+        border-color: #2a2a2a;
+      }
+
+      .ai-section-header {
+        border-bottom-color: rgba(255, 255, 255, 0.08);
+
+        h4 {
+          color: #e0e6ed;
+        }
+
+        p {
+          color: #8b949e;
+        }
+      }
+    }
+
+    ::v-deep .ant-alert-info {
+      background: #141414 !important;
+      border-color: #2a2a2a !important;
+      color: rgba(255, 255, 255, 0.82) !important;
+    }
+
+    ::v-deep .ant-alert-info .ant-alert-message,
+    ::v-deep .ant-alert-info .ant-alert-description {
+      color: rgba(255, 255, 255, 0.82) !important;
     }
 
     .settings-form {
-      /deep/ .ant-form-item-label {
+      ::v-deep .ant-form-item-label {
         label {
           color: #c9d1d9;
         }
@@ -1145,10 +1928,10 @@ export default {
         }
       }
 
-      /deep/ .ant-input,
-      /deep/ .ant-input-password,
-      /deep/ .ant-input-number,
-      /deep/ .ant-select-selection {
+      ::v-deep .ant-input,
+      ::v-deep .ant-input-password,
+      ::v-deep .ant-input-number,
+      ::v-deep .ant-select-selection {
         background: #141414;
         border-color: #2a2a2a;
         color: #c9d1d9;
@@ -1159,32 +1942,73 @@ export default {
         }
       }
 
-      /deep/ .ant-input-number-input {
+      ::v-deep .ant-input-number-input {
         background: transparent;
         color: #c9d1d9;
       }
 
-      /deep/ .ant-select-arrow {
+      ::v-deep .ant-select-arrow {
         color: #8b949e;
       }
 
       // Input trailing icons in dark mode (eye/clear/spinner) should stay readable
-      /deep/ .ant-input-suffix .anticon,
-      /deep/ .ant-input-clear-icon,
-      /deep/ .ant-input-clear-icon .anticon,
-      /deep/ .ant-input-number-handler-wrap {
+      ::v-deep .ant-input-suffix .anticon,
+      ::v-deep .ant-input-clear-icon,
+      ::v-deep .ant-input-clear-icon .anticon,
+      ::v-deep .ant-input-number-handler-wrap {
         color: #8b949e;
       }
 
-      /deep/ .ant-input-suffix .anticon:hover,
-      /deep/ .ant-input-clear-icon:hover,
-      /deep/ .ant-input-number-handler:hover .ant-input-number-handler-up-inner,
-      /deep/ .ant-input-number-handler:hover .ant-input-number-handler-down-inner {
+      ::v-deep .ant-input-suffix .anticon:hover,
+      ::v-deep .ant-input-clear-icon:hover,
+      ::v-deep .ant-input-number-handler:hover .ant-input-number-handler-up-inner,
+      ::v-deep .ant-input-number-handler:hover .ant-input-number-handler-down-inner {
         color: #58a6ff;
       }
 
       .field-default {
         color: #6e7681;
+      }
+
+      .market-module-row {
+        background: #161b22;
+        border-color: rgba(255, 255, 255, 0.08);
+
+        &:hover {
+          border-color: rgba(88, 166, 255, 0.45);
+          background: #1f2630;
+        }
+      }
+
+      .market-module-label {
+        color: #e0e6ed;
+      }
+
+      .market-module-desc,
+      .market-module-meta {
+        color: #8b949e;
+      }
+
+      .market-data-source {
+        border-color: rgba(88, 166, 255, 0.25);
+        color: #79c0ff;
+        background: rgba(88, 166, 255, 0.1);
+
+        small {
+          color: #8b949e;
+        }
+
+        &.configured {
+          border-color: rgba(63, 185, 80, 0.35);
+          color: #7ee787;
+          background: rgba(46, 160, 67, 0.12);
+        }
+
+        &.missing {
+          border-color: rgba(210, 153, 34, 0.35);
+          color: #f2cc60;
+          background: rgba(187, 128, 9, 0.12);
+        }
       }
     }
 
@@ -1196,10 +2020,10 @@ export default {
   }
 }
 
-// 响应式适配
 @media (max-width: 768px) {
   .settings-page {
-    padding: 16px;
+    padding: 12px !important;
+    padding-bottom: 104px !important;
 
     .settings-layout {
       flex-direction: column;

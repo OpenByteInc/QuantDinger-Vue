@@ -1,4 +1,4 @@
-@import '~ant-design-vue/es/style/themes/default';
+@import '@/styles/antd-vars.less';
 
 @header-menu-prefix-cls: ~'@{ant-prefix}-pro-header-menu';
 @header-drop-down-prefix-cls: ~'@{ant-prefix}-pro-drop-down';
@@ -10,6 +10,45 @@
 
   .ant-dropdown-menu-item {
     min-width: 160px;
+  }
+
+  .language-code {
+    display: inline-flex;
+    width: 24px;
+    margin-right: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(0, 0, 0, 0.45);
+  }
+}
+
+body.dark,
+body.realdark {
+  .@{header-menu-prefix-cls} {
+    background: #1f1f1f;
+    border: 1px solid #303030;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+
+    .ant-dropdown-menu-item {
+      color: rgba(255, 255, 255, 0.82);
+
+      &:hover {
+        background: #2a2a2a;
+      }
+    }
+
+    .ant-dropdown-menu-item-selected {
+      color: #40a9ff;
+      background: rgba(24, 144, 255, 0.14);
+    }
+
+    .language-code {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .ant-dropdown-menu-item-selected .language-code {
+      color: #40a9ff;
+    }
   }
 }
 
@@ -24,24 +63,57 @@
   cursor: pointer;
   transition: all 0.3s;
 
+  &.language-action {
+    gap: 4px;
+    min-width: 54px;
+    padding: 0 10px;
+  }
+
   &:hover {
     background: rgba(0, 0, 0, 0.04);
   }
 
-  > i {
-    font-size: 16px !important;
+  > i,
+  .language-action-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    line-height: 18px;
+    font-size: 17px !important;
     transform: none !important;
+    flex: 0 0 18px;
 
     svg {
       position: relative;
-      top: -1px;
+      top: 0;
+      display: block;
     }
+  }
+
+  .language-action-label {
+    display: inline-flex;
+    align-items: center;
+    height: 18px;
+    min-width: 22px;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 18px;
+    letter-spacing: 0;
+    transform: translateY(-0.5px);
   }
 }
 
-/* 手机端适配 */
+/* Mobile spacing */
 @media (max-width: 768px) {
   .@{header-drop-down-prefix-cls} {
     padding: 0 8px;
+
+    &.language-action {
+      min-width: 48px;
+      gap: 3px;
+      padding: 0 8px;
+    }
   }
 }

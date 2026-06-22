@@ -75,7 +75,7 @@ export default {
 
 <style lang="less" scoped>
 .broker-form {
-  /deep/ .ant-form-item-label > label { font-size: 12px; color: #595959; }
+  ::v-deep .ant-form-item-label > label { font-size: 12px; color: #595959; }
 }
 .form-actions {
   display: flex;

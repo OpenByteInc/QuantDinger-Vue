@@ -114,12 +114,12 @@
               <div class="section-title">{{ $t('trading-bot.ai.strategyParams') }}</div>
               <div class="param-grid">
                 <div
-                  v-for="(val, key) in result.strategyParams"
-                  :key="key"
+                  v-for="item in strategyParamsDisplay"
+                  :key="item.key"
                   class="param-item"
                 >
-                  <span class="param-key">{{ key }}</span>
-                  <span class="param-val">{{ val }}</span>
+                  <span class="param-key">{{ item.label }}</span>
+                  <span class="param-val">{{ item.value }}</span>
                 </div>
               </div>
             </div>
@@ -129,12 +129,12 @@
               <div class="section-title">{{ $t('trading-bot.ai.riskConfig') }}</div>
               <div class="param-grid">
                 <div
-                  v-for="(val, key) in result.riskConfig"
-                  :key="key"
+                  v-for="item in riskConfigDisplay"
+                  :key="item.key"
                   class="param-item"
                 >
-                  <span class="param-key">{{ key }}</span>
-                  <span class="param-val">{{ typeof val === 'number' && key.includes('Pct') ? val + '%' : val }}</span>
+                  <span class="param-key">{{ item.label }}</span>
+                  <span class="param-val">{{ item.value }}</span>
                 </div>
               </div>
             </div>
@@ -230,6 +230,12 @@ export default {
         map[this.$t('trading-bot.wizard.initialCapital')] = '$' + bc.initialCapital
       }
       return map
+    },
+    strategyParamsDisplay () {
+      return this.buildParamDisplay(this.result && this.result.strategyParams, 'strategy')
+    },
+    riskConfigDisplay () {
+      return this.buildParamDisplay(this.result && this.result.riskConfig, 'risk')
     }
   },
   watch: {
@@ -277,6 +283,119 @@ export default {
     handleApply () {
       if (!this.result) return
       this.$emit('apply', this.result)
+    },
+    text (zh, en) {
+      return String(this.$i18n?.locale || '').toLowerCase().startsWith('zh') ? zh : en
+    },
+    buildParamDisplay (params, scope) {
+      if (!params || typeof params !== 'object') return []
+      return Object.keys(params)
+        .filter(key => !String(key || '').startsWith('_'))
+        .map(key => ({
+          key,
+          label: this.getParamLabel(key, scope),
+          value: this.formatParamValue(key, params[key])
+        }))
+    },
+    getParamLabel (key, scope) {
+      const map = {
+        upperPrice: this.$t('trading-bot.grid.upperPrice'),
+        lowerPrice: this.$t('trading-bot.grid.lowerPrice'),
+        gridCount: this.$t('trading-bot.grid.gridCount'),
+        amountPerGrid: this.$t('trading-bot.grid.amountPerGrid'),
+        gridMode: this.$t('trading-bot.grid.mode'),
+        gridDirection: this.$t('trading-bot.grid.direction'),
+        initialPositionPct: this.$t('trading-bot.grid.initialPositionPct'),
+        boundaryAction: this.$t('trading-bot.grid.boundaryAction'),
+        adaptiveBounds: this.$t('trading-bot.grid.adaptiveBounds'),
+        adaptiveAtrMult: this.$t('trading-bot.grid.adaptiveAtrMult'),
+        waterfallProtection: this.$t('trading-bot.grid.waterfallProtection'),
+        waterfallDropPct: this.result && this.result.botType === 'martingale'
+          ? this.$t('trading-bot.martingale.waterfallDropPct')
+          : this.$t('trading-bot.grid.waterfallDropPct'),
+        initialAmount: this.text('首单金额（自动计算）', 'First Order Amount (Auto)'),
+        multiplier: this.$t('trading-bot.martingale.multiplier'),
+        maxLayers: this.$t('trading-bot.martingale.maxLayers'),
+        priceDropPct: this.text('加仓触发跌幅', 'Add-on Trigger Move %'),
+        takeProfitPct: scope === 'risk'
+          ? this.text('止盈比例', 'Take Profit %')
+          : this.text('相对持仓均价止盈%', 'Take Profit vs Avg Entry %'),
+        stopLossPct: scope === 'risk'
+          ? this.text('止损比例', 'Stop Loss %')
+          : this.text('相对持仓均价止损%', 'Stop Loss vs Avg Entry %'),
+        direction: this.text('交易方向', 'Direction'),
+        maPeriod: this.$t('trading-bot.trend.maPeriod'),
+        maType: this.$t('trading-bot.trend.maType'),
+        confirmBars: this.$t('trading-bot.trend.confirmBars'),
+        positionPct: this.$t('trading-bot.trend.positionPct'),
+        trailingTpEnabled: this.text('启用追踪止盈', 'Trailing TP'),
+        trailingTpActivationPct: this.text('追踪止盈激活涨幅', 'Trailing TP Activation %'),
+        trailingTpCallbackPct: this.text('追踪止盈回撤幅度', 'Trailing TP Callback %'),
+        amountEach: this.$t('trading-bot.dca.amountEach'),
+        frequency: this.$t('trading-bot.dca.frequency'),
+        totalBudget: this.$t('trading-bot.dca.totalBudget'),
+        dipBuyEnabled: this.$t('trading-bot.dca.dipBuy'),
+        dipThreshold: this.$t('trading-bot.dca.dipThreshold'),
+        maxPosition: this.text('最大仓位', 'Max Position')
+      }
+      return map[key] || key
+    },
+    formatParamValue (key, value) {
+      if (value == null || value === '') return '-'
+      if (typeof value === 'boolean') return value ? this.text('开启', 'Enabled') : this.text('关闭', 'Disabled')
+      if (key === 'gridMode') {
+        const map = {
+          arithmetic: this.$t('trading-bot.grid.arithmetic'),
+          geometric: this.$t('trading-bot.grid.geometric')
+        }
+        return map[value] || value
+      }
+      if (key === 'gridDirection') {
+        const map = {
+          neutral: this.$t('trading-bot.grid.neutral'),
+          long: this.$t('trading-bot.grid.long'),
+          short: this.$t('trading-bot.grid.short')
+        }
+        return map[value] || value
+      }
+      if (key === 'direction') {
+        const map = {
+          long: this.text('做多', 'Long'),
+          short: this.text('做空', 'Short'),
+          both: this.text('双向', 'Both')
+        }
+        return map[value] || value
+      }
+      if (key === 'boundaryAction') {
+        const map = {
+          pause: this.$t('trading-bot.grid.boundaryPause'),
+          stop_loss: this.$t('trading-bot.grid.boundaryStopLoss'),
+          hold: this.$t('trading-bot.grid.boundaryHold')
+        }
+        return map[value] || value
+      }
+      if (key === 'frequency') {
+        const map = {
+          every_bar: this.text('每根K线', 'Every Bar'),
+          hourly: this.$t('trading-bot.dca.hourly'),
+          '4h': '4H',
+          daily: this.$t('trading-bot.dca.daily'),
+          weekly: this.$t('trading-bot.dca.weekly'),
+          biweekly: this.$t('trading-bot.dca.biweekly'),
+          monthly: this.$t('trading-bot.dca.monthly')
+        }
+        return map[value] || value
+      }
+      if (key === 'waterfallDropPct') {
+        const n = Number(value)
+        if (!Number.isFinite(n)) return value
+        return `${(n <= 1 ? n * 100 : n).toFixed(2).replace(/\.00$/, '')}%`
+      }
+      if (['priceDropPct', 'takeProfitPct', 'stopLossPct', 'dipThreshold', 'positionPct',
+        'trailingTpActivationPct', 'trailingTpCallbackPct', 'initialPositionPct'].includes(key)) {
+        return `${value}%`
+      }
+      return value
     }
   }
 }

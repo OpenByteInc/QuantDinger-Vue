@@ -2,7 +2,6 @@ import request from '@/utils/request'
 
 const billingApi = {
   Plans: '/api/billing/plans',
-  Purchase: '/api/billing/purchase',
   UsdtChains: '/api/billing/usdt/chains',
   UsdtCreate: '/api/billing/usdt/create',
   UsdtOrder: (id) => `/api/billing/usdt/order/${id}`
@@ -12,14 +11,6 @@ export function getMembershipPlans () {
   return request({
     url: billingApi.Plans,
     method: 'get'
-  })
-}
-
-export function purchaseMembership (plan) {
-  return request({
-    url: billingApi.Purchase,
-    method: 'post',
-    data: { plan }
   })
 }
 

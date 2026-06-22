@@ -1,9 +1,4 @@
-<div align="center">
-  <img src="https://camo.githubusercontent.com/0f7d83a11ee48d716ccc895fc90dd7ea9ff3f77a9ea1132d417d95bba2306573/68747470733a2f2f61692e7175616e7464696e6765722e636f6d2f696d672f6c6f676f2e65306635313061382e706e67" alt="QuantDinger" width="120" />
-</div>
-
 <h1 align="center">QuantDinger Frontend</h1>
-
 <p align="center">
   <strong>QuantDinger Vue.js 前端源码</strong><br/>
   <strong>AI 原生量化研究、策略、交易与运营工作台的 Web 界面层</strong>
@@ -26,6 +21,8 @@
 <p align="center">
   <a href="https://ai.quantdinger.com">在线演示</a> ·
   <a href="https://github.com/brokermr810/QuantDinger">主仓库</a> ·
+  <a href="#部署">部署</a> ·
+  <a href="#开发环境">开发</a> ·
   <a href="https://t.me/worldinbroker">Telegram</a> ·
   <a href="#license">许可证</a>
 </p>
@@ -77,7 +74,145 @@
 - 指标社区与市场化相关页面
 - 响应式布局、主题切换与多语言支持
 
-## 开发环境启动
+## 部署
+
+**生产环境不需要 Node.js。** 本仓库每次打 `v*` 标签都会向 GHCR 推送多架构 nginx 镜像。大多数用户通过 [QuantDinger 主仓库](https://github.com/brokermr810/QuantDinger) 的 Docker Compose 自动拉取该镜像。
+
+| 项目 | 说明 |
+|------|------|
+| 官方前端镜像 | `ghcr.io/brokermr810/quantdinger-frontend` |
+| 常用标签 | `latest`、semver（`4.0.1`）、`{major}.{minor}`（`4.0`） |
+
+可用标签见 [QuantDinger Releases](https://github.com/brokermr810/QuantDinger/releases) 与 [QuantDinger-Vue Releases](https://github.com/brokermr810/QuantDinger-Vue/releases)。
+
+### 方式一 — 主仓库整栈部署（推荐）
+
+最快路径：后端 + 前端 + Postgres + Redis，前端自动从 GHCR 拉取：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/brokermr810/QuantDinger/main/install.sh | bash
+# 打开 http://localhost:8888，并使用安装器配置的管理员账号登录
+```
+
+或克隆主仓库后执行 `docker compose pull && docker compose up -d`。`frontend` 服务使用 `ghcr.io/brokermr810/quantdinger-frontend`，**无需**本地 Vue 源码目录。
+
+文档：[主仓库 README — 两分钟试用](https://github.com/brokermr810/QuantDinger#try-in-2-minutes)
+
+### 方式二 — 仅 GHCR 两文件部署（无需 git clone）
+
+使用主仓库 [`docker-compose.ghcr.yml`](https://github.com/brokermr810/QuantDinger/blob/main/docker-compose.ghcr.yml)：
+
+```bash
+curl -O https://raw.githubusercontent.com/brokermr810/QuantDinger/main/docker-compose.ghcr.yml
+curl -o backend.env https://raw.githubusercontent.com/brokermr810/QuantDinger/main/backend_api_python/env.example
+docker compose -f docker-compose.ghcr.yml pull
+docker compose -f docker-compose.ghcr.yml up -d
+```
+
+### 方式三 — 单独拉取并运行前端镜像
+
+适用于后端已在别处运行（Railway、裸机、另一套 Compose）的场景：
+
+```bash
+docker pull ghcr.io/brokermr810/quantdinger-frontend:latest
+
+docker run -d --name quantdinger-frontend \
+  -p 8888:80 \
+  -e BACKEND_URL=http://host.docker.internal:5000 \
+  ghcr.io/brokermr810/quantdinger-frontend:latest
+```
+
+| 变量 | 说明 |
+|------|------|
+| `BACKEND_URL` | nginx 转发 `/api/` 时的后端地址。Compose 默认：`http://backend:5000`。Docker Desktop 下若 API 跑在宿主机，用 `http://host.docker.internal:5000`。 |
+
+固定版本而非 `latest`：
+
+```bash
+docker pull ghcr.io/brokermr810/quantdinger-frontend:4.0.1
+```
+
+### 固定标签与更新镜像（Compose）
+
+在**主仓库根目录**创建或编辑 `.env`：
+
+```ini
+# 前后端锁定同一版本
+IMAGE_TAG=4.0.1
+
+# 或仅覆盖前端（后端仍用 IMAGE_TAG / latest）
+# FRONTEND_TAG=4.0.1
+# BACKEND_TAG=4.0.1
+```
+
+标签解析优先级（高者生效）：**`FRONTEND_TAG` → `IMAGE_TAG` → `latest`**。
+
+**更新整栈（含前端）**：
+
+```bash
+cd QuantDinger   # 主仓库根目录
+docker compose pull
+docker compose up -d
+```
+
+**仅更新前端**（后端保持运行）：
+
+```bash
+docker compose pull frontend
+docker compose up -d --no-deps frontend
+```
+
+修改 `.env` 中的 `IMAGE_TAG` 或 `FRONTEND_TAG` 后，同样需要 `pull` 再 `up -d`，Compose 才会用新标签重建容器。
+
+**查看当前运行的镜像标签**：
+
+```bash
+docker inspect quantdinger-frontend --format '{{.Config.Image}}'
+```
+
+### 方式四 — 从本仓库源码构建
+
+| 目标 | 命令 |
+|------|------|
+| 本地 nginx 镜像 | `docker build -t quantdinger-frontend:local .` 后 `docker run …`（见下） |
+| 纯静态 `dist/` | `pnpm run build`，或使用 Release 附带的 **`dist.tar.gz`** |
+| 主仓库内联调 | 将本仓克隆到 `./QuantDinger-Vue/` 后 `docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build` |
+
+本地 Docker 构建（与 CI 相同 Dockerfile）：
+
+```bash
+docker build -t quantdinger-frontend:local .
+docker run --rm -p 8080:80 -e BACKEND_URL=http://host.docker.internal:5000 quantdinger-frontend:local
+```
+
+构建产物同步到主仓库（不重建镜像）：
+
+```bash
+pnpm run build
+rm -rf ../frontend/dist/*
+cp -r dist/* ../frontend/dist/
+docker compose up -d --no-deps frontend
+```
+
+```powershell
+# PowerShell
+pnpm run build
+Remove-Item ..\frontend\dist\* -Recurse -Force -ErrorAction SilentlyContinue
+Copy-Item -Path dist\* -Destination ..\frontend\dist\ -Recurse -Force
+docker compose up -d --no-deps frontend
+```
+
+### 拉取排错
+
+| 现象 | 处理 |
+|------|------|
+| `denied` / manifest unknown | 确认 [Releases](https://github.com/brokermr810/QuantDinger/releases) 中存在该 tag；可试 `latest` 或已发布的 semver。 |
+| 拉取很慢（国内 / VPN） | 主仓库 `.env` 设 `IMAGE_PREFIX=docker.m.daocloud.io/library/` 加速 Postgres/Redis；GHCR 请在 **Docker Desktop → Proxies** 配置代理。 |
+| 私有 fork 镜像 | 先 `docker login ghcr.io`，再在 `.env` 设置 `FRONTEND_IMAGE=ghcr.io/<你的org>/quantdinger-frontend`。 |
+
+---
+
+## 开发环境
 
 ### 前置要求
 
@@ -85,14 +220,14 @@
 |------|------|
 | Node.js | 建议 **18 LTS**（最低 16.13+，需支持 [corepack](https://nodejs.org/api/corepack.html)） |
 | pnpm | **10.x** — 版本由 `package.json` 的 `packageManager` 锁定；通过 `corepack enable` 安装 |
-| Git | 必需 — 生产构建会通过 `git-revision-webpack-plugin` 写入提交信息 |
+| Git | 必需 — 生产构建会从本地仓库写入提交与精确 release tag 信息 |
 | Backend | QuantDinger 后端可访问，默认 `http://localhost:5000`（见下文） |
 
 请使用 **`pnpm install`** 并保留仓库中的 **`pnpm-lock.yaml`**。不要提交 `package-lock.json`；仅用 npm 安装可能与 CI/Docker 解析出不同的依赖树。
 
 ### 安装与启动
 
-请使用 **Git 克隆**（无 `.git` 的源码 ZIP 可能导致 `pnpm build` 失败）：
+建议使用 **Git 克隆**，这样生产构建可以准确写入 release tag 与 commit 信息。无 `.git` 的源码 ZIP 仍可构建，但会回退到 package/env 版本信息：
 
 ```bash
 git clone https://github.com/brokermr810/QuantDinger-Vue.git
@@ -102,7 +237,7 @@ pnpm install
 pnpm run serve
 ```
 
-若在主仓库目录内开发（例如 `QuantDinger-Vue-src/`），在该目录下执行相同命令即可。
+若在主仓库目录内开发（例如 `QuantDinger-Vue-src/`），在本目录下执行相同命令即可。
 
 ### 先启动后端
 
@@ -116,87 +251,28 @@ pnpm run serve
 | 方式 | 地址 |
 |------|------|
 | `pnpm run serve`（本源码目录） | `http://localhost:8000` |
-| 主仓库 Docker（预构建 `frontend/dist`） | `http://localhost:8888` |
+| 主仓库 Docker（GHCR 前端镜像） | `http://localhost:8888` |
 
-默认登录信息取决于后端配置。在默认 Docker 体验中，常见为：
-
-```text
-quantdinger / 123456
-```
+登录信息取决于后端配置。安装器会要求配置管理员密码；`123456` 只是不安全的本地兜底值，不建议用于共享或生产环境。
 
 ### API 代理
 
-本地开发时，`/api/*` 请求会通过 `vue.config.js` 代理到后端。
+本地开发时，`/api/*` 请求会通过 `vite.config.js` 代理到后端。
 
-- 代理配置文件：`vue.config.js`
+- 代理配置文件：`vite.config.js`
 - 默认目标地址：`http://localhost:5000`
 
-如果后端运行在其他地址或端口，请相应调整代理配置。
+如果后端运行在其他地址或端口，请在本地环境设置 `VITE_DEV_PROXY_TARGET`，或相应调整代理配置。
 
-## 推荐集成方式
-
-### 方式 A：使用主仓库
-
-对于大多数用户，推荐直接使用 QuantDinger 主仓库。主仓库已经提供：
-
-- Docker Compose 一键部署
-- 后端服务与数据库
-- Nginx 前端托管与 API 反向代理
-- 更完整的产品文档与部署文档
-
-入口：
-
-- [QuantDinger 主仓库](https://github.com/brokermr810/QuantDinger)
-
-### 方式 B：前端源码开发
-
-当你需要以下能力时，适合直接使用本仓库：
-
-- 自定义 Web UI
-- 开发新的页面或组件
-- 调整图表、国际化或后台管理流程
-- 构建自己的前端产物并连接兼容后端
-
-## 生产构建
+### 生产构建（源码）
 
 ```bash
 pnpm run build
 ```
 
-构建产物输出到 `dist/`，可由 Nginx 或其他静态文件服务托管。
+构建产物输出到 `dist/`。[QuantDinger-Vue Releases](https://github.com/brokermr810/QuantDinger-Vue/releases) 也可能附带 **`dist.tar.gz`**，便于无 Docker 的静态部署。
 
-### 同步到 QuantDinger 主仓库
-
-与后端同仓开发时，将 `dist/` 覆盖到主仓库预构建目录，并重启或重建前端容器：
-
-```bash
-# Bash — 在 QuantDinger-Vue-src/（或 QuantDinger-Vue/）下执行
-pnpm run build
-rm -rf ../frontend/dist/*
-cp -r dist/* ../frontend/dist/
-```
-
-```powershell
-# PowerShell
-pnpm run build
-Remove-Item ..\frontend\dist\* -Recurse -Force -ErrorAction SilentlyContinue
-Copy-Item -Path dist\* -Destination ..\frontend\dist\ -Recurse -Force
-```
-
-若不想手动拷贝，可直接使用主仓库 Docker Compose，或拉取下方 GHCR 镜像。
-
-## Docker 镜像
-
-本目录提供与 CI 一致的多阶段 `Dockerfile`（Node 构建 + nginx）：
-
-```bash
-docker build -t quantdinger-frontend:local .
-docker run --rm -p 8080:80 -e BACKEND_URL=http://host.docker.internal:5000 quantdinger-frontend:local
-```
-
-- **`BACKEND_URL`** — nginx 转发 `/api/` 时使用的后端地址。镜像默认：`http://backend:5000`（Compose 服务名）。
-- 官方多架构镜像：`ghcr.io/brokermr810/quantdinger-frontend:<tag>`（见主仓库 [`docker-compose.ghcr.yml`](https://github.com/brokermr810/QuantDinger/blob/main/docker-compose.ghcr.yml)）。
-- [QuantDinger-Vue Releases](https://github.com/brokermr810/QuantDinger-Vue/releases) 在发版时可能附带 **`dist.tar.gz`**，便于无 Docker 的静态部署。
+---
 
 ## 功能模块分布
 
@@ -246,8 +322,8 @@ QuantDinger-Vue/
 │   ├── store/                 # Vuex 状态管理
 │   ├── utils/                 # 工具、请求拦截器、加密辅助
 │   └── views/                 # 页面级模块
-├── vue.config.js              # Vue CLI / webpack 与开发代理
-├── babel.config.js
+├── vite.config.js             # Vite 构建、版本注入与开发代理
+├── pnpm-workspace.yaml
 ├── package.json
 ├── pnpm-lock.yaml             # 依赖锁定文件，需与 package.json 一并提交
 ├── Dockerfile
@@ -264,12 +340,12 @@ QuantDinger-Vue/
 | Editor | CodeMirror 5 |
 | Networking | Axios + interceptors |
 | i18n | vue-i18n |
-| Build | Vue CLI 5、Webpack 5、pnpm |
+| Build | Vite 5、pnpm |
 | Styling | Less + scoped CSS |
 
 ## 国际化
 
-当前前端通过 `src/locales/lang/` 支持 10 种语言：
+当前前端通过 `src/locales/lang/` 支持 11 种语言：
 
 | 语言 | 文件 | 语言 | 文件 |
 |------|------|------|------|
@@ -278,6 +354,7 @@ QuantDinger-Vue/
 | 한국어 | `ko-KR.js` | Deutsch | `de-DE.js` |
 | Français | `fr-FR.js` | ไทย | `th-TH.js` |
 | Tiếng Việt | `vi-VN.js` | العربية | `ar-SA.js` |
+| Русский | `ru-RU.js` |  |  |
 
 如需新增语言，可参考现有格式新增文件，并在 `src/locales/index.js` 中注册。
 

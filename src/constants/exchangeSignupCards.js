@@ -1,4 +1,3 @@
-/** Crypto exchange referral cards (API key → 加密实盘). */
 export const CRYPTO_SIGNUP_CARDS = [
   {
     id: 'binance',
@@ -50,7 +49,6 @@ export const CRYPTO_SIGNUP_CARDS = [
   }
 ]
 
-/** Forex / MT5 broker signup (terminal + 券商账户，与 CEX API 不同). */
 export const FOREX_SIGNUP_CARDS = [
   {
     id: 'tmgm',

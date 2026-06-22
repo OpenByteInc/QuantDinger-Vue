@@ -43,10 +43,11 @@ export function getMarketNews (lang = 'all') {
 /**
  * Get economic calendar with impact indicators
  */
-export function getEconomicCalendar () {
+export function getEconomicCalendar (params = {}) {
   return request({
     url: `${BASE_URL}/calendar`,
-    method: 'get'
+    method: 'get',
+    params
   })
 }
 

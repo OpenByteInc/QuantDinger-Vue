@@ -106,12 +106,17 @@ export default {
   },
 
   methods: {
+    translate (key, fallback) {
+      const value = this.$t ? this.$t(key) : ''
+      return value && value !== key ? value : fallback
+    },
+
     async initTurnstile () {
       try {
         await loadTurnstileScript()
         this.renderWidget()
       } catch (e) {
-        this.error = 'Failed to load verification'
+        this.error = this.translate('user.security.loadFailed', 'Failed to load verification')
         console.error('Turnstile init error:', e)
       }
     },
@@ -133,10 +138,13 @@ export default {
           this.error = null
           this.$emit('success', token)
         },
-        'error-callback': () => {
+        'error-callback': (code) => {
           this.token = null
-          this.error = 'Verification failed'
-          this.$emit('error')
+          this.error = this.translate('user.security.verificationFailed', 'Verification failed')
+          if (code) {
+            console.warn('Turnstile verification error:', code)
+          }
+          this.$emit('error', code)
         },
         'expired-callback': () => {
           this.token = null

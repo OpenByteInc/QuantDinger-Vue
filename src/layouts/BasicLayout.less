@@ -1,8 +1,8 @@
-@import '~ant-design-vue/es/style/themes/default.less';
+@import '@/styles/antd-vars.less';
 
-/* ========== 完全隐藏 ant-layout-footer ========== */
+/* Header theme overrides. */
 :global {
-  /* 全局隐藏所有 ant-layout-footer */
+  /* Apply header colors based on body or layout theme classes. */
   .ant-layout-footer,
   footer.ant-layout-footer,
   .ant-pro-layout .ant-layout-footer,
@@ -18,10 +18,93 @@
   }
 }
 
-/* ========== ant-layout-header 主题适配 ========== */
-/* 全局样式：根据 body 或 layout 的主题类自动适配 */
+.basic-layout-wrapper .ant-layout-content,
+.basic-layout-wrapper .ant-pro-basicLayout-content,
+.basic-layout-wrapper .ant-pro-page-header-wrap,
+.basic-layout-wrapper .ant-pro-page-header-wrap-children-content,
+.basic-layout-wrapper .basic-route-view-shell,
+.basic-layout-wrapper [class*='ant-pro-basicLayout-children'] {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
 :global {
-  /* 暗黑主题下的 ant-layout-header */
+  .basic-layout-wrapper .ant-layout-content,
+  .basic-layout-wrapper .ant-pro-basicLayout-content,
+  .basic-layout-wrapper .ant-pro-page-header-wrap,
+  .basic-layout-wrapper .ant-pro-page-header-wrap-children-content {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .basic-layout-wrapper .basic-route-view-shell {
+    margin: 0;
+    padding: 0;
+  }
+}
+
+:global {
+  .basic-layout-wrapper--multi-tab .ant-layout-content {
+    --qd-multi-tab-height: 36px;
+  }
+
+  .basic-layout-wrapper--multi-tab .basic-route-view-shell {
+    margin-top: 0;
+  }
+
+  .basic-layout-wrapper--multi-tab .ant-pro-basicLayout-content,
+  .basic-layout-wrapper--multi-tab .ant-layout-content {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .basic-layout-wrapper--multi-tab .ant-pro-multi-tab {
+    margin: 0;
+  }
+
+  .basic-layout-wrapper--multi-tab .basic-route-view-shell:has(.indicator-ide) {
+    margin-top: 0;
+  }
+
+  .basic-layout-wrapper--multi-tab .ai-asset-analysis-page {
+    min-height: calc(100vh - 112px);
+  }
+
+  .basic-layout-wrapper--multi-tab .copilot-workbench {
+    height: calc(100vh - 100px);
+  }
+
+  .basic-layout-wrapper--multi-tab .indicator-ide {
+    --ide-shell-height: calc(100vh - 64px - var(--qd-multi-tab-height, 36px));
+  }
+
+  .basic-layout-wrapper--multi-tab .indicator-ide .ide-left {
+    top: var(--qd-multi-tab-height, 36px);
+  }
+
+  .basic-layout-wrapper--multi-tab .ant-pro-multi-tab {
+    flex: 0 0 var(--qd-multi-tab-height, 36px);
+  }
+
+  @supports selector(:has(*)) {
+    .basic-layout-wrapper--multi-tab .ant-layout-content:has(.indicator-ide),
+    .basic-layout-wrapper--multi-tab .ant-pro-basicLayout-content:has(.indicator-ide) {
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
+    .basic-layout-wrapper--multi-tab .ant-layout-content:has(.indicator-ide) .ant-pro-multi-tab,
+    .basic-layout-wrapper--multi-tab .ant-pro-basicLayout-content:has(.indicator-ide) .ant-pro-multi-tab {
+      margin: 0;
+    }
+
+  }
+}
+
+/* Dark header. */
+/* Content theme overrides. */
+:global {
+  /* Dark content containers. */
   body.dark .ant-layout-header,
   body.realdark .ant-layout-header,
   .ant-layout.dark .ant-layout-header,
@@ -33,32 +116,32 @@
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 1px 4px rgba(0, 0, 0, 0.2) !important;
     color: rgba(255, 255, 255, 0.85) !important;
 
-    /* Header 内的所有文字和图标 */
+    /* Header 鍐呯殑鎵€鏈夋枃瀛楀拰鍥炬爣 */
     * {
       color: rgba(255, 255, 255, 0.85) !important;
     }
 
-    /* Header 内的图标按钮 */
+    /* Header 鍐呯殑鍥炬爣鎸夐挳 */
     .anticon {
       color: rgba(255, 255, 255, 0.85) !important;
 
       &:hover {
-        color: #1890ff !important;
+        color: var(--primary-color, #1890ff) !important;
         background: rgba(255, 255, 255, 0.08) !important;
         border-radius: 4px;
       }
     }
 
-    /* Header 内的链接 */
+    /* Header 鍐呯殑閾炬帴 */
     a {
       color: rgba(255, 255, 255, 0.85) !important;
 
       &:hover {
-        color: #1890ff !important;
+        color: var(--primary-color, #1890ff) !important;
       }
     }
 
-    /* Header 内的工具提示容器 */
+    /* Tooltip icon color. */
     .ant-tooltip-open {
       .anticon {
         color: rgba(255, 255, 255, 0.85) !important;
@@ -67,7 +150,7 @@
   }
 
 
-  /* 浅色主题下的 ant-layout-header（确保覆盖默认样式） */
+  /* Header right content. */
   body.light .ant-layout-header,
   .ant-layout.light .ant-layout-header,
   .ant-pro-layout.light .ant-layout-header {
@@ -77,8 +160,8 @@
     color: rgba(0, 0, 0, 0.85) !important;
   }
 
-  /* ========== ant-layout-content 主题适配（中间页面内容区域） ========== */
-  /* 暗黑主题下的内容区域 */
+  /* Layout theme override hardening. */
+  /* Dark layout shell. */
   body.dark .ant-layout-content,
   body.realdark .ant-layout-content,
   .ant-layout.dark .ant-layout-content,
@@ -91,7 +174,7 @@
 
 
 
-  /* 浅色主题下的内容区域 */
+  /* Base layout. */
   body.light .ant-layout-content,
   .ant-layout.light .ant-layout-content,
   .ant-pro-layout.light .ant-layout-content {
@@ -103,8 +186,8 @@
 
 
 
-  /* ========== GlobalHeader 核心样式（基于 .ant-pro-global-header） ========== */
-  /* 暗黑主题下的 .ant-pro-global-header - 这是控制顶部标题栏的关键样式 */
+  /* ========== GlobalHeader core styles ========== */
+  /* Dropdown controls. */
   body.dark .ant-pro-global-header,
   body.realdark .ant-pro-global-header,
   .ant-layout.dark .ant-pro-global-header,
@@ -120,12 +203,12 @@
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
     color: rgba(255, 255, 255, 0.85) !important;
 
-    /* 强制所有子元素文字颜色 */
+    /* Mobile header adjustments. */
     * {
       color: rgba(255, 255, 255, 0.85) !important;
     }
 
-    /* Logo 区域 */
+    /* Logo surface. */
     .ant-pro-global-header-logo {
       background: transparent !important;
       color: rgba(255, 255, 255, 0.85) !important;
@@ -144,7 +227,7 @@
     }
   }
 
-  /* Header 内容区域（中间部分，包含刷新按钮等） */
+  /* Header content area. */
   .ant-pro-global-header-content {
     background: transparent !important;
     color: rgba(255, 255, 255, 0.85) !important;
@@ -153,24 +236,24 @@
       color: rgba(255, 255, 255, 0.85) !important;
     }
 
-    /* 刷新按钮等图标 */
+    /* Header action icons. */
     .anticon {
       color: rgba(255, 255, 255, 0.85) !important;
 
       &:hover {
-        color: #1890ff !important;
+        color: var(--primary-color, #1890ff) !important;
         background: rgba(255, 255, 255, 0.08) !important;
         border-radius: 4px;
       }
     }
 
-    /* 工具提示内的图标 */
+    /* Keep tooltip-open icons readable. */
     .ant-tooltip-open .anticon {
       color: rgba(255, 255, 255, 0.85) !important;
     }
   }
 
-  /* Header 右侧内容区域（包含头像、语言选择、设置按钮） */
+  /* Keep the mobile logo aligned. */
   .ant-pro-global-header-index-right {
     background: transparent !important;
     color: rgba(255, 255, 255, 0.85) !important;
@@ -179,12 +262,12 @@
       color: rgba(255, 255, 255, 0.85) !important;
     }
 
-    /* 操作按钮（头像、语言、设置） */
+    /* Right-side header actions. */
     .ant-pro-global-header-index-action {
       color: rgba(255, 255, 255, 0.85) !important;
 
       &:hover {
-        color: #1890ff !important;
+        color: var(--primary-color, #1890ff) !important;
         background: rgba(255, 255, 255, 0.08) !important;
       }
 
@@ -193,7 +276,7 @@
       }
     }
 
-    /* 头像区域 */
+    /* 澶村儚鍖哄煙 */
     .ant-pro-account-avatar {
       color: rgba(255, 255, 255, 0.85) !important;
 
@@ -206,13 +289,13 @@
       }
     }
 
-    /* 下拉菜单触发器 */
+    /* Theme compatibility override. */
     .ant-pro-drop-down,
     .ant-dropdown-trigger {
       color: rgba(255, 255, 255, 0.85) !important;
 
       &:hover {
-        color: #1890ff !important;
+        color: var(--primary-color, #1890ff) !important;
         background: rgba(255, 255, 255, 0.08) !important;
       }
 
@@ -222,25 +305,25 @@
     }
   }
 
-  /* 链接样式 */
+  /* 閾炬帴鏍峰紡 */
   a {
     color: rgba(255, 255, 255, 0.85) !important;
 
     &:hover {
-      color: #1890ff !important;
+      color: var(--primary-color, #1890ff) !important;
     }
   }
 
-  /* 所有图标 */
+  /* 鎵€鏈夊浘鏍?*/
   .anticon {
     color: rgba(255, 255, 255, 0.85) !important;
 
     &:hover {
-      color: #1890ff !important;
+      color: var(--primary-color, #1890ff) !important;
     }
   }
 
-  /* 浅色主题下的 .ant-pro-global-header */
+  /* Theme compatibility override. */
   body.light .ant-pro-global-header,
   .ant-layout.light .ant-pro-global-header,
   .ant-pro-layout.light .ant-pro-global-header,
@@ -252,17 +335,17 @@
   }
 }
 
-/* ========== 全局布局主题适配 - 强化覆盖 ========== */
+/* Theme compatibility override. */
 :global(.ant-pro-layout) {
-  /* 暗黑主题下的完整布局 */
+  /* Theme compatibility override. */
   &.dark,
   &.realdark {
-    /* 0. 基础 Layout 背景 */
+    /* 0. Base layout background. */
     :global(.ant-layout) {
       background-color: #0a0a0a !important;
     }
 
-    /* 1. 顶部 Header */
+    /* 1. Header. */
     :global(.ant-layout-header) {
       background: #111111 !important;
       border-bottom: 1px solid #1c1c1c !important;
@@ -278,7 +361,7 @@
       }
     }
 
-    /* 2. 中间内容区域 */
+    /* Theme compatibility override. */
     :global(.ant-layout-content) {
       background: #141414 !important;
       color: rgba(255, 255, 255, 0.85) !important;
@@ -288,7 +371,7 @@
       color: rgba(255, 255, 255, 0.85) !important;
     }
 
-    /* 3. 侧边栏 - 强制去蓝改纯黑 */
+    /* Theme compatibility override. */
     :global(.ant-layout-sider),
     :global(.ant-pro-sider-menu-sider),
     :global(.ant-pro-sider) {
@@ -320,21 +403,21 @@
 
   }
 
-  /* 浅色主题下的完整布局 */
+  /* Theme compatibility override. */
   &.light {
-    /* 0. 基础 Layout 背景 */
+    /* 0. Base layout background. */
     :global(.ant-layout) {
       background-color: #f0f2f5 !important;
     }
 
-    /* 1. 顶部 Header */
+    /* 1. Header. */
     :global(.ant-layout-header) {
       background: #fff !important;
       border-bottom: 1px solid #e8e8e8 !important;
       color: rgba(0, 0, 0, 0.85) !important;
     }
 
-    /* 2. 中间内容区域 */
+    /* Theme compatibility override. */
     :global(.ant-layout-content) {
       background: #f0f2f5 !important;
       color: rgba(0, 0, 0, 0.85) !important;
@@ -356,11 +439,11 @@
       color: hsl(0deg 0% 100% / 85%);
 
       &:hover {
-        background: #1890ff;
+        background: var(--primary-color, #1890ff);
       }
     }
 
-    /* 暗黑主题下的头像下拉菜单 */
+    /* Theme compatibility override. */
     .ant-pro-account-avatar {
       color: rgba(255, 255, 255, 0.85);
 
@@ -373,18 +456,18 @@
       }
     }
 
-    /* 语言选择器和设置按钮 */
+    /* Theme compatibility override. */
     .ant-pro-drop-down {
       color: rgba(255, 255, 255, 0.85);
 
       &:hover {
-        color: #1890ff;
+        color: var(--primary-color, #1890ff);
         background: rgba(255, 255, 255, 0.08);
       }
     }
   }
 
-  /* 浅色主题下的头像样式 */
+  /* Theme compatibility override. */
   .ant-pro-account-avatar {
     .antd-pro-global-header-index-avatar {
       margin: ~'calc((@{layout-header-height} - 24px) / 2)' 0;
@@ -406,7 +489,7 @@
   }
 }
 
-/* 暗黑主题下的下拉菜单样式 */
+/* Theme compatibility override. */
 :global {
   .ant-pro-layout.dark,
   .ant-pro-layout.realdark {
@@ -420,7 +503,7 @@
 
         &:hover {
           background: #252525 !important;
-          color: #1890ff !important;
+          color: var(--primary-color, #1890ff) !important;
         }
       }
 
@@ -431,11 +514,11 @@
   }
 }
 
-/* ========== 侧边栏 body 级强力覆盖 ========== */
+/* ========== Body-level sidebar overrides ========== */
 :global {
   body.dark,
   body.realdark {
-    /* 侧边栏容器 */
+    /* Sidebar containers. */
     .ant-layout-sider,
     .ant-layout-sider-dark,
     .ant-pro-sider-menu-sider,
@@ -445,7 +528,7 @@
     .ant-layout-sider-children {
       background: #0a0a0a !important;
     }
-    /* 菜单本体 */
+    /* Dark menu surfaces. */
     .ant-menu-dark,
     .ant-menu.ant-menu-dark,
     .ant-menu-dark .ant-menu-inline.ant-menu-sub,
@@ -459,17 +542,17 @@
     .ant-menu-dark .ant-menu-item-selected {
       background: rgba(24, 144, 255, 0.25) !important;
     }
-    /* Logo 区域 */
+    /* Logo surface. */
     .ant-pro-sider-menu-logo {
       background: #0a0a0a !important;
     }
-    /* 折叠触发器 */
+    /* Sidebar trigger. */
     .ant-layout-sider-trigger {
       background: #111111 !important;
       border-top: 1px solid #1c1c1c;
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
     }
-    /* 顶栏 - 与侧栏亮黑一致 */
+    /* Theme compatibility override. */
     .ant-layout-header {
       background: #111111 !important;
       border-bottom: 1px solid #1c1c1c !important;
@@ -482,7 +565,7 @@
   }
 }
 
-/* ========== 侧栏菜单字体（系统 UI 栈 + 字重/字距，偏专业产品感）========== */
+/* Theme compatibility override. */
 :global {
   .ant-pro-sider-menu-sider .ant-menu,
   .ant-pro-sider .ant-menu.ant-menu-root,
@@ -511,10 +594,10 @@
   }
 }
 
-/* 手机端适配 */
+/* Mobile layout adjustments. */
 @media (max-width: 768px) {
   :global {
-    /* 使用更具体的选择器强制覆盖 */
+    /* Theme compatibility override. */
     .ant-layout-header .ant-pro-global-header .ant-pro-global-header-logo,
     .ant-pro-layout .ant-layout-header .ant-pro-global-header .ant-pro-global-header-logo,
     body .ant-layout-header .ant-pro-global-header .ant-pro-global-header-logo,
@@ -525,6 +608,55 @@
       padding-top: 0 !important;
       padding-bottom: 0 !important;
     }
+  }
+}
+
+:global {
+  body.dark .ant-layout-header .ant-menu-horizontal,
+  body.realdark .ant-layout-header .ant-menu-horizontal {
+    background: transparent !important;
+  }
+
+  body.dark .ant-layout-header .ant-menu-horizontal > .ant-menu-item,
+  body.dark .ant-layout-header .ant-menu-horizontal > .ant-menu-submenu,
+  body.dark .ant-layout-header .ant-menu-horizontal > .ant-menu-item-selected,
+  body.dark .ant-layout-header .ant-menu-horizontal > .ant-menu-submenu-selected,
+  body.dark .ant-layout-header .ant-menu-horizontal > .ant-menu-item-active,
+  body.dark .ant-layout-header .ant-menu-horizontal > .ant-menu-submenu-active,
+  body.dark .ant-layout-header .ant-menu-horizontal > .ant-menu-item:hover,
+  body.dark .ant-layout-header .ant-menu-horizontal > .ant-menu-submenu:hover,
+  body.realdark .ant-layout-header .ant-menu-horizontal > .ant-menu-item,
+  body.realdark .ant-layout-header .ant-menu-horizontal > .ant-menu-submenu,
+  body.realdark .ant-layout-header .ant-menu-horizontal > .ant-menu-item-selected,
+  body.realdark .ant-layout-header .ant-menu-horizontal > .ant-menu-submenu-selected,
+  body.realdark .ant-layout-header .ant-menu-horizontal > .ant-menu-item-active,
+  body.realdark .ant-layout-header .ant-menu-horizontal > .ant-menu-submenu-active,
+  body.realdark .ant-layout-header .ant-menu-horizontal > .ant-menu-item:hover,
+  body.realdark .ant-layout-header .ant-menu-horizontal > .ant-menu-submenu:hover {
+    background: transparent !important;
+    background-color: transparent !important;
+  }
+
+  body.dark .ant-layout-header .ant-menu-horizontal > .ant-menu-item:hover,
+  body.dark .ant-layout-header .ant-menu-horizontal > .ant-menu-item-active,
+  body.dark .ant-layout-header .ant-menu-horizontal > .ant-menu-submenu:hover,
+  body.dark .ant-layout-header .ant-menu-horizontal > .ant-menu-submenu-active,
+  body.realdark .ant-layout-header .ant-menu-horizontal > .ant-menu-item:hover,
+  body.realdark .ant-layout-header .ant-menu-horizontal > .ant-menu-item-active,
+  body.realdark .ant-layout-header .ant-menu-horizontal > .ant-menu-submenu:hover,
+  body.realdark .ant-layout-header .ant-menu-horizontal > .ant-menu-submenu-active {
+    color: var(--primary-color, #1890ff) !important;
+  }
+
+  body.dark .ant-layout-header .ant-menu-horizontal > .ant-menu-item:hover *,
+  body.dark .ant-layout-header .ant-menu-horizontal > .ant-menu-item-active *,
+  body.dark .ant-layout-header .ant-menu-horizontal > .ant-menu-submenu:hover *,
+  body.dark .ant-layout-header .ant-menu-horizontal > .ant-menu-submenu-active *,
+  body.realdark .ant-layout-header .ant-menu-horizontal > .ant-menu-item:hover *,
+  body.realdark .ant-layout-header .ant-menu-horizontal > .ant-menu-item-active *,
+  body.realdark .ant-layout-header .ant-menu-horizontal > .ant-menu-submenu:hover *,
+  body.realdark .ant-layout-header .ant-menu-horizontal > .ant-menu-submenu-active * {
+    color: var(--primary-color, #1890ff) !important;
   }
 }
 

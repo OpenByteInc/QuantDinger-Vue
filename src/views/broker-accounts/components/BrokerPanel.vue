@@ -265,9 +265,25 @@ export default {
   flex-shrink: 0;
 }
 .bp-inner-tabs {
-  /deep/ .ant-tabs-bar { border-bottom-color: #ececec; }
+  ::v-deep .ant-tabs-bar { border-bottom-color: #ececec; }
 }
-.theme-dark .bp-inner-tabs /deep/ .ant-tabs-bar { border-bottom-color: #303030; }
+.theme-dark .bp-inner-tabs ::v-deep .ant-tabs-bar { border-bottom-color: #303030; }
+.theme-dark .bp-inner-tabs ::v-deep .ant-tabs-ink-bar { background: #1890ff; }
+.theme-dark .bp-inner-tabs ::v-deep .ant-tabs-tab {
+  color: rgba(255, 255, 255, 0.58) !important;
+}
+.theme-dark .bp-inner-tabs ::v-deep .ant-tabs-tab span {
+  color: inherit;
+}
+.theme-dark .bp-inner-tabs ::v-deep .ant-tabs-tab:hover {
+  color: rgba(255, 255, 255, 0.82) !important;
+}
+.theme-dark .bp-inner-tabs ::v-deep .ant-tabs-tab-active {
+  color: #1890ff !important;
+}
+.theme-dark .bp-inner-tabs ::v-deep .ant-tabs-tab-disabled {
+  color: rgba(255, 255, 255, 0.25) !important;
+}
 .bp-form-wrapper {
   padding: 8px 4px 16px;
   display: flex;

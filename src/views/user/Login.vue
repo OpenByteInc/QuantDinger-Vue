@@ -413,6 +413,38 @@
       </div>
     </div>
 
+    <!-- MFA Login Modal -->
+    <a-modal
+      v-model="mfaLoginVisible"
+      :title="$t('user.login.mfa.title') || 'Two-step verification'"
+      :confirmLoading="mfaLoginLoading"
+      :okText="$t('user.login.mfa.verify') || 'Verify'"
+      :cancelText="$t('common.cancel') || 'Cancel'"
+      :destroyOnClose="true"
+      @ok="handleMfaLoginVerify"
+      @cancel="resetMfaLogin"
+    >
+      <div class="mfa-login-panel">
+        <a-alert
+          type="info"
+          showIcon
+          :message="$t('user.login.mfa.hint') || 'Open your authenticator app and enter the 6-digit code for this account.'"
+          style="margin-bottom: 16px"
+        />
+        <a-input
+          v-model="mfaLoginCode"
+          size="large"
+          :maxLength="16"
+          autocomplete="one-time-code"
+          :placeholder="$t('user.login.mfa.placeholder') || '6-digit code'"
+          @pressEnter="handleMfaLoginVerify"
+        >
+          <a-icon slot="prefix" type="safety-certificate" />
+        </a-input>
+        <div v-if="mfaLoginError" class="mfa-login-error">{{ mfaLoginError }}</div>
+      </div>
+    </a-modal>
+
     <!-- Reset Password Modal -->
     <a-modal
       v-model="showResetModal"
@@ -623,10 +655,11 @@
 <script>
 import { mapActions } from 'vuex'
 import { timeFix } from '@/utils/util'
-import { getSecurityConfig, sendVerificationCode, register, resetPassword, loginWithCode, getGoogleOAuthUrl, getGitHubOAuthUrl } from '@/api/auth'
+import { getSecurityConfig, sendVerificationCode, register, resetPassword, loginWithCode, getGoogleOAuthUrl, getGitHubOAuthUrl, verifyLoginMfa } from '@/api/auth'
 import Turnstile from '@/components/Turnstile/index.vue'
 import storage from 'store'
 import { ACCESS_TOKEN, USER_INFO, USER_ROLES } from '@/store/mutation-types'
+import { promptChangeInitialPassword } from '@/utils/initialPasswordReminder'
 
 export default {
   name: 'Login',
@@ -664,6 +697,11 @@ export default {
       loginError: '',
       loginLoading: false,
       loginTurnstileToken: null,
+      mfaLoginVisible: false,
+      mfaLoginLoading: false,
+      mfaLoginCode: '',
+      mfaLoginError: '',
+      mfaChallengeId: '',
 
       // Email Code Login
       codeLoginForm: this.$form.createForm(this, { name: 'codeLoginForm' }),
@@ -829,12 +867,15 @@ export default {
         this.loginError = ''
 
         this.Login({ ...values, turnstile_token: this.loginTurnstileToken })
-          .then(() => {
-            this.$router.push({ path: '/' })
-            this.$notification.success({
-              message: 'Welcome',
-              description: `${timeFix()}, welcome back.`
-            })
+          .then((res) => {
+            if (res && res.data && res.data.mfa_required) {
+              this.mfaChallengeId = res.data.challenge_id
+              this.mfaLoginCode = ''
+              this.mfaLoginError = ''
+              this.mfaLoginVisible = true
+              return
+            }
+            this.afterLoginSuccess()
           })
           .catch(err => {
             const response = err.response || {}
@@ -847,6 +888,82 @@ export default {
             this.loginLoading = false
           })
       })
+    },
+
+    async handleMfaLoginVerify () {
+      const code = (this.mfaLoginCode || '').trim()
+      if (!code) {
+        this.mfaLoginError = this.$t('user.login.mfa.required') || 'Please enter the verification code'
+        return
+      }
+      this.mfaLoginLoading = true
+      this.mfaLoginError = ''
+      try {
+        const res = await verifyLoginMfa({
+          challenge_id: this.mfaChallengeId,
+          code
+        })
+        if (res.code === 1 && res.data && res.data.token) {
+          this.applyLoginResult(res.data)
+          this.resetMfaLogin()
+          this.afterLoginSuccess()
+        } else {
+          this.mfaLoginError = res.msg || this.$t('user.login.mfa.failed') || 'Verification failed'
+        }
+      } catch (err) {
+        this.mfaLoginError = err.response?.data?.msg || err.message || this.$t('user.login.mfa.failed') || 'Verification failed'
+      } finally {
+        this.mfaLoginLoading = false
+      }
+    },
+
+    resetMfaLogin () {
+      this.mfaLoginVisible = false
+      this.mfaLoginCode = ''
+      this.mfaLoginError = ''
+      this.mfaChallengeId = ''
+    },
+
+    afterLoginSuccess () {
+      this.$router.push({ path: '/' })
+      this.$notification.success({
+        message: 'Welcome',
+        description: `${timeFix()}, welcome back.`
+      })
+      this.$nextTick(() => promptChangeInitialPassword())
+    },
+
+    applyLoginResult (data) {
+      const expiresAt = new Date().getTime() + 7 * 24 * 60 * 60 * 1000
+      storage.set(ACCESS_TOKEN, data.token, expiresAt)
+      this.$store.commit('SET_TOKEN', data.token)
+
+      if (data.userinfo) {
+        const userInfoData = { ...data.userinfo }
+        if (typeof userInfoData.is_demo === 'undefined') {
+          userInfoData.is_demo = false
+        }
+
+        storage.set(USER_INFO, userInfoData, expiresAt)
+        this.$store.commit('SET_INFO', userInfoData)
+
+        const name = userInfoData.nickname || userInfoData.username || 'User'
+        this.$store.commit('SET_NAME', { name, welcome: timeFix() })
+        this.$store.commit('SET_AVATAR', userInfoData.avatar || '/avatar2.jpg')
+
+        let roles = [{ id: 'default', permissionList: [] }]
+        if (userInfoData.role) {
+          if (Array.isArray(userInfoData.role)) {
+            roles = userInfoData.role
+          } else if (typeof userInfoData.role === 'object') {
+            roles = [userInfoData.role]
+          } else {
+            roles = [{ id: userInfoData.role, permissionList: [] }]
+          }
+        }
+        storage.set(USER_ROLES, roles, expiresAt)
+        this.$store.commit('SET_ROLES', roles)
+      }
     },
 
     // ==================== Email Code Login ====================
@@ -912,39 +1029,31 @@ export default {
           })
 
           if (res.code === 1 && res.data?.token) {
-            // 保存 token（先保存到 storage，确保请求拦截器能读取到）
             const expiresAt = new Date().getTime() + 7 * 24 * 60 * 60 * 1000
             storage.set(ACCESS_TOKEN, res.data.token, expiresAt)
             this.$store.commit('SET_TOKEN', res.data.token)
 
-            // 保存用户信息（从登录接口返回的 userinfo）
             if (res.data.userinfo) {
               const userInfoData = { ...res.data.userinfo }
-              // 确保有 is_demo 字段，避免 GetInfo 认为缓存过期
               if (typeof userInfoData.is_demo === 'undefined') {
                 userInfoData.is_demo = false
               }
 
-              // 保存到 storage，确保 GetInfo 能读取到
               storage.set(USER_INFO, userInfoData, expiresAt)
               this.$store.commit('SET_INFO', userInfoData)
 
-              // 设置用户名
               if (userInfoData.nickname) {
                 this.$store.commit('SET_NAME', { name: userInfoData.nickname, welcome: timeFix() })
               } else if (userInfoData.username) {
                 this.$store.commit('SET_NAME', { name: userInfoData.username, welcome: timeFix() })
               }
 
-              // 设置头像
               if (userInfoData.avatar) {
                 this.$store.commit('SET_AVATAR', userInfoData.avatar)
               }
 
-              // 设置角色（如果有）
               let roles = []
               if (userInfoData.role) {
-                // 处理 role 可能是对象或数组的情况
                 if (Array.isArray(userInfoData.role)) {
                   roles = userInfoData.role
                 } else if (typeof userInfoData.role === 'object') {
@@ -953,37 +1062,29 @@ export default {
                   roles = [{ id: userInfoData.role, permissionList: [] }]
                 }
               } else {
-                // 如果没有角色信息，设置一个默认角色对象，避免路由守卫卡住
                 roles = [{ id: 'default', permissionList: [] }]
               }
               this.$store.commit('SET_ROLES', roles)
               storage.set(USER_ROLES, roles, expiresAt)
             }
 
-            // 确保 roles 已经被正确设置（使用 Vue.nextTick 确保状态已更新）
             await this.$nextTick()
 
-            // 验证 token 和 roles 是否已正确设置
             const currentToken = storage.get(ACCESS_TOKEN)
             const currentRoles = this.$store.getters.roles
             console.log('Token after save:', currentToken ? (typeof currentToken === 'string' ? 'string' : typeof currentToken) : 'missing')
             console.log('Roles after save:', currentRoles.length > 0 ? `has ${currentRoles.length} roles` : 'empty')
 
-            // 如果 roles 为空，设置默认角色
             if (currentRoles.length === 0) {
               const defaultRoles = [{ id: 'default', permissionList: [] }]
               this.$store.commit('SET_ROLES', defaultRoles)
               storage.set(USER_ROLES, defaultRoles, expiresAt)
             }
 
-            // 等待一下确保 token 已经设置到请求拦截器中
             await new Promise(resolve => setTimeout(resolve, 200))
 
-            // 重置路由，强制重新生成（根据新用户的角色）
-            // 注意：ResetRoutes 只是清空路由，不会触发路由守卫
             this.$store.dispatch('ResetRoutes')
 
-            // 直接跳转，路由守卫会检查 roles，如果 roles 已设置就不会调用 GetInfo
             const isNew = res.data.is_new_user
             this.$router.push({ path: '/' }).then(() => {
               this.$notification.success({
@@ -994,7 +1095,6 @@ export default {
               })
             }).catch(err => {
               console.error('Router push error:', err)
-              // 即使跳转失败，也显示成功消息
               this.$notification.success({
                 message: isNew ? (this.$t('user.login.welcomeNew') || 'Welcome!') : 'Welcome',
                 description: isNew
@@ -1111,39 +1211,31 @@ export default {
             this.$message.success(this.$t('user.register.success') || 'Registration successful')
 
             if (res.data?.token) {
-              // 保存 token（先保存到 storage，确保请求拦截器能读取到）
               const expiresAt = new Date().getTime() + 7 * 24 * 60 * 60 * 1000
               storage.set(ACCESS_TOKEN, res.data.token, expiresAt)
               this.$store.commit('SET_TOKEN', res.data.token)
 
-              // 保存用户信息（从注册接口返回的 userinfo）
               if (res.data.userinfo) {
                 const userInfoData = { ...res.data.userinfo }
-                // 确保有 is_demo 字段，避免 GetInfo 认为缓存过期
                 if (typeof userInfoData.is_demo === 'undefined') {
                   userInfoData.is_demo = false
                 }
 
-                // 保存到 storage，确保 GetInfo 能读取到
                 storage.set(USER_INFO, userInfoData, expiresAt)
                 this.$store.commit('SET_INFO', userInfoData)
 
-                // 设置用户名
                 if (userInfoData.nickname) {
                   this.$store.commit('SET_NAME', { name: userInfoData.nickname, welcome: timeFix() })
                 } else if (userInfoData.username) {
                   this.$store.commit('SET_NAME', { name: userInfoData.username, welcome: timeFix() })
                 }
 
-                // 设置头像
                 if (userInfoData.avatar) {
                   this.$store.commit('SET_AVATAR', userInfoData.avatar)
                 }
 
-                // 设置角色（如果有）
                 let roles = []
                 if (userInfoData.role) {
-                  // 处理 role 可能是对象或数组的情况
                   if (Array.isArray(userInfoData.role)) {
                     roles = userInfoData.role
                   } else if (typeof userInfoData.role === 'object') {
@@ -1152,37 +1244,29 @@ export default {
                     roles = [{ id: userInfoData.role, permissionList: [] }]
                   }
                 } else {
-                  // 如果没有角色信息，设置一个默认角色对象，避免路由守卫卡住
                   roles = [{ id: 'default', permissionList: [] }]
                 }
               this.$store.commit('SET_ROLES', roles)
               storage.set(USER_ROLES, roles, expiresAt)
               }
 
-              // 确保 roles 已经被正确设置（使用 Vue.nextTick 确保状态已更新）
               await this.$nextTick()
 
-              // 验证 token 和 roles 是否已正确设置
               const currentToken = storage.get(ACCESS_TOKEN)
               const currentRoles = this.$store.getters.roles
               console.log('Register - Token after save:', currentToken ? (typeof currentToken === 'string' ? 'string' : typeof currentToken) : 'missing')
               console.log('Register - Roles after save:', currentRoles.length > 0 ? `has ${currentRoles.length} roles` : 'empty')
 
-              // 如果 roles 为空，设置默认角色
               if (currentRoles.length === 0) {
                 const defaultRoles = [{ id: 'default', permissionList: [] }]
                 this.$store.commit('SET_ROLES', defaultRoles)
                 storage.set(USER_ROLES, defaultRoles, expiresAt)
               }
 
-              // 等待一下确保 token 已经设置到请求拦截器中
               await new Promise(resolve => setTimeout(resolve, 200))
 
-              // 重置路由，强制重新生成（根据新用户的角色）
-              // 注意：ResetRoutes 只是清空路由，不会触发路由守卫
               this.$store.dispatch('ResetRoutes')
 
-              // 直接跳转，路由守卫会检查 roles，如果 roles 已设置就不会调用 GetInfo
               this.$router.push({ path: '/' }).then(() => {
                 this.$notification.success({
                   message: 'Welcome',
@@ -1190,7 +1274,6 @@ export default {
                 })
               }).catch(err => {
                 console.error('Router push error:', err)
-                // 即使跳转失败，也显示成功消息
                 this.$notification.success({
                   message: 'Welcome',
                   description: `${timeFix()}, welcome to QuantDinger!`
@@ -1551,6 +1634,15 @@ export default {
       color: #ff4d4f;
       font-size: 12px;
       line-height: 1.4;
+    }
+  }
+
+  .mfa-login-panel {
+    .mfa-login-error {
+      margin-top: 8px;
+      color: #ff4d4f;
+      font-size: 13px;
+      line-height: 1.5;
     }
   }
 }

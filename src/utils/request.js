@@ -6,7 +6,6 @@ import { VueAxios } from './axios'
 import { ACCESS_TOKEN, USER_INFO, USER_ROLES } from '@/store/mutation-types'
 import i18n from '@/locales'
 
-// PHPSESSID 存储键名
 const PHPSESSID_KEY = 'PHPSESSID'
 // Locale storage key used by vue-i18n (see src/locales/index.js)
 const LOCALE_KEY = 'lang'
@@ -14,30 +13,22 @@ const LOCALE_KEY = 'lang'
 // Prevent multiple concurrent 401 redirects
 let isRedirectingToLogin = false
 
-/**
- * 获取 token，处理 token 可能是字符串或对象的情况
- */
 function getToken () {
   let token = storage.get(ACCESS_TOKEN)
   if (!token) {
     return null
   }
   if (typeof token !== 'string') {
-    // 如果是对象，尝试获取 token 属性
     if (token && typeof token === 'object') {
       token = token.token || token.value || null
     } else {
       token = null
     }
   }
-  // 确保 token 是字符串且不为空
   return (typeof token === 'string' && token.length > 0) ? token : null
 }
 
-// 创建 axios 实例
 const request = axios.create({
-  // API 请求的默认前缀
-  // 生产环境应由 Nginx 处理，开发环境由 devServer proxy 处理
   baseURL: '/',
   timeout: 30000, // Default request timeout 30s (can be overridden per request)
   withCredentials: true // 允许携带 cookies
@@ -64,8 +55,93 @@ function tt (key, fallback) {
   return fallback
 }
 
-// 异常拦截处理器
+function tf (key, fallback, values = {}) {
+  let text = tt(key, fallback)
+  Object.keys(values).forEach(k => {
+    text = text.replace(new RegExp(`\\{${k}\\}`, 'g'), values[k])
+  })
+  return text
+}
+
+function getBackendErrorMessage (error) {
+  const data = error && error.response && error.response.data
+  if (!data) return ''
+  if (typeof data === 'string') return data
+  return data.msg || data.message || data.error || ''
+}
+
+function normalizeBacktestRangeLimitError (error) {
+  const envelope = error && error.response && error.response.data
+  const details = envelope && envelope.data
+  if (!details || details.error_type !== 'BACKTEST_RANGE_LIMIT') return ''
+  const values = {
+    market: details.market || '',
+    symbol: details.symbol || '',
+    timeframe: details.timeframe || '',
+    maxRange: details.max_range || details.max_days || '',
+    maxDays: details.max_days || '',
+    fetchDays: details.fetch_days || '',
+    warmupBars: details.warmup_bars || 0,
+    requestedStart: details.requested_start || '',
+    requestedEnd: details.requested_end || '',
+    recommendedStart: details.recommended_start || '',
+    recommendedEnd: details.recommended_end || ''
+  }
+  values.warmupNote = Number(values.warmupBars) > 0
+    ? tf('request.backtestRangeLimitWarmup', ' including {warmupBars} warmup bars', values)
+    : ''
+  if (details.recommendation_available === false || !values.recommendedStart || !values.recommendedEnd) {
+    return tf(
+      'request.backtestRangeLimitNoSuggestion',
+      'Backtest range is too long for {market}:{symbol} {timeframe}. This provider supports up to {maxRange} ({maxDays} days), but this run needs {fetchDays} days{warmupNote}. The indicator warmup alone exceeds the provider limit. Reduce lookback parameters or use a higher timeframe.',
+      values
+    )
+  }
+  return tf(
+    'request.backtestRangeLimit',
+    'Backtest range is too long for {market}:{symbol} {timeframe}. This provider supports up to {maxRange} ({maxDays} days), but this run needs {fetchDays} days{warmupNote}. Use {recommendedStart} to {requestedEnd}, or keep {requestedStart} and set the end date to {recommendedEnd}.',
+    values
+  )
+}
+
+function normalizeBusinessErrorMessage (message, error) {
+  const backtestRangeLimit = normalizeBacktestRangeLimitError(error)
+  if (backtestRangeLimit) return backtestRangeLimit
+  if (!message) return ''
+  const liveConflict = message.match(/Live strategy conflict: another running strategy already uses the same API key\/exchange\/market\/symbol \(([^)]+)\)\. Please stop strategy (\d+)(?: \((.+)\))? first\./i)
+  if (liveConflict) {
+    const [, scope, strategyId, strategyName] = liveConflict
+    const target = strategyName ? `${strategyId} (${strategyName})` : strategyId
+    return tf(
+      'request.liveStrategyConflict',
+      'Live strategy conflict: only one live strategy can run for the same API key / exchange / market type / symbol ({scope}). Please stop strategy {target} first.',
+      { scope, target }
+    )
+  }
+  const gridSpacing = message.match(/Grid spacing is too narrow after fees: worst cell \[([^\]]+)\] captures ~([0-9.]+)% but needs ~([0-9.]+)% to cover round-trip fees \(([0-9.]+)% per side plus safety buffer\)\. Widen the price range, reduce gridCount, or lower fee settings\./i)
+  if (gridSpacing) {
+    const [, cell, captures, required, fee] = gridSpacing
+    return tf(
+      'request.gridSpacingTooNarrow',
+      'Grid spacing is too narrow after fees: worst cell [{cell}] captures about {captures}% but needs about {required}% to cover round-trip fees ({fee}% per side plus safety buffer). Widen the price range, reduce grid count, or lower fee settings.',
+      { cell, captures, required, fee }
+    )
+  }
+  return message
+}
+
+function attachBackendErrorMessage (error) {
+  const message = normalizeBusinessErrorMessage(getBackendErrorMessage(error), error)
+  if (!message) return error
+  error.backendMessage = message
+  try {
+    error.message = message
+  } catch (e) { /* noop */ }
+  return error
+}
+
 const errorHandler = (error) => {
+  attachBackendErrorMessage(error)
   if (error.response) {
     const data = error.response.data
     if (error.response.status === 403) {
@@ -98,7 +174,6 @@ const errorHandler = (error) => {
             tt('request.unauthorizedDesc', 'Token invalid or expired, please login again.')
         })
 
-        // 项目使用 hash 模式，需要跳转到 /#/user/login
         const curHash = window.location.hash || ''
         if (!curHash.includes('/user/login')) {
           const redirect = encodeURIComponent(curHash.replace('#', '') || '/')
@@ -112,8 +187,6 @@ const errorHandler = (error) => {
 
 // request interceptor
 request.interceptors.request.use(config => {
-  // axios 会把实例默认 timeout 挂到每个请求上，因此这里需要识别
-  // “仍然是默认值”的情况，再按接口类型覆盖成更长超时。
   const isDefaultTimeout = !config.timeout || config.timeout === request.defaults.timeout
   if (config.url && isDefaultTimeout) {
     if (config.url.includes('/backtest/aiAnalyze')) {
@@ -127,7 +200,6 @@ request.interceptors.request.use(config => {
     }
   }
 
-  // 使用统一的 token 获取函数
   const token = getToken()
   const lang = storage.get(LOCALE_KEY) || 'zh-CN'
 
@@ -136,16 +208,11 @@ request.interceptors.request.use(config => {
   config.headers['X-App-Lang'] = lang
   config.headers['Accept-Language'] = lang
 
-  // 如果 token 存在，将 token 添加到请求头
   if (token) {
-    // 使用 Authorization header，格式为 Bearer {token}
     config.headers['Authorization'] = `Bearer ${token}`
-    // 同时保留原有的 Access-Token header（如果后端需要）
     config.headers[ACCESS_TOKEN] = token
-    // 兼容后端要求的 token 头
     config.headers['token'] = token
   } else {
-    // 调试：如果 token 不存在，记录日志
     if (config.url && config.url.includes('/api/auth/info')) {
       const rawToken = storage.get(ACCESS_TOKEN)
       console.warn('Token missing for /api/auth/info request')
@@ -155,42 +222,29 @@ request.interceptors.request.use(config => {
     }
   }
 
-  // 防止缓存导致的 304：为请求添加禁止缓存的头
   config.headers['Cache-Control'] = 'no-cache'
   config.headers['Pragma'] = 'no-cache'
   config.headers['If-Modified-Since'] = '0'
 
-  // 为 GET 请求添加时间戳参数，避免缓存
   if ((config.method || 'get').toLowerCase() === 'get') {
     const ts = Date.now()
     config.params = Object.assign({}, config.params || {}, { _t: ts })
   }
 
-  // 手动设置 PHPSESSID cookie，确保每次请求使用相同的 session
-  // 注意：浏览器不允许手动设置 Cookie 请求头，需要通过 document.cookie 设置
-  // 但由于跨域限制，可能无法直接设置 cookie，主要依赖 withCredentials: true
   const phpsessid = storage.get(PHPSESSID_KEY)
   if (phpsessid && typeof document !== 'undefined') {
-    // 检查当前 document.cookie 中的 PHPSESSID
     const currentCookies = document.cookie
     const currentPhpsessidMatch = currentCookies.match(/PHPSESSID=([^;]+)/i)
     const currentPhpsessid = currentPhpsessidMatch ? currentPhpsessidMatch[1].trim() : null
 
-    // 如果当前 cookie 中的 PHPSESSID 与保存的不一致，尝试更新
-    // 注意：跨域情况下可能无法设置 cookie，这取决于 CORS 配置
     if (!currentPhpsessid || currentPhpsessid !== phpsessid) {
-      // 尝试设置 cookie（可能因为跨域而失败，但不影响 withCredentials 的工作）
       try {
-        // 尝试设置带 domain 的 cookie（仅当在相同域名下时有效）
         if (window.location.hostname.includes('quantdinger.com')) {
           document.cookie = `PHPSESSID=${phpsessid}; path=/; domain=.quantdinger.com; SameSite=None; Secure`
         } else {
-          // 跨域情况下，只能依赖 withCredentials: true 和服务器设置
-          // 这里尝试设置，但可能不会成功
           document.cookie = `PHPSESSID=${phpsessid}; path=/; SameSite=None; Secure`
         }
       } catch (e) {
-        // 设置失败是正常的（跨域限制），主要依赖 withCredentials
       }
     }
   }
@@ -200,18 +254,13 @@ request.interceptors.request.use(config => {
 
 // response interceptor
 request.interceptors.response.use((response) => {
-  // 从响应中提取 PHPSESSID 并保存
-  // 由于浏览器安全限制，无法直接读取 set-cookie 头，需要通过 document.cookie 获取
   try {
     if (typeof document !== 'undefined') {
-      // 从 document.cookie 获取 PHPSESSID（浏览器自动设置的）
       const cookies = document.cookie
       const phpsessidMatch = cookies.match(/PHPSESSID=([^;]+)/i)
       if (phpsessidMatch && phpsessidMatch[1]) {
         const phpsessid = phpsessidMatch[1].trim()
-        // 保存 PHPSESSID 到 storage，有效期 24 小时
         const savedPhpsessid = storage.get(PHPSESSID_KEY)
-        // 如果 PHPSESSID 发生变化，更新保存的值
         if (!savedPhpsessid || savedPhpsessid !== phpsessid) {
           storage.set(PHPSESSID_KEY, phpsessid, new Date().getTime() + 24 * 60 * 60 * 1000)
         }

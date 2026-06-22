@@ -464,16 +464,8 @@ const info = options => {
   return builder(userInfo)
 }
 
-/**
- * 使用 用户登录的 token 获取用户有权限的菜单
- * 返回结构必须按照这个结构体形式处理，或根据
- * /src/router/generator-routers.js  文件的菜单结构处理函数对应即可
- * @param {*} options
- * @returns
- */
 const userNav = options => {
   const nav = [
-    // AI 分析
     {
       name: 'Analysis',
       parentId: 0,
@@ -486,7 +478,6 @@ const userNav = options => {
       component: 'Analysis',
       path: '/ai-analysis'
     },
-    // 指标分析
     {
       name: 'Indicator',
       parentId: 0,
@@ -499,7 +490,6 @@ const userNav = options => {
       component: 'Indicator',
       path: '/indicator-analysis'
     },
-    // 特殊三级菜单
     {
       name: 'settings',
       parentId: 10028,

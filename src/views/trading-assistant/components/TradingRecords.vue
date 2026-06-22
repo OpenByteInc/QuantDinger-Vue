@@ -63,6 +63,50 @@
         </template>
       </a-table>
     </div>
+    <a-table
+      v-else
+      :columns="columns"
+      :data-source="records"
+      :loading="loading"
+      :pagination="{ pageSize: 10 }"
+      size="small"
+      rowKey="id"
+      :scroll="{ x: 800 }"
+    >
+      <template slot="type" slot-scope="text, record">
+        <div class="trade-type-cell">
+          <a-tag :color="getTradeTypeColor(text)" class="trade-type-tag">
+            {{ getTradeTypeText(text) }}
+          </a-tag>
+          <div class="trade-type-desc">{{ getTradeActionDescription(record) }}</div>
+        </div>
+      </template>
+      <template slot="price" slot-scope="text">
+        ${{ parseFloat(text).toFixed(4) }}
+      </template>
+      <template slot="amount" slot-scope="text">
+        {{ parseFloat(text).toFixed(4) }}
+      </template>
+      <template slot="value" slot-scope="text">
+        ${{ parseFloat(text).toFixed(2) }}
+      </template>
+      <template slot="profit" slot-scope="text, record">
+        <span :class="['ta-pnl', profitToneClass(record)]">
+          {{ formatProfit(record) }}
+        </span>
+      </template>
+      <template slot="grid_matched_profit" slot-scope="text, record">
+        <span :class="['ta-pnl', gridProfitToneClass(record)]">
+          {{ formatGridProfit(record) }}
+        </span>
+      </template>
+      <template slot="commission" slot-scope="text, record">
+        {{ formatCommission(text, record) }}
+      </template>
+      <template slot="time" slot-scope="text, record">
+        {{ formatTime(record.created_at || text) }}
+      </template>
+    </a-table>
   </div>
 </template>
 
@@ -84,6 +128,11 @@ export default {
     isDark: {
       type: Boolean,
       default: false
+    },
+    botType: {
+      // 'grid' / 'dca' / '' — drives the "grid profit" column visibility.
+      type: String,
+      default: ''
     }
   },
   computed: {
@@ -157,9 +206,12 @@ export default {
       const val = this.totalNetProfit
       if (val === null) return '--'
       return this.formatMoney(val)
+    isGridBot () {
+      const bt = String(this.botType || '').toLowerCase()
+      return bt === 'grid' || bt === 'dca'
     },
     columns () {
-      return [
+      const cols = [
         {
           title: this.$t('trading-assistant.table.time'),
           dataIndex: 'created_at',
@@ -198,20 +250,30 @@ export default {
           scopedSlots: { customRender: 'value' }
         },
         {
-          title: this.$t('dashboard.indicator.backtest.profit'),
+          title: this.$t('trading-assistant.table.netProfit'),
           dataIndex: 'profit',
           key: 'profit',
           width: 120,
           scopedSlots: { customRender: 'profit' }
-        },
-        {
-          title: this.$t('trading-assistant.table.commission'),
-          dataIndex: 'commission',
-          key: 'commission',
-          width: 100,
-          scopedSlots: { customRender: 'commission' }
         }
       ]
+      if (this.isGridBot) {
+        cols.push({
+          title: this.$t('trading-assistant.table.gridMatchedProfit'),
+          dataIndex: 'grid_matched_profit',
+          key: 'grid_matched_profit',
+          width: 130,
+          scopedSlots: { customRender: 'grid_matched_profit' }
+        })
+      }
+      cols.push({
+        title: this.$t('trading-assistant.table.commission'),
+        dataIndex: 'commission',
+        key: 'commission',
+        width: 100,
+        scopedSlots: { customRender: 'commission' }
+      })
+      return cols
     }
   },
   data () {
@@ -251,7 +313,7 @@ export default {
       this.filteredRecords = []
  
       try {
-        const res = await getStrategyTrades(this.strategyId)
+        const res = await getStrategyTrades(this.strategyId, this.$i18n && this.$i18n.locale)
         if (res.code === 1) {
           const list = res.data.trades || res.data.items || []
           this.records = list.map(trade => {
@@ -298,8 +360,17 @@ export default {
       }
       return formatBrowserLocalDateTime(time, { locale: loc, fallback: '--' })
     },
-    /** Net realised P&L: gross ``profit`` minus exchange-synced ``commission``. */
+    /** Net realised P&L after open + close fees (API may pre-compute net_pnl / profit). */
     netTradePnl (row) {
+      if (!row || typeof row !== 'object') return null
+      if (row.net_pnl !== null && row.net_pnl !== undefined && row.net_pnl !== '') {
+        const n = parseFloat(row.net_pnl)
+        if (!isNaN(n)) return n
+      }
+      if (row.profit_gross != null && row.profit != null) {
+        const n = parseFloat(row.profit)
+        if (!isNaN(n)) return n
+      }
       const raw = this.pickTradeProfitRaw(row)
       if (raw === null || raw === undefined || raw === '') return null
       const p = parseFloat(raw)
@@ -310,11 +381,14 @@ export default {
         const c = parseFloat(cm)
         if (!isNaN(c)) fee = c
       }
-      return p - fee
+      const openFee = parseFloat(row.open_commission_allocated || 0)
+      return p - fee - (isNaN(openFee) ? 0 : openFee)
     },
     pickTradeProfitRaw (row) {
       if (!row || typeof row !== 'object') return null
       const keys = [
+        'net_pnl',
+        'netPnl',
         'profit',
         'pnl',
         'realized_pnl',
@@ -329,6 +403,16 @@ export default {
         if (v !== null && v !== undefined && v !== '') return v
       }
       return null
+    },
+    closeReasonI18nKey (reason) {
+      const code = String(reason || '').trim()
+      if (!code) return null
+      return `trading-assistant.tradeReason.${code}`
+    },
+    gridPurposeI18nKey (reason) {
+      const code = String(reason || '').trim()
+      if (!code) return null
+      return `trading-bot.detail.restingPurpose.${code}`
     },
     tradeDetailI18nKey (type) {
       const ty = String(type || '').toLowerCase().replace(/-/g, '_')
@@ -353,7 +437,38 @@ export default {
       }
       return map[ty] || null
     },
-    getTradeActionDescription (type) {
+    getTradeActionDescription (recordOrType) {
+      const record = recordOrType && typeof recordOrType === 'object' ? recordOrType : null
+      const type = record ? record.type : recordOrType
+
+      if (record) {
+        const loc = String((this.$i18n && this.$i18n.locale) || 'zh-CN').toLowerCase()
+        const preferEn = loc.startsWith('en')
+        const note = preferEn
+          ? (record.action_note_en || record.action_note)
+          : (record.action_note || record.action_note_en)
+        if (note) return note
+
+        const reasonKey = this.closeReasonI18nKey(record.close_reason)
+        if (reasonKey) {
+          const rt = this.$t(reasonKey)
+          if (rt !== reasonKey) return rt
+        }
+
+        const purposeKey = this.gridPurposeI18nKey(record.close_reason)
+        if (purposeKey) {
+          const pt = this.$t(purposeKey)
+          if (pt !== purposeKey) return pt
+        }
+
+        // Backtest-style typed exits (close_long_stop / _profit / _trailing)
+        const typedKey = this.tradeDetailI18nKey(type)
+        if (typedKey && /_(stop|profit|trailing)$/.test(String(type || '').toLowerCase())) {
+          const tt = this.$t(typedKey)
+          if (tt !== typedKey) return tt
+        }
+      }
+
       const key = this.tradeDetailI18nKey(type)
       if (!key) return '—'
       const t = this.$t(key)
@@ -371,15 +486,12 @@ export default {
       if (n < 0) return 'ta-pnl-neg'
       return 'ta-pnl-zero'
     },
-    // 获取交易类型颜色
     getTradeTypeColor (type) {
       const ty = String(type || '').toLowerCase()
       const colorMap = {
-        // 旧格式
         'buy': 'green',
         'sell': 'red',
         'liquidation': 'volcano',
-        // 新格式 - 做多
         'open_long': 'green',
         'add_long': 'cyan',
         'close_long': 'orange',
@@ -387,7 +499,6 @@ export default {
         'close_long_profit': 'lime',
         'close_long_trailing': 'purple',
         'reduce_long': 'geekblue',
-        // 新格式 - 做空
         'open_short': 'magenta',
         'add_short': 'volcano',
         'close_short': 'blue',
@@ -398,15 +509,12 @@ export default {
       }
       return colorMap[ty] || 'default'
     },
-    // 获取交易类型文本
     getTradeTypeText (type) {
       const ty = String(type || '').toLowerCase()
       const textMap = {
-        // 旧格式
         'buy': this.$t('dashboard.indicator.backtest.buy'),
         'sell': this.$t('dashboard.indicator.backtest.sell'),
         'liquidation': this.$t('dashboard.indicator.backtest.liquidation'),
-        // 新格式 - 做多
         'open_long': this.$t('dashboard.indicator.backtest.openLong'),
         'add_long': this.$t('dashboard.indicator.backtest.addLong'),
         'close_long': this.$t('dashboard.indicator.backtest.closeLong'),
@@ -414,7 +522,6 @@ export default {
         'close_long_profit': this.$t('dashboard.indicator.backtest.closeLongProfit'),
         'close_long_trailing': this.$t('dashboard.indicator.backtest.closeLongTrailing'),
         'reduce_long': this.$t('dashboard.indicator.backtest.reduceLong'),
-        // 新格式 - 做空
         'open_short': this.$t('dashboard.indicator.backtest.openShort'),
         'add_short': this.$t('dashboard.indicator.backtest.addShort'),
         'close_short': this.$t('dashboard.indicator.backtest.closeShort'),
@@ -425,31 +532,23 @@ export default {
       }
       return textMap[ty] || type
     },
-    // 格式化金额（盈亏）
     formatMoney (value) {
       if (value === null || value === undefined) return '--'
-      // 正数显示+，负数显示-
       const sign = value >= 0 ? '+' : '-'
       return `${sign}$${Math.abs(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
     },
-    // 格式化盈亏（处理信号模式下没有实盘的情况）
     formatProfit (record) {
       const net = this.netTradePnl(record)
-      // 如果是信号模式（没有实盘交易），profit为0或null时显示--
       if (net === null) return '--'
 
       const numValue = net
 
-      // 如果值为0且是开仓信号（open_long/open_short），显示--
-      // 因为开仓时还没有盈亏
       const openTypes = ['open_long', 'open_short', 'add_long', 'add_short']
       if (numValue === 0 && record && openTypes.includes(record.type)) {
         return '--'
       }
 
-      // 如果值极小（科学计数法如0E-8），视为0
       if (Math.abs(numValue) < 0.000001) {
-        // 开仓类型显示--，平仓类型显示$0.00
         if (record && openTypes.includes(record.type)) {
           return '--'
         }
@@ -458,8 +557,38 @@ export default {
 
       return this.formatMoney(numValue)
     },
-    // 格式化手续费（0 显示 $0.00，与交易所一致）
-    formatCommission (value) {
+    pickGridProfit (record) {
+      if (!record || typeof record !== 'object') return null
+      const raw = record.grid_matched_profit
+      if (raw === null || raw === undefined || raw === '') return null
+      const v = parseFloat(raw)
+      if (isNaN(v)) return null
+      const matched = parseFloat(record.matched_entry_price || 0)
+      if (!matched || matched <= 0) return null
+      return v
+    },
+    formatGridProfit (record) {
+      const v = this.pickGridProfit(record)
+      if (v === null) return '—'
+      if (Math.abs(v) < 1e-6) return '$0.00'
+      return this.formatMoney(v)
+    },
+    gridProfitToneClass (record) {
+      const v = this.pickGridProfit(record)
+      if (v === null) return 'ta-pnl-neutral'
+      if (v > 0) return 'ta-pnl-pos'
+      if (v < 0) return 'ta-pnl-neg'
+      return 'ta-pnl-zero'
+    },
+    formatCommission (value, record) {
+      const row = record && typeof record === 'object' ? record : null
+      if (row && row.total_commission != null && row.total_commission !== '') {
+        const total = parseFloat(row.total_commission)
+        if (!isNaN(total)) {
+          if (Math.abs(total) < 1e-12) return '$0.00'
+          return `$${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`
+        }
+      }
       if (value === null || value === undefined) return '--'
       const numValue = parseFloat(value)
       if (isNaN(numValue)) return '--'
@@ -473,7 +602,6 @@ export default {
 </script>
 
 <style lang="less" scoped>
-// 颜色变量
 @primary-color: #1890ff;
 @success-color: #0ecb81;
 @danger-color: #f6465d;
@@ -671,7 +799,6 @@ export default {
     }
   }
 
-  // 交易类型标签美化
   ::v-deep .ant-tag {
     border-radius: 6px;
     padding: 3px 10px;
@@ -723,7 +850,6 @@ export default {
     }
   }
 
-  // 分页器美化
   ::v-deep .ant-pagination {
     margin-top: 16px;
     display: flex;
@@ -767,7 +893,6 @@ export default {
     }
   }
 
-  // 暗黑主题适配
   &.theme-dark,
   .theme-dark & {
     ::v-deep .ant-table {
@@ -843,7 +968,6 @@ export default {
     background: #fafafa;
   }
 
-  // 移动端适配
   @media (max-width: 768px) {
     min-height: 200px;
     overflow-x: visible;
@@ -852,7 +976,6 @@ export default {
       font-size: 12px;
     }
 
-    // 移动端也使用细滚动条
     ::v-deep .ant-table-body,
     ::v-deep .ant-table-container,
     ::v-deep .ant-table-wrapper {
@@ -920,12 +1043,9 @@ export default {
   }
 }
 
-// 暗黑主题 - 在 scoped 中处理，确保优先级足够高
 </style>
 
 <style lang="less">
-// 暗黑主题适配 - 使用最高优先级的选择器覆盖 scoped 样式
-// 关键：必须使用与 scoped 样式完全相同的选择器结构，加上 theme-dark 前缀
 .theme-dark .trading-records .ant-table-tbody > tr > td,
 .theme-dark .trading-records[data-v] .ant-table-tbody > tr > td,
 body.dark .trading-records .ant-table-tbody > tr > td,
@@ -967,7 +1087,6 @@ body.realdark .trading-records .ant-table-tbody > tr:hover > td {
   background: #2a2e39 !important;
 }
 
-// 确保表头文字可见
 .theme-dark .trading-records .ant-table-thead > tr > th,
 .theme-dark .trading-records[data-v] .ant-table-thead > tr > th,
 body.dark .trading-records .ant-table-thead > tr > th,
@@ -981,7 +1100,6 @@ body.realdark .trading-records .ant-table-thead > tr > th {
   background: #2a2e39 !important;
 }
 
-// body.dark 和 body.realdark 支持
 body.dark .trading-records[data-v-8a68b65a] .ant-table-tbody > tr > td,
 body.realdark .trading-records[data-v-8a68b65a] .ant-table-tbody > tr > td {
   color: #d1d4dc !important;
@@ -996,7 +1114,6 @@ body.realdark .trading-records[data-v-8a68b65a] .ant-table-thead > tr > th {
   border-bottom-color: #363c4e !important;
 }
 
-// 通用后备选择器（如果 data-v 值变化）
 .theme-dark .trading-records[data-v] .ant-table-tbody > tr > td,
 body.dark .trading-records[data-v] .ant-table-tbody > tr > td,
 body.realdark .trading-records[data-v] .ant-table-tbody > tr > td {
@@ -1013,7 +1130,6 @@ body.realdark .trading-records[data-v] .ant-table-thead > tr > th {
   border-bottom-color: #363c4e !important;
 }
 
-// 分页器样式
 .theme-dark .trading-records[data-v-8a68b65a] .ant-pagination-item,
 body.dark .trading-records[data-v-8a68b65a] .ant-pagination-item,
 body.realdark .trading-records[data-v-8a68b65a] .ant-pagination-item {
@@ -1065,7 +1181,6 @@ body.realdark .trading-records[data-v-8a68b65a] .ant-pagination-next:hover .ant-
   color: #1890ff !important;
 }
 
-// 通用后备选择器
 .theme-dark .trading-records[data-v] .ant-pagination-item,
 body.dark .trading-records[data-v] .ant-pagination-item,
 body.realdark .trading-records[data-v] .ant-pagination-item {
@@ -1117,7 +1232,6 @@ body.realdark .trading-records[data-v] .ant-pagination-next:hover .ant-paginatio
   color: #1890ff !important;
 }
 
-// 暗黑主题滚动条样式
 .theme-dark .trading-records[data-v-8a68b65a] .ant-table-body,
 .theme-dark .trading-records[data-v-8a68b65a] .ant-table-container,
 .theme-dark .trading-records[data-v-8a68b65a] .ant-table-content,
@@ -1149,7 +1263,6 @@ body.realdark .trading-records[data-v-8a68b65a] .ant-table-wrapper {
   }
 }
 
-// 通用后备选择器
 .theme-dark .trading-records[data-v] .ant-table-body,
 .theme-dark .trading-records[data-v] .ant-table-container,
 .theme-dark .trading-records[data-v] .ant-table-content,
@@ -1183,7 +1296,6 @@ body.realdark .trading-records[data-v] .ant-table-wrapper {
 </style>
 
 <style lang="less">
-// 暗黑主题适配 - 使用全局样式确保能够覆盖
 .theme-dark .trading-records {
   ::v-deep .ant-table {
     background: #1c1c1c !important;
@@ -1227,7 +1339,6 @@ body.realdark .trading-records[data-v] .ant-table-wrapper {
     color: #868993 !important;
   }
 
-  // 暗黑主题滚动条样式
   ::v-deep .ant-table-body,
   ::v-deep .ant-table-container,
   ::v-deep .ant-table-content,
@@ -1348,7 +1459,6 @@ body.realdark .trading-records {
     color: #868993 !important;
   }
 
-  // 暗黑主题滚动条样式
   ::v-deep .ant-table-body,
   ::v-deep .ant-table-container,
   ::v-deep .ant-table-content,
@@ -1427,7 +1537,6 @@ body.realdark .trading-records {
 </style>
 
 <style lang="less">
-/* 暗黑主题适配 - 使用更高优先级的选择器 */
 .theme-dark .trading-records,
 .theme-dark .trading-records *,
 body.dark .trading-records,

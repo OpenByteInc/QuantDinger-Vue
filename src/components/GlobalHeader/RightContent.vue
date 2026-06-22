@@ -49,16 +49,16 @@ export default {
   },
   methods: {
     handleSettingClick () {
-      // 触发设置抽屉显示事件
       this.$root.$emit('show-setting-drawer')
     }
   },
   computed: {
-    ...mapGetters(['nickname', 'avatar']),
+    ...mapGetters(['nickname', 'avatar', 'userInfo']),
     currentUser () {
       return {
         name: this.nickname,
-        avatar: this.avatar
+        avatar: this.avatar,
+        credits: this.userInfo && this.userInfo.credits
       }
     },
     wrpCls () {
@@ -72,9 +72,8 @@ export default {
 </script>
 
 <style lang="less">
-@import '~ant-design-vue/es/style/themes/default.less';
+@import '@/styles/antd-vars.less';
 
-/* 浅色主题（默认） */
 .ant-pro-global-header-index-right {
   display: flex;
   align-items: center;
@@ -98,7 +97,6 @@ export default {
   }
 }
 
-/* 手机端适配 */
 @media (max-width: 768px) {
   .ant-pro-global-header-index-right {
     .ant-pro-global-header-index-action {
@@ -112,15 +110,12 @@ export default {
   }
 }
 
-/* 暗黑主题 - 强制覆盖 */
-/* 只要 body 或 layout 有 dark/realdark 类，就应用这些样式 */
 body.dark,
 body.realdark,
 .ant-layout.dark,
 .ant-layout.realdark,
 .ant-pro-layout.dark,
 .ant-pro-layout.realdark {
-  /* 覆盖 Header 右侧容器内所有文本颜色 */
   .ant-pro-global-header-index-right {
     color: rgba(255, 255, 255, 0.85) !important;
 
@@ -128,7 +123,6 @@ body.realdark,
       color: rgba(255, 255, 255, 0.85) !important;
     }
 
-    /* 操作按钮 */
     .ant-pro-global-header-index-action {
       color: rgba(255, 255, 255, 0.85) !important;
 
@@ -138,14 +132,12 @@ body.realdark,
       }
     }
 
-    /* 头像 */
     .ant-pro-account-avatar {
       .antd-pro-global-header-index-avatar {
         background: rgba(255, 255, 255, 0.25) !important;
       }
     }
 
-    /* 下拉菜单触发器（包含图标） */
     .ant-pro-drop-down,
     .ant-dropdown-trigger {
       color: rgba(255, 255, 255, 0.85) !important;
@@ -162,3 +154,4 @@ body.realdark,
   }
 }
 </style>
+

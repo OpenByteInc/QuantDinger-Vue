@@ -74,6 +74,9 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
+          build-args: |
+            APP_VERSION=${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
+            GIT_TAG=${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
           provenance: false
 
       # ----- Release-only steps (skipped on workflow_dispatch) -----

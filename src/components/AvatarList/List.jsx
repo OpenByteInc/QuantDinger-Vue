@@ -5,11 +5,6 @@ import Avatar from 'ant-design-vue/es/avatar'
 import Item from './Item.jsx'
 import { filterEmpty } from '@/components/_util/util'
 
-/**
- * size: `number`、 `large`、`small`、`default` 默认值: default
- * maxLength: number
- * excessItemsStyle: CSSProperties
- */
 const AvatarListProps = {
   prefixCls: PropTypes.string.def('ant-pro-avatar-list'),
   size: {

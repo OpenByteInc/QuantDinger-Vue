@@ -138,6 +138,37 @@ export function changePassword (data) {
   })
 }
 
+export function getMfaStatus () {
+  return request({
+    url: '/api/users/mfa/status',
+    method: 'get'
+  })
+}
+
+export function startMfaSetup () {
+  return request({
+    url: '/api/users/mfa/setup/start',
+    method: 'post',
+    data: {}
+  })
+}
+
+export function confirmMfaSetup (data) {
+  return request({
+    url: '/api/users/mfa/setup/confirm',
+    method: 'post',
+    data
+  })
+}
+
+export function disableMfa (data) {
+  return request({
+    url: '/api/users/mfa/disable',
+    method: 'post',
+    data
+  })
+}
+
 /**
  * Get current user's notification settings
  */
@@ -191,6 +222,18 @@ export function deleteChartTemplate (templateId) {
     url: '/api/users/chart-templates',
     method: 'delete',
     params: { template_id: templateId }
+  })
+}
+
+/**
+ * Get current user's login history (password / email code / OAuth)
+ * @param {Object} params - { page, page_size }
+ */
+export function getLoginLogs (params) {
+  return request({
+    url: '/api/users/login-logs',
+    method: 'get',
+    params
   })
 }
 
@@ -265,6 +308,20 @@ export function getSystemStrategies (params) {
     url: '/api/users/system-strategies',
     method: 'get',
     params
+  })
+}
+
+/**
+ * Admin: start/stop any strategy (admin only)
+ * @param {Number} strategyId
+ * @param {String} action - optional: 'start' | 'stop' (omit to toggle)
+ */
+export function adminToggleStrategy (strategyId, action) {
+  return request({
+    url: '/api/users/system-strategies/toggle',
+    method: 'post',
+    params: { id: strategyId },
+    data: action ? { action } : {}
   })
 }
 

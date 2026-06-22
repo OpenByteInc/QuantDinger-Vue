@@ -53,6 +53,7 @@
           <div class="bot-actions" @click.stop>
             <a-button
               v-if="item.status !== 'running'"
+              class="bot-action-btn bot-action-btn--start"
               type="primary"
               size="small"
               ghost
@@ -63,6 +64,7 @@
             </a-button>
             <a-button
               v-else
+              class="bot-action-btn bot-action-btn--pause"
               type="danger"
               size="small"
               ghost
@@ -71,17 +73,18 @@
             >
               <a-icon type="pause-circle" />
             </a-button>
-            <a-button size="small" @click="$emit('select', item)">
+            <a-button class="bot-action-btn" size="small" @click="$emit('select', item)">
               <a-icon type="eye" />
             </a-button>
             <a-button
+              class="bot-action-btn"
               size="small"
               @click="$emit('edit', item)"
               :disabled="item.status === 'running'"
             >
               <a-icon type="edit" />
             </a-button>
-            <a-button size="small" type="danger" ghost @click="$emit('delete', item)" :disabled="item.status === 'running'">
+            <a-button class="bot-action-btn bot-action-btn--delete" size="small" type="danger" ghost @click="$emit('delete', item)" :disabled="item.status === 'running'">
               <a-icon type="delete" />
             </a-button>
           </div>
@@ -319,6 +322,53 @@ export default {
   display: flex;
   gap: 4px;
   flex-shrink: 0;
+}
+
+.bot-action-btn {
+  min-width: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff !important;
+  border-color: #d9e2ef !important;
+  color: #49627f !important;
+
+  .anticon {
+    color: inherit !important;
+  }
+
+  &:hover,
+  &:focus {
+    border-color: var(--primary-color, #1890ff) !important;
+    color: var(--primary-color, #1890ff) !important;
+  }
+}
+
+.bot-action-btn--start {
+  background: #eef6ff !important;
+  border-color: #91caff !important;
+  color: #1677ff !important;
+
+  &:hover,
+  &:focus {
+    background: #e6f4ff !important;
+    border-color: #1677ff !important;
+    color: #0958d9 !important;
+  }
+}
+
+.bot-action-btn--pause,
+.bot-action-btn--delete {
+  background: #fff7f7 !important;
+  border-color: #ffccc7 !important;
+  color: #cf1322 !important;
+
+  &:hover,
+  &:focus {
+    background: #fff1f0 !important;
+    border-color: #ff4d4f !important;
+    color: #a8071a !important;
+  }
 }
 
 @media (max-width: 768px) {

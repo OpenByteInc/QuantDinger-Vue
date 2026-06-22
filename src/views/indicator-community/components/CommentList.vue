@@ -1,6 +1,5 @@
 <template>
   <div class="comment-list">
-    <!-- 评论输入框（可评论/可编辑时显示） -->
     <div v-if="canComment || isEditing" class="comment-form">
       <div class="form-header" v-if="isEditing">
         <span class="edit-label">{{ $t('community.editComment') }}</span>
@@ -24,7 +23,6 @@
       </div>
     </div>
 
-    <!-- 已评论提示（不能再次评论，但可以编辑） -->
     <div v-else-if="myComment && !canComment && !isEditing" class="my-comment-hint">
       <a-icon type="check-circle" theme="twoTone" two-tone-color="#52c41a" />
       <span>{{ $t('community.alreadyCommented') }}</span>
@@ -33,7 +31,6 @@
       </a-button>
     </div>
 
-    <!-- 评论列表 -->
     <a-spin :spinning="loading">
       <div v-if="comments.length === 0" class="empty-comments">
         <a-empty :description="$t('community.noComments')" />
@@ -55,7 +52,6 @@
                 </span>
               </div>
             </div>
-            <!-- 编辑按钮（只有自己的评论显示） -->
             <div v-if="comment.user && comment.user.id === currentUserId" class="comment-actions">
               <a-button type="link" size="small" @click="startEdit(comment)">
                 <a-icon type="edit" />
@@ -67,7 +63,6 @@
       </div>
     </a-spin>
 
-    <!-- 加载更多 -->
     <div v-if="hasMore" class="load-more">
       <a-button type="link" @click="$emit('load-more')">
         {{ $t('community.loadMore') }}
@@ -122,7 +117,6 @@ export default {
     }
   },
   watch: {
-    // 如果传入了 myComment，自动填充表单（用于编辑模式）
     myComment: {
       immediate: true,
       handler (val) {
@@ -162,17 +156,14 @@ export default {
         }
 
         if (this.isEditing && this.editingCommentId) {
-          // 更新评论
           await this.$emit('update-comment', {
             comment_id: this.editingCommentId,
             ...data
           })
         } else {
-          // 新增评论
           await this.$emit('add-comment', data)
         }
 
-        // 重置表单
         this.cancelEdit()
       } finally {
         this.submitting = false
@@ -185,26 +176,21 @@ export default {
       const now = new Date()
       const diff = now - date
 
-      // 小于1分钟
       if (diff < 60000) {
         return this.$t('community.justNow')
       }
-      // 小于1小时
       if (diff < 3600000) {
         const mins = Math.floor(diff / 60000)
         return `${mins} ${this.$t('community.minutesAgo')}`
       }
-      // 小于24小时
       if (diff < 86400000) {
         const hours = Math.floor(diff / 3600000)
         return `${hours} ${this.$t('community.hoursAgo')}`
       }
-      // 小于30天
       if (diff < 2592000000) {
         const days = Math.floor(diff / 86400000)
         return `${days} ${this.$t('community.daysAgo')}`
       }
-      // 更早
       return date.toLocaleDateString()
     }
   }
@@ -354,7 +340,6 @@ export default {
   }
 }
 
-// 暗色主题
 body.dark,
 .dark,
 [data-theme='dark'] {
@@ -363,15 +348,15 @@ body.dark,
       background: #262626;
     }
 
-    /deep/ .ant-input,
-    /deep/ .ant-input:hover,
-    /deep/ .ant-input:focus {
+    ::v-deep .ant-input,
+    ::v-deep .ant-input:hover,
+    ::v-deep .ant-input:focus {
       background: #1f1f1f;
       border-color: #434343;
       color: rgba(255, 255, 255, 0.88);
     }
 
-    /deep/ .ant-rate {
+    ::v-deep .ant-rate {
       color: #fadb14;
     }
 

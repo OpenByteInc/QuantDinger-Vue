@@ -1,5 +1,4 @@
 <template>
-  <!-- 两步验证 -->
   <a-modal
     centered
     :visible="localVisible"

@@ -10,16 +10,144 @@
 }
 */
 .@{multi-tab-prefix-cls} {
-  margin: -23px -24px 24px;
-  background: #fff;
+  z-index: 9;
+  height: 36px;
+  margin: 0;
+  border-top: 1px solid #edf1f6;
+  border-bottom: 1px solid #dfe7f0;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.035);
+  overflow: hidden;
 }
 
-.topmenu .@{multi-tab-wrapper-prefix-cls} {
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.topmenu.content-width-Fluid .@{multi-tab-wrapper-prefix-cls} {
+.@{multi-tab-wrapper-prefix-cls} {
+  position: relative;
   max-width: 100%;
   margin: 0 auto;
+  padding-right: 92px;
+}
+
+.@{multi-tab-wrapper-prefix-cls} .ant-tabs-tab-next,
+.@{multi-tab-wrapper-prefix-cls} .ant-tabs-tab-prev {
+  z-index: 2;
+}
+
+.@{multi-tab-wrapper-prefix-cls} .ant-tabs-nav-wrap {
+  padding-right: 4px;
+}
+
+.@{multi-tab-prefix-cls} .ant-tabs-bar {
+  margin: 0;
+  border-bottom: 0;
+}
+
+.@{multi-tab-prefix-cls} .ant-tabs-nav-container {
+  height: 35px;
+}
+
+.@{multi-tab-prefix-cls} .ant-tabs.ant-tabs-card .ant-tabs-card-bar .ant-tabs-tab {
+  height: 30px;
+  margin-right: 4px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #64748b;
+  line-height: 30px;
+  padding: 0 12px;
+  transition: background 0.18s, color 0.18s;
+}
+
+.@{multi-tab-prefix-cls} .ant-tabs.ant-tabs-card .ant-tabs-card-bar .ant-tabs-tab-active {
+  background: color-mix(in srgb, var(--primary-color, #1890ff) 10%, #ffffff);
+  color: var(--primary-color, #1890ff);
+  font-weight: 600;
+}
+
+.@{multi-tab-prefix-cls}-clear {
+  position: absolute;
+  top: 4px;
+  right: 10px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid #d9e2ef;
+  border-radius: 7px;
+  background: #fff;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+  transition: border-color 0.18s, color 0.18s, background 0.18s, box-shadow 0.18s;
+}
+
+.@{multi-tab-prefix-cls}-clear:hover {
+  border-color: var(--primary-color, #1890ff);
+  color: var(--primary-color, #1890ff);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
+}
+
+.@{multi-tab-prefix-cls}-clear__arrow {
+  font-size: 10px;
+  opacity: 0.72;
+}
+
+.@{multi-tab-prefix-cls}-action-menu .ant-dropdown-menu-item {
+  min-width: 112px;
+  font-size: 13px;
+}
+
+body.dark .@{multi-tab-prefix-cls},
+body.realdark .@{multi-tab-prefix-cls},
+.dark .@{multi-tab-prefix-cls},
+.realdark .@{multi-tab-prefix-cls} {
+  border-top-color: #1f2730;
+  border-bottom-color: #242b35;
+  background: #11161c;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
+}
+
+body.dark .@{multi-tab-prefix-cls} .ant-tabs-bar,
+body.realdark .@{multi-tab-prefix-cls} .ant-tabs-bar,
+.dark .@{multi-tab-prefix-cls} .ant-tabs-bar,
+.realdark .@{multi-tab-prefix-cls} .ant-tabs-bar {
+  background: #11161c;
+}
+
+body.dark .@{multi-tab-prefix-cls} .ant-tabs.ant-tabs-card .ant-tabs-card-bar .ant-tabs-tab,
+body.realdark .@{multi-tab-prefix-cls} .ant-tabs.ant-tabs-card .ant-tabs-card-bar .ant-tabs-tab,
+.dark .@{multi-tab-prefix-cls} .ant-tabs.ant-tabs-card .ant-tabs-card-bar .ant-tabs-tab,
+.realdark .@{multi-tab-prefix-cls} .ant-tabs.ant-tabs-card .ant-tabs-card-bar .ant-tabs-tab {
+  background: transparent;
+  color: #9aa7b5;
+}
+
+body.dark .@{multi-tab-prefix-cls} .ant-tabs.ant-tabs-card .ant-tabs-card-bar .ant-tabs-tab-active,
+body.realdark .@{multi-tab-prefix-cls} .ant-tabs.ant-tabs-card .ant-tabs-card-bar .ant-tabs-tab-active,
+.dark .@{multi-tab-prefix-cls} .ant-tabs.ant-tabs-card .ant-tabs-card-bar .ant-tabs-tab-active,
+.realdark .@{multi-tab-prefix-cls} .ant-tabs.ant-tabs-card .ant-tabs-card-bar .ant-tabs-tab-active {
+  background: color-mix(in srgb, var(--primary-color, #1890ff) 18%, #11161c);
+  color: var(--primary-color, #1890ff);
+}
+
+body.dark .@{multi-tab-prefix-cls}-clear,
+body.realdark .@{multi-tab-prefix-cls}-clear,
+.dark .@{multi-tab-prefix-cls}-clear,
+.realdark .@{multi-tab-prefix-cls}-clear {
+  border-color: #293341;
+  background: #151b23;
+  color: #a8b4c2;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.26);
+}
+
+body.dark .@{multi-tab-prefix-cls}-clear:hover,
+body.realdark .@{multi-tab-prefix-cls}-clear:hover,
+.dark .@{multi-tab-prefix-cls}-clear:hover,
+.realdark .@{multi-tab-prefix-cls}-clear:hover {
+  border-color: var(--primary-color, #1890ff);
+  color: var(--primary-color, #1890ff);
+  background: color-mix(in srgb, var(--primary-color, #1890ff) 10%, #151b23);
 }

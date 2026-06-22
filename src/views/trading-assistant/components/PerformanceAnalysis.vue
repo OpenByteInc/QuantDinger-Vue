@@ -111,7 +111,11 @@ export default {
   name: 'PerformanceAnalysis',
   props: {
     strategyId: { type: [Number, String], default: null },
-    isDark: { type: Boolean, default: false }
+    isDark: { type: Boolean, default: false },
+    // When set to 'grid' / 'dca' the metrics grid gains three extra cards
+    // showing realised grid-matched PnL, matched-pair count and avg PnL per
+    // match — built from the same tradesList that drives the equity curve.
+    botType: { type: String, default: '' }
   },
   data () {
     return {
@@ -207,6 +211,58 @@ export default {
           iconClass: 'icon-days',
           icon: 'clock-circle',
           valueClass: ''
+        },
+        ...this.gridMetricCards
+      ]
+    },
+    isGridLikeBot () {
+      const bt = String(this.botType || '').toLowerCase()
+      return bt === 'grid' || bt === 'dca'
+    },
+    gridStats () {
+      if (!this.isGridLikeBot) return { totalProfit: 0, matched: 0, avgProfit: 0 }
+      let total = 0
+      let matched = 0
+      for (const t of this.tradesList || []) {
+        const me = parseFloat(t.matched_entry_price || 0)
+        if (!(me > 0)) continue
+        matched += 1
+        const p = parseFloat(t.grid_matched_profit || 0)
+        if (!isNaN(p)) total += p
+      }
+      const avg = matched > 0 ? total / matched : 0
+      return { totalProfit: total, matched, avgProfit: avg }
+    },
+    gridMetricCards () {
+      if (!this.isGridLikeBot) return []
+      const g = this.gridStats
+      return [
+        {
+          key: 'gridTotalProfit',
+          label: this.$t('trading-assistant.performance.gridTotalProfit'),
+          display: this.formatMoney(g.totalProfit),
+          cardClass: this.cardTone(g.totalProfit),
+          iconClass: 'icon-pf',
+          icon: 'gold',
+          valueClass: this.valueTone(g.totalProfit)
+        },
+        {
+          key: 'gridMatchedPairs',
+          label: this.$t('trading-assistant.performance.gridMatchedPairs'),
+          display: String(g.matched),
+          cardClass: '',
+          iconClass: 'icon-trades',
+          icon: 'block',
+          valueClass: ''
+        },
+        {
+          key: 'gridAvgProfit',
+          label: this.$t('trading-assistant.performance.gridAvgProfit'),
+          display: this.formatMoney(g.avgProfit),
+          cardClass: this.cardTone(g.avgProfit),
+          iconClass: 'icon-pf',
+          icon: 'pie-chart',
+          valueClass: this.valueTone(g.avgProfit)
         }
       ]
     },
@@ -811,11 +867,11 @@ export default {
     color: rgba(255, 255, 255, 0.38);
   }
 
-  /deep/ .ant-empty-description {
+  ::v-deep .ant-empty-description {
     color: rgba(255, 255, 255, 0.35);
   }
 
-  .strategy-tab-empty /deep/ .ant-empty-description {
+  .strategy-tab-empty ::v-deep .ant-empty-description {
     color: rgba(255, 255, 255, 0.35);
   }
 

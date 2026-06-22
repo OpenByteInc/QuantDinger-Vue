@@ -1,6 +1,5 @@
 <template>
   <div class="fast-analysis-report" :class="{ 'theme-dark': isDarkTheme }">
-    <!-- Loading State - 专业进度条 -->
     <div v-if="loading" class="loading-container">
       <div class="loading-content-pro">
         <div class="loading-header">
@@ -8,7 +7,6 @@
           <span class="loading-title">{{ $t('fastAnalysis.analyzing') }}</span>
         </div>
 
-        <!-- 进度条 -->
         <div class="progress-wrapper">
           <a-progress
             :percent="progressPercent"
@@ -19,13 +17,11 @@
           <span class="progress-text">{{ formatProgress(progressPercent) }}%</span>
         </div>
 
-        <!-- 当前步骤 -->
         <div class="current-step">
           <a-icon type="loading" spin />
           <span>{{ currentStepText }}</span>
         </div>
 
-        <!-- 步骤列表 -->
         <div class="steps-list">
           <div class="step-item" :class="{ done: step > 1, active: step === 1 }">
             <span class="step-dot"></span>
@@ -200,7 +196,6 @@
         </template>
       </div>
 
-      <!-- 多周期趋势预判 (Collapsible) -->
       <div v-if="trendOutlookBlocks.length || trendOutlookSummaryText" class="trend-outlook-card">
         <div class="trend-outlook-header section-clickable" @click="toggleSection('trendOutlook')">
           <a-icon type="calendar" />
@@ -448,7 +443,6 @@
               </div>
             </div>
 
-            <!-- 机构风参数表：展示后端已计算的扩展字段 -->
             <div v-if="professionalIndicatorRows.length" class="indicators-pro-wrap">
               <div class="indicators-pro-title">
                 <a-icon type="deployment-unit" />
@@ -557,10 +551,8 @@ export default {
       return this.navTheme === 'dark' || this.navTheme === 'realdark'
     },
     progressPercent () {
-      // 限制小数位数，避免显示过多小数（如 90.20000000001%）
       return Math.round(this.progress * 10) / 10
     },
-    // 根据进度计算当前步骤
     step () {
       if (this.progress < 25) return 1
       if (this.progress < 50) return 2
@@ -616,7 +608,6 @@ export default {
       if (c.consensus_decision == null && c.consensus_score == null) return null
       return c
     },
-    /** 统一 snake_case / camelCase / 后端扩展字段 */
     tradingPlan () {
       const tp = this.result?.trading_plan || {}
       const entry = tp.entry_price ?? tp.entryPrice
@@ -668,7 +659,6 @@ export default {
       if (d === 'SELL') return this.$t('fastAnalysis.takeProfitHintShort')
       return this.$t('fastAnalysis.takeProfitHint')
     },
-    /** 扩展技术指标行（与后端 market_data_collector 字段对齐） */
     professionalIndicatorRows () {
       const ind = this.result?.indicators || {}
       const rows = []
@@ -837,7 +827,6 @@ export default {
     }
   },
   mounted () {
-    // 双重保险
     if (this.loading) {
       this.startProgressTimer()
     }
@@ -873,9 +862,7 @@ export default {
       return `${Math.round(x * 100)}%`
     },
     formatProgress (value) {
-      // 格式化进度显示，最多显示1位小数
       const num = parseFloat(value) || 0
-      // 如果是整数，不显示小数；否则显示1位小数
       return num % 1 === 0 ? num.toFixed(0) : num.toFixed(1)
     },
     formatOutlookTrend (trend) {
@@ -933,22 +920,18 @@ export default {
       if (level === 'low') return 'low-volatility'
       return ''
     },
-    // 翻译技术指标信号
     translateSignal (signal) {
       if (!signal) return '--'
       const key = `fastAnalysis.signal.${signal}`
       const translated = this.$t(key)
-      // 如果翻译键不存在,返回原值
       return translated === key ? signal : translated
     },
-    // 翻译趋势
     translateTrend (trend) {
       if (!trend) return '--'
       const key = `fastAnalysis.trend.${trend}`
       const translated = this.$t(key)
       return translated === key ? trend : translated
     },
-    // 翻译波动性
     translateVolatility (level) {
       if (!level) return '--'
       const key = `fastAnalysis.volatilityLevel.${level}`
@@ -973,7 +956,6 @@ export default {
     },
     async submitFeedback (feedback) {
       if (!this.result?.memory_id) {
-        // memory_id 不存在时提示用户（可能是后端版本旧或存储失败）
         this.$message.warning(this.$t('fastAnalysis.feedbackUnavailable') || '反馈功能暂不可用，请刷新后重试')
         return
       }
@@ -994,32 +976,23 @@ export default {
       }
     },
     startProgressTimer () {
-      // 先清除已有的定时器
       this.stopProgressTimer()
 
-      // 重置状态
       this.progress = 0
       this.elapsedSeconds = 0
 
       const startTime = Date.now()
 
-      // 单一定时器：每100ms更新一次
       this.mainTimer = window.setInterval(() => {
-        // 更新秒数
         this.elapsedSeconds = Math.floor((Date.now() - startTime) / 1000)
 
-        // 更新进度 - 大约12秒走完95%
         if (this.progress < 75) {
-          // 前75%：每100ms增加1% (约7.5秒)
           this.progress = Math.min(this.progress + 1, 75)
         } else if (this.progress < 90) {
-          // 75-90%：每100ms增加0.5% (约3秒)
           this.progress = Math.min(this.progress + 0.5, 90)
         } else if (this.progress < 95) {
-          // 90-95%：每100ms增加0.2% (约2.5秒)
           this.progress = Math.min(this.progress + 0.2, 95)
         }
-        // 95%后停止增长，等待实际完成
       }, 100)
     },
     stopProgressTimer () {

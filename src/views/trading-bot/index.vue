@@ -1,6 +1,5 @@
 <template>
   <div class="trading-bot" :class="{ 'theme-dark': isDarkTheme }">
-    <!-- View: 详情 -->
     <template v-if="viewMode === 'detail' && selectedBot">
       <div class="detail-back">
         <a-button type="link" @click="viewMode = 'list'; selectedBot = null">
@@ -16,16 +15,22 @@
         @edit="handleEditBot"
         @delete="handleDeleteBot"
         @clone-as-script="handleCloneAsScript"
+        @publish="openPublishPresetModal"
         @close="viewMode = 'list'; selectedBot = null"
       />
     </template>
 
-    <!-- View: 主列表（默认视图） -->
     <template v-else>
       <div class="page-header">
         <div class="page-header-left">
           <h2 class="page-title"><a-icon type="robot" class="title-icon" /> {{ $t('trading-bot.pageTitle') }}</h2>
           <p class="page-subtitle">{{ $t('trading-bot.pageSubtitle') }}</p>
+        </div>
+        <div class="page-header-right">
+          <a-button @click="goToMarketplace">
+            <a-icon type="shop" />
+            {{ $t('trading-bot.action.openMarketplace') }}
+          </a-button>
         </div>
       </div>
 
@@ -49,7 +54,6 @@
         @script-create="goToScriptStrategies"
       />
 
-      <!-- AI 智能创建弹窗 -->
       <ai-bot-dialog
         :visible="showAiDialog"
         :isDark="isDarkTheme"
@@ -90,7 +94,6 @@
       </div>
     </template>
 
-    <!-- 创建/编辑向导弹窗 -->
     <a-modal
       :visible="wizardVisible"
       :title="null"
@@ -115,12 +118,39 @@
         @updated="handleBotUpdated"
       />
     </a-modal>
+
+    <a-modal
+      :visible="showPublishPresetModal"
+      :title="$t('trading-bot.publish.title')"
+      :confirm-loading="publishingPreset"
+      @ok="submitPublishPreset"
+      @cancel="showPublishPresetModal = false"
+    >
+      <a-form layout="vertical">
+        <a-form-item :label="$t('trading-bot.publish.name')">
+          <a-input v-model="publishForm.name" />
+        </a-form-item>
+        <a-form-item :label="$t('trading-bot.publish.description')">
+          <a-textarea v-model="publishForm.description" :rows="3" />
+        </a-form-item>
+        <a-form-item :label="$t('trading-bot.publish.pricingType')">
+          <a-radio-group v-model="publishForm.pricingType">
+            <a-radio value="free">{{ $t('community.free') }}</a-radio>
+            <a-radio value="paid">{{ $t('community.paidOnly') }}</a-radio>
+          </a-radio-group>
+        </a-form-item>
+        <a-form-item v-if="publishForm.pricingType === 'paid'" :label="$t('trading-bot.publish.price')">
+          <a-input-number v-model="publishForm.price" :min="0" :step="1" style="width: 100%" />
+        </a-form-item>
+        <a-alert type="info" show-icon :message="$t('trading-bot.publish.hint')" />
+      </a-form>
+    </a-modal>
   </div>
 </template>
 
 <script>
 import { baseMixin } from '@/store/app-mixin'
-import { getStrategyList, startStrategy, stopStrategy, deleteStrategy, createStrategy } from '@/api/strategy'
+import { getStrategyList, startStrategy, stopStrategy, deleteStrategy, createStrategy, publishBotPreset } from '@/api/strategy'
 import { getUserInfo } from '@/api/login'
 import BotTypeCards from './components/BotTypeCards.vue'
 import BotCreateWizard from './components/BotCreateWizard.vue'
@@ -144,7 +174,16 @@ export default {
       actionLoadingId: null,
       showAiDialog: false,
       aiPreset: null,
-      editingBot: null
+      editingBot: null,
+      showPublishPresetModal: false,
+      publishingPreset: false,
+      publishTargetBot: null,
+      publishForm: {
+        name: '',
+        description: '',
+        pricingType: 'free',
+        price: 0
+      }
     }
   },
   computed: {
@@ -200,18 +239,39 @@ export default {
       this.userId = 1
     }
     this.loadBots()
-    const q = this.$route.query
-    if (q.strategy_id) {
-      this.$nextTick(() => {
-        const found = this.bots.find(b => b.id === Number(q.strategy_id))
-        if (found) {
-          this.selectedBot = found
-          this.viewMode = 'detail'
-        }
-      })
+    this.handleRouteQuery()
+  },
+  watch: {
+    '$route.query' () {
+      this.handleRouteQuery()
     }
   },
   methods: {
+    handleRouteQuery () {
+      const q = this.$route.query
+      if (q && q.aiPreset === '1') {
+        try {
+          const raw = sessionStorage.getItem('qd_copilot_bot_recommend')
+          const preset = raw ? JSON.parse(raw) : null
+          if (preset && preset.botType) {
+            this.handleAiApply(preset)
+            sessionStorage.removeItem('qd_copilot_bot_recommend')
+            return
+          }
+        } catch (_) {}
+      }
+      if (!q || !q.strategy_id) return
+      const sid = Number(q.strategy_id)
+      if (!sid) return
+      const found = this.bots.find(b => b.id === sid)
+      if (!found) return
+      if (q.action === 'edit') {
+        this.handleEditBot(found)
+        return
+      }
+      this.selectedBot = found
+      this.viewMode = 'detail'
+    },
     async loadBots () {
       this.loading = true
       try {
@@ -227,14 +287,7 @@ export default {
           const updated = this.bots.find(b => b.id === this.selectedBot.id)
           if (updated) this.selectedBot = updated
         }
-        const q = this.$route.query
-        if (q.strategy_id && !this.selectedBot) {
-          const found = this.bots.find(b => b.id === Number(q.strategy_id))
-          if (found) {
-            this.selectedBot = found
-            this.viewMode = 'detail'
-          }
-        }
+        this.$nextTick(() => this.handleRouteQuery())
       } catch {
         this.bots = []
       } finally {
@@ -348,6 +401,48 @@ export default {
     goToScriptStrategies () {
       this.$router.push({ path: '/strategy-script' })
     },
+    goToMarketplace () {
+      this.$router.push({ path: '/indicator-community', query: { asset_type: 'bot_preset' } })
+    },
+    openPublishPresetModal (bot) {
+      if (!bot || !bot.id) return
+      this.publishTargetBot = bot
+      const tc = bot.trading_config || {}
+      const botType = bot.bot_type || tc.bot_type || ''
+      const typeLabel = botType ? this.$t(`trading-bot.type.${botType}`) : ''
+      this.publishForm = {
+        name: bot.strategy_name || '',
+        description: typeLabel
+          ? this.$t('trading-bot.publish.defaultDescription', { type: typeLabel })
+          : '',
+        pricingType: 'free',
+        price: 0
+      }
+      this.showPublishPresetModal = true
+    },
+    async submitPublishPreset () {
+      if (!this.publishTargetBot || !this.publishTargetBot.id) return
+      this.publishingPreset = true
+      try {
+        const res = await publishBotPreset({
+          strategyId: this.publishTargetBot.id,
+          name: this.publishForm.name,
+          description: this.publishForm.description,
+          pricingType: this.publishForm.pricingType,
+          price: this.publishForm.pricingType === 'paid' ? this.publishForm.price : 0
+        })
+        if (res.code === 1) {
+          this.$message.success(this.$t('trading-bot.publish.success'))
+          this.showPublishPresetModal = false
+        } else {
+          this.$message.error(res.msg || this.$t('trading-bot.publish.failed'))
+        }
+      } catch (e) {
+        this.$message.error(this.$t('trading-bot.publish.failed'))
+      } finally {
+        this.publishingPreset = false
+      }
+    },
     /**
      * Clone the current bot as an editable Python "script" strategy.
      *
@@ -407,6 +502,10 @@ export default {
             const res = await createStrategy(payload)
             if (res && res.code === 1) {
               const newId = res.data && res.data.id
+              const tc = bot.trading_config || {}
+              if (String(tc.bot_type || '').toLowerCase() === 'grid') {
+                this.$message.info(this.$t('trading-bot.cloneAsScript.gridPlaceholderHint'))
+              }
               const h = this.$createElement
               const link = newId ? h('a', {
                 attrs: { href: `/strategy-script?strategy_id=${newId}&mode=edit` },
@@ -489,6 +588,11 @@ export default {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+  gap: 16px;
+
+  .page-header-right {
+    flex-shrink: 0;
+  }
 
   .page-title {
     font-size: 22px;
@@ -626,10 +730,10 @@ export default {
   .detail-back .ant-btn-link { color: rgba(255, 255, 255, 0.45); }
 
   // BotTypeCards
-  /deep/ .section-header h3 { color: rgba(255, 255, 255, 0.85); }
-  /deep/ .section-header .section-desc { color: rgba(255, 255, 255, 0.45); }
+  ::v-deep .section-header h3 { color: rgba(255, 255, 255, 0.85); }
+  ::v-deep .section-header .section-desc { color: rgba(255, 255, 255, 0.45); }
 
-  /deep/ .type-card:not(.ai-card) {
+  ::v-deep .type-card:not(.ai-card) {
     background: #1f1f1f;
     border-color: #303030;
 
@@ -644,13 +748,13 @@ export default {
   }
 
   // BotList
-  /deep/ .list-header h3 {
+  ::v-deep .list-header h3 {
     color: rgba(255, 255, 255, 0.85);
 
     .count { color: rgba(255, 255, 255, 0.45); }
   }
 
-  /deep/ .bot-row {
+  ::v-deep .bot-row {
     background: #1f1f1f;
     border-color: #303030;
 
@@ -668,30 +772,74 @@ export default {
     .meta-text { color: rgba(255, 255, 255, 0.45); }
   }
 
-  /deep/ .bot-status-badge .text { color: rgba(255, 255, 255, 0.45); }
-  /deep/ .empty-state { color: rgba(255, 255, 255, 0.45); }
+  ::v-deep .bot-status-badge .text { color: rgba(255, 255, 255, 0.45); }
+  ::v-deep .empty-state { color: rgba(255, 255, 255, 0.45); }
+
+  ::v-deep .bot-actions .bot-action-btn {
+    background: #181818 !important;
+    border-color: #3a3a3a !important;
+    color: rgba(255, 255, 255, 0.72) !important;
+
+    .anticon {
+      color: inherit !important;
+    }
+
+    &:hover,
+    &:focus {
+      background: #222 !important;
+      border-color: var(--primary-color, #177ddc) !important;
+      color: var(--primary-color, #177ddc) !important;
+    }
+  }
+
+  ::v-deep .bot-actions .bot-action-btn--start {
+    background: rgba(24, 144, 255, 0.1) !important;
+    border-color: rgba(24, 144, 255, 0.45) !important;
+    color: #40a9ff !important;
+
+    &:hover,
+    &:focus {
+      background: rgba(24, 144, 255, 0.18) !important;
+      border-color: #40a9ff !important;
+      color: #69c0ff !important;
+    }
+  }
+
+  ::v-deep .bot-actions .bot-action-btn--pause,
+  ::v-deep .bot-actions .bot-action-btn--delete {
+    background: rgba(255, 77, 79, 0.08) !important;
+    border-color: rgba(255, 77, 79, 0.42) !important;
+    color: #ff7875 !important;
+
+    &:hover,
+    &:focus {
+      background: rgba(255, 77, 79, 0.16) !important;
+      border-color: #ff7875 !important;
+      color: #ffa39e !important;
+    }
+  }
 
   // BotDetail
-  /deep/ .detail-header-card,
-  /deep/ .detail-tabs-card {
+  ::v-deep .detail-header-card,
+  ::v-deep .detail-tabs-card {
     background: #1f1f1f;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
 
     .ant-card-body { background: #1f1f1f; }
   }
 
-  /deep/ .detail-header .header-info h3 { color: rgba(255, 255, 255, 0.85); }
+  ::v-deep .detail-header .header-info h3 { color: rgba(255, 255, 255, 0.85); }
 
   // Ant Tabs
-  /deep/ .ant-tabs-bar { border-bottom-color: #303030; }
-  /deep/ .ant-tabs-tab { color: rgba(255, 255, 255, 0.65); }
-  /deep/ .ant-tabs-tab-active { color: #177ddc !important; }
-  /deep/ .ant-tabs-ink-bar { background: #177ddc; }
-  /deep/ .ant-card-head { border-bottom-color: #303030; background: transparent; }
-  /deep/ .ant-card-head-title { color: rgba(255, 255, 255, 0.85); }
+  ::v-deep .ant-tabs-bar { border-bottom-color: #303030; }
+  ::v-deep .ant-tabs-tab { color: rgba(255, 255, 255, 0.65); }
+  ::v-deep .ant-tabs-tab-active { color: #177ddc !important; }
+  ::v-deep .ant-tabs-ink-bar { background: #177ddc; }
+  ::v-deep .ant-card-head { border-bottom-color: #303030; background: transparent; }
+  ::v-deep .ant-card-head-title { color: rgba(255, 255, 255, 0.85); }
 
-  // AI Banner (stays inside page so /deep/ works)
-  /deep/ .ai-create-banner {
+  // AI Banner (stays inside page so ::v-deep works)
+  ::v-deep .ai-create-banner {
     border: 1px solid rgba(102, 126, 234, 0.3);
 
     &:hover {
@@ -699,115 +847,115 @@ export default {
     }
   }
 
-  /deep/ .ai-reason-bar {
+  ::v-deep .ai-reason-bar {
     background: rgba(102, 126, 234, 0.1);
     border-color: rgba(102, 126, 234, 0.2);
     color: rgba(255, 255, 255, 0.65);
   }
 
   // BotCreateWizard
-  /deep/ .wizard-title { color: rgba(255, 255, 255, 0.85) !important; }
-  /deep/ .back-btn { color: rgba(255, 255, 255, 0.45) !important; }
+  ::v-deep .wizard-title { color: rgba(255, 255, 255, 0.85) !important; }
+  ::v-deep .back-btn { color: rgba(255, 255, 255, 0.45) !important; }
 
-  /deep/ .step-hint {
+  ::v-deep .step-hint {
     background: rgba(23, 125, 220, 0.1);
     color: rgba(255, 255, 255, 0.65);
   }
 
-  /deep/ .form-hint {
+  ::v-deep .form-hint {
     color: rgba(255, 255, 255, 0.45);
     a { color: #177ddc; }
   }
 
-  /deep/ .confirm-section h4 { color: rgba(255, 255, 255, 0.85); }
-  /deep/ .wizard-footer { border-top-color: #303030; }
+  ::v-deep .confirm-section h4 { color: rgba(255, 255, 255, 0.85); }
+  ::v-deep .wizard-footer { border-top-color: #303030; }
 
-  /deep/ .config-summary {
+  ::v-deep .config-summary {
     .label { color: rgba(255, 255, 255, 0.45); }
     .value { color: rgba(255, 255, 255, 0.85); }
   }
 
-  /deep/ .dip-buy-hint { color: rgba(255, 255, 255, 0.45); }
+  ::v-deep .dip-buy-hint { color: rgba(255, 255, 255, 0.45); }
 
   // Ant Steps
-  /deep/ .ant-steps-item-title { color: rgba(255, 255, 255, 0.65) !important; }
-  /deep/ .ant-steps-item-finish .ant-steps-item-title { color: rgba(255, 255, 255, 0.85) !important; }
-  /deep/ .ant-steps-item-process .ant-steps-item-title { color: rgba(255, 255, 255, 0.85) !important; }
-  /deep/ .ant-steps-item-tail::after { background: #303030 !important; }
-  /deep/ .ant-steps-item-finish .ant-steps-item-tail::after { background: #177ddc !important; }
+  ::v-deep .ant-steps-item-title { color: rgba(255, 255, 255, 0.65) !important; }
+  ::v-deep .ant-steps-item-finish .ant-steps-item-title { color: rgba(255, 255, 255, 0.85) !important; }
+  ::v-deep .ant-steps-item-process .ant-steps-item-title { color: rgba(255, 255, 255, 0.85) !important; }
+  ::v-deep .ant-steps-item-tail::after { background: #303030 !important; }
+  ::v-deep .ant-steps-item-finish .ant-steps-item-tail::after { background: #177ddc !important; }
 
   // Ant Form
-  /deep/ .ant-form-item-label > label { color: rgba(255, 255, 255, 0.85); }
-  /deep/ .ant-form-item-label label { color: rgba(255, 255, 255, 0.85); }
+  ::v-deep .ant-form-item-label > label { color: rgba(255, 255, 255, 0.85); }
+  ::v-deep .ant-form-item-label label { color: rgba(255, 255, 255, 0.85); }
 
   // Ant Input / Select / InputNumber
-  /deep/ .ant-input,
-  /deep/ .ant-input-number,
-  /deep/ .ant-select-selection,
-  /deep/ .ant-input-number-input {
+  ::v-deep .ant-input,
+  ::v-deep .ant-input-number,
+  ::v-deep .ant-select-selection,
+  ::v-deep .ant-input-number-input {
     background: #1f1f1f !important;
     border-color: #434343 !important;
     color: rgba(255, 255, 255, 0.85) !important;
   }
 
-  /deep/ .ant-input::placeholder,
-  /deep/ .ant-input-number-input::placeholder {
+  ::v-deep .ant-input::placeholder,
+  ::v-deep .ant-input-number-input::placeholder {
     color: rgba(255, 255, 255, 0.3) !important;
   }
 
-  /deep/ .ant-select-selection__placeholder,
-  /deep/ .ant-select-search__field__placeholder {
+  ::v-deep .ant-select-selection__placeholder,
+  ::v-deep .ant-select-search__field__placeholder {
     color: rgba(255, 255, 255, 0.3) !important;
   }
 
-  /deep/ .ant-select-arrow { color: rgba(255, 255, 255, 0.45); }
-  /deep/ .ant-select-selection-selected-value { color: rgba(255, 255, 255, 0.85) !important; }
-  /deep/ .ant-input-number-handler-wrap { background: #1f1f1f; border-color: #434343; }
-  /deep/ .ant-input-number-handler { color: rgba(255, 255, 255, 0.45); border-color: #434343; }
+  ::v-deep .ant-select-arrow { color: rgba(255, 255, 255, 0.45); }
+  ::v-deep .ant-select-selection-selected-value { color: rgba(255, 255, 255, 0.85) !important; }
+  ::v-deep .ant-input-number-handler-wrap { background: #1f1f1f; border-color: #434343; }
+  ::v-deep .ant-input-number-handler { color: rgba(255, 255, 255, 0.45); border-color: #434343; }
 
   // Ant Radio
-  /deep/ .ant-radio-wrapper { color: rgba(255, 255, 255, 0.85); }
-  /deep/ .ant-radio-inner { background: #1f1f1f; border-color: #434343; }
+  ::v-deep .ant-radio-wrapper { color: rgba(255, 255, 255, 0.85); }
+  ::v-deep .ant-radio-inner { background: #1f1f1f; border-color: #434343; }
 
   // Ant Slider
-  /deep/ .ant-slider-rail { background: #434343; }
-  /deep/ .ant-slider-track { background: #177ddc; }
+  ::v-deep .ant-slider-rail { background: #434343; }
+  ::v-deep .ant-slider-track { background: #177ddc; }
 
   // Ant Switch
-  /deep/ .ant-switch { background: #434343; }
+  ::v-deep .ant-switch { background: #434343; }
 
   // Ant Descriptions
-  /deep/ .ant-descriptions-bordered .ant-descriptions-item-label {
+  ::v-deep .ant-descriptions-bordered .ant-descriptions-item-label {
     background: #1a1a1a;
     color: rgba(255, 255, 255, 0.65);
     border-color: #303030;
   }
 
-  /deep/ .ant-descriptions-bordered .ant-descriptions-item-content {
+  ::v-deep .ant-descriptions-bordered .ant-descriptions-item-content {
     background: #1f1f1f;
     color: rgba(255, 255, 255, 0.85);
     border-color: #303030;
   }
 
-  /deep/ .ant-descriptions-bordered .ant-descriptions-view {
+  ::v-deep .ant-descriptions-bordered .ant-descriptions-view {
     border-color: #303030;
   }
 
   // Ant Empty
-  /deep/ .ant-empty-description { color: rgba(255, 255, 255, 0.45); }
-  /deep/ .ant-empty-image svg { fill: rgba(255, 255, 255, 0.15); }
+  ::v-deep .ant-empty-description { color: rgba(255, 255, 255, 0.45); }
+  ::v-deep .ant-empty-image svg { fill: rgba(255, 255, 255, 0.15); }
 
   // Ant Alert
-  /deep/ .ant-alert-warning {
+  ::v-deep .ant-alert-warning {
     background: rgba(250, 173, 20, 0.08);
     border-color: rgba(250, 173, 20, 0.2);
   }
 
-  /deep/ .ant-alert-message { color: rgba(255, 255, 255, 0.85); }
-  /deep/ .ant-alert-description { color: rgba(255, 255, 255, 0.65); }
+  ::v-deep .ant-alert-message { color: rgba(255, 255, 255, 0.85); }
+  ::v-deep .ant-alert-description { color: rgba(255, 255, 255, 0.65); }
 
   // Ant Input search
-  /deep/ .ant-input-search .ant-input-suffix { color: rgba(255, 255, 255, 0.45); }
+  ::v-deep .ant-input-search .ant-input-suffix { color: rgba(255, 255, 255, 0.45); }
 
   // Ant autocomplete dropdown handled by global theme
 }
@@ -929,7 +1077,39 @@ export default {
     border-color: rgba(250, 173, 20, 0.2);
   }
 
+  .ant-alert-info {
+    background: rgba(24, 144, 255, 0.12);
+    border-color: rgba(24, 144, 255, 0.3);
+
+    .ant-alert-icon {
+      color: #177ddc;
+    }
+  }
+
   .ant-alert-message { color: rgba(255, 255, 255, 0.85); }
   .ant-alert-description { color: rgba(255, 255, 255, 0.65); }
+
+  .bot-create-wizard.is-modal .wizard-content,
+  .wizard-content {
+    scrollbar-color: #434343 #1f1f1f;
+    scrollbar-width: thin;
+
+    &::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: #1f1f1f;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #434343;
+      border-radius: 4px;
+
+      &:hover {
+        background: #595959;
+      }
+    }
+  }
 }
 </style>

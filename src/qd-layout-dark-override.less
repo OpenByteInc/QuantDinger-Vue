@@ -1,3 +1,20 @@
+/* Remove Pro Layout's default 24px content gutter. Pages own their spacing. */
+.basic-layout-wrapper .ant-pro-basicLayout-content,
+.basic-layout-wrapper .ant-pro-basicLayout-content-disable-margin,
+.basic-layout-wrapper .ant-pro-basicLayout-children-content-wrap,
+.basic-layout-wrapper .ant-pro-page-header-wrap,
+.basic-layout-wrapper .ant-pro-page-header-wrap-children-content,
+.basic-layout-wrapper .ant-layout-content,
+.basic-layout-wrapper .basic-route-view-shell {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.basic-layout-wrapper .ant-pro-basicLayout-content > .ant-pro-page-header-wrap,
+.basic-layout-wrapper .ant-pro-basicLayout-content > div > .ant-pro-page-header-wrap {
+  margin: 0 !important;
+}
+
 /**
  * 必须在 main.js 中于 global.less 之后引入，确保覆盖 Ant Design Vue / Pro Layout 默认 #001529 等。
  * 选择器以 .basic-layout-wrapper.{dark|realdark|light} 为准（与 BasicLayout 根节点 settings.theme 同步），
@@ -9,8 +26,8 @@
 .basic-layout-wrapper.realdark .ant-layout-header,
 body.dark .basic-layout-wrapper .ant-layout-header,
 body.realdark .basic-layout-wrapper .ant-layout-header {
-  background: #111111 !important;
-  background-color: #111111 !important;
+  background: #0f0f10 !important;
+  background-color: #0f0f10 !important;
   border-bottom: 1px solid #1c1c1c !important;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
 }
@@ -19,8 +36,8 @@ body.realdark .basic-layout-wrapper .ant-layout-header {
 .basic-layout-wrapper.realdark .ant-pro-global-header,
 body.dark .basic-layout-wrapper .ant-pro-global-header,
 body.realdark .basic-layout-wrapper .ant-pro-global-header {
-  background: #111111 !important;
-  background-color: #111111 !important;
+  background: #0f0f10 !important;
+  background-color: #0f0f10 !important;
   border-bottom: none !important;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
 }
@@ -36,8 +53,18 @@ body.dark .basic-layout-wrapper .ant-pro-page-header-wrap,
 body.realdark .basic-layout-wrapper .ant-pro-page-header-wrap,
 body.dark .basic-layout-wrapper .ant-pro-page-header-wrap-children-content,
 body.realdark .basic-layout-wrapper .ant-pro-page-header-wrap-children-content {
-  background: #141414 !important;
-  background-color: #141414 !important;
+  background: #0f0f10 !important;
+  background-color: #0f0f10 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.basic-layout-wrapper.dark .ant-layout-header .ant-menu,
+.basic-layout-wrapper.realdark .ant-layout-header .ant-menu,
+body.dark .basic-layout-wrapper .ant-layout-header .ant-menu,
+body.realdark .basic-layout-wrapper .ant-layout-header .ant-menu {
+  background: #0f0f10 !important;
+  background-color: #0f0f10 !important;
 }
 
 /* ========== 侧栏底部「联系我们」：深黑底 + 区块亮一层（去掉 opacity 发灰）========== */

@@ -1,7 +1,7 @@
 <template>
   <div class="strategy-editor" :class="{ 'theme-dark': isDark }">
-    <a-row :gutter="16" class="editor-layout">
-      <a-col :xs="24" :md="16" class="code-col">
+    <div class="editor-layout">
+      <div class="code-col">
         <div class="code-section">
           <div class="section-header">
             <div class="section-title-wrap">
@@ -30,9 +30,9 @@
           </div>
           <div ref="editorContainer" class="code-editor-container"></div>
         </div>
-      </a-col>
+      </div>
 
-      <a-col :xs="24" :md="8" class="side-col">
+      <div class="side-col">
         <a-tabs v-model="activeTab" size="small" class="side-tabs" :animated="false">
           <a-tab-pane key="templates" :tab="$t('trading-assistant.editor.templateTab')" :force-render="true">
             <div class="panel-intro panel-intro--compact">
@@ -98,13 +98,13 @@
           </a-tab-pane>
 
           <a-tab-pane key="params" :tab="$t('trading-assistant.editor.paramsTab')" :force-render="true">
-            <div v-if="selectedTemplate" class="params-panel">
+            <div v-if="activeParamTemplate" class="params-panel">
               <div class="panel-intro">
                 <div class="panel-intro__title">
-                  {{ $t(`trading-assistant.template.${selectedTemplate.key}`) }}
+                  {{ activeParamTemplateTitle }}
                 </div>
                 <div class="panel-intro__desc">
-                  {{ $t(`trading-assistant.template.${selectedTemplate.key}Desc`) }}
+                  {{ activeParamTemplateDesc }}
                 </div>
               </div>
               <a-alert
@@ -114,14 +114,26 @@
                 :message="$t('trading-assistant.editor.paramsHint')"
               />
               <div class="param-list">
-                <div v-for="param in selectedTemplate.params" :key="param.name" class="param-item">
+                <div v-for="param in activeParamTemplate.params" :key="param.name" class="param-item">
                   <div class="param-item__label-row">
                     <span class="param-item__label">{{ getParamLabel(param) }}</span>
                     <span class="param-item__type">{{ getParamTypeLabel(param.type) }}</span>
                   </div>
                   <div v-if="getParamDescription(param)" class="param-item__desc">{{ getParamDescription(param) }}</div>
                   <a-input-number
-                    v-if="param.type === 'number' || param.type === 'integer' || param.type === 'percent'"
+                    v-if="param.type === 'percent'"
+                    :value="templateParamValues[param.name]"
+                    :min="param.min"
+                    :max="param.max"
+                    :step="param.step || 1"
+                    :precision="getParamPrecision(param)"
+                    :formatter="formatPercentInput"
+                    :parser="parsePercentInput"
+                    style="width: 100%"
+                    @change="handleNumericParamChange(param, $event)"
+                  />
+                  <a-input-number
+                    v-else-if="param.type === 'number' || param.type === 'integer'"
                     :value="templateParamValues[param.name]"
                     :min="param.min"
                     :max="param.max"
@@ -272,8 +284,8 @@
           </a-tab-pane>
 
         </a-tabs>
-      </a-col>
-    </a-row>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -292,7 +304,10 @@ import {
   SCRIPT_TEMPLATE_CATALOG,
   getScriptTemplateByKey,
   buildTemplateCode,
-  buildTemplateParamValues
+  buildTemplateParamValues,
+  normalizePercentParamValue,
+  extractScriptParamsFromCode,
+  buildScriptCodeWithParamValues
 } from './scriptTemplateCatalog'
 
 export default {
@@ -301,6 +316,7 @@ export default {
     value: { type: String, default: '' },
     isDark: { type: Boolean, default: false },
     userId: { type: [Number, String], default: 1 },
+    strategyId: { type: [Number, String], default: null },
     visible: { type: Boolean, default: false },
     initialTemplateKey: { type: String, default: '' }
   },
@@ -315,14 +331,27 @@ export default {
       editor: null,
       templates: SCRIPT_TEMPLATE_CATALOG,
       selectedTemplateKey: '',
+      inferredParamTemplate: null,
       templateParamValues: {},
       templateDirty: false,
-      refreshTimer: null
+      refreshTimer: null,
+      refreshTimers: []
     }
   },
   computed: {
     selectedTemplate () {
       return getScriptTemplateByKey(this.selectedTemplateKey)
+    },
+    activeParamTemplate () {
+      return this.selectedTemplate || this.inferredParamTemplate
+    },
+    activeParamTemplateTitle () {
+      if (this.selectedTemplate) return this.$t(`trading-assistant.template.${this.selectedTemplate.key}`)
+      return this.$t('trading-assistant.editor.codeParamsTitle')
+    },
+    activeParamTemplateDesc () {
+      if (this.selectedTemplate) return this.$t(`trading-assistant.template.${this.selectedTemplate.key}Desc`)
+      return this.$t('trading-assistant.editor.codeParamsDesc')
     },
     isBlankScript () {
       return !this.selectedTemplateKey
@@ -355,15 +384,13 @@ export default {
       } else if (!this.value) {
         this.$emit('input', this._getDefaultCode())
       }
+      this.applyCopilotDraft()
     })
     window.addEventListener('resize', this.scheduleEditorRefresh)
   },
   beforeDestroy () {
     window.removeEventListener('resize', this.scheduleEditorRefresh)
-    if (this.refreshTimer) {
-      clearTimeout(this.refreshTimer)
-      this.refreshTimer = null
-    }
+    this.clearRefreshTimers()
     if (this.editor) {
       if (typeof this.editor.toTextArea === 'function') {
         this.editor.toTextArea()
@@ -376,6 +403,9 @@ export default {
       if (this.editor && this.editor.getValue() !== newVal) {
         this.editor.setValue(newVal || '')
         this.scheduleEditorRefresh()
+      }
+      if (!this.selectedTemplateKey) {
+        this.refreshInferredParamsFromCode(newVal)
       }
     },
     isDark () {
@@ -397,10 +427,25 @@ export default {
     initialTemplateKey (key) {
       if (key && key !== this.selectedTemplateKey) {
         this.applyInitialTemplateKey(key)
+      } else if (!key) {
+        this.selectedTemplateKey = ''
+        this.refreshInferredParamsFromCode(this.getCode())
       }
     }
   },
   methods: {
+    applyCopilotDraft () {
+      let code = ''
+      try {
+        code = sessionStorage.getItem('qd_copilot_script_strategy_code') || ''
+        if (code) sessionStorage.removeItem('qd_copilot_script_strategy_code')
+      } catch (_) {}
+      if (code) {
+        this.activeTab = 'ai'
+        this.setCode(code)
+        this.templateDirty = true
+      }
+    },
     initEditor () {
       if (!this.$refs.editorContainer) return
       this.editor = CodeMirror(this.$refs.editorContainer, {
@@ -415,24 +460,45 @@ export default {
         indentUnit: 4,
         indentWithTabs: false,
         lineWrapping: false,
+        fixedGutter: true,
         viewportMargin: Infinity,
         gutters: ['CodeMirror-linenumbers']
       })
       this.editor.on('change', () => {
-        this.$emit('input', this.editor.getValue())
+        const code = this.editor.getValue()
+        this.$emit('input', code)
+        if (!this.selectedTemplateKey) {
+          this.refreshInferredParamsFromCode(code, { preserveValues: true })
+        }
       })
+      this.refreshInferredParamsFromCode(this.editor.getValue())
       this.scheduleEditorRefresh()
     },
 
-    scheduleEditorRefresh () {
+    refreshEditorLayout () {
+      if (!this.editor) return
+      this.editor.refresh()
+      const scroller = this.editor.getScrollerElement && this.editor.getScrollerElement()
+      if (scroller && scroller.scrollLeft !== 0) {
+        scroller.scrollLeft = 0
+      }
+    },
+
+    clearRefreshTimers () {
       if (this.refreshTimer) {
         clearTimeout(this.refreshTimer)
+        this.refreshTimer = null
       }
-      this.refreshTimer = setTimeout(() => {
-        if (this.editor) {
-          this.editor.refresh()
-        }
-      }, 60)
+      this.refreshTimers.forEach((id) => clearTimeout(id))
+      this.refreshTimers = []
+    },
+
+    scheduleEditorRefresh () {
+      this.clearRefreshTimers()
+      ;[0, 60, 280].forEach((delay) => {
+        const timerId = setTimeout(() => this.refreshEditorLayout(), delay)
+        this.refreshTimers.push(timerId)
+      })
     },
 
     _getDefaultCode () {
@@ -463,12 +529,13 @@ def on_bar(ctx, bar):
         return
       }
       this.selectedTemplateKey = ''
-      this.templateParamValues = {}
+      this.refreshInferredParamsFromCode(this.value || this.getCode(), { preserveValues: false })
       this.templateDirty = false
     },
 
     loadBlankTemplate ({ silent = false } = {}) {
       this.selectedTemplateKey = ''
+      this.inferredParamTemplate = null
       this.templateParamValues = {}
       this.templateDirty = false
       this.setCode(this._getDefaultCode())
@@ -487,6 +554,7 @@ def on_bar(ctx, bar):
       const template = getScriptTemplateByKey(key)
       if (!template) return
       this.selectedTemplateKey = key
+      this.inferredParamTemplate = null
       if (resetParams || !this.templateParamValues || Object.keys(this.templateParamValues).length === 0) {
         this.templateParamValues = buildTemplateParamValues(template)
       }
@@ -519,12 +587,15 @@ def on_bar(ctx, bar):
     },
 
     applySelectedTemplateToCode ({ silent = false } = {}) {
-      if (!this.selectedTemplate) return
-      const code = buildTemplateCode(this.selectedTemplate, this.templateParamValues)
+      const template = this.activeParamTemplate
+      if (!template) return
+      const code = this.selectedTemplate
+        ? buildTemplateCode(this.selectedTemplate, this.templateParamValues)
+        : buildScriptCodeWithParamValues(this.getCode(), template.params, this.templateParamValues)
       this.setCode(code)
       this.templateDirty = false
       this.$emit('template-change', {
-        key: this.selectedTemplateKey,
+        key: this.selectedTemplate ? this.selectedTemplateKey : '',
         params: { ...this.templateParamValues }
       })
       if (!silent) {
@@ -533,10 +604,32 @@ def on_bar(ctx, bar):
     },
 
     resetTemplateParams () {
-      if (!this.selectedTemplate) return
-      this.templateParamValues = buildTemplateParamValues(this.selectedTemplate)
+      const template = this.activeParamTemplate
+      if (!template) return
+      this.templateParamValues = buildTemplateParamValues(template)
       this.templateDirty = true
       this.applySelectedTemplateToCode({ silent: false })
+    },
+
+    refreshInferredParamsFromCode (code, { preserveValues = true } = {}) {
+      if (this.selectedTemplateKey) return
+      const inferred = extractScriptParamsFromCode(code)
+      if (!inferred) {
+        this.inferredParamTemplate = null
+        this.templateParamValues = {}
+        return
+      }
+      const nextValues = buildTemplateParamValues(inferred)
+      if (preserveValues && this.templateParamValues) {
+        Object.keys(nextValues).forEach((key) => {
+          if (Object.prototype.hasOwnProperty.call(this.templateParamValues, key)) {
+            nextValues[key] = this.templateParamValues[key]
+          }
+        })
+      }
+      this.inferredParamTemplate = inferred
+      this.templateParamValues = nextValues
+      this.activeTab = 'params'
     },
 
     getParamLabel (param) {
@@ -553,6 +646,16 @@ def on_bar(ctx, bar):
 
     getParamTypeLabel (type) {
       return this.$t(`trading-assistant.editor.paramType.${type}`)
+    },
+
+    formatPercentInput (value) {
+      if (value === '' || value === null || value === undefined) return ''
+      return `${value}%`
+    },
+
+    parsePercentInput (value) {
+      if (value === '' || value === null || value === undefined) return ''
+      return String(value).replace(/%/g, '').trim()
     },
 
     getOptionLabel (option) {
@@ -649,10 +752,15 @@ def on_bar(ctx, bar):
         const res = await request({
           url: '/api/strategies/verify-code',
           method: 'post',
-          data: { code, user_id: this.userId }
+          data: {
+            code,
+            user_id: this.userId,
+            strategyId: this.strategyId || undefined
+          }
         })
         if (res && res.success) {
           message.success(this.$t('trading-assistant.editor.verifySuccess'))
+          this.$emit('verified')
         } else {
           message.error((res && (res.msg || res.message)) || this.$t('trading-assistant.editor.verifyFailed'))
         }
@@ -683,7 +791,7 @@ def on_bar(ctx, bar):
       if (t === 'number' || t === 'percent') {
         const n = Number(raw)
         if (!Number.isFinite(n)) return undefined
-        let v = n
+        let v = t === 'percent' ? (normalizePercentParamValue(n) ?? n) : n
         if (param.min != null) v = Math.max(param.min, v)
         if (param.max != null) v = Math.min(param.max, v)
         return v
@@ -700,12 +808,13 @@ def on_bar(ctx, bar):
     },
 
     applyAIParamUpdates (updates) {
-      if (!this.selectedTemplate || !updates || typeof updates !== 'object') return false
-      const allowed = new Set(this.selectedTemplate.params.map(p => p.name))
+      const template = this.activeParamTemplate
+      if (!template || !updates || typeof updates !== 'object') return false
+      const allowed = new Set(template.params.map(p => p.name))
       let changed = false
       Object.keys(updates).forEach((k) => {
         if (!allowed.has(k)) return
-        const param = this.selectedTemplate.params.find(p => p.name === k)
+        const param = template.params.find(p => p.name === k)
         const v = this._coerceParamValue(param, updates[k])
         if (v !== undefined) {
           this.$set(this.templateParamValues, k, v)
@@ -720,7 +829,7 @@ def on_bar(ctx, bar):
         message.warning(this.$t('trading-assistant.editor.aiPromptRequired'))
         return
       }
-      if (!this.selectedTemplate) {
+      if (!this.activeParamTemplate) {
         message.warning(this.$t('trading-assistant.editor.aiAdjustParamsNeedTemplate'))
         return
       }
@@ -773,7 +882,7 @@ def on_bar(ctx, bar):
             user_id: this.userId,
             intent: 'generate_code',
             template_key: this.selectedTemplateKey || undefined,
-            params: this.selectedTemplate ? { ...this.templateParamValues } : undefined,
+            params: this.activeParamTemplate ? { ...this.templateParamValues } : undefined,
             code: this.getCode()
           }
         })
@@ -798,18 +907,44 @@ def on_bar(ctx, bar):
 <style lang="less" scoped>
 .strategy-editor {
   width: 100%;
+  min-width: 0;
+  overflow: visible;
 }
 
 .editor-layout {
   min-height: 450px;
   display: flex;
   align-items: stretch;
+  gap: 16px;
+  min-width: 0;
 }
 
-.code-col,
+.code-col {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 62%;
+  min-width: 0;
+}
+
 .side-col {
   display: flex;
   flex-direction: column;
+  flex: 0 0 38%;
+  min-width: 260px;
+  max-width: 380px;
+}
+
+@media (max-width: 768px) {
+  .editor-layout {
+    flex-direction: column;
+  }
+
+  .code-col,
+  .side-col {
+    flex: 1 1 auto;
+    max-width: none;
+    min-width: 0;
+  }
 }
 
 .code-section {
@@ -819,6 +954,7 @@ def on_bar(ctx, bar):
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .section-header {
@@ -858,11 +994,13 @@ def on_bar(ctx, bar):
 .code-editor-container {
   flex: 1;
   min-height: 420px;
+  min-width: 0;
   width: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 
-  /deep/ .CodeMirror {
+  ::v-deep .CodeMirror {
     flex: 1;
     height: 100%;
     font-family: 'Courier New', Consolas, 'Liberation Mono', Menlo, monospace;
@@ -871,34 +1009,37 @@ def on_bar(ctx, bar):
     background: #ffffff;
   }
 
-  /deep/ .CodeMirror-scroll {
+  ::v-deep .CodeMirror-scroll {
     min-height: 100%;
     overflow-x: auto !important;
     overflow-y: auto !important;
   }
 
-  /deep/ .CodeMirror-gutters {
+  ::v-deep .CodeMirror-gutters {
+    flex-shrink: 0;
     border-right: 1px solid #e8e8e8;
     background: linear-gradient(to right, #fafafa 0%, #f5f5f5 100%);
   }
 
-  /deep/ .CodeMirror-linenumber {
-    padding: 0 8px 0 0;
+  ::v-deep .CodeMirror-linenumber {
+    min-width: 2ch;
+    padding: 0 8px 0 4px;
     text-align: right;
     color: #999;
     font-size: 12px;
   }
 
-  /deep/ .CodeMirror-lines {
-    padding: 12px 0;
+  ::v-deep .CodeMirror-lines {
+    padding-top: 12px;
+    padding-bottom: 12px;
   }
 
-  /deep/ .CodeMirror pre.CodeMirror-line,
-  /deep/ .CodeMirror pre.CodeMirror-line-like {
-    padding: 0 12px 0 12px;
+  ::v-deep .CodeMirror pre.CodeMirror-line,
+  ::v-deep .CodeMirror pre.CodeMirror-line-like {
+    padding: 0 12px;
   }
 
-  /deep/ .CodeMirror-cursor {
+  ::v-deep .CodeMirror-cursor {
     border-left: 2px solid #1890ff;
   }
 }
@@ -912,7 +1053,7 @@ def on_bar(ctx, bar):
   border-radius: 8px;
   overflow: hidden;
 
-  /deep/ .ant-tabs-bar {
+  ::v-deep .ant-tabs-bar {
     margin-bottom: 0;
     flex-shrink: 0;
     padding: 0 12px;
@@ -920,7 +1061,7 @@ def on_bar(ctx, bar):
     border-bottom: 1px solid #f0f0f0;
   }
 
-  /deep/ .ant-tabs-content {
+  ::v-deep .ant-tabs-content {
     flex: 1 1 auto;
     min-height: 280px;
     overflow-x: hidden;
@@ -1370,12 +1511,12 @@ def on_bar(ctx, bar):
   .side-tabs {
     border-color: rgba(255, 255, 255, 0.1);
 
-    /deep/ .ant-tabs-bar {
+    ::v-deep .ant-tabs-bar {
       background: #1c1c1c;
       border-bottom-color: rgba(255, 255, 255, 0.08);
     }
 
-    /deep/ .ant-tabs-nav .ant-tabs-tab {
+    ::v-deep .ant-tabs-nav .ant-tabs-tab {
       color: rgba(255, 255, 255, 0.55);
 
       &:hover {
@@ -1518,19 +1659,19 @@ def on_bar(ctx, bar):
     color: rgba(255, 255, 255, 0.7);
   }
 
-  /deep/ textarea.ant-input,
-  /deep/ .ant-input,
-  /deep/ .ant-input-number,
-  /deep/ .ant-input-number-input,
-  /deep/ .ant-select-selection,
-  /deep/ .ant-select-selection--single {
+  ::v-deep textarea.ant-input,
+  ::v-deep .ant-input,
+  ::v-deep .ant-input-number,
+  ::v-deep .ant-input-number-input,
+  ::v-deep .ant-select-selection,
+  ::v-deep .ant-select-selection--single {
     background: #141414 !important;
     border-color: rgba(255, 255, 255, 0.1) !important;
     color: #d1d4dc !important;
   }
 
-  /deep/ .ant-select-selection-selected-value,
-  /deep/ .ant-select-selection-placeholder {
+  ::v-deep .ant-select-selection-selected-value,
+  ::v-deep .ant-select-selection-placeholder {
     color: #d1d4dc !important;
   }
 
@@ -1556,11 +1697,11 @@ def on_bar(ctx, bar):
   .ai-debug-card__group-label { color: #73d13d; }
   .ai-debug-card__group--remaining .ai-debug-card__group-label { color: #ffa940; }
 
-  /deep/ .ant-empty-description {
+  ::v-deep .ant-empty-description {
     color: rgba(255, 255, 255, 0.45);
   }
 
-  /deep/ .ant-alert-info {
+  ::v-deep .ant-alert-info {
     background: rgba(24, 144, 255, 0.08);
     border-color: rgba(24, 144, 255, 0.2);
 
@@ -1578,17 +1719,17 @@ def on_bar(ctx, bar):
   }
 
   .code-editor-container {
-    /deep/ .CodeMirror {
+    ::v-deep .CodeMirror {
       background: #141414;
       color: #d1d4dc;
     }
 
-    /deep/ .CodeMirror-gutters {
+    ::v-deep .CodeMirror-gutters {
       border-right-color: rgba(255, 255, 255, 0.08);
       background: linear-gradient(to right, #1a1a1a 0%, #1c1c1c 100%);
     }
 
-    /deep/ .CodeMirror-linenumber {
+    ::v-deep .CodeMirror-linenumber {
       color: rgba(255, 255, 255, 0.32);
     }
   }

@@ -1,5 +1,6 @@
 <script lang="jsx">
 import events from './events'
+import { i18nRender } from '@/locales'
 
 export default {
   name: 'MultiTab',
@@ -44,7 +45,7 @@ export default {
     remove (targetKey) {
       this.pages = this.pages.filter(page => page.fullPath !== targetKey)
       this.fullPathList = this.fullPathList.filter(path => path !== targetKey)
-      // 判断当前标签是否关闭，若关闭则跳转到最后一个还存在的标签页
+      // If the active tab was closed, switch to the latest remaining tab.
       if (!this.fullPathList.includes(this.activeKey)) {
         this.selectedLastPath()
       }
@@ -53,13 +54,38 @@ export default {
       this.activeKey = this.fullPathList[this.fullPathList.length - 1]
     },
 
-    // content menu
+    tabText (key) {
+      const isZh = String((this.$i18n && this.$i18n.locale) || '').toLowerCase().startsWith('zh')
+      const text = {
+        closeThat: isZh ? '关闭当前' : 'Close current',
+        closeRight: isZh ? '关闭右侧' : 'Close right',
+        closeLeft: isZh ? '关闭左侧' : 'Close left',
+        closeAll: isZh ? '清除其他' : 'Clear others',
+        clear: isZh ? '清理' : 'Clear',
+        lastTab: isZh ? '这是最后一个标签了，无法关闭' : 'This is the last tab and cannot be closed',
+        noLeft: isZh ? '左侧没有标签' : 'No tabs on the left',
+        noRight: isZh ? '右侧没有标签' : 'No tabs on the right'
+      }
+      return text[key]
+    },
+    closeCurrentActive () {
+      this.closeThat(this.activeKey)
+    },
+    closeRightActive () {
+      this.closeRight(this.activeKey)
+    },
+    closeLeftActive () {
+      this.closeLeft(this.activeKey)
+    },
+    closeOtherActive () {
+      this.closeAll(this.activeKey)
+    },
     closeThat (e) {
-      // 判断是否为最后一个标签页，如果是最后一个，则无法被关闭
+      // Keep at least one tab available.
       if (this.fullPathList.length > 1) {
         this.remove(e)
       } else {
-        this.$message.info('这是最后一个标签了, 无法被关闭')
+        this.$message.info(this.tabText('lastTab'))
       }
     },
     closeLeft (e) {
@@ -71,7 +97,7 @@ export default {
           }
         })
       } else {
-        this.$message.info('左侧没有标签')
+        this.$message.info(this.tabText('noLeft'))
       }
     },
     closeRight (e) {
@@ -83,7 +109,7 @@ export default {
           }
         })
       } else {
-        this.$message.info('右侧没有标签')
+        this.$message.info(this.tabText('noRight'))
       }
     },
     closeAll (e) {
@@ -100,14 +126,13 @@ export default {
     renderTabPaneMenu (e) {
       return (
         <a-menu {...{ on: { click: ({ key, item, domEvent }) => { this.closeMenuClick(key, e) } } }}>
-          <a-menu-item key="closeThat">关闭当前标签</a-menu-item>
-          <a-menu-item key="closeRight">关闭右侧</a-menu-item>
-          <a-menu-item key="closeLeft">关闭左侧</a-menu-item>
-          <a-menu-item key="closeAll">关闭全部</a-menu-item>
+          <a-menu-item key="closeThat">{this.tabText('closeThat')}</a-menu-item>
+          <a-menu-item key="closeRight">{this.tabText('closeRight')}</a-menu-item>
+          <a-menu-item key="closeLeft">{this.tabText('closeLeft')}</a-menu-item>
+          <a-menu-item key="closeAll">{this.tabText('closeAll')}</a-menu-item>
         </a-menu>
       )
     },
-    // render
     renderTabPane (title, keyPath) {
       const menu = this.renderTabPaneMenu(keyPath)
 
@@ -115,6 +140,17 @@ export default {
         <a-dropdown overlay={menu} trigger={['contextmenu']}>
           <span style={{ userSelect: 'none' }}>{ title }</span>
         </a-dropdown>
+      )
+    },
+    renderClearMenu () {
+      return (
+        <a-menu class="ant-pro-multi-tab-action-menu" {...{ on: { click: ({ key }) => { this[key]() } } }}>
+          <a-menu-item key="closeOtherActive">{this.tabText('closeAll')}</a-menu-item>
+          <a-menu-item key="closeRightActive">{this.tabText('closeRight')}</a-menu-item>
+          <a-menu-item key="closeLeftActive">{this.tabText('closeLeft')}</a-menu-item>
+          <a-menu-divider />
+          <a-menu-item key="closeCurrentActive">{this.tabText('closeThat')}</a-menu-item>
+        </a-menu>
       )
     }
   },
@@ -127,16 +163,19 @@ export default {
       }
     },
     activeKey: function (newPathKey) {
-      this.$router.push({ path: newPathKey })
+      if (newPathKey && newPathKey !== this.$route.fullPath) {
+        this.$router.push(newPathKey).catch(() => {})
+      }
     }
   },
   render () {
     const { onEdit, $data: { pages } } = this
     const panes = pages.map(page => {
+      const title = page.meta.customTitle || i18nRender(page.meta.title) || page.name || page.path
       return (
         <a-tab-pane
           style={{ height: 0 }}
-          tab={this.renderTabPane(page.meta.customTitle || page.meta.title, page.fullPath)}
+          tab={this.renderTabPane(title, page.fullPath)}
           key={page.fullPath} closable={pages.length > 1}
         >
         </a-tab-pane>)
@@ -149,10 +188,17 @@ export default {
             hideAdd
             type={'editable-card'}
             v-model={this.activeKey}
-            tabBarStyle={{ background: '#FFF', margin: 0, paddingLeft: '16px', paddingTop: '1px' }}
+            tabBarStyle={{ margin: 0, paddingLeft: '16px', paddingTop: '1px' }}
             {...{ on: { edit: onEdit } }}>
             {panes}
           </a-tabs>
+          <a-dropdown overlay={this.renderClearMenu()} trigger={['click']} placement="bottomRight">
+            <button type="button" class="ant-pro-multi-tab-clear">
+              <a-icon type="delete" />
+              <span>{this.tabText('clear')}</span>
+              <a-icon type="down" class="ant-pro-multi-tab-clear__arrow" />
+            </button>
+          </a-dropdown>
         </div>
       </div>
     )

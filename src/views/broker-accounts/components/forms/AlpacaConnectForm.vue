@@ -22,13 +22,6 @@
         </a-form-item>
       </a-col>
     </a-row>
-    <a-row :gutter="12" align="middle">
-      <a-col :xs="24">
-        <a-form-item :label="$t('brokerAccounts.alpaca.baseUrlOptional')">
-          <a-input v-model="form.baseUrl" placeholder="https://paper-api.alpaca.markets" :disabled="disabled" />
-        </a-form-item>
-      </a-col>
-    </a-row>
     <div class="form-actions">
       <a-button type="primary" :loading="loading" :disabled="!canSubmit || disabled" @click="submit">
         <a-icon type="link" /> {{ $t('brokerAccounts.connect') }}
@@ -49,8 +42,7 @@ export default {
     return {
       form: {
         apiKey: '',
-        secretKey: '',
-        baseUrl: ''
+        secretKey: ''
       }
     }
   },
@@ -62,11 +54,12 @@ export default {
   methods: {
     submit () {
       if (!this.canSubmit) return
+      const apiKey = this.form.apiKey.trim()
       this.$emit('submit', {
-        apiKey: this.form.apiKey.trim(),
+        apiKey,
         secretKey: this.form.secretKey.trim(),
-        paper: true,
-        baseUrl: (this.form.baseUrl || '').trim() || null
+        paper: apiKey.toUpperCase().startsWith('PK'),
+        baseUrl: null
       })
     }
   }
@@ -75,7 +68,7 @@ export default {
 
 <style lang="less" scoped>
 .broker-form {
-  /deep/ .ant-form-item-label > label { font-size: 12px; color: #595959; }
+  ::v-deep .ant-form-item-label > label { font-size: 12px; color: #595959; }
 }
 .form-hint {
   margin-left: 12px;

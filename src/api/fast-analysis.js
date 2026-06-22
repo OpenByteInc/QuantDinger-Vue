@@ -1,6 +1,5 @@
 /**
  * Fast Analysis API
- * New high-performance AI analysis endpoints
  */
 import request from '@/utils/request'
 
@@ -13,19 +12,6 @@ const BASE_URL = '/api/fast-analysis'
 export function fastAnalyze (params) {
   return request({
     url: `${BASE_URL}/analyze`,
-    method: 'post',
-    data: params,
-    timeout: 300000 // 300s (5 minutes) timeout for analysis
-  })
-}
-
-/**
- * Run fast analysis with legacy format (for backward compatibility)
- * @param {Object} params - { market, symbol, language, timeframe }
- */
-export function fastAnalyzeLegacy (params) {
-  return request({
-    url: `${BASE_URL}/analyze-legacy`,
     method: 'post',
     data: params,
     timeout: 300000 // 300s (5 minutes) timeout for analysis

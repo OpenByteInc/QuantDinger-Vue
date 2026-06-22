@@ -57,9 +57,7 @@ export default {
 </script>
 
 <style lang="less">
-/* 不使用 scoped，直接覆盖全局样式 */
 .footer-wrapper {
-  /* 调整内间距 */
   .ant-pro-global-footer {
     padding: 4px 16px 8px;
     margin: 0;
@@ -74,14 +72,12 @@ export default {
   }
 }
 
-/* 浅色主题（默认）- 确保文字是深色的 */
 .footer-wrapper {
   .ant-pro-global-footer {
     background: transparent !important;
     color: rgba(0, 0, 0, 0.65) !important;
   }
 
-  /* 链接颜色 */
   .ant-pro-global-footer-links {
     a {
       color: rgba(0, 0, 0, 0.65) !important;
@@ -92,20 +88,17 @@ export default {
     }
   }
 
-  /* 版权文字颜色 */
   .ant-pro-global-footer-copyright {
     color: rgba(0, 0, 0, 0.65) !important;
   }
 }
 
-/* 浅色主题（默认） */
 .legal-content {
   white-space: pre-wrap;
   line-height: 1.7;
   color: rgba(0, 0, 0, 0.85);
 }
 
-/* 暗黑主题 - 通过组件外层类名控制 */
 .footer-wrapper-dark {
   .ant-pro-global-footer {
     background: transparent !important;
@@ -113,7 +106,6 @@ export default {
     border-top: none !important;
   }
 
-  /* 链接颜色 */
   .ant-pro-global-footer-links {
     a {
       color: rgba(255, 255, 255, 0.65) !important;
@@ -124,12 +116,10 @@ export default {
     }
   }
 
-  /* 版权文字颜色 */
   .ant-pro-global-footer-copyright {
     color: rgba(255, 255, 255, 0.65) !important;
   }
 
-  /* 弹窗内容颜色 */
   .legal-content {
     color: rgba(255, 255, 255, 0.85) !important;
   }

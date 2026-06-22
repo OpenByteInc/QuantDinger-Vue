@@ -36,6 +36,18 @@ export function login (data) {
 }
 
 /**
+ * Complete password login after MFA challenge.
+ * @param {Object} data - { challenge_id, code }
+ */
+export function verifyLoginMfa (data) {
+  return request({
+    url: '/api/auth/mfa/verify-login',
+    method: 'post',
+    data
+  })
+}
+
+/**
  * User logout
  */
 export function logout () {

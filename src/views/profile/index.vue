@@ -49,7 +49,6 @@
       <!-- Right Column: Credits and Referral Cards -->
       <a-col :xs="24" :md="16" class="right-cards-col">
         <a-row :gutter="16" class="right-cards-row">
-          <!-- Credits Card (积分卡片) -->
           <a-col :xs="24" :md="12">
             <a-card :bordered="false" class="credits-card">
               <div class="credits-header">
@@ -89,7 +88,6 @@
             </a-card>
           </a-col>
 
-          <!-- Referral Card (邀请卡片) -->
           <a-col :xs="24" :md="12">
             <a-card :bordered="false" class="referral-card">
               <div class="referral-header">
@@ -190,80 +188,9 @@
               </a-form>
             </a-tab-pane>
 
-            <!-- Exchange Config Tab (交易所配置) — promoted to 2nd position so
-                 users see it immediately after Basic Info. The red dot badge
-                 highlights the tab when the user has not bound any exchange. -->
-            <a-tab-pane key="exchange">
-              <template slot="tab">
-                <span class="exchange-tab-title">
-                  <a-icon type="api" />
-                  {{ $t('profile.exchange.title') || '交易所配置' }}
-                  <a-badge
-                    v-if="exchangeTabUnbound"
-                    dot
-                    :offset="[4, -2]"
-                    :title="$t('profile.exchange.notConfiguredHint') || '尚未绑定任何交易所'"
-                  />
-                </span>
-              </template>
-              <div class="exchange-config-section">
-                <a-alert
-                  :message="$t('profile.exchange.hint')"
-                  type="info"
-                  showIcon
-                  style="margin-bottom: 16px"
-                />
-                <div style="margin-bottom: 16px; text-align: right;">
-                  <a-button style="margin-right: 12px" @click="openExchangeSignupModal">
-                    <a-icon type="rocket" />
-                    {{ $t('profile.exchange.openAccount') }}
-                  </a-button>
-                  <a-button type="primary" icon="plus" @click="openAddExchangeModal">
-                    {{ $t('profile.exchange.addAccount') }}
-                  </a-button>
-                </div>
-                <a-table
-                  :columns="exchangeColumns"
-                  :dataSource="exchangeCredentials"
-                  :loading="exchangeLoading"
-                  :rowKey="record => record.id"
-                  :locale="{ emptyText: $t('profile.exchange.noAccounts') || '暂无交易所账户，请点击上方按钮添加' }"
-                  size="small"
-                >
-                  <template slot="exchange_id" slot-scope="text, record">
-                    <span style="text-transform: capitalize; font-weight: 500;">{{ getExchangeDisplayName(text) }}</span>
-                    <a-tag
-                      v-if="record.enable_demo_trading"
-                      color="orange"
-                      size="small"
-                      style="margin-left: 6px;"
-                    >
-                      {{ $t('profile.exchange.demoTag') }}
-                    </a-tag>
-                  </template>
-                  <template slot="api_key_hint" slot-scope="text, record">
-                    <span class="credential-hint">{{ text || record.name || '-' }}</span>
-                  </template>
-                  <template slot="created_at" slot-scope="text">
-                    {{ formatTime(text) }}
-                  </template>
-                  <template slot="action" slot-scope="text, record">
-                    <a-button size="small" type="link" icon="edit" @click="openRenameCredentialModal(record)">
-                      {{ $t('profile.exchange.editName') }}
-                    </a-button>
-                    <a-popconfirm
-                      :title="$t('profile.exchange.deleteConfirm')"
-                      @confirm="handleDeleteCredential(record.id)"
-                      :okText="$t('common.confirm')"
-                      :cancelText="$t('common.cancel')"
-                    >
-                      <a-button type="danger" size="small" ghost icon="delete">
-                        {{ $t('common.delete') }}
-                      </a-button>
-                    </a-popconfirm>
-                  </template>
-                </a-table>
-              </div>
+            <!-- My Agent Token -->
+            <a-tab-pane key="agentTokens" :tab="$t('profile.agentTokens.tab') || '我的 Agent Token'">
+              <profile-agent-tokens :is-dark-theme="isDarkTheme" />
             </a-tab-pane>
 
             <!-- Change Password Tab -->
@@ -345,7 +272,67 @@
               </a-form>
             </a-tab-pane>
 
-            <!-- Credits Log Tab (消费记录) -->
+            <a-tab-pane key="security" :tab="$t('profile.security.title')">
+              <div class="security-section">
+                <a-alert
+                  v-if="!mfaStatus.system_enabled"
+                  type="warning"
+                  showIcon
+                  :message="$t('profile.mfa.systemDisabled')"
+                  style="margin-bottom: 16px"
+                />
+                <div class="mfa-card">
+                  <div class="mfa-card-main">
+                    <div class="mfa-icon">
+                      <a-icon type="safety-certificate" />
+                    </div>
+                    <div class="mfa-copy">
+                      <div class="mfa-title">
+                        <span>{{ $t('profile.mfa.title') }}</span>
+                        <a-tag :color="mfaStatus.enabled ? 'green' : 'default'" class="mfa-status-tag">
+                          {{ mfaStatus.enabled ? $t('profile.mfa.enabled') : $t('profile.mfa.disabled') }}
+                        </a-tag>
+                      </div>
+                      <div class="mfa-desc">
+                        {{ $t('profile.mfa.desc') }}
+                      </div>
+                      <div v-if="mfaStatus.enabled && mfaStatus.confirmed_at" class="mfa-meta">
+                        <a-icon type="clock-circle" />
+                        {{ $t('profile.mfa.boundAt') }}: {{ formatTime(mfaStatus.confirmed_at) }}
+                      </div>
+                      <div class="mfa-feature-list">
+                        <span><a-icon type="mobile" />{{ $t('profile.mfa.featureApp') }}</span>
+                        <span><a-icon type="environment" />{{ $t('profile.mfa.featureRisk') }}</span>
+                        <span><a-icon type="key" />{{ $t('profile.mfa.featureRecovery') }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mfa-actions">
+                    <a-button
+                      v-if="!mfaStatus.enabled"
+                      type="primary"
+                      icon="qrcode"
+                      :disabled="!mfaStatus.system_enabled"
+                      :loading="mfaLoading"
+                      @click="handleStartMfaSetup"
+                    >
+                      {{ $t('profile.mfa.enable') }}
+                    </a-button>
+                    <a-button
+                      v-else
+                      type="danger"
+                      ghost
+                      icon="stop"
+                      :loading="mfaLoading"
+                      @click="showDisableMfaModal = true"
+                    >
+                      {{ $t('profile.mfa.disable') }}
+                    </a-button>
+                  </div>
+                </div>
+              </div>
+            </a-tab-pane>
+
             <a-tab-pane key="credits" :tab="$t('profile.creditsLog') || '消费记录'">
               <a-table
                 :columns="creditsLogColumns"
@@ -377,7 +364,6 @@
               </a-table>
             </a-tab-pane>
 
-            <!-- Notification Settings Tab (通知设置) -->
             <a-tab-pane key="notifications" :tab="$t('profile.notifications.title') || '通知设置'">
               <div class="notification-settings-form">
                 <a-alert
@@ -583,7 +569,6 @@
               </div>
             </a-tab-pane>
 
-            <!-- Referral List Tab (邀请列表) -->
             <a-tab-pane key="referrals" :tab="$t('profile.referral.listTab') || '邀请列表'">
               <a-table
                 :columns="referralColumns"
@@ -612,42 +597,158 @@
                 </template>
               </a-table>
             </a-tab-pane>
+
+            <!-- Login Logs Tab (last) -->
+            <a-tab-pane key="loginLogs" :tab="$t('profile.loginLogs.title') || '账户登录日志'">
+              <a-alert
+                :message="$t('profile.loginLogs.hint') || '记录密码、验证码与第三方登录；新设备或新地区登录时会通过邮件与站内通知提醒您。'"
+                type="info"
+                showIcon
+                style="margin-bottom: 16px"
+              />
+              <a-table
+                :columns="loginLogColumns"
+                :dataSource="loginLogs"
+                :loading="loginLogsLoading"
+                :pagination="loginLogsPagination"
+                :rowKey="record => record.id"
+                size="small"
+                @change="handleLoginLogsChange"
+              >
+                <template slot="flags" slot-scope="text, record">
+                  <a-tag v-if="record.is_new_device" color="orange" style="margin-right: 4px;">
+                    {{ $t('profile.loginLogs.newDevice') || '新设备' }}
+                  </a-tag>
+                  <a-tag v-if="record.is_new_region" color="red">
+                    {{ $t('profile.loginLogs.newRegion') || '新地区' }}
+                  </a-tag>
+                  <span v-if="!record.is_new_device && !record.is_new_region">—</span>
+                </template>
+                <template slot="created_at" slot-scope="text">
+                  {{ formatTime(text) }}
+                </template>
+              </a-table>
+            </a-tab-pane>
           </a-tabs>
         </a-card>
       </a-col>
     </a-row>
 
-    <exchange-account-modal
-      :visible.sync="showAddExchangeModal"
-      @success="loadExchangeCredentials"
-    />
+    <a-modal
+      v-model="showMfaSetupModal"
+      :title="$t('profile.mfa.setupTitle')"
+      :footer="null"
+      :width="520"
+      :wrapClassName="mfaModalWrapClass"
+      :destroyOnClose="true"
+      @cancel="resetMfaSetup"
+    >
+      <div class="mfa-setup-modal">
+        <div class="mfa-setup-head">
+          <span class="mfa-setup-badge"><a-icon type="safety-certificate" /></span>
+          <div>
+            <div class="mfa-setup-heading">{{ $t('profile.mfa.setupIntroTitle') }}</div>
+            <div class="mfa-setup-subtitle">{{ $t('profile.mfa.scanHint') }}</div>
+          </div>
+        </div>
+        <div v-if="mfaSetup.qr_image" class="mfa-qr-card">
+          <img :src="mfaSetup.qr_image" alt="MFA QR code" class="mfa-qr" />
+        </div>
+        <div class="mfa-field">
+          <label>{{ $t('profile.mfa.manualKey') }}</label>
+          <a-input
+            :value="mfaSetup.secret_display || mfaSetup.secret"
+            readonly
+            class="mfa-secret-input"
+          >
+            <a-icon slot="prefix" type="key" />
+            <a-tooltip slot="suffix" :title="$t('common.copy')">
+              <a-icon type="copy" @click="copyText(mfaSetup.secret)" />
+            </a-tooltip>
+          </a-input>
+        </div>
+        <div class="mfa-field">
+          <label>{{ $t('profile.mfa.verifyCode') }}</label>
+          <a-input
+            v-model="mfaSetupCode"
+            size="large"
+            :maxLength="6"
+            autocomplete="one-time-code"
+            :placeholder="$t('profile.mfa.codePlaceholder')"
+            @pressEnter="handleConfirmMfaSetup"
+          >
+            <a-icon slot="prefix" type="safety-certificate" />
+          </a-input>
+        </div>
+        <div class="mfa-modal-actions">
+          <a-button @click="resetMfaSetup">{{ $t('common.cancel') }}</a-button>
+          <a-button type="primary" :loading="mfaConfirming" @click="handleConfirmMfaSetup">
+            <a-icon type="check" />
+            {{ $t('profile.mfa.confirmEnable') }}
+          </a-button>
+        </div>
+      </div>
+    </a-modal>
 
-    <rename-credential-modal
-      :visible.sync="showRenameCredentialModal"
-      :credential="renameCredentialTarget"
-      @success="loadExchangeCredentials"
-    />
+    <a-modal
+      v-model="showMfaRecoveryModal"
+      :title="$t('profile.mfa.recoveryTitle')"
+      :width="460"
+      :wrapClassName="mfaModalWrapClass"
+      :okText="$t('common.done')"
+      :cancelButtonProps="{ style: { display: 'none' } }"
+      @ok="showMfaRecoveryModal = false"
+    >
+      <a-alert
+        type="warning"
+        showIcon
+        :message="$t('profile.mfa.recoveryHint')"
+        style="margin-bottom: 16px"
+      />
+      <div class="mfa-recovery-grid">
+        <code v-for="code in mfaRecoveryCodes" :key="code">{{ code }}</code>
+      </div>
+    </a-modal>
 
-    <exchange-signup-modal
-      :visible.sync="showExchangeSignupModal"
-      :is-dark-theme="isDarkTheme"
-    />
+    <a-modal
+      v-model="showDisableMfaModal"
+      :title="$t('profile.mfa.disableTitle')"
+      :confirmLoading="mfaDisabling"
+      :wrapClassName="mfaModalWrapClass"
+      :okText="$t('profile.mfa.disable')"
+      :cancelText="$t('common.cancel')"
+      @ok="handleDisableMfa"
+    >
+      <a-alert
+        type="warning"
+        showIcon
+        :message="$t('profile.mfa.disableHint')"
+        style="margin-bottom: 16px"
+      />
+      <a-input
+        v-model="mfaDisableCode"
+        size="large"
+        :maxLength="16"
+        autocomplete="one-time-code"
+        :placeholder="$t('profile.mfa.codePlaceholder')"
+        @pressEnter="handleDisableMfa"
+      >
+        <a-icon slot="prefix" type="safety-certificate" />
+      </a-input>
+    </a-modal>
   </div>
 </template>
 
 <script>
-import { getProfile, updateProfile, getMyCreditsLog, getMyReferrals, getNotificationSettings, updateNotificationSettings, testNotificationSettings } from '@/api/user'
+import { getProfile, updateProfile, getLoginLogs, getMyCreditsLog, getMyReferrals, getNotificationSettings, updateNotificationSettings, testNotificationSettings, getMfaStatus, startMfaSetup, confirmMfaSetup, disableMfa } from '@/api/user'
 import { getSettingsValues } from '@/api/settings'
-import { listExchangeCredentials, deleteExchangeCredential } from '@/api/credentials'
 import { baseMixin } from '@/store/app-mixin'
-import ExchangeAccountModal from '@/components/ExchangeAccountModal/ExchangeAccountModal.vue'
-import ExchangeSignupModal from '@/components/ExchangeSignupModal/ExchangeSignupModal.vue'
-import RenameCredentialModal from '@/components/RenameCredentialModal/RenameCredentialModal.vue'
+import ProfileAgentTokens from '@/views/profile/components/ProfileAgentTokens.vue'
 import { formatBrowserLocalDateTime } from '@/utils/userTime'
 
 export default {
   name: 'Profile',
-  components: { ExchangeAccountModal, ExchangeSignupModal, RenameCredentialModal },
+  components: { ProfileAgentTokens },
   mixins: [baseMixin],
   data () {
     return {
@@ -691,6 +792,14 @@ export default {
         'Australia/Sydney',
         'Pacific/Auckland'
       ],
+      // Login logs
+      loginLogs: [],
+      loginLogsLoading: false,
+      loginLogsPagination: {
+        current: 1,
+        pageSize: 10,
+        total: 0
+      },
       // Credits log
       creditsLog: [],
       creditsLogLoading: false,
@@ -735,30 +844,73 @@ export default {
       },
       savingNotifications: false,
       testingNotification: false,
-      // Exchange config
-      exchangeCredentials: [],
-      exchangeLoading: false,
-      // True only after the first /credentials fetch returns. Used to gate
-      // the "unbound" red-dot badge so it doesn't flash on first render.
-      exchangeLoaded: false,
-      showAddExchangeModal: false,
-      showRenameCredentialModal: false,
-      renameCredentialTarget: null,
-      showExchangeSignupModal: false
+      mfaStatus: {
+        system_enabled: false,
+        enabled: false,
+        confirmed_at: null,
+        risk_login_only: true
+      },
+      mfaLoading: false,
+      mfaConfirming: false,
+      mfaDisabling: false,
+      showMfaSetupModal: false,
+      showMfaRecoveryModal: false,
+      showDisableMfaModal: false,
+      mfaSetup: {},
+      mfaSetupCode: '',
+      mfaDisableCode: '',
+      mfaRecoveryCodes: []
     }
   },
   computed: {
     isDarkTheme () {
       return this.navTheme === 'dark' || this.navTheme === 'realdark'
     },
-    exchangeModalWrapClass () {
-      const base = 'profile-exchange-modal'
+    mfaModalWrapClass () {
+      const base = 'profile-mfa-modal'
       return this.isDarkTheme ? `${base} ${base}--dark` : base
     },
     isVip () {
       if (!this.billing.vip_expires_at) return false
       const expiresAt = new Date(this.billing.vip_expires_at)
       return expiresAt > new Date()
+    },
+    loginLogColumns () {
+      return [
+        {
+          title: this.$t('profile.loginLogs.time') || '时间',
+          dataIndex: 'created_at',
+          width: 170,
+          scopedSlots: { customRender: 'created_at' }
+        },
+        {
+          title: this.$t('profile.loginLogs.method') || '方式',
+          dataIndex: 'method',
+          width: 120
+        },
+        {
+          title: this.$t('profile.loginLogs.device') || '设备',
+          dataIndex: 'device',
+          ellipsis: true
+        },
+        {
+          title: this.$t('profile.loginLogs.location') || '位置',
+          dataIndex: 'location',
+          width: 160,
+          ellipsis: true,
+          customRender: (text) => text || '—'
+        },
+        {
+          title: this.$t('profile.loginLogs.ip') || 'IP',
+          dataIndex: 'ip_address',
+          width: 130
+        },
+        {
+          title: this.$t('profile.loginLogs.flags') || '提醒',
+          width: 140,
+          scopedSlots: { customRender: 'flags' }
+        }
+      ]
     },
     creditsLogColumns () {
       return [
@@ -811,49 +963,6 @@ export default {
       const baseUrl = window.location.origin + window.location.pathname
       const ref = this.referralData.referral_code || this.profile.id
       return `${baseUrl}#/user/login?ref=${ref}`
-    },
-    // Show a red-dot badge on the Exchange tab title when the user has
-    // finished an initial fetch and has zero credentials, nudging them to
-    // bind an account. We gate on ``exchangeLoaded`` to avoid flashing the
-    // dot before the first request returns.
-    exchangeTabUnbound () {
-      return this.exchangeLoaded && this.exchangeCredentials.length === 0
-    },
-    exchangeColumns () {
-      return [
-        {
-          title: this.$t('profile.exchange.colExchange') || 'Exchange',
-          dataIndex: 'exchange_id',
-          width: 140,
-          scopedSlots: { customRender: 'exchange_id' }
-        },
-        {
-          title: this.$t('profile.exchange.colName') || 'Name',
-          dataIndex: 'name',
-          width: 140,
-          customRender: (text, record) => {
-            const alias = (text && String(text).trim()) || ''
-            if (alias) return alias
-            return (record && record.api_key_hint) || '-'
-          }
-        },
-        {
-          title: this.$t('profile.exchange.colHint') || 'Connection Info',
-          dataIndex: 'api_key_hint',
-          scopedSlots: { customRender: 'api_key_hint' }
-        },
-        {
-          title: this.$t('profile.exchange.colCreatedAt') || 'Created At',
-          dataIndex: 'created_at',
-          width: 180,
-          scopedSlots: { customRender: 'created_at' }
-        },
-        {
-          title: this.$t('profile.exchange.colActions') || 'Actions',
-          width: 180,
-          scopedSlots: { customRender: 'action' }
-        }
-      ]
     },
     // ---- Webhook dialect detection (mirrors backend logic in
     // signal_notifier.py::_detect_webhook_dialect). Keep the patterns
@@ -930,6 +1039,9 @@ export default {
   },
   watch: {
     activeTab (val) {
+      if (val === 'loginLogs' && this.loginLogs.length === 0) {
+        this.loadLoginLogs()
+      }
       if (val === 'credits' && this.creditsLog.length === 0) {
         this.loadCreditsLog()
       }
@@ -939,8 +1051,8 @@ export default {
       if (val === 'notifications' && !this.notificationSettings.telegram_chat_id && !this.notificationSettings.discord_webhook) {
         this.loadNotificationSettings()
       }
-      if (val === 'exchange' && this.exchangeCredentials.length === 0) {
-        this.loadExchangeCredentials()
+      if (val === 'security') {
+        this.loadMfaStatus()
       }
       // Mirror the active tab into ``?tab=xxx`` so URLs are shareable and
       // browser back/forward preserves state. Compare first to avoid a
@@ -951,8 +1063,7 @@ export default {
         }).catch(() => {})
       }
     },
-    // Respond to deep links like /profile?tab=exchange (e.g. from the avatar
-    // dropdown, an email link, or pasted URL). Allowed tabs are whitelisted so
+    // Respond to deep links from emails or pasted URLs. Allowed tabs are whitelisted so
     // a random ?tab=foo can't break the UI.
     '$route.query.tab' (val) {
       this.applyTabFromQuery(val)
@@ -965,14 +1076,10 @@ export default {
   },
   mounted () {
     // Honour deep links — sets activeTab before any data loads so we can
-    // jump straight to a specific tab (e.g. /profile?tab=exchange).
+    // jump straight to a specific tab.
     this.applyTabFromQuery(this.$route.query.tab)
     this.loadProfile()
     this.loadReferrals()
-    // Pre-fetch exchange credentials regardless of active tab so the
-    // red-dot "not configured" badge is accurate on first render. Cheap
-    // request, fires once.
-    this.loadExchangeCredentials()
   },
   beforeDestroy () {
     if (this.pwdCodeTimer) {
@@ -983,7 +1090,7 @@ export default {
     // Whitelist of tabs we accept from ``?tab=xxx``. Anything else is a no-op
     // so a malformed link can't put the page in a weird state.
     applyTabFromQuery (rawTab) {
-      const allowed = ['basic', 'exchange', 'password', 'credits', 'notifications', 'referrals']
+      const allowed = ['basic', 'agentTokens', 'password', 'security', 'credits', 'notifications', 'referrals', 'loginLogs']
       if (rawTab && allowed.includes(rawTab) && this.activeTab !== rawTab) {
         this.activeTab = rawTab
       }
@@ -995,11 +1102,9 @@ export default {
         const res = await getProfile()
         if (res.code === 1) {
           this.profile = res.data
-          // 提取计费信息
           if (res.data.billing) {
             this.billing = res.data.billing
           }
-          // 提取通知设置
           if (res.data.notification_settings) {
             this.notificationSettings = {
               default_channels: res.data.notification_settings.default_channels || ['browser'],
@@ -1030,7 +1135,6 @@ export default {
     },
 
     async loadRechargeUrl () {
-      // 只有管理员才能获取设置，普通用户使用默认值
       if (this.profile.role === 'admin') {
         try {
           const res = await getSettingsValues()
@@ -1038,13 +1142,11 @@ export default {
             this.rechargeTelegramUrl = res.data.billing.RECHARGE_TELEGRAM_URL || this.rechargeTelegramUrl
           }
         } catch (e) {
-          // 忽略错误，使用默认值
         }
       }
     },
 
     handleRecharge () {
-      // 跳转到站内会员/充值页
       this.$router.push('/billing')
     },
 
@@ -1168,6 +1270,7 @@ export default {
           if (res.code === 1) {
             this.$message.success(res.msg || 'Password changed successfully')
             this.passwordForm.resetFields()
+            this.$store.dispatch('FetchUserInfo').catch(() => {})
           } else {
             this.$message.error(res.msg || 'Change password failed')
           }
@@ -1177,6 +1280,90 @@ export default {
           this.changingPassword = false
         }
       })
+    },
+
+    async loadMfaStatus () {
+      try {
+        const res = await getMfaStatus()
+        if (res.code === 1 && res.data) {
+          this.mfaStatus = { ...this.mfaStatus, ...res.data }
+        }
+      } catch (error) {
+        this.$message.error(error.response?.data?.msg || 'Failed to load MFA status')
+      }
+    },
+
+    async handleStartMfaSetup () {
+      this.mfaLoading = true
+      try {
+        const res = await startMfaSetup()
+        if (res.code === 1 && res.data) {
+          this.mfaSetup = res.data
+          this.mfaSetupCode = ''
+          this.showMfaSetupModal = true
+        } else {
+          this.$message.error(res.msg || 'Failed to start MFA setup')
+        }
+      } catch (error) {
+        this.$message.error(error.response?.data?.msg || 'Failed to start MFA setup')
+      } finally {
+        this.mfaLoading = false
+      }
+    },
+
+    async handleConfirmMfaSetup () {
+      const code = (this.mfaSetupCode || '').trim()
+      if (!code) {
+        this.$message.error(this.$t('profile.mfa.codeRequired') || '请输入验证码')
+        return
+      }
+      this.mfaConfirming = true
+      try {
+        const res = await confirmMfaSetup({ code })
+        if (res.code === 1) {
+          this.$message.success(res.msg || 'MFA enabled successfully')
+          this.mfaRecoveryCodes = (res.data && res.data.recovery_codes) || []
+          this.resetMfaSetup()
+          this.showMfaRecoveryModal = this.mfaRecoveryCodes.length > 0
+          this.loadMfaStatus()
+        } else {
+          this.$message.error(res.msg || 'MFA verification failed')
+        }
+      } catch (error) {
+        this.$message.error(error.response?.data?.msg || 'MFA verification failed')
+      } finally {
+        this.mfaConfirming = false
+      }
+    },
+
+    async handleDisableMfa () {
+      const code = (this.mfaDisableCode || '').trim()
+      if (!code) {
+        this.$message.error(this.$t('profile.mfa.codeRequired') || '请输入验证码')
+        return
+      }
+      this.mfaDisabling = true
+      try {
+        const res = await disableMfa({ code })
+        if (res.code === 1) {
+          this.$message.success(res.msg || 'MFA disabled successfully')
+          this.showDisableMfaModal = false
+          this.mfaDisableCode = ''
+          this.loadMfaStatus()
+        } else {
+          this.$message.error(res.msg || 'Failed to disable MFA')
+        }
+      } catch (error) {
+        this.$message.error(error.response?.data?.msg || 'Failed to disable MFA')
+      } finally {
+        this.mfaDisabling = false
+      }
+    },
+
+    resetMfaSetup () {
+      this.showMfaSetupModal = false
+      this.mfaSetup = {}
+      this.mfaSetupCode = ''
     },
 
     getRoleColor (role) {
@@ -1205,6 +1392,29 @@ export default {
 
     formatCreditsLogTime (timestamp) {
       return formatBrowserLocalDateTime(timestamp, { fallback: '' })
+    },
+
+    async loadLoginLogs () {
+      this.loginLogsLoading = true
+      try {
+        const res = await getLoginLogs({
+          page: this.loginLogsPagination.current,
+          page_size: this.loginLogsPagination.pageSize
+        })
+        if (res.code === 1) {
+          this.loginLogs = res.data.items || []
+          this.loginLogsPagination.total = res.data.total || 0
+        }
+      } catch (e) {
+        this.$message.error(this.$t('profile.loginLogs.loadFailed') || '加载登录日志失败')
+      } finally {
+        this.loginLogsLoading = false
+      }
+    },
+
+    handleLoginLogsChange (pagination) {
+      this.loginLogsPagination.current = pagination.current
+      this.loadLoginLogs()
     },
 
     // Credits log methods
@@ -1274,6 +1484,19 @@ export default {
       }
     },
 
+    copyText (text) {
+      if (!text) return
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(() => {
+          this.$message.success(this.$t('common.copySuccess') || '复制成功')
+        }).catch(() => {
+          this.fallbackCopy(text)
+        })
+      } else {
+        this.fallbackCopy(text)
+      }
+    },
+
     fallbackCopy (text) {
       const textarea = document.createElement('textarea')
       textarea.value = text
@@ -1309,7 +1532,6 @@ export default {
         membership_purchase: 'gold',
         membership_bonus: 'cyan',
         membership_monthly: 'lime',
-        // 指标社区相关
         indicator_purchase: 'volcano',
         indicator_sale: 'lime'
       }
@@ -1331,73 +1553,10 @@ export default {
         membership_purchase: this.$t('profile.creditsLog.actionMembershipPurchase') || '购买会员',
         membership_bonus: this.$t('profile.creditsLog.actionMembershipBonus') || '会员赠送积分',
         membership_monthly: this.$t('profile.creditsLog.actionMembershipMonthly') || '会员月度积分',
-        // 指标社区相关
         indicator_purchase: this.$t('profile.creditsLog.actionIndicatorPurchase') || '购买指标',
         indicator_sale: this.$t('profile.creditsLog.actionIndicatorSale') || '出售指标'
       }
       return labels[action] || action
-    },
-
-    // Exchange credential methods
-    async loadExchangeCredentials () {
-      this.exchangeLoading = true
-      try {
-        const res = await listExchangeCredentials()
-        if (res.code === 1 && res.data) {
-          this.exchangeCredentials = res.data.items || []
-        }
-      } catch (e) {
-        this.$message.error('Failed to load exchange accounts')
-      } finally {
-        this.exchangeLoading = false
-        this.exchangeLoaded = true
-      }
-    },
-
-    openAddExchangeModal () {
-      this.showAddExchangeModal = true
-    },
-
-    openRenameCredentialModal (record) {
-      this.renameCredentialTarget = record ? { ...record } : null
-      this.showRenameCredentialModal = true
-    },
-
-    openExchangeSignupModal () {
-      this.showExchangeSignupModal = true
-    },
-
-    getExchangeDisplayName (id) {
-      const names = {
-        binance: 'Binance',
-        okx: 'OKX',
-        bitget: 'Bitget',
-        bybit: 'Bybit',
-        coinbaseexchange: 'Coinbase',
-        kraken: 'Kraken',
-        kucoin: 'KuCoin',
-        gate: 'Gate.io',
-        bitfinex: 'Bitfinex',
-        deepcoin: 'Deepcoin',
-        htx: 'HTX',
-        ibkr: 'IBKR',
-        mt5: 'MetaTrader 5'
-      }
-      return names[id] || id
-    },
-
-    async handleDeleteCredential (id) {
-      try {
-        const res = await deleteExchangeCredential(id)
-        if (res.code === 1) {
-          this.$message.success(this.$t('profile.exchange.deleteSuccess'))
-          this.loadExchangeCredentials()
-        } else {
-          this.$message.error(res.msg || 'Delete failed')
-        }
-      } catch (e) {
-        this.$message.error('Delete failed')
-      }
     },
 
     // Notification settings methods
@@ -1585,19 +1744,6 @@ export default {
 <style lang="less" scoped>
 @primary-color: #1890ff;
 
-// Promoted "Exchange Config" tab — keep icon, label and the red-dot badge
-// visually aligned and let the icon adopt the primary color when the tab
-// is active so the entry stays discoverable at a glance.
-.exchange-tab-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-
-  .anticon {
-    color: @primary-color;
-  }
-}
-
 .profile-page {
   padding: 24px;
   min-height: calc(100vh - 120px);
@@ -1644,7 +1790,7 @@ export default {
         flex-direction: column;
       }
 
-      /deep/ .ant-card-body {
+      ::v-deep .ant-card-body {
         flex: 1;
         display: flex;
         flex-direction: column;
@@ -1665,7 +1811,7 @@ export default {
           flex-direction: column;
         }
 
-        /deep/ .ant-card-body {
+        ::v-deep .ant-card-body {
           flex: 1;
           display: flex;
           flex-direction: column;
@@ -1738,12 +1884,56 @@ export default {
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 
+    ::v-deep .ant-tabs-bar {
+      margin-bottom: 18px;
+      border-bottom-color: #edf2f7;
+    }
+
+    ::v-deep .ant-tabs-nav-wrap {
+      padding: 0 4px;
+    }
+
+    ::v-deep .ant-tabs-tab {
+      height: 40px;
+      min-width: 104px;
+      margin-right: 4px;
+      padding: 0 14px;
+      border-radius: 8px 8px 0 0;
+      color: #64748b;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s ease, background 0.2s ease;
+
+      &:hover {
+        color: var(--primary-color, @primary-color);
+        background: color-mix(in srgb, var(--primary-color, @primary-color) 7%, #fff);
+      }
+
+      .anticon {
+        margin-right: 6px;
+      }
+    }
+
+    ::v-deep .ant-tabs-tab-active {
+      color: var(--primary-color, @primary-color);
+      background: color-mix(in srgb, var(--primary-color, @primary-color) 10%, #fff);
+      font-weight: 700;
+    }
+
+    ::v-deep .ant-tabs-ink-bar {
+      height: 3px;
+      border-radius: 999px;
+      background: var(--primary-color, @primary-color);
+    }
+
     .profile-form,
     .password-form {
       max-width: 500px;
 
-      /deep/ .ant-input,
-      /deep/ .ant-input-password {
+      ::v-deep .ant-input,
+      ::v-deep .ant-input-password {
         border-radius: 8px;
       }
 
@@ -1756,6 +1946,98 @@ export default {
           color: #faad14;
         }
       }
+    }
+
+    .security-section {
+      max-width: 920px;
+    }
+
+    .mfa-card {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 22px;
+      border: 1px solid #e6edf5;
+      border-radius: 8px;
+      background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+    }
+
+    .mfa-card-main {
+      display: flex;
+      gap: 16px;
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+
+    .mfa-icon {
+      width: 44px;
+      height: 44px;
+      flex: 0 0 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      color: #2454ff;
+      background: rgba(36, 84, 255, 0.1);
+      font-size: 22px;
+    }
+
+    .mfa-title {
+      color: rgba(0, 0, 0, 0.85);
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 28px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .mfa-status-tag {
+      margin-left: 0;
+    }
+
+    .mfa-desc,
+    .mfa-meta {
+      color: rgba(0, 0, 0, 0.55);
+      line-height: 1.7;
+    }
+
+    .mfa-meta {
+      margin-top: 6px;
+      font-size: 12px;
+
+      .anticon {
+        margin-right: 4px;
+      }
+    }
+
+    .mfa-feature-list {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+
+      span {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        min-height: 24px;
+        padding: 2px 9px;
+        border: 1px solid #dbeafe;
+        border-radius: 6px;
+        background: #eff6ff;
+        color: #2463eb;
+        font-size: 12px;
+        line-height: 18px;
+      }
+    }
+
+    .mfa-actions {
+      flex: 0 0 auto;
     }
 
     // Credits log amount colors
@@ -1802,30 +2084,45 @@ export default {
         }
       }
 
-      /deep/ .ant-checkbox-group {
+      ::v-deep .ant-checkbox-group {
         width: 100%;
       }
 
-      /deep/ .ant-checkbox-wrapper {
+      ::v-deep .ant-checkbox-wrapper {
         margin-bottom: 8px;
       }
     }
   }
 
-  // Credits Card 积分卡片
+  .mfa-recovery-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+
+    code {
+      display: block;
+      padding: 8px 10px;
+      border-radius: 6px;
+      background: #f5f7fb;
+      color: #1f2a44;
+      font-family: Consolas, Monaco, monospace;
+      text-align: center;
+    }
+  }
+
   .credits-card {
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: #fff;
 
-    /deep/ .ant-card-body {
+    ::v-deep .ant-card-body {
       background: transparent;
       display: flex;
       flex-direction: column;
     }
 
-    /deep/ .ant-divider {
+    ::v-deep .ant-divider {
       border-color: rgba(255, 255, 255, 0.2);
     }
 
@@ -1922,20 +2219,19 @@ export default {
     }
   }
 
-  // Referral Card 邀请卡片
   .referral-card {
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
     color: #fff;
 
-    /deep/ .ant-card-body {
+    ::v-deep .ant-card-body {
       background: transparent;
       display: flex;
       flex-direction: column;
     }
 
-    /deep/ .ant-divider {
+    ::v-deep .ant-divider {
       border-color: rgba(255, 255, 255, 0.2);
     }
 
@@ -1991,7 +2287,7 @@ export default {
         }
 
         .link-box {
-          /deep/ .ant-input {
+          ::v-deep .ant-input {
             background: rgba(255, 255, 255, 0.2);
             border: 1px solid rgba(255, 255, 255, 0.3);
             color: #fff;
@@ -2001,7 +2297,7 @@ export default {
             }
           }
 
-          /deep/ .anticon-copy {
+          ::v-deep .anticon-copy {
             color: #fff;
 
             &:hover {
@@ -2050,15 +2346,6 @@ export default {
     }
   }
 
-  // Exchange config
-  .exchange-config-section {
-    .credential-hint {
-      font-family: 'SFMono-Regular', Consolas, monospace;
-      font-size: 13px;
-      color: #666;
-    }
-  }
-
   .test-result-msg {
     margin-top: 8px;
     font-size: 13px;
@@ -2091,7 +2378,7 @@ export default {
       background: #1c1c1c;
       box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
 
-      /deep/ .ant-card-body {
+      ::v-deep .ant-card-body {
         background: #1c1c1c;
       }
     }
@@ -2119,28 +2406,62 @@ export default {
     }
 
     .edit-card {
-      /deep/ .ant-tabs-bar {
+      ::v-deep .ant-tabs-bar {
         border-bottom-color: #2a2a2a;
       }
 
-      /deep/ .ant-tabs-tab {
+      ::v-deep .ant-tabs-tab {
         color: #8b949e;
 
         &:hover {
-          color: #e0e6ed;
+          color: var(--primary-color, @primary-color);
+          background: color-mix(in srgb, var(--primary-color, @primary-color) 12%, #1c1c1c);
         }
       }
 
-      /deep/ .ant-tabs-tab-active {
-        color: @primary-color;
+      ::v-deep .ant-tabs-tab-active {
+        color: var(--primary-color, @primary-color);
+        background: color-mix(in srgb, var(--primary-color, @primary-color) 14%, #1c1c1c);
       }
 
-      /deep/ .ant-form-item-label label {
+      ::v-deep .ant-tabs-bar {
+        border-bottom-color: #30363d;
+      }
+
+      ::v-deep .ant-form-item-label label {
         color: #c9d1d9;
       }
 
-      /deep/ .ant-input,
-      /deep/ .ant-input-password {
+      .mfa-card {
+        background: linear-gradient(180deg, #161b22 0%, #111820 100%);
+        border-color: #30363d;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+      }
+
+      .mfa-icon {
+        color: #6ea8ff;
+        background: rgba(110, 168, 255, 0.12);
+      }
+
+      .mfa-title {
+        color: #e6edf3;
+      }
+
+      .mfa-desc,
+      .mfa-meta {
+        color: #8b949e;
+      }
+
+      .mfa-feature-list {
+        span {
+          background: rgba(24, 144, 255, 0.1);
+          border-color: rgba(24, 144, 255, 0.22);
+          color: #7db6ff;
+        }
+      }
+
+      ::v-deep .ant-input,
+      ::v-deep .ant-input-password {
         background: #141414;
         border-color: #2a2a2a;
         color: #c9d1d9;
@@ -2156,7 +2477,7 @@ export default {
       background: linear-gradient(135deg, #1c1c1c 0%, #1a1a1a 50%, #141414 100%);
       box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
 
-      /deep/ .ant-divider {
+      ::v-deep .ant-divider {
         border-color: rgba(255, 255, 255, 0.1);
       }
 
@@ -2173,8 +2494,7 @@ export default {
       }
     }
 
-    // Tables in tabs (消费记录、交易所配置、邀请列表)
-    /deep/ .ant-table-wrapper {
+    ::v-deep .ant-table-wrapper {
       .ant-table {
         background: #1c1c1c;
         color: #c9d1d9;
@@ -2201,7 +2521,6 @@ export default {
         color: #8b949e;
       }
 
-      // 表格内的所有文本元素
       .ant-table-tbody > tr > td,
       .ant-table-tbody > tr > td span,
       .ant-table-tbody > tr > td div,
@@ -2209,7 +2528,6 @@ export default {
         color: #c9d1d9;
       }
 
-      // 金额颜色
       .amount-positive {
         color: #52c41a;
       }
@@ -2218,7 +2536,6 @@ export default {
         color: #f5222d;
       }
 
-      // 消费记录 类型标签 - 暗黑模式增强对比度
       .ant-tag {
         border-width: 1px;
         font-weight: 600;
@@ -2235,23 +2552,22 @@ export default {
       .ant-tag-default { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2); color: #c9d1d9; }
     }
 
-    // 表单样式（通知设置、交易所配置等）
     .profile-form,
     .password-form,
     .notification-settings-form {
-      /deep/ .ant-form-item-label > label {
+      ::v-deep .ant-form-item-label > label {
         color: #c9d1d9;
       }
 
-      /deep/ .ant-form-item-explain,
-      /deep/ .ant-form-item-extra {
+      ::v-deep .ant-form-item-explain,
+      ::v-deep .ant-form-item-extra {
         color: #8b949e;
       }
 
-      /deep/ .ant-input,
-      /deep/ .ant-input-password,
-      /deep/ .ant-select-selector,
-      /deep/ .ant-input-number {
+      ::v-deep .ant-input,
+      ::v-deep .ant-input-password,
+      ::v-deep .ant-select-selector,
+      ::v-deep .ant-input-number {
         background: #141414;
         border-color: #2a2a2a;
         color: #c9d1d9;
@@ -2261,13 +2577,13 @@ export default {
         }
       }
 
-      /deep/ .ant-select-selection-item,
-      /deep/ .ant-select-selection-placeholder {
+      ::v-deep .ant-select-selection-item,
+      ::v-deep .ant-select-selection-placeholder {
         color: #c9d1d9;
       }
 
-      /deep/ .ant-checkbox-wrapper,
-      /deep/ .ant-radio-wrapper {
+      ::v-deep .ant-checkbox-wrapper,
+      ::v-deep .ant-radio-wrapper {
         color: #c9d1d9;
 
         span {
@@ -2275,13 +2591,12 @@ export default {
         }
       }
 
-      /deep/ .ant-checkbox-checked .ant-checkbox-inner,
-      /deep/ .ant-radio-checked .ant-radio-inner {
+      ::v-deep .ant-checkbox-checked .ant-checkbox-inner,
+      ::v-deep .ant-radio-checked .ant-radio-inner {
         background-color: @primary-color;
         border-color: @primary-color;
       }
 
-      // 提示文字
       .email-hint,
       .field-hint {
         color: #8b949e;
@@ -2292,9 +2607,8 @@ export default {
       }
     }
 
-    // 通知设置表单
     .notification-settings-form {
-      /deep/ .ant-alert {
+      ::v-deep .ant-alert {
         background: #1c1c1c;
         border-color: #2a2a2a;
         color: #c9d1d9;
@@ -2309,14 +2623,6 @@ export default {
       }
     }
 
-    // 交易所配置
-    .exchange-config-section {
-      .credential-hint {
-        color: #8b949e;
-      }
-    }
-
-    // 测试结果消息
     .test-result-msg {
       &.success {
         color: #52c41a;
@@ -2326,7 +2632,6 @@ export default {
       }
     }
 
-    // 邀请列表中的用户信息
     .referral-user-cell {
       .user-info {
         .nickname {
@@ -2339,29 +2644,25 @@ export default {
       }
     }
 
-    // 标签样式
-    /deep/ .ant-tag {
+    ::v-deep .ant-tag {
       color: #c9d1d9;
     }
 
-    // 消费记录「类型」列：带底色标签文字在暗黑下保持可读
-    /deep/ .ant-tag.ant-tag-has-color {
+    ::v-deep .ant-tag.ant-tag-has-color {
       color: #ffffff !important;
       border-color: transparent !important;
     }
 
-    // 修复暗黑下部分小图标仍为黑色
-    /deep/ .ant-input-prefix .anticon,
-    /deep/ .ant-input-suffix .anticon,
-    /deep/ .field-hint .anticon,
-    /deep/ .email-hint .anticon,
-    /deep/ .credits-hint .anticon,
-    /deep/ .notification-settings-form .anticon {
+    ::v-deep .ant-input-prefix .anticon,
+    ::v-deep .ant-input-suffix .anticon,
+    ::v-deep .field-hint .anticon,
+    ::v-deep .email-hint .anticon,
+    ::v-deep .credits-hint .anticon,
+    ::v-deep .notification-settings-form .anticon {
       color: #c9d1d9 !important;
     }
 
-    // 分页样式
-    /deep/ .ant-pagination {
+    ::v-deep .ant-pagination {
       .ant-pagination-item {
         background: #1c1c1c;
         border-color: #2a2a2a;
@@ -2402,8 +2703,7 @@ export default {
       }
     }
 
-    // 按钮样式
-    /deep/ .ant-btn {
+    ::v-deep .ant-btn {
       &.ant-btn-default {
         background: #1c1c1c;
         border-color: #2a2a2a;
@@ -2465,7 +2765,7 @@ export default {
       .avatar-section {
         padding: 16px 0;
 
-        /deep/ .ant-avatar {
+        ::v-deep .ant-avatar {
           width: 80px !important;
           height: 80px !important;
           line-height: 80px !important;
@@ -2581,7 +2881,7 @@ export default {
           }
 
           .link-box {
-            /deep/ .ant-input {
+            ::v-deep .ant-input {
               font-size: 12px;
             }
           }
@@ -2599,11 +2899,11 @@ export default {
       border-radius: 10px;
       margin-top: 12px !important;
 
-      /deep/ .ant-card-body {
+      ::v-deep .ant-card-body {
         padding: 12px;
       }
 
-      /deep/ .ant-tabs-nav {
+      ::v-deep .ant-tabs-nav {
         .ant-tabs-tab {
           padding: 10px 12px;
           font-size: 13px;
@@ -2611,7 +2911,7 @@ export default {
       }
 
       // Allow horizontal scroll for tabs on mobile
-      /deep/ .ant-tabs-nav-scroll {
+      ::v-deep .ant-tabs-nav-scroll {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
 
@@ -2624,7 +2924,7 @@ export default {
       .password-form {
         max-width: 100%;
 
-        /deep/ .ant-form-item-label {
+        ::v-deep .ant-form-item-label {
           padding-bottom: 4px;
 
           label {
@@ -2632,8 +2932,8 @@ export default {
           }
         }
 
-        /deep/ .ant-input,
-        /deep/ .ant-input-password {
+        ::v-deep .ant-input,
+        ::v-deep .ant-input-password {
           font-size: 14px;
         }
 
@@ -2644,25 +2944,54 @@ export default {
 
       // Password form - verification code section
       .password-form {
-        /deep/ .ant-alert {
+        ::v-deep .ant-alert {
           font-size: 12px;
           padding: 8px 12px;
         }
       }
 
+      .security-section {
+        max-width: 100%;
+      }
+
+      .mfa-card {
+        flex-direction: column;
+        padding: 16px;
+      }
+
+      .mfa-card-main {
+        gap: 12px;
+      }
+
+      .mfa-actions {
+        width: 100%;
+
+        .ant-btn {
+          width: 100%;
+        }
+      }
+
+      .mfa-feature-list {
+        gap: 6px;
+
+        span {
+          max-width: 100%;
+        }
+      }
+
       // Notification settings form
       .notification-settings-form {
-        /deep/ .ant-alert {
+        ::v-deep .ant-alert {
           font-size: 12px;
           padding: 8px 12px;
           margin-bottom: 16px !important;
         }
 
-        /deep/ .ant-form {
+        ::v-deep .ant-form {
           max-width: 100%;
         }
 
-        /deep/ .ant-checkbox-group {
+        ::v-deep .ant-checkbox-group {
           .ant-row {
             margin-left: 0 !important;
             margin-right: 0 !important;
@@ -2684,12 +3013,12 @@ export default {
           flex-wrap: wrap;
         }
 
-        /deep/ .ant-form-item {
+        ::v-deep .ant-form-item {
           margin-bottom: 16px;
         }
 
         // Action buttons
-        /deep/ .ant-form-item:last-child {
+        ::v-deep .ant-form-item:last-child {
           .ant-btn {
             width: 100%;
             margin-bottom: 8px;
@@ -2702,7 +3031,7 @@ export default {
       }
 
       // Tables in tabs
-      /deep/ .ant-table-wrapper {
+      ::v-deep .ant-table-wrapper {
         overflow-x: auto;
 
         .ant-table {
@@ -2715,7 +3044,7 @@ export default {
     .referral-user-cell {
       gap: 8px;
 
-      /deep/ .ant-avatar {
+      ::v-deep .ant-avatar {
         width: 28px !important;
         height: 28px !important;
         line-height: 28px !important;
@@ -2788,7 +3117,7 @@ export default {
 
     // Edit card
     .edit-card {
-      /deep/ .ant-tabs-nav {
+      ::v-deep .ant-tabs-nav {
         .ant-tabs-tab {
           padding: 8px 10px;
           font-size: 12px;
@@ -2797,7 +3126,7 @@ export default {
 
       // Notification settings - stack checkboxes
       .notification-settings-form {
-        /deep/ .ant-checkbox-group {
+        ::v-deep .ant-checkbox-group {
           .ant-row {
             .ant-col {
               flex: 0 0 50%;
@@ -2811,3 +3140,255 @@ export default {
 }
 </style>
 
+<style lang="less">
+.profile-mfa-modal {
+  .ant-modal {
+    max-width: calc(100vw - 24px);
+  }
+
+  .ant-modal-content {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 18px 56px rgba(15, 23, 42, 0.22);
+  }
+
+  .ant-modal-header {
+    padding: 18px 24px 14px;
+    border-bottom-color: #edf0f5;
+  }
+
+  .ant-modal-title {
+    color: #172033;
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .ant-modal-body {
+    padding: 18px 24px 22px;
+  }
+
+  .mfa-setup-modal {
+    .mfa-setup-head {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .mfa-setup-badge {
+      width: 34px;
+      height: 34px;
+      flex: 0 0 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      color: var(--primary-color, #1890ff);
+      background: color-mix(in srgb, var(--primary-color, #1890ff) 12%, #fff);
+      border: 1px solid color-mix(in srgb, var(--primary-color, #1890ff) 22%, #fff);
+    }
+
+    .mfa-setup-heading {
+      color: #172033;
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 22px;
+    }
+
+    .mfa-setup-subtitle {
+      max-width: 390px;
+      margin-top: 2px;
+      color: #65758b;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .mfa-qr-card {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 18px;
+      padding: 18px;
+      border: 1px solid #e7edf5;
+      border-radius: 8px;
+      background: linear-gradient(180deg, #fbfdff 0%, #f6f9fd 100%);
+    }
+
+    .mfa-qr {
+      display: block;
+      width: 264px;
+      max-width: 100%;
+      height: auto;
+      aspect-ratio: 1;
+      object-fit: contain;
+      padding: 10px;
+      border: 1px solid #dbe4ef;
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 8px 22px rgba(15, 23, 42, 0.07);
+    }
+
+    .mfa-field {
+      margin-bottom: 14px;
+
+      label {
+        display: block;
+        margin-bottom: 7px;
+        color: #536274;
+        font-size: 13px;
+        font-weight: 600;
+        line-height: 18px;
+      }
+    }
+
+    .ant-input-affix-wrapper,
+    .ant-input {
+      border-radius: 6px;
+    }
+
+    .mfa-secret-input .ant-input {
+      font-family: Consolas, Monaco, monospace;
+      font-size: 13px;
+      letter-spacing: 0;
+    }
+
+    .anticon-copy {
+      cursor: pointer;
+      color: #7b8794;
+      transition: color 0.2s ease;
+
+      &:hover {
+        color: var(--primary-color, #1890ff);
+      }
+    }
+
+    .mfa-modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid #edf0f5;
+
+      .ant-btn {
+        min-width: 96px;
+        height: 36px;
+        border-radius: 6px;
+      }
+    }
+  }
+
+  .mfa-recovery-grid {
+    code {
+      border: 1px solid #e8edf5;
+    }
+  }
+}
+
+.profile-mfa-modal--dark {
+  .ant-modal-content,
+  .ant-modal-header,
+  .ant-modal-body,
+  .ant-modal-footer {
+    background: #1c1f26 !important;
+  }
+
+  .ant-modal-header,
+  .ant-modal-footer {
+    border-color: #2f3642 !important;
+  }
+
+  .ant-modal-title,
+  .ant-modal-close-x {
+    color: #e6edf3 !important;
+  }
+
+  .mfa-setup-modal {
+    color: #c9d1d9;
+
+    .mfa-setup-badge {
+      color: var(--primary-color, #1890ff);
+      background: color-mix(in srgb, var(--primary-color, #1890ff) 16%, #1c1f26);
+      border-color: color-mix(in srgb, var(--primary-color, #1890ff) 28%, #303845);
+    }
+
+    .mfa-setup-heading {
+      color: #e6edf3;
+    }
+
+    .mfa-setup-subtitle {
+      color: #9aa4b2;
+    }
+
+    .mfa-qr-card {
+      background: #151a22;
+      border-color: #303845;
+    }
+
+    .mfa-qr {
+      border-color: #3a4352;
+      background: #ffffff;
+    }
+
+    .mfa-field label {
+      color: #9aa4b2;
+    }
+
+    .ant-input {
+      background: #11161d !important;
+      border-color: #303845 !important;
+      color: #dbe4ef !important;
+    }
+
+    .anticon-copy {
+      color: #8995a3;
+
+      &:hover {
+        color: var(--primary-color, #1890ff);
+      }
+    }
+
+    .mfa-modal-actions {
+      border-top-color: #303845;
+    }
+  }
+
+  .mfa-recovery-grid {
+    code {
+      background: #11161d;
+      border-color: #303845;
+      color: #dbe4ef;
+    }
+  }
+}
+
+@media screen and (max-width: 560px) {
+  .profile-mfa-modal {
+    .ant-modal {
+      top: 24px;
+    }
+
+    .ant-modal-body {
+      padding: 16px;
+    }
+
+    .mfa-setup-modal {
+      .mfa-qr {
+        width: 220px;
+      }
+
+      .mfa-modal-actions {
+        flex-direction: column-reverse;
+
+        .ant-btn {
+          width: 100%;
+        }
+      }
+    }
+
+    .mfa-recovery-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+</style>

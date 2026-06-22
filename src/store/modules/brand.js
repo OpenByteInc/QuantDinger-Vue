@@ -1,5 +1,14 @@
 import { getBrandConfig } from '@/api/brand'
 
+const BUILD_APP_VERSION = typeof APP_VERSION !== 'undefined' ? APP_VERSION : '0.0.0-dev'
+const DEFAULT_COPYRIGHT = 'Copyright 2025-2026 QuantDinger. All rights reserved.'
+
+function normalizeCopyright (value) {
+  const text = String(value || '').trim()
+  if (!text) return DEFAULT_COPYRIGHT
+  return text.replace(/^漏\s*/, 'Copyright ')
+}
+
 /**
  * Defaults match the values the backend would return if every BRAND_* env
  * var were empty.  Keeping them here as a fallback lets the first-paint of
@@ -8,8 +17,8 @@ import { getBrandConfig } from '@/api/brand'
  */
 const DEFAULT_BRAND = {
   app_name: 'QuantDinger',
-  app_version: '3.0.15',
-  copyright: '© 2025-2026 QuantDinger. All rights reserved.',
+  app_version: BUILD_APP_VERSION,
+  copyright: DEFAULT_COPYRIGHT,
   logos: {
     light: '',
     dark: '',
@@ -59,6 +68,15 @@ function persistBrand (data) {
   } catch (_) { /* ignore quota / private-mode */ }
 }
 
+function normalizeBrand (data) {
+  const brand = data && typeof data === 'object' ? data : DEFAULT_BRAND
+  return {
+    ...brand,
+    app_version: brand.app_version || BUILD_APP_VERSION,
+    copyright: normalizeCopyright(brand.copyright)
+  }
+}
+
 /**
  * Reflect brand config into <title> and <link rel="icon">. Both are no-ops in
  * SSR or test environments where ``document`` doesn't exist.
@@ -80,7 +98,10 @@ function applyBrandToDocument (data) {
   }
 }
 
-const initialBrand = readCachedBrand() || DEFAULT_BRAND
+const cachedBrand = readCachedBrand()
+const initialBrand = normalizeBrand(cachedBrand
+  ? { ...cachedBrand, app_version: BUILD_APP_VERSION }
+  : DEFAULT_BRAND)
 // Apply cached brand to <title>/<favicon> immediately on module load so the
 // browser tab matches the deployment before the brand-config request returns.
 applyBrandToDocument(initialBrand)
@@ -100,7 +121,7 @@ const brand = {
       state.loading = !!loading
     },
     SET_BRAND_CONFIG (state, payload) {
-      state.config = payload || DEFAULT_BRAND
+      state.config = normalizeBrand(payload || DEFAULT_BRAND)
       state.loaded = true
       persistBrand(state.config)
       applyBrandToDocument(state.config)

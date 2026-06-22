@@ -200,7 +200,7 @@ export default {
       try {
         await broker[id].disconnect()
         this.$message.success(this.$t('brokerAccounts.disconnectSuccess'))
-        await this.loadOne(id)
+        this.$set(this.connectionMap, id, { connected: false })
       } catch (e) {
         this.$message.error((e && (e.error || e.message)) || this.$t('brokerAccounts.disconnectFailed'))
       } finally {
@@ -237,11 +237,11 @@ export default {
 
 <style lang="less" scoped>
 .broker-accounts {
-  padding: 20px;
-  min-height: 100%;
+  padding: 16px !important;
+  min-height: calc(100vh - 64px);
   background: #f5f7fa;
   &.theme-dark {
-    background: #141414;
+    background: #0f0f10;
   }
 }
 .ba-header {
@@ -301,8 +301,48 @@ export default {
   box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
 }
 .broker-accounts.theme-dark .ba-tabs {
-  background: #1f1f1f;
+  background: #181818;
+  border: 1px solid #2a2a2a;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+
+  ::v-deep .ant-tabs-bar {
+    border-bottom-color: #303030;
+  }
+
+  ::v-deep .ant-tabs-nav-container {
+    color: rgba(255, 255, 255, 0.68);
+  }
+
+  ::v-deep .ant-tabs-tab {
+    background: #111214 !important;
+    border-color: #303030 !important;
+    color: rgba(255, 255, 255, 0.58) !important;
+  }
+
+  ::v-deep .ant-tabs-tab:hover {
+    background: #171b20 !important;
+    color: rgba(255, 255, 255, 0.82) !important;
+  }
+
+  ::v-deep .ant-tabs-tab-active {
+    background: #1c2634 !important;
+    border-color: rgba(88, 166, 255, 0.55) !important;
+    color: #58a6ff !important;
+  }
+
+  ::v-deep .ant-tabs-tab-disabled {
+    background: #101010 !important;
+    color: rgba(255, 255, 255, 0.25) !important;
+  }
+
+  ::v-deep .ba-tab-label,
+  ::v-deep .ba-tab-label span {
+    color: inherit;
+  }
+
+  ::v-deep .ant-badge-status-default {
+    background-color: rgba(255, 255, 255, 0.3);
+  }
 }
 .ba-tab-label {
   display: inline-flex;

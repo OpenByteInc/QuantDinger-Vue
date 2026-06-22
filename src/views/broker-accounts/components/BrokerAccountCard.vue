@@ -1,9 +1,9 @@
 <template>
   <a-spin :spinning="loading">
-    <div v-if="!loading && (!info || isEmpty)" class="bp-empty">
+    <div v-if="!loading && (!info || isEmpty)" class="bp-empty" :class="{ 'theme-dark': isDarkTheme }">
       <a-icon type="inbox" /> <span>{{ $t('brokerAccounts.noAccount') }}</span>
     </div>
-    <div v-else-if="info" class="account-grid">
+    <div v-else-if="info" class="account-grid" :class="{ 'theme-dark': isDarkTheme }">
       <div
         v-for="metric in metrics"
         :key="metric.key"
@@ -136,11 +136,44 @@ export default {
 .metric-card.negative .metric-value { color: #cf1322; }
 .metric-card.accent .metric-value { color: #1890ff; }
 .metric-sub { margin-top: 4px; font-size: 11px; color: #8c8c8c; }
+.account-grid.theme-dark {
+  .metric-card {
+    background: linear-gradient(165deg, #1b1f24 0%, #151719 100%);
+    border-color: #30363d;
+
+    &.accent {
+      background: linear-gradient(165deg, rgba(24, 144, 255, 0.14) 0%, #171b20 100%);
+      border-color: rgba(88, 166, 255, 0.45);
+    }
+
+    &.positive {
+      background: linear-gradient(165deg, rgba(82, 196, 26, 0.12) 0%, #171b18 100%);
+      border-color: rgba(82, 196, 26, 0.35);
+    }
+
+    &.negative {
+      background: linear-gradient(165deg, rgba(245, 34, 45, 0.12) 0%, #1d1718 100%);
+      border-color: rgba(245, 34, 45, 0.35);
+    }
+  }
+
+  .metric-label,
+  .metric-sub {
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  .metric-value {
+    color: rgba(255, 255, 255, 0.9);
+  }
+}
 .bp-empty {
   padding: 32px;
   text-align: center;
   color: #8c8c8c;
   font-size: 13px;
   i { font-size: 22px; display: block; margin-bottom: 8px; }
+}
+.bp-empty.theme-dark {
+  color: rgba(255, 255, 255, 0.5);
 }
 </style>

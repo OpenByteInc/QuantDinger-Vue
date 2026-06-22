@@ -73,56 +73,63 @@
                 <a-tag v-if="c.market_type" size="small" style="margin-left: 6px;">{{ c.market_type }}</a-tag>
               </a-select-option>
             </a-select>
-            <div v-if="!credLoading && credentials.length === 0" class="qt-no-cred-actions">
-              <a-button type="primary" block size="small" @click="showAddExchangeModal = true">
+            <div class="qt-account-actions">
+              <a-button type="primary" block size="small" class="qt-add-account-btn" @click="showAddExchangeModal = true">
                 <a-icon type="plus" /> {{ $t('quickTrade.addAccountInline') }}
               </a-button>
             </div>
-            <div class="qt-manage-link">
-              <a @click.prevent="showAddExchangeModal = true">
-                <a-icon type="plus-circle" style="margin-right: 4px;" />{{ $t('quickTrade.addAccountInline') }}
-              </a>
-              <span class="qt-manage-sep">·</span>
-              <router-link to="/profile?tab=exchange">
-                <a-icon type="setting" style="margin-right: 4px;" />{{ $t('profile.exchange.goToManage') }}
-              </router-link>
-            </div>
-            <!-- Balance（含 0 与加载态，避免 Bitget 等解析为 0 时整块消失） -->
             <div class="qt-balance" v-if="selectedCredentialId">
               <template v-if="balanceLoading">
                 <a-spin size="small" />
                 <span class="qt-balance-label qt-balance-loading-text">{{ $t('quickTrade.available') }}…</span>
               </template>
-              <template v-else-if="balance.error">
-                <span class="qt-balance-label">{{ $t('quickTrade.available') }}:</span>
-                <span class="qt-balance-error" :title="balance.error">—</span>
-              </template>
               <template v-else>
-                <span class="qt-balance-label">{{ $t('quickTrade.available') }}:</span>
-                <span class="qt-balance-value">${{ formatPrice(balance.available) }}</span>
+                <div
+                  class="qt-balance-line"
+                  :class="{ 'qt-balance-line--active': isSwapMode }"
+                >
+                  <span class="qt-balance-label">{{ $t('quickTrade.swapAvailable') }}</span>
+                  <span class="qt-balance-value">${{ formatPrice(swapBalanceAvailable) }}</span>
+                </div>
+                <div
+                  class="qt-balance-line"
+                  :class="{ 'qt-balance-line--active': !isSwapMode }"
+                >
+                  <span class="qt-balance-label">{{ $t('quickTrade.spotAvailable') }}</span>
+                  <span class="qt-balance-value">${{ formatPrice(spotBalanceAvailable) }}</span>
+                </div>
+                <div
+                  v-if="balanceErrorMessage"
+                  class="qt-balance-error-hint"
+                  :title="balance.error"
+                >
+                  {{ balanceErrorMessage }}
+                </div>
               </template>
             </div>
           </div>
 
           <!-- Direction Toggle -->
           <div class="qt-section">
-            <div class="qt-direction-toggle">
+            <div class="qt-direction-toggle" :class="{ 'qt-direction-toggle--spot': !isSwapMode }">
               <div
                 class="qt-dir-btn qt-dir-long"
-                :class="{ active: side === 'buy' }"
+                :class="{ active: side === 'buy', 'qt-dir-btn--solo': !isSwapMode }"
                 @click="setTradeSide('buy')"
               >
-                <a-icon type="arrow-up" /> {{ $t('quickTrade.long') }}
+                <a-icon type="arrow-up" />
+                {{ isSwapMode ? $t('quickTrade.long') : $t('quickTrade.buySpot') }}
               </div>
               <div
+                v-if="isSwapMode"
                 class="qt-dir-btn qt-dir-short"
-                :class="{ active: side === 'sell', 'qt-dir-disabled': !isSwapMode }"
+                :class="{ active: side === 'sell' }"
                 @click="setTradeSide('sell')"
               >
                 <a-icon type="arrow-down" /> {{ $t('quickTrade.short') }}
               </div>
             </div>
-            <div v-if="!isSwapMode" class="qt-hint-text qt-hint-inline">{{ $t('quickTrade.shortDisabledSpot') }}</div>
+            <div v-if="!isSwapMode" class="qt-hint-text qt-hint-inline">{{ $t('quickTrade.spotBuyOnlyHint') }}</div>
           </div>
 
           <!-- Order Type -->
@@ -167,7 +174,7 @@
                 :key="pct"
                 size="small"
                 @click="setAmountByPercent(pct)"
-                :disabled="balance.available <= 0"
+                :disabled="activeBalanceAvailable <= 0"
               >
                 {{ pct }}%
               </a-button>
@@ -193,17 +200,18 @@
             </div>
             <template v-if="isSwapMode">
               <div class="qt-leverage-row">
-                <a-slider
-                  v-model="leverage"
-                  :min="2"
-                  :max="125"
-                  :marks="leverageMarks"
-                  :tipFormatter="v => v + 'x'"
-                  style="flex: 1; margin-right: 12px;"
-                />
+                <div class="qt-leverage-slider-wrap">
+                  <a-slider
+                    v-model="leverage"
+                    :min="1"
+                    :max="125"
+                    :marks="leverageMarks"
+                    :tipFormatter="v => v + 'x'"
+                  />
+                </div>
                 <a-input-number
                   v-model="leverage"
-                  :min="2"
+                  :min="1"
                   :max="125"
                   :formatter="v => `${v}x`"
                   :parser="v => String(v).replace('x', '')"
@@ -269,7 +277,9 @@
               :class="[side === 'buy' ? 'qt-btn-long' : 'qt-btn-short']"
             >
               <a-icon :type="side === 'buy' ? 'arrow-up' : 'arrow-down'" />
-              {{ side === 'buy' ? $t('quickTrade.buyLong') : $t('quickTrade.sellShort') }}
+              {{ isSwapMode
+                ? (side === 'buy' ? $t('quickTrade.buyLong') : $t('quickTrade.sellShort'))
+                : $t('quickTrade.buySpot') }}
               {{ symbol }}
             </a-button>
           </div>
@@ -300,7 +310,9 @@
                 <div class="qt-pos-row">
                   <span>{{ $t('quickTrade.side') }}</span>
                   <a-tag :color="pos.side === 'long' ? '#52c41a' : '#f5222d'" size="small">
-                    {{ pos.side === 'long' ? $t('quickTrade.long') : $t('quickTrade.short') }}
+                    {{ pos.side === 'long'
+                      ? (isSwapMode ? $t('quickTrade.long') : $t('quickTrade.spotHold'))
+                      : $t('quickTrade.short') }}
                   </a-tag>
                 </div>
                 <div class="qt-pos-row">
@@ -334,7 +346,7 @@
                   :loading="closingPositionSide === pos.side"
                   style="margin-top: 8px;"
                 >
-                  {{ $t('quickTrade.closePosition') }}
+                  {{ isSwapMode ? $t('quickTrade.closePosition') : $t('quickTrade.sellSpot') }}
                 </a-button>
               </div>
             </template>
@@ -408,9 +420,7 @@ export default {
     source: { type: String, default: 'manual' }, // ai_radar / ai_analysis / indicator / manual
     marketType: { type: String, default: 'swap' }, // swap / spot
     embedded: { type: Boolean, default: false },
-    /** 指标 IDE 右侧浮动面板：更紧凑的分区与卡片样式 */
     embeddedIde: { type: Boolean, default: false },
-    /** 与图表工具栏共用：全屏时挂到全屏根，否则 body（IDE 内由父组件传入 chartToolbarGetPopupContainer） */
     overlayGetContainer: { type: Function, default: null }
   },
   data () {
@@ -420,7 +430,12 @@ export default {
       selectedCredentialId: undefined,
       credLoading: false,
       balanceLoading: false,
-      balance: { available: 0, total: 0 },
+      balance: {
+        available: 0,
+        total: 0,
+        swap: { available: 0, total: 0 },
+        spot: { available: 0, total: 0 }
+      },
       // order
       side: 'buy',
       orderType: 'market',
@@ -447,7 +462,6 @@ export default {
       userId: null, // 用户ID，用于获取自选列表
       // constants
       quickAmountPcts: [10, 25, 50, 75, 100],
-      leverageMarks: { 2: '2x', 5: '5x', 10: '10x', 25: '25x', 50: '50x', 100: '100x', 125: '125x' },
       // polling
       pollTimer: null,
       showAddExchangeModal: false
@@ -466,8 +480,43 @@ export default {
     isSwapMode () {
       return this.tradeMode === 'swap'
     },
+    leverageMarks () {
+      const keys = this.embeddedIde ? [1, 50, 125] : [1, 25, 50, 100, 125]
+      return keys.reduce((acc, v) => {
+        acc[v] = `${v}x`
+        return acc
+      }, {})
+    },
     effectiveMarketType () {
       return this.tradeMode
+    },
+    swapBalanceAvailable () {
+      const leg = this.balance && this.balance.swap
+      if (leg && leg.available != null) return parseFloat(leg.available) || 0
+      if (!this.isSwapMode) return 0
+      return parseFloat(this.balance.available) || 0
+    },
+    spotBalanceAvailable () {
+      const leg = this.balance && this.balance.spot
+      if (leg && leg.available != null) return parseFloat(leg.available) || 0
+      if (this.isSwapMode) return 0
+      return parseFloat(this.balance.available) || 0
+    },
+    activeBalanceAvailable () {
+      return this.isSwapMode ? this.swapBalanceAvailable : this.spotBalanceAvailable
+    },
+    balanceErrorMessage () {
+      const err = (this.balance && this.balance.error) || ''
+      if (!err) return ''
+      if (/40018|Invalid IP|invalid ip/i.test(err)) {
+        const ip = (this.balance && this.balance.request_ip) || ''
+        return this.$t('quickTrade.errorBitgetIpWhitelist', { ip: ip || '—' })
+      }
+      if (this.balance && this.balance.error_hint_key) {
+        const key = this.balance.error_hint_key
+        if (this.$te && this.$te(key)) return this.$t(key)
+      }
+      return err.length > 120 ? `${err.slice(0, 120)}…` : err
     },
     priceStep () {
       if (this.currentPrice > 10000) return 1
@@ -504,7 +553,6 @@ export default {
   },
   watch: {
     visible (val) {
-      /* 嵌入指标 IDE：右侧抽屉用 v-if 挂载/销毁；Tab 场景已移除 */
       if (this.embedded) {
         if (val) {
           this.init()
@@ -820,13 +868,48 @@ export default {
           market_type: this.effectiveMarketType
         })
         if (res.code === 1 && res.data) {
-          this.balance = { available: 0, total: 0, ...res.data }
+          const d = res.data || {}
+          const swap = d.swap && typeof d.swap === 'object' ? d.swap : {}
+          const spot = d.spot && typeof d.spot === 'object' ? d.spot : {}
+          const activeAvail = this.isSwapMode
+            ? (parseFloat(swap.available) || parseFloat(d.available) || 0)
+            : (parseFloat(spot.available) || parseFloat(d.available) || 0)
+          this.balance = {
+            available: activeAvail,
+            total: parseFloat(d.total) || 0,
+            currency: d.currency || 'USDT',
+            swap: {
+              available: parseFloat(swap.available) || 0,
+              total: parseFloat(swap.total) || 0
+            },
+            spot: {
+              available: parseFloat(spot.available) || 0,
+              total: parseFloat(spot.total) || 0
+            },
+            error: d.error || swap.error || spot.error || '',
+            error_hint_key: d.error_hint_key || '',
+            request_ip: d.request_ip || ''
+          }
+          if (d.error && this.$message) {
+            this.$message.warning(this.balanceErrorMessage || d.error, 6)
+          }
         } else {
-          this.balance = { available: 0, total: 0 }
+          this.balance = {
+            available: 0,
+            total: 0,
+            swap: { available: 0, total: 0 },
+            spot: { available: 0, total: 0 }
+          }
         }
       } catch (e) {
         console.warn('loadBalance error:', e)
-        this.balance = { available: 0, total: 0, error: String(e.message || e) }
+        this.balance = {
+          available: 0,
+          total: 0,
+          swap: { available: 0, total: 0 },
+          spot: { available: 0, total: 0 },
+          error: String(e.message || e)
+        }
       } finally {
         this.balanceLoading = false
       }
@@ -886,8 +969,9 @@ export default {
       }
     },
     setAmountByPercent (pct) {
-      if (this.balance.available > 0) {
-        this.amount = Math.floor(this.balance.available * pct / 100 * 100) / 100
+      const avail = this.activeBalanceAvailable
+      if (avail > 0) {
+        this.amount = Math.floor(avail * pct / 100 * 100) / 100
       }
     },
     async handleSubmit () {
@@ -1002,7 +1086,6 @@ export default {
       this.$emit('update:visible', false)
     },
     handleHistoryCollapse (activeKeys) {
-      // activeKeys 是数组，如果包含 'history' 则展开，否则折叠
       this.historyCollapsed = !activeKeys.includes('history')
     },
     formatPrice (val) {
@@ -1027,7 +1110,7 @@ export default {
 
 <style lang="less" scoped>
 .quick-trade-drawer {
-  /deep/ .ant-drawer-body {
+  ::v-deep .ant-drawer-body {
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -1076,7 +1159,6 @@ export default {
   border-radius: 0;
   overflow: visible;
   background: transparent;
-  /* 与 Tab 内容区留出边距，避免左右贴边 */
   .qt-embedded-split--cols {
     padding: 8px 18px 12px;
   }
@@ -1098,7 +1180,6 @@ export default {
   .qt-mode-card { margin-top: 8px; }
   .qt-tpsl-card { margin-top: 8px; }
 
-  /* ---- 杠杆卡片：内部元素纵向间距 ---- */
   .qt-mode-card .qt-section-title-row {
     margin-bottom: 14px;
   }
@@ -1117,7 +1198,6 @@ export default {
     margin-top: 14px;
   }
 
-  /* ---- 止盈止损卡片：内部元素纵向间距 ---- */
   .qt-tpsl-card .qt-section-title-row {
     margin-bottom: 14px;
   }
@@ -1132,25 +1212,21 @@ export default {
     margin-top: 16px;
   }
 
-  /* ---- 提交按钮：嵌入左列内半宽 ---- */
   .qt-submit-section--embedded-left {
     padding: 12px 0 4px;
     .qt-submit-btn { height: 40px; font-size: 14px; border-radius: 8px; }
   }
 
-  /* ---- 右列：持仓 + 交易记录 ---- */
   .qt-position-section { padding: 0 0 10px; }
   .qt-history-section { padding: 0 0 10px; }
 
   .qt-direction-toggle .qt-dir-btn { padding: 8px; font-size: 13px; border-radius: 6px; }
   .qt-quick-amounts { margin-top: 6px; margin-bottom: 2px; }
   .qt-amount-block { padding-bottom: 6px; }
-  .qt-manage-link { font-size: 11px; }
+  .qt-account-actions .qt-add-account-btn { height: 30px; }
 }
 
-/* 指标 IDE 浮动闪电交易：分区更清晰 */
 .quick-trade-embedded.qt-embedded-ide {
-  /* 与父级 ide-quick-panel-body 的 12px 横向留白一致，覆盖通用 embedded 的 18px */
   .qt-embedded-split--cols {
     padding: 0 12px 12px;
     gap: 14px;
@@ -1175,7 +1251,7 @@ export default {
     background: linear-gradient(135deg, #f8fafc 0%, #eef2f7 100%);
     border: 1px solid rgba(15, 23, 42, 0.08);
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-    /deep/ .ant-select-selection {
+    ::v-deep .ant-select-selection {
       border-radius: 8px;
       border-color: #e2e8f0;
     }
@@ -1271,10 +1347,10 @@ export default {
   gap: 8px;
   .qt-symbol-selector {
     width: 100%;
-    /deep/ .ant-select {
+    ::v-deep .ant-select {
       width: 100%;
     }
-    /deep/ .ant-select-selection {
+    ::v-deep .ant-select-selection {
       border-radius: 6px;
       border: 1px solid #d9d9d9;
     }
@@ -1324,31 +1400,67 @@ export default {
 
 .qt-balance {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 6px;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
   font-size: 12px;
-  .qt-balance-label { color: #999; }
+
+  .qt-balance-label {
+    color: #8c8c8c;
+    flex-shrink: 0;
+  }
   .qt-balance-loading-text { margin-left: 4px; }
-  .qt-balance-value { color: #52c41a; font-weight: 600; }
+  .qt-balance-value {
+    color: #52c41a;
+    font-weight: 600;
+    margin-left: auto;
+  }
   .qt-balance-error { color: #faad14; cursor: help; }
 }
 
-.qt-no-cred-actions {
-  margin-top: 10px;
-}
-
-.qt-manage-link {
-  margin-top: 8px;
-  font-size: 12px;
+.qt-balance-line {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 4px;
-  .qt-manage-sep {
-    color: #ccc;
-    user-select: none;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 0;
+  opacity: 0.72;
+
+  &--active {
+    opacity: 1;
+    .qt-balance-label {
+      color: #595959;
+      font-weight: 600;
+    }
+    .qt-balance-value {
+      color: #389e0d;
+    }
   }
+}
+
+.qt-balance-error-hint {
+  font-size: 11px;
+  line-height: 1.45;
+  color: #cf1322;
+  margin-top: 6px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(255, 77, 79, 0.08);
+  border: 1px solid rgba(255, 77, 79, 0.25);
+}
+
+.qt-account-actions {
+  margin-top: 8px;
+}
+
+.qt-add-account-btn {
+  height: 32px;
+  border-radius: 6px;
+  font-weight: 600;
 }
 
 .qt-direction-toggle {
@@ -1414,11 +1526,60 @@ export default {
 
 .qt-leverage-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.qt-leverage-slider-wrap {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 6px 26px;
+
+  ::v-deep .ant-slider {
+    margin: 8px 6px 0;
+  }
+
+  ::v-deep .ant-slider-rail,
+  ::v-deep .ant-slider-track,
+  ::v-deep .ant-slider-step {
+    height: 4px;
+  }
+
+  ::v-deep .ant-slider-handle {
+    width: 14px;
+    height: 14px;
+    margin-top: -5px;
+  }
+
+  ::v-deep .ant-slider-mark {
+    top: 14px;
+  }
+
+  ::v-deep .ant-slider-mark-text {
+    font-size: 11px;
+    color: #8c8c8c;
+    white-space: nowrap;
+    transform: translateX(-50%);
+  }
+
+  ::v-deep .ant-slider-mark-text-active {
+    color: #1890ff;
+    font-weight: 600;
+  }
+
+  ::v-deep .ant-slider-mark:first-child .ant-slider-mark-text {
+    transform: translateX(0);
+  }
+
+  ::v-deep .ant-slider-mark:last-child .ant-slider-mark-text {
+    transform: translateX(-100%);
+  }
 }
 
 .qt-leverage-input {
-  width: 80px;
+  width: 72px;
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .qt-card {
@@ -1476,7 +1637,7 @@ export default {
 .qt-margin-radio {
   width: 100%;
   display: flex;
-  /deep/ .ant-radio-button-wrapper {
+  ::v-deep .ant-radio-button-wrapper {
     flex: 1;
     text-align: center;
     padding: 0 4px;
@@ -1558,7 +1719,7 @@ export default {
 .qt-close-scope-radio {
   width: 100%;
   display: flex;
-  /deep/ .ant-radio-button-wrapper {
+  ::v-deep .ant-radio-button-wrapper {
     flex: 1;
     text-align: center;
     padding: 0 4px;
@@ -1582,6 +1743,11 @@ export default {
   opacity: 0.42;
   cursor: not-allowed;
   pointer-events: none;
+}
+
+.qt-direction-toggle--spot .qt-dir-btn--solo {
+  flex: 1 1 100%;
+  max-width: 100%;
 }
 
 .qt-empty-icon {
@@ -1642,25 +1808,25 @@ export default {
 
 .qt-history-section {
   padding: 8px 20px 12px;
-  /deep/ .ant-collapse {
+  ::v-deep .ant-collapse {
     background: transparent;
     border: none;
   }
-  /deep/ .ant-collapse-item {
+  ::v-deep .ant-collapse-item {
     border: none;
   }
-  /deep/ .ant-collapse-header {
+  ::v-deep .ant-collapse-header {
     padding: 0 !important;
     cursor: pointer;
     &:hover {
       opacity: 0.8;
     }
   }
-  /deep/ .ant-collapse-content {
+  ::v-deep .ant-collapse-content {
     border: none;
     background: transparent;
   }
-  /deep/ .ant-collapse-content-box {
+  ::v-deep .ant-collapse-content-box {
     padding: 8px 0 0 0 !important;
   }
   .qt-section-header {
@@ -1751,7 +1917,7 @@ export default {
       background: linear-gradient(135deg, #262626 0%, #1c1c1c 100%);
       border-color: #363636;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
-      /deep/ .ant-select-selection {
+      ::v-deep .ant-select-selection {
         border-color: #434343;
       }
     }
@@ -1780,12 +1946,12 @@ export default {
   .qt-symbol-bar {
     background: linear-gradient(180deg, #262626 0%, #1f1f1f 100%);
     .qt-current-price { color: #e0e0e0; }
-    /deep/ .ant-select-selection {
+    ::v-deep .ant-select-selection {
       background: #262626;
       border-color: #303030;
       color: #e0e0e0;
     }
-    /deep/ .ant-select-selection__placeholder {
+    ::v-deep .ant-select-selection__placeholder {
       color: #666;
     }
   }
@@ -1812,7 +1978,7 @@ export default {
     .qt-history-count {
       color: #888;
     }
-    /deep/ .ant-collapse {
+    ::v-deep .ant-collapse {
       background: transparent !important;
       color: #ccc;
       .ant-collapse-header {
@@ -1832,22 +1998,22 @@ export default {
     .qt-trade-symbol { color: #e0e0e0; }
     .qt-trade-amount { color: #ccc; }
   }
-  /deep/ .ant-collapse {
+  ::v-deep .ant-collapse {
     background: transparent !important;
     color: #ccc;
     .ant-collapse-header { color: #ccc !important; }
     .ant-collapse-content { background: transparent; color: #ccc; }
   }
-  /deep/ .ant-drawer-content {
+  ::v-deep .ant-drawer-content {
     background: #141414;
   }
-  /deep/ .ant-select-selection,
-  /deep/ .ant-input-number {
+  ::v-deep .ant-select-selection,
+  ::v-deep .ant-input-number {
     background: #262626;
     border-color: #303030;
     color: #e0e0e0;
   }
-  /deep/ .ant-radio-group .ant-radio-button-wrapper {
+  ::v-deep .ant-radio-group .ant-radio-button-wrapper {
     background: #262626;
     border-color: #303030;
     color: #ccc;
@@ -1857,11 +2023,24 @@ export default {
       color: #fff;
     }
   }
-  /deep/ .ant-slider-rail { background: #303030; }
-  /deep/ .ant-slider-track { background: #737373; }
-  .qt-manage-link {
-    a { color: #58a6ff; }
-    .qt-manage-sep { color: #555; }
+  ::v-deep .ant-slider-rail { background: #303030; }
+  ::v-deep .ant-slider-track { background: #737373; }
+  .qt-leverage-slider-wrap ::v-deep .ant-slider-mark-text {
+    color: #8c8c8c;
+  }
+  .qt-leverage-slider-wrap ::v-deep .ant-slider-mark-text-active {
+    color: #58a6ff;
+  }
+  .qt-balance {
+    background: #262626;
+    border-color: #363636;
+    .qt-balance-label { color: #8c8c8c; }
+    .qt-balance-line--active .qt-balance-label { color: #d9d9d9; }
+    .qt-balance-value { color: #73d13d; }
+    .qt-balance-line--active .qt-balance-value { color: #95de64; }
+  }
+  .qt-add-account-btn {
+    box-shadow: 0 4px 12px rgba(24, 144, 255, 0.22);
   }
   .qt-card {
     background: #262626;

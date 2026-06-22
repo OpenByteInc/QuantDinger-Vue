@@ -1,6 +1,5 @@
 <template>
   <div class="portfolio-container" :class="{ 'theme-dark': isDarkTheme, embedded: embedded }">
-    <!-- 资产总览 - 第一行：核心数据 -->
     <div class="summary-section">
       <div class="summary-card total-value">
         <div class="card-icon">
@@ -62,7 +61,6 @@
       </div>
     </div>
 
-    <!-- 资产总览 - 第二行：详细统计 -->
     <div class="summary-section secondary">
       <div class="summary-card mini">
         <div class="card-icon today" :class="summary.today_pnl >= 0 ? 'profit' : 'loss'">
@@ -121,9 +119,7 @@
       </div>
     </div>
 
-    <!-- 主内容区域 -->
     <div class="main-content">
-      <!-- 持仓列表 -->
       <div class="positions-section">
         <div class="section-header">
           <h3>
@@ -131,7 +127,6 @@
             <span>{{ $t('portfolio.positions.title') }}</span>
           </h3>
           <div class="header-actions">
-            <!-- 视图切换 -->
             <a-radio-group v-model="viewMode" size="small" style="margin-right: 12px;">
               <a-radio-button value="grid">
                 <a-icon type="appstore" />
@@ -140,7 +135,6 @@
                 <a-icon type="folder" />
               </a-radio-button>
             </a-radio-group>
-            <!-- 分组筛选（仅网格视图时显示） -->
             <a-select
               v-if="viewMode === 'grid'"
               v-model="selectedGroup"
@@ -173,7 +167,6 @@
               </a-empty>
             </div>
 
-            <!-- 网格视图 -->
             <div v-else-if="viewMode === 'grid'" class="position-grid">
               <div
                 v-for="pos in filteredPositions"
@@ -221,7 +214,7 @@
                       <span class="label">{{ $t('portfolio.positions.currentPrice') }}</span>
                       <span class="value">{{ getCurrencySymbol(pos.market) }}{{ formatPrice(pos.current_price) }}</span>
                       <span class="change" :class="pos.price_change >= 0 ? 'up' : 'down'">
-                        {{ pos.price_change >= 0 ? '▲' : '▼' }}{{ Math.abs(pos.price_change_percent).toFixed(2) }}%
+                        {{ pos.price_change >= 0 ? '+' : '-' }}{{ Math.abs(pos.price_change_percent).toFixed(2) }}%
                       </span>
                     </div>
                     <div class="entry-price">
@@ -260,10 +253,8 @@
               </div>
             </div>
 
-            <!-- 分组折叠视图 -->
             <div v-else class="position-collapse-view">
               <a-collapse v-model="activeGroups" :bordered="false">
-                <!-- 未分组 -->
                 <a-collapse-panel v-if="ungroupedPositions.length > 0" key="__ungrouped__" class="group-panel">
                   <template slot="header">
                     <div class="group-header">
@@ -305,7 +296,7 @@
                         <div class="compact-item">
                           <span class="value">{{ getCurrencySymbol(pos.market) }}{{ formatPrice(pos.current_price) }}</span>
                           <span class="change" :class="pos.price_change >= 0 ? 'up' : 'down'">
-                            {{ pos.price_change >= 0 ? '▲' : '▼' }}{{ Math.abs(pos.price_change_percent).toFixed(2) }}%
+                            {{ pos.price_change >= 0 ? '+' : '-' }}{{ Math.abs(pos.price_change_percent).toFixed(2) }}%
                           </span>
                         </div>
                         <div class="compact-item">
@@ -321,7 +312,6 @@
                   </div>
                 </a-collapse-panel>
 
-                <!-- 各分组 -->
                 <a-collapse-panel v-for="group in groupsWithPositions" :key="group.name" class="group-panel">
                   <template slot="header">
                     <div class="group-header">
@@ -363,7 +353,7 @@
                         <div class="compact-item">
                           <span class="value">{{ getCurrencySymbol(pos.market) }}{{ formatPrice(pos.current_price) }}</span>
                           <span class="change" :class="pos.price_change >= 0 ? 'up' : 'down'">
-                            {{ pos.price_change >= 0 ? '▲' : '▼' }}{{ Math.abs(pos.price_change_percent).toFixed(2) }}%
+                            {{ pos.price_change >= 0 ? '+' : '-' }}{{ Math.abs(pos.price_change_percent).toFixed(2) }}%
                           </span>
                         </div>
                         <div class="compact-item">
@@ -384,7 +374,6 @@
         </a-spin>
       </div>
 
-      <!-- 监控任务 -->
       <div class="monitors-section" ref="monitorsSection">
         <div class="section-header">
           <h3>
@@ -483,7 +472,6 @@
       </div>
     </div>
 
-    <!-- 添加/编辑持仓弹窗 -->
     <a-modal
       :title="editingPosition ? $t('portfolio.modal.editPosition') : $t('portfolio.modal.addPosition')"
       :visible="showAddPositionModal"
@@ -493,7 +481,6 @@
       width="600px"
     >
       <a-form :form="positionForm" :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
-        <!-- 市场类型 -->
         <a-form-item :label="$t('portfolio.form.market')">
           <a-select
             v-decorator="['market', { rules: [{ required: true, message: $t('portfolio.form.marketRequired') }] }]"
@@ -507,7 +494,6 @@
           </a-select>
         </a-form-item>
 
-        <!-- 标的搜索/选择 -->
         <a-form-item :label="$t('portfolio.form.symbol')">
           <a-select
             v-decorator="['symbol', { rules: [{ required: true, message: $t('portfolio.form.symbolRequired') }] }]"
@@ -522,14 +508,12 @@
             :disabled="!!editingPosition"
             style="width: 100%"
           >
-            <!-- 搜索结果选项 -->
             <a-select-option v-for="item in symbolSearchResults" :key="item.symbol" :value="item.symbol">
               <div class="symbol-option">
                 <strong>{{ item.symbol }}</strong>
                 <span class="symbol-name">{{ item.name }}</span>
               </div>
             </a-select-option>
-            <!-- 手动输入选项：当搜索无结果且有输入时显示 -->
             <a-select-option
               v-if="symbolSearchKeyword && symbolSearchResults.length === 0"
               :key="'__manual__' + symbolSearchKeyword.toUpperCase()"
@@ -548,7 +532,6 @@
           </div>
         </a-form-item>
 
-        <!-- 方向 -->
         <a-form-item :label="$t('portfolio.form.side')">
           <a-radio-group v-decorator="['side', { initialValue: 'long' }]" :disabled="!!editingPosition">
             <a-radio-button value="long">{{ $t('portfolio.positions.long') }}</a-radio-button>
@@ -556,7 +539,6 @@
           </a-radio-group>
         </a-form-item>
 
-        <!-- 数量 -->
         <a-form-item :label="$t('portfolio.form.quantity')">
           <a-input-number
             v-decorator="['quantity', { rules: [{ required: true, message: $t('portfolio.form.quantityRequired') }] }]"
@@ -567,7 +549,6 @@
           />
         </a-form-item>
 
-        <!-- 买入价 -->
         <a-form-item :label="$t('portfolio.form.entryPrice')">
           <a-input-number
             v-decorator="['entry_price', { rules: [{ required: true, message: $t('portfolio.form.entryPriceRequired') }] }]"
@@ -578,7 +559,6 @@
           />
         </a-form-item>
 
-        <!-- 备注 -->
         <a-form-item :label="$t('portfolio.form.notes')">
           <a-textarea
             v-decorator="['notes']"
@@ -587,7 +567,6 @@
           />
         </a-form-item>
 
-        <!-- 分组 -->
         <a-form-item :label="$t('portfolio.form.group')">
           <a-auto-complete
             v-decorator="['group_name']"
@@ -598,14 +577,12 @@
       </a-form>
     </a-modal>
 
-    <!-- 添加/编辑预警弹窗 -->
     <a-modal
       :title="editingAlert ? $t('portfolio.modal.editAlert') : $t('portfolio.modal.addAlert')"
       :visible="showAddAlertModal"
       @cancel="closeAlertModal"
       width="560px"
     >
-      <!-- 自定义 Footer -->
       <template slot="footer">
         <div class="alert-modal-footer">
           <a-button
@@ -628,7 +605,6 @@
         </div>
       </template>
       <a-form :form="alertForm" :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
-        <!-- 标的信息 -->
         <a-form-item :label="$t('portfolio.form.symbol')">
           <div class="alert-symbol-info">
             <a-input
@@ -643,7 +619,6 @@
           </div>
         </a-form-item>
 
-        <!-- 预警类型 -->
         <a-form-item :label="$t('portfolio.alerts.alertType')">
           <a-select
             v-decorator="['alert_type', { initialValue: 'price_above', rules: [{ required: true }] }]"
@@ -667,7 +642,6 @@
           </a-select>
         </a-form-item>
 
-        <!-- 阈值 -->
         <a-form-item :label="$t('portfolio.alerts.threshold')">
           <div class="threshold-input-wrapper">
             <a-input-number
@@ -685,7 +659,6 @@
           </div>
         </a-form-item>
 
-        <!-- 重复提醒 -->
         <a-form-item :label="$t('portfolio.alerts.repeatInterval')">
           <a-select
             v-decorator="['repeat_interval', { initialValue: 0 }]"
@@ -700,7 +673,6 @@
           </a-select>
         </a-form-item>
 
-        <!-- 通知渠道 - 使用 v-model 直接绑定 -->
         <a-form-item :label="$t('portfolio.form.notifyChannels')">
           <a-checkbox-group v-model="alertChannels">
             <a-checkbox value="browser">
@@ -735,7 +707,6 @@
           </template>
         </a-alert>
 
-        <!-- 启用状态 -->
         <a-form-item :label="$t('portfolio.alerts.enabled')">
           <a-switch
             v-decorator="['is_active', { initialValue: true, valuePropName: 'checked' }]"
@@ -743,7 +714,6 @@
           <span class="switch-label">{{ $t('portfolio.alerts.enabledDesc') }}</span>
         </a-form-item>
 
-        <!-- 备注 -->
         <a-form-item :label="$t('portfolio.form.notes')">
           <a-textarea
             v-decorator="['notes']"
@@ -754,7 +724,6 @@
       </a-form>
     </a-modal>
 
-    <!-- 添加/编辑监控弹窗 -->
     <a-modal
       :title="editingMonitor ? $t('portfolio.modal.editMonitor') : $t('portfolio.modal.addMonitor')"
       :visible="showAddMonitorModal"
@@ -764,7 +733,6 @@
       width="600px"
     >
       <a-form :form="monitorForm" :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
-        <!-- 监控名称 -->
         <a-form-item :label="$t('portfolio.form.monitorName')">
           <a-input
             v-decorator="['name', { rules: [{ required: true, message: $t('portfolio.form.monitorNameRequired') }] }]"
@@ -772,7 +740,6 @@
           />
         </a-form-item>
 
-        <!-- 执行间隔 -->
         <a-form-item :label="$t('portfolio.form.interval')">
           <a-select
             v-decorator="['interval_minutes', { initialValue: 60, rules: [{ required: true }] }]"
@@ -788,7 +755,6 @@
           </a-select>
         </a-form-item>
 
-        <!-- 通知渠道 - 使用 v-model 直接绑定 -->
         <a-form-item :label="$t('portfolio.form.notifyChannels')">
           <a-checkbox-group v-model="monitorChannels">
             <a-checkbox value="browser">{{ $t('portfolio.form.browser') }}</a-checkbox>
@@ -814,7 +780,6 @@
           </template>
         </a-alert>
 
-        <!-- 监控范围 -->
         <a-form-item :label="$t('portfolio.form.monitorScope')">
           <a-radio-group v-model="monitorScope" @change="handleMonitorScopeChange">
             <a-radio value="all">{{ $t('portfolio.form.allPositions') }}</a-radio>
@@ -822,7 +787,6 @@
           </a-radio-group>
         </a-form-item>
 
-        <!-- 选择持仓 -->
         <a-form-item
           :label="$t('portfolio.form.selectPositions')"
           v-if="monitorScope === 'selected'"
@@ -868,7 +832,6 @@
           </div>
         </a-form-item>
 
-        <!-- 自定义提示 -->
         <a-form-item :label="$t('portfolio.form.customPrompt')">
           <a-textarea
             v-decorator="['prompt']"
@@ -937,17 +900,17 @@ export default {
       symbolSearchResults: [],
       searchTimer: null,
       selectedSymbolName: '',
-      symbolSearchKeyword: '', // 当前搜索关键词，用于手动输入
+      symbolSearchKeyword: '',
       // Price refresh
       priceRefreshTimer: null,
-      lastSyncTime: null, // 最后同步时间
-      isSyncing: false, // 是否正在同步
+      lastSyncTime: null,
+      isSyncing: false,
       // Groups
       groups: [],
       selectedGroup: '',
       // View mode
       viewMode: 'grid', // 'grid' or 'group'
-      activeGroups: [], // 折叠面板展开的分组
+      activeGroups: [],
       // Alerts
       alerts: [],
       loadingAlerts: false,
@@ -1009,13 +972,11 @@ export default {
       const alertType = this.alertForm.getFieldValue('alert_type')
       return alertType && alertType.startsWith('price_')
     },
-    // 盈利/亏损持仓统计
     profitLossStats () {
       const profit = this.positions.filter(p => p.pnl >= 0).length
       const loss = this.positions.filter(p => p.pnl < 0).length
       return { profit, loss }
     },
-    // 最佳表现持仓
     bestPerformer () {
       if (this.positions.length === 0) return null
       return this.positions.reduce((best, pos) => {
@@ -1023,7 +984,6 @@ export default {
         return best
       }, null)
     },
-    // 最差表现持仓
     worstPerformer () {
       if (this.positions.length === 0) return null
       return this.positions.reduce((worst, pos) => {
@@ -1031,11 +991,9 @@ export default {
         return worst
       }, null)
     },
-    // 未分组持仓
     ungroupedPositions () {
       return this.positions.filter(p => !p.group_name)
     },
-    // 按分组整理的持仓
     groupsWithPositions () {
       const groupMap = {}
       this.positions.forEach(pos => {
@@ -1110,21 +1068,19 @@ export default {
     filterByGroup () {
       // Filter is handled by computed property
     },
-    // 刷新价格（强制刷新，跳过缓存）
     async refreshPrices () {
       if (this.isSyncing) return
       this.isSyncing = true
       try {
         await Promise.all([
-          this.loadPositions(true), // 强制刷新
-          this.loadSummary(true) // 强制刷新
+          this.loadPositions(true),
+          this.loadSummary(true)
         ])
         this.lastSyncTime = new Date()
       } finally {
         this.isSyncing = false
       }
     },
-    // 格式化同步时间
     formatSyncTime (time) {
       if (!time) return '-'
       const now = new Date()
@@ -1133,7 +1089,6 @@ export default {
       if (diff < 3600) return `${Math.floor(diff / 60)} ${this.$t('portfolio.form.minutes')}${this.$t('portfolio.summary.ago')}`
       return time.toLocaleTimeString()
     },
-    // 计算分组总盈亏
     getGroupPnl (positions) {
       return positions.reduce((sum, pos) => sum + (pos.pnl || 0), 0)
     },
@@ -1222,7 +1177,6 @@ export default {
       this.positionForm.setFieldsValue({ symbol: '' })
     },
     handleSymbolSearch (value) {
-      // 保存搜索关键词，用于手动输入功能
       this.symbolSearchKeyword = value || ''
 
       if (this.searchTimer) {
@@ -1240,25 +1194,20 @@ export default {
           if (res && res.code === 1) {
             this.symbolSearchResults = res.data || []
           } else {
-            // 搜索无结果，清空列表但保留关键词供手动输入
             this.symbolSearchResults = []
           }
         } catch (e) {
-          // 搜索失败，也允许手动输入
           this.symbolSearchResults = []
         }
       }, 300)
     },
     handleSymbolSelect (value, option) {
-      // 先从搜索结果中查找
       const item = this.symbolSearchResults.find(s => s.symbol === value)
       if (item) {
         this.selectedSymbolName = item.name
       } else {
-        // 手动输入的情况，名称留空，后端会尝试获取
         this.selectedSymbolName = ''
       }
-      // 清空搜索关键词
       this.symbolSearchKeyword = ''
     },
     editPosition (pos) {
@@ -1339,14 +1288,11 @@ export default {
       this.alertChannels = channels || []
     },
     showAddAlertForPosition (pos) {
-      // 检查是否已存在该持仓的 Alert，如果存在则编辑
       const existingAlert = this.alerts.find(a => a.position_id === pos.id)
       if (existingAlert) {
-        // 编辑已存在的 Alert
         this.editAlert(existingAlert)
         return
       }
-      // 创建新的 Alert - 使用用户默认通知设置
       this.editingAlert = null
       this.alertPosition = pos
       this.alertChannels = [...(this.userNotificationSettings.default_channels || ['browser'])]
@@ -1364,7 +1310,6 @@ export default {
     },
     editAlert (alert) {
       this.editingAlert = alert
-      // 找到对应的持仓
       this.alertPosition = this.positions.find(p => p.id === alert.position_id) || {
         market: alert.market,
         symbol: alert.symbol,
@@ -1394,7 +1339,6 @@ export default {
         if (err) return
         this.savingAlert = true
         try {
-          // 构建通知目标 - 使用用户在个人中心配置的值
           const targets = {}
           if (this.alertChannels.includes('telegram') && this.userNotificationSettings.telegram_chat_id) {
             targets.telegram = this.userNotificationSettings.telegram_chat_id
@@ -1428,10 +1372,9 @@ export default {
             alert_type: values.alert_type,
             threshold: values.threshold,
             notification_config: {
-              // 使用 v-model 绑定的值
               channels: this.alertChannels.length > 0 ? this.alertChannels : ['browser'],
               targets: targets,
-              language: this.$store.getters.lang || 'en-US' // 保存当前语言
+              language: this.$store.getters.lang || 'en-US'
             },
             is_active: values.is_active !== false,
             repeat_interval: values.repeat_interval || 0,
@@ -1654,11 +1597,9 @@ export default {
     async runMonitorNow (id) {
       this.runningMonitor = id
       try {
-        // 传递当前语言给后端，使用异步模式
         const currentLang = this.$store.getters.lang || 'en-US'
         const res = await runMonitor(id, { language: currentLang, async: true })
         if (res && res.code === 1) {
-          // 异步模式：后端立即返回，在后台执行
           if (res.data?.status === 'running') {
             this.$message.success(this.$t('portfolio.message.monitorRunning'))
             this.$notification.info({
@@ -1667,7 +1608,6 @@ export default {
               duration: 5
             })
           } else if (res.data?.success) {
-            // 同步模式返回结果（兼容旧逻辑）
             this.$message.success(this.$t('portfolio.message.monitorRunSuccess'))
             if (res.data.analysis) {
               this.$notification.open({
@@ -1755,7 +1695,7 @@ export default {
     },
     getCurrencySymbol (market) {
       const dollarMarkets = ['USStock', 'Crypto', 'Forex', 'Futures']
-      return dollarMarkets.includes(market) ? '$' : '¥'
+      return dollarMarkets.includes(market) ? '$' : '楼'
     },
     formatNumber (num, digits = 2) {
       if (num === undefined || num === null) return '0.00'
@@ -1770,21 +1710,17 @@ export default {
     formatTime (timestamp) {
       if (!timestamp) return '-'
       let d
-      // 如果是数字（秒级时间戳），乘以 1000
       if (typeof timestamp === 'number') {
         d = new Date(timestamp * 1000)
       } else if (typeof timestamp === 'string') {
-        // 如果是纯数字字符串（秒级时间戳）
         if (/^\d+$/.test(timestamp)) {
           d = new Date(parseInt(timestamp, 10) * 1000)
         } else {
-          // ISO 日期字符串或其他格式，直接解析
           d = new Date(timestamp)
         }
       } else {
         return '-'
       }
-      // 检查日期是否有效
       if (isNaN(d.getTime())) {
         return '-'
       }
@@ -1801,7 +1737,7 @@ export default {
 </script>
 
 <style lang="less" scoped>
-@import '~ant-design-vue/es/style/themes/default.less';
+@import '@/styles/antd-vars.less';
 
 @green: #10b981;
 @red: #ef4444;
@@ -1824,7 +1760,6 @@ export default {
       .card-value { color: #d1d4dc; }
       .card-sub { color: #868993; }
 
-      // 暗色模式总市值卡片
       &.total-value {
         background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
         border: 1px solid rgba(59, 130, 246, 0.3);
@@ -1893,7 +1828,6 @@ export default {
         }
       }
 
-      // 紧凑卡片暗色模式
       &.compact {
         .position-compact-body {
           .compact-item {
@@ -1922,7 +1856,6 @@ export default {
       }
     }
 
-    // 折叠视图暗色模式
     .position-collapse-view {
       ::v-deep .ant-collapse {
         .ant-collapse-item {
@@ -1980,7 +1913,6 @@ export default {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   }
 
-  // 总市值卡片 - 鲜艳渐变风格
   &.total-value {
     background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
     border: none;
@@ -2049,7 +1981,6 @@ export default {
     }
   }
 
-  // 迷你卡片
   &.mini {
     padding: 14px 16px;
 
@@ -2068,7 +1999,6 @@ export default {
     }
   }
 
-  // 同步状态卡片
   &.sync-card {
     .card-sub {
       display: flex;
@@ -2412,7 +2342,6 @@ export default {
   }
 }
 
-// 折叠视图样式
 .position-collapse-view {
   ::v-deep .ant-collapse {
     background: transparent;
@@ -2483,7 +2412,6 @@ export default {
   }
 }
 
-// 紧凑型持仓卡片
 .position-grid.compact {
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 12px;
@@ -2547,7 +2475,6 @@ export default {
   }
 }
 
-// 预警弹窗样式
 .alert-symbol-info {
   .symbol-input {
     margin-bottom: 8px;
@@ -2600,7 +2527,6 @@ export default {
   font-size: 13px;
 }
 
-// 预警弹窗底部按钮
 .alert-modal-footer {
   display: flex;
   justify-content: space-between;
@@ -2612,7 +2538,6 @@ export default {
   }
 }
 
-// 持仓选择器样式
 .position-checkbox-group {
   display: flex;
   flex-direction: column;
@@ -2722,7 +2647,6 @@ export default {
   }
 }
 
-// 暗黑主题下的预警弹窗
 &.theme-dark {
   .position-checkbox-group {
     background: #2a2e39;
@@ -2765,9 +2689,7 @@ export default {
   }
 }
 
-// ==================== 移动端响应式适配 ====================
 
-// 平板端 (768px - 1024px)
 @media screen and (max-width: 1024px) {
   .portfolio-container {
     padding: 16px;
@@ -2797,13 +2719,11 @@ export default {
   }
 }
 
-// 手机端 (< 768px)
 @media screen and (max-width: 768px) {
   .portfolio-container {
     padding: 12px;
   }
 
-  // 概览卡片 - 手机端
   .summary-section {
     grid-template-columns: 1fr 1fr;
     gap: 10px;
@@ -2819,7 +2739,6 @@ export default {
     border-radius: 10px;
     gap: 10px;
 
-    // 总市值卡片手机端占满两列
     &.total-value {
       grid-column: span 2;
       padding: 16px;
@@ -2887,13 +2806,11 @@ export default {
     }
   }
 
-  // 主内容区域
   .main-content {
     grid-template-columns: 1fr;
     gap: 12px;
   }
 
-  // 持仓区域
   .positions-section {
     padding: 12px;
     border-radius: 10px;
@@ -2929,7 +2846,6 @@ export default {
     }
   }
 
-  // 持仓网格 - 手机端单列
   .position-grid {
     grid-template-columns: 1fr;
     gap: 10px;
@@ -2939,7 +2855,6 @@ export default {
     }
   }
 
-  // 持仓卡片 - 手机端优化
   .position-card {
     border-radius: 10px;
 
@@ -2999,7 +2914,6 @@ export default {
       }
     }
 
-    // 紧凑卡片手机端
     &.compact {
       .position-compact-body {
         flex-direction: column;
@@ -3019,7 +2933,6 @@ export default {
     }
   }
 
-  // 监控区域 - 手机端
   .monitors-section {
     padding: 12px;
     border-radius: 10px;
@@ -3065,7 +2978,6 @@ export default {
     }
   }
 
-  // 折叠视图手机端
   .position-collapse-view {
     ::v-deep .ant-collapse {
       .ant-collapse-item {
@@ -3096,7 +3008,6 @@ export default {
     }
   }
 
-  // 空状态
   .empty-state {
     padding: 30px 16px;
 
@@ -3106,7 +3017,6 @@ export default {
   }
 }
 
-// 超小屏幕 (< 480px)
 @media screen and (max-width: 480px) {
   .portfolio-container {
     padding: 8px;
@@ -3116,7 +3026,6 @@ export default {
     gap: 8px;
 
     &.secondary {
-      // 超小屏幕下第二行改为滚动
       display: flex;
       overflow-x: auto;
       padding-bottom: 8px;
@@ -3204,3 +3113,4 @@ export default {
 }
 
 </style>
+

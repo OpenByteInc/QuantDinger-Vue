@@ -61,7 +61,6 @@
       </div>
     </div>
 
-    <!-- Template Quick-start（仅脚本模式） -->
     <div v-if="variant === 'all' || variant === 'script'" class="template-quick-start">
       <a-divider>
         <span class="divider-text">{{ $t('trading-assistant.fromTemplate') }}</span>
@@ -89,7 +88,6 @@ export default {
   props: {
     selected: { type: String, default: '' },
     isDark: { type: Boolean, default: false },
-    /** all | signal | script — 用于拆分入口页 */
     variant: {
       type: String,
       default: 'all',
@@ -355,12 +353,12 @@ export default {
   }
 
   .template-quick-start {
-    /deep/ .ant-divider-inner-text {
+    ::v-deep .ant-divider-inner-text {
       color: rgba(255, 255, 255, 0.35);
     }
 
-    /deep/ .ant-divider::before,
-    /deep/ .ant-divider::after {
+    ::v-deep .ant-divider::before,
+    ::v-deep .ant-divider::after {
       border-top-color: rgba(255, 255, 255, 0.08);
     }
   }

@@ -1,12 +1,3 @@
-/**
- * Built-in chart indicators — aligned with CN terminals (同花顺 / 东方财富) where applicable.
- *
- * Conventions:
- * - EMA / MACD: SMA seed for first period, then standard EMA multiplier 2/(n+1)
- * - RSI / ATR: Wilder smoothing
- * - KDJ: K/D initial value 50
- * - BB: SMA mid, population std (ddof=0)
- */
 
 export function calculateSMA (data, length) {
   const result = []

@@ -17,7 +17,6 @@ export default {
   },
   computed: {
     locale () {
-      // 只是为了切换语言时，更新标题
       const { title } = this.$route.meta
       title && (setDocumentTitle(`${i18nRender(title)} - ${domTitle}`))
 
@@ -36,9 +35,11 @@ export default {
       handler (val) {
         if (val === 'dark' || val === 'realdark') {
           document.body.classList.add('dark')
+          document.body.classList.toggle('realdark', val === 'realdark')
           document.body.classList.remove('light')
         } else {
           document.body.classList.remove('dark')
+          document.body.classList.remove('realdark')
           document.body.classList.add('light')
         }
       },

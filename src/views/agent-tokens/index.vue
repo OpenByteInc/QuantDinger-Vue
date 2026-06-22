@@ -529,16 +529,16 @@ export default {
   }
 
   /* Revoked / expired rows — readable on light theme */
-  /deep/ .ant-table-tbody > tr.token-row-revoked > td {
+  ::v-deep .ant-table-tbody > tr.token-row-revoked > td {
     background: #fff2f0 !important;
   }
-  /deep/ .ant-table-tbody > tr.token-row-revoked:hover:not(.ant-table-expanded-row) > td {
+  ::v-deep .ant-table-tbody > tr.token-row-revoked:hover:not(.ant-table-expanded-row) > td {
     background: #ffe3e0 !important;
   }
-  /deep/ .ant-table-tbody > tr.token-row-expired > td {
+  ::v-deep .ant-table-tbody > tr.token-row-expired > td {
     background: #fafafa !important;
   }
-  /deep/ .ant-table-tbody > tr.token-row-expired:hover:not(.ant-table-expanded-row) > td {
+  ::v-deep .ant-table-tbody > tr.token-row-expired:hover:not(.ant-table-expanded-row) > td {
     background: #f0f0f0 !important;
   }
 
@@ -569,20 +569,20 @@ export default {
 
     .text-muted { color: rgba(255, 255, 255, 0.45); }
 
-    /deep/ .agent-table-card,
-    /deep/ .ant-card {
+    ::v-deep .agent-table-card,
+    ::v-deep .ant-card {
       background: #1c1c1c;
       border-color: #303030;
 
       .ant-card-body { background: #1c1c1c; }
     }
 
-    /deep/ .ant-tabs-bar { border-bottom-color: #303030; }
-    /deep/ .ant-tabs-tab { color: rgba(255, 255, 255, 0.65); }
-    /deep/ .ant-tabs-tab-active { color: #1890ff; }
-    /deep/ .ant-tabs-ink-bar { background-color: #1890ff; }
+    ::v-deep .ant-tabs-bar { border-bottom-color: #303030; }
+    ::v-deep .ant-tabs-tab { color: rgba(255, 255, 255, 0.65); }
+    ::v-deep .ant-tabs-tab-active { color: #1890ff; }
+    ::v-deep .ant-tabs-ink-bar { background-color: #1890ff; }
 
-    /deep/ .ant-table {
+    ::v-deep .ant-table {
       color: rgba(255, 255, 255, 0.85);
       background: transparent;
 
@@ -617,22 +617,22 @@ export default {
       }
     }
 
-    /deep/ .ant-pagination-item,
-    /deep/ .ant-pagination-prev .ant-pagination-item-link,
-    /deep/ .ant-pagination-next .ant-pagination-item-link {
+    ::v-deep .ant-pagination-item,
+    ::v-deep .ant-pagination-prev .ant-pagination-item-link,
+    ::v-deep .ant-pagination-next .ant-pagination-item-link {
       background: #1c1c1c;
       border-color: #303030;
       a, .anticon { color: rgba(255, 255, 255, 0.65); }
     }
-    /deep/ .ant-pagination-item-active {
+    ::v-deep .ant-pagination-item-active {
       border-color: #1890ff;
       a { color: #1890ff; }
     }
-    /deep/ .ant-pagination-disabled .ant-pagination-item-link {
+    ::v-deep .ant-pagination-disabled .ant-pagination-item-link {
       color: rgba(255, 255, 255, 0.25);
     }
 
-    /deep/ .ant-input-number {
+    ::v-deep .ant-input-number {
       background: #141414;
       border-color: #303030;
       color: rgba(255, 255, 255, 0.85);

@@ -44,13 +44,16 @@ def on_bar(ctx, bar):
     if len(bars) < ctx.slow_period:
         return
     closes = [b['close'] for b in bars]
+    prev_fast = _ema(closes[:-1], ctx.fast_period)
+    prev_slow = _ema(closes[:-1], ctx.slow_period)
     fast = _ema(closes, ctx.fast_period)
     slow = _ema(closes, ctx.slow_period)
+    cross_up = prev_fast <= prev_slow and fast > slow
     price = bar['close']
 
-    if not ctx.position and fast > slow:
+    if not ctx.position and cross_up:
         qty = (ctx.equity * ctx.position_pct) / price
-        ctx.buy(price, qty)
+        ctx.open_long(amount=qty, price=price)
         ctx.peak_price = price
         ctx.trailing_armed = False
         ctx.log(f"BUY at {price:.2f}")
@@ -79,10 +82,10 @@ def on_bar(ctx, bar):
     params: [
       { name: 'fast_period', type: 'integer', default: 10, min: 2, max: 120, step: 1 },
       { name: 'slow_period', type: 'integer', default: 30, min: 5, max: 240, step: 1 },
-      { name: 'position_pct', type: 'percent', default: 0.8, min: 0.05, max: 1, step: 0.01 },
-      { name: 'hard_stop_pct', type: 'percent', default: 0.025, min: 0.001, max: 0.5, step: 0.001 },
-      { name: 'trailing_stop_pct', type: 'percent', default: 0.015, min: 0.001, max: 0.5, step: 0.001 },
-      { name: 'trailing_arm_pct', type: 'percent', default: 0.02, min: 0.001, max: 0.5, step: 0.001 }
+      { name: 'position_pct', type: 'percent', default: 80, min: 5, max: 100, step: 1 },
+      { name: 'hard_stop_pct', type: 'percent', default: 2.5, min: 0.1, max: 50, step: 0.1 },
+      { name: 'trailing_stop_pct', type: 'percent', default: 1.5, min: 0.1, max: 50, step: 0.1 },
+      { name: 'trailing_arm_pct', type: 'percent', default: 2, min: 0.1, max: 50, step: 0.1 }
     ]
   },
   {
@@ -117,7 +120,7 @@ def on_bar(ctx, bar):
     if not ctx.position:
         if _trigger_open(ctx, bar):
             qty = (ctx.equity * ctx.entry_pct) / price
-            ctx.buy(price, qty)
+            ctx.open_long(amount=qty, price=price)
             ctx.entry_anchor = price
             ctx.layers = 1
             ctx.avg_cost = price
@@ -139,7 +142,7 @@ def on_bar(ctx, bar):
     next_trigger = ctx.entry_anchor * (1 - ctx.dip_step_pct * ctx.layers)
     if ctx.layers < ctx.max_layers and price <= next_trigger:
         qty = (ctx.equity * ctx.entry_pct) / price
-        ctx.buy(price, qty)
+        ctx.add_long(amount=qty, price=price)
         ctx.layers += 1
         ctx.avg_cost = (ctx.avg_cost * (ctx.layers - 1) + price) / ctx.layers
         ctx.log(f"SCALE IN layer {ctx.layers} at {price:.2f}, avg {ctx.avg_cost:.2f}")
@@ -151,11 +154,11 @@ def on_bar(ctx, bar):
         ctx.layers = 0
 `,
     params: [
-      { name: 'entry_pct', type: 'percent', default: 0.25, min: 0.01, max: 1, step: 0.01 },
-      { name: 'dip_step_pct', type: 'percent', default: 0.02, min: 0.001, max: 0.5, step: 0.001 },
+      { name: 'entry_pct', type: 'percent', default: 25, min: 1, max: 100, step: 1 },
+      { name: 'dip_step_pct', type: 'percent', default: 2, min: 0.1, max: 50, step: 0.1 },
       { name: 'max_layers', type: 'integer', default: 4, min: 1, max: 10, step: 1 },
-      { name: 'take_profit_pct', type: 'percent', default: 0.04, min: 0.001, max: 1, step: 0.001 },
-      { name: 'hard_stop_pct', type: 'percent', default: 0.10, min: 0.005, max: 0.9, step: 0.005 }
+      { name: 'take_profit_pct', type: 'percent', default: 4, min: 0.1, max: 100, step: 0.1 },
+      { name: 'hard_stop_pct', type: 'percent', default: 10, min: 0.5, max: 90, step: 0.5 }
     ]
   },
   {
@@ -193,13 +196,16 @@ def on_bar(ctx, bar):
     if len(bars) < ctx.slow_period:
         return
     closes = [b['close'] for b in bars]
+    prev_fast = _ema(closes[:-1], ctx.fast_period)
+    prev_slow = _ema(closes[:-1], ctx.slow_period)
     fast = _ema(closes, ctx.fast_period)
     slow = _ema(closes, ctx.slow_period)
+    cross_up = prev_fast <= prev_slow and fast > slow
     price = bar['close']
 
-    if not ctx.position and fast > slow:
+    if not ctx.position and cross_up:
         qty = (ctx.equity * ctx.position_pct) / price
-        ctx.buy(price, qty)
+        ctx.open_long(amount=qty, price=price)
         ctx.original_qty = qty
         ctx.tp_hits = 0
         ctx.log(f"BUY at {price:.2f}, qty {qty:.4f}")
@@ -219,12 +225,12 @@ def on_bar(ctx, bar):
 
     if ctx.tp_hits == 0 and pnl_pct >= ctx.tp1_pct:
         sell_qty = ctx.original_qty * ctx.tp1_close
-        ctx.sell(price, sell_qty)
+        ctx.close_long(amount=sell_qty, price=price)
         ctx.tp_hits = 1
         ctx.log(f"TP1 at {price:.2f}, closed {ctx.tp1_close*100:.0f}%")
     elif ctx.tp_hits == 1 and pnl_pct >= ctx.tp2_pct:
         sell_qty = ctx.original_qty * ctx.tp2_close
-        ctx.sell(price, sell_qty)
+        ctx.close_long(amount=sell_qty, price=price)
         ctx.tp_hits = 2
         ctx.log(f"TP2 at {price:.2f}, closed {ctx.tp2_close*100:.0f}%")
     elif ctx.tp_hits == 2 and pnl_pct >= ctx.tp3_pct:
@@ -235,9 +241,13 @@ def on_bar(ctx, bar):
     params: [
       { name: 'fast_period', type: 'integer', default: 10, min: 2, max: 120, step: 1 },
       { name: 'slow_period', type: 'integer', default: 30, min: 5, max: 240, step: 1 },
-      { name: 'position_pct', type: 'percent', default: 0.9, min: 0.05, max: 1, step: 0.01 },
-      { name: 'tp1_pct', type: 'percent', default: 0.02, min: 0.001, max: 1, step: 0.001 },
-      { name: 'hard_stop_pct', type: 'percent', default: 0.03, min: 0.001, max: 0.5, step: 0.001 }
+      { name: 'position_pct', type: 'percent', default: 90, min: 5, max: 100, step: 1 },
+      { name: 'tp1_pct', type: 'percent', default: 2, min: 0.1, max: 100, step: 0.1 },
+      { name: 'tp2_pct', type: 'percent', default: 5, min: 0.1, max: 100, step: 0.1 },
+      { name: 'tp3_pct', type: 'percent', default: 10, min: 0.1, max: 200, step: 0.1 },
+      { name: 'tp1_close', type: 'percent', default: 40, min: 5, max: 100, step: 1 },
+      { name: 'tp2_close', type: 'percent', default: 40, min: 5, max: 100, step: 1 },
+      { name: 'hard_stop_pct', type: 'percent', default: 3, min: 0.1, max: 50, step: 0.1 }
     ]
   },
   {
@@ -779,6 +789,103 @@ function escapeForRegExp (value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
+/** UI stores percent params as 0–100 (e.g. 80 = 80%). Code uses 0–1 ratios. */
+export function normalizePercentParamValue (raw) {
+  const n = Number(raw)
+  if (!Number.isFinite(n)) return null
+  if (n > 0 && n <= 1) return n * 100
+  return n
+}
+
+export function percentParamToRatio (value) {
+  const n = normalizePercentParamValue(value)
+  if (n == null) return 0
+  return n / 100
+}
+
+function parsePythonLiteral (raw) {
+  const text = String(raw == null ? '' : raw).trim()
+  if (!text) return ''
+  if (text === 'True') return true
+  if (text === 'False') return false
+  if (text === 'None') return null
+  const quote = text[0]
+  if ((quote === '"' || quote === "'") && text[text.length - 1] === quote) {
+    return text.slice(1, -1)
+  }
+  const n = Number(text)
+  return Number.isFinite(n) ? n : text
+}
+
+function isPercentParamName (name, value) {
+  const key = String(name || '').toLowerCase()
+  if (/(pct|percent|ratio|allocation|weight|position|take_profit|stop|arm|entry)/.test(key)) {
+    return typeof value === 'number'
+  }
+  return false
+}
+
+function inferParamType (name, value) {
+  if (typeof value === 'boolean') return 'boolean'
+  if (isPercentParamName(name, value)) return 'percent'
+  if (Number.isInteger(value)) return 'integer'
+  if (typeof value === 'number') return 'number'
+  return 'text'
+}
+
+function inferParamDefaults (name, value, type) {
+  if (type === 'percent') {
+    return {
+      default: normalizePercentParamValue(value) ?? 0,
+      min: 0,
+      max: 100,
+      step: 0.1
+    }
+  }
+  if (type === 'integer') {
+    const lowerName = String(name || '').toLowerCase()
+    return {
+      default: Number.isFinite(value) ? value : 1,
+      min: lowerName.includes('period') || lowerName.includes('window') ? 1 : undefined,
+      max: lowerName.includes('period') || lowerName.includes('window') ? 500 : undefined,
+      step: 1
+    }
+  }
+  if (type === 'number') {
+    return {
+      default: Number.isFinite(value) ? value : 0,
+      step: 0.1
+    }
+  }
+  return { default: value == null ? '' : value }
+}
+
+export function extractScriptParamsFromCode (code) {
+  const source = String(code || '')
+  const pattern = /ctx\.param\(\s*['"]([^'"]+)['"]\s*,\s*([^)\n]+)\)/g
+  const seen = new Set()
+  const params = []
+  let match
+  while ((match = pattern.exec(source)) !== null) {
+    const name = String(match[1] || '').trim()
+    if (!name || seen.has(name)) continue
+    seen.add(name)
+    const parsed = parsePythonLiteral(match[2])
+    const type = inferParamType(name, parsed)
+    params.push({
+      name,
+      type,
+      ...inferParamDefaults(name, parsed, type)
+    })
+  }
+  if (!params.length) return null
+  return {
+    key: '__code_params__',
+    inferred: true,
+    params
+  }
+}
+
 function toPythonLiteral (value) {
   if (typeof value === 'boolean') {
     return value ? 'True' : 'False'
@@ -802,9 +909,14 @@ export function buildTemplateParamValues (templateOrKey, overrides = {}) {
   const template = typeof templateOrKey === 'string' ? getScriptTemplateByKey(templateOrKey) : templateOrKey
   if (!template) return {}
   return template.params.reduce((acc, param) => {
-    acc[param.name] = Object.prototype.hasOwnProperty.call(overrides, param.name)
+    const raw = Object.prototype.hasOwnProperty.call(overrides, param.name)
       ? overrides[param.name]
       : param.default
+    if (param.type === 'percent') {
+      acc[param.name] = normalizePercentParamValue(raw) ?? param.default
+    } else {
+      acc[param.name] = raw
+    }
     return acc
   }, {})
 }
@@ -814,8 +926,23 @@ export function buildTemplateCode (templateOrKey, overrides = {}) {
   if (!template) return ''
   const values = buildTemplateParamValues(template, overrides)
   return template.params.reduce((code, param) => {
-    const literal = toPythonLiteral(values[param.name])
+    const stored = values[param.name]
+    const codeValue = param.type === 'percent' ? percentParamToRatio(stored) : stored
+    const literal = toPythonLiteral(codeValue)
     const pattern = new RegExp(`(ctx\\.param\\(['"]${escapeForRegExp(param.name)}['"],\\s*)([^\\)]+)(\\))`)
     return code.replace(pattern, `$1${literal}$3`)
   }, template.code)
+}
+
+export function buildScriptCodeWithParamValues (code, params = [], overrides = {}) {
+  return (params || []).reduce((source, param) => {
+    if (!param || !param.name) return source
+    const stored = Object.prototype.hasOwnProperty.call(overrides, param.name)
+      ? overrides[param.name]
+      : param.default
+    const codeValue = param.type === 'percent' ? percentParamToRatio(stored) : stored
+    const literal = toPythonLiteral(codeValue)
+    const pattern = new RegExp(`(ctx\\.param\\(\\s*['"]${escapeForRegExp(param.name)}['"]\\s*,\\s*)([^\\)\\n]+)(\\))`)
+    return source.replace(pattern, `$1${literal}$3`)
+  }, String(code || ''))
 }

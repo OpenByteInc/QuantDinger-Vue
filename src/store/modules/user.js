@@ -69,13 +69,15 @@ const user = {
   },
 
   actions: {
-    // 登录
     Login ({ commit, dispatch }, userInfo) {
       return new Promise((resolve, reject) => {
         login(userInfo).then(response => {
-          // 适配 Python 后端响应格式
           if (response && response.code === 1 && response.data) {
             const result = response.data
+            if (result.mfa_required) {
+              resolve(response)
+              return
+            }
             const token = result.token
             const info = result.userinfo || {}
 
@@ -85,12 +87,10 @@ const user = {
             commit('SET_INFO', info)
             storage.set(USER_INFO, info, expiresAt)
 
-            // 设置基本信息
             const name = info.nickname || info.username || 'User'
             commit('SET_NAME', { name: name, welcome: welcome() })
             commit('SET_AVATAR', info.avatar || '/avatar2.jpg')
 
-            // 从服务器返回的角色信息设置角色
             let roles = [DEFAULT_ROLE]
             if (info.role) {
               // role: { id: 'admin', permissions: [...] }
@@ -104,7 +104,6 @@ const user = {
             commit('SET_ROLES', roles)
             storage.set(USER_ROLES, roles, expiresAt)
 
-            // 重置路由，强制重新生成（根据新用户的角色）
             dispatch('ResetRoutes')
 
             resolve(response)
@@ -117,7 +116,6 @@ const user = {
       })
     },
 
-    // Web3 登录完成后的统一处理
     Web3LoginFinalize ({ commit }, payload) {
       return new Promise((resolve, reject) => {
         try {
@@ -157,7 +155,6 @@ const user = {
       })
     },
 
-    // 刷新用户信息
     FetchUserInfo ({ commit }) {
       return new Promise((resolve, reject) => {
         getUserInfo().then(res => {
@@ -182,13 +179,14 @@ const user = {
       })
     },
 
-    // 获取用户信息（从 store 中获取，不再请求接口）
     GetInfo ({ commit, state }) {
       return new Promise((resolve, reject) => {
-        // 用户信息已经在登录时保存到 store 中，直接返回
-        // 增加 check: 必须包含 is_demo 字段，否则视为过期缓存，强制刷新
-        if (state.info && Object.keys(state.info).length > 0 && typeof state.info.is_demo !== 'undefined') {
-          // 补全 Roles
+        if (
+          state.info &&
+          Object.keys(state.info).length > 0 &&
+          typeof state.info.is_demo !== 'undefined' &&
+          typeof state.info.must_change_initial_password !== 'undefined'
+        ) {
           const info = state.info
           if (info.role) {
             const roles = normalizeRoles(info.role)
@@ -204,7 +202,6 @@ const user = {
           }
           resolve(state.info)
         } else {
-          // 尝试主动拉取一次
           getUserInfo().then(res => {
             if (res && res.code === 1 && res.data) {
               const info = res.data
@@ -218,7 +215,6 @@ const user = {
               if (info.avatar) {
                 commit('SET_AVATAR', info.avatar)
               }
-              // 关键修复：设置角色，防止路由守卫死循环
               if (info.role) {
                 const roles = normalizeRoles(info.role)
                 commit('SET_ROLES', roles)
@@ -240,7 +236,6 @@ const user = {
       })
     },
 
-    // 登出
     Logout ({ commit, dispatch }) {
       return new Promise((resolve) => {
         logout().then(() => {
@@ -252,15 +247,12 @@ const user = {
           storage.remove(ACCESS_TOKEN)
           storage.remove(USER_INFO)
           storage.remove(USER_ROLES)
-          // 重置路由
           dispatch('ResetRoutes')
           resolve()
         }).catch(() => {
-          // 登出失败时也继续执行，确保清理本地状态
           storage.remove(ACCESS_TOKEN)
           storage.remove(USER_INFO)
           storage.remove(USER_ROLES)
-          // 重置路由
           dispatch('ResetRoutes')
           resolve()
         }).finally(() => {

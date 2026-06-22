@@ -10,7 +10,6 @@
     <div class="exchange-signup-modal">
       <div class="exchange-signup-promo">{{ $t('profile.exchange.openAccountPromo') }}</div>
 
-      <!-- 加密货币交易所 -->
       <section class="signup-section signup-section--crypto">
         <div class="signup-section-head">
           <div class="signup-section-icon signup-section-icon--crypto">
@@ -56,7 +55,6 @@
         <span class="signup-section-divider-label">{{ $t('profile.exchange.signupSectionDivider') }}</span>
       </div>
 
-      <!-- 外汇 / MT5 -->
       <section class="signup-section signup-section--forex">
         <div class="signup-section-head">
           <div class="signup-section-icon signup-section-icon--forex">

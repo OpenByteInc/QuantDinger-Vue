@@ -15,6 +15,8 @@ ARG NODE_IMAGE=node:18-alpine
 ARG NGINX_IMAGE=nginx:1.25-alpine
 
 FROM --platform=$BUILDPLATFORM ${NODE_IMAGE} AS builder
+ARG APP_VERSION=""
+ARG GIT_TAG=""
 WORKDIR /app
 
 # git is needed at build time so vite.config.js can stamp the short hash.
@@ -28,7 +30,11 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 COPY . .
-RUN pnpm build
+RUN if [ -n "$APP_VERSION" ] || [ -n "$GIT_TAG" ]; then \
+      APP_VERSION="$APP_VERSION" GIT_TAG="$GIT_TAG" pnpm build; \
+    else \
+      pnpm build; \
+    fi
 
 FROM ${NGINX_IMAGE}
 

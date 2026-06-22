@@ -1,12 +1,5 @@
 // Pyodide Web Worker（ES module）
-// - 通过远程 import 加载 pyodide.mjs（CDN/本地 fallback，与原 KlineChart 行为对齐）
-// - 预加载 pandas/numpy
-// - 暴露 init / runStrategy / runPython / loadPackages，主线程用 Comlink 包装调用
 //
-// 设计要点：
-//  1. init 多次调用复用同一个 Promise，幂等。
-//  2. 数据通过 Python 全局变量注入，避免巨大 JSON 字符串拼接 + 转义。
-//  3. 默认包内置 Python 包装脚本（与原 KlineChart 中的 pythonCode 等价），用户策略以 exec() 注入。
 
 import { expose } from 'comlink'
 
@@ -17,7 +10,6 @@ let lastError = null
 const _ensureTrailingSlash = (s) => (s && !s.endsWith('/') ? s + '/' : s) || s
 
 async function _loadFromBase (baseUrl) {
-  // 注：使用 /* @vite-ignore */ 告知 Vite 跳过该动态 import 的静态分析（指向远程 URL）。
   const mod = await import(/* @vite-ignore */ `${baseUrl}pyodide.mjs`)
   const py = await mod.loadPyodide({ indexURL: baseUrl })
   await py.loadPackage(['pandas', 'numpy'])
@@ -68,7 +60,6 @@ async function runPython (code, globalsObj = {}) {
     pyodide.globals.set(k, v)
   }
   const result = await pyodide.runPythonAsync(code)
-  // pyodide 返回 PyProxy 时需要显式转换；string/number 类型可直接返回
   if (result && typeof result === 'object' && typeof result.toJs === 'function') {
     try {
       return result.toJs()
@@ -79,8 +70,6 @@ async function runPython (code, globalsObj = {}) {
   return result
 }
 
-// 指标策略执行：保留原 KlineChart 内的 Python wrapper 逻辑。
-// 与原版差异：raw_data / params 通过 pyodide globals 注入（结构化克隆 + PyProxy），不再做字符串转义。
 const STRATEGY_WRAPPER = `
 import json
 import pandas as pd
@@ -105,7 +94,6 @@ def _clean_nan(obj):
     return obj
 
 
-# raw_data / params / user_code 由 worker 通过 pyodide.globals.set 注入
 _raw = raw_data.to_py() if hasattr(raw_data, 'to_py') else raw_data
 _params = params.to_py() if hasattr(params, 'to_py') else params
 
@@ -186,7 +174,6 @@ async function runStrategy ({ userCode, rawData, params }) {
   try {
     return await pyodide.runPythonAsync(STRATEGY_WRAPPER)
   } finally {
-    // 清理全局变量，避免持续占用内存
     pyodide.globals.set('user_code', '')
     pyodide.globals.set('raw_data', null)
     pyodide.globals.set('params', null)

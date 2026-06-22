@@ -1,4 +1,4 @@
-@import '~ant-design-vue/es/style/themes/default.less';
+@import '@/styles/antd-vars.less';
 
 html,
 body,
@@ -31,11 +31,9 @@ ol {
   list-style: none;
 }
 
-// 数据列表 样式
 .table-alert {
   margin-bottom: 16px;
 }
-// 数据列表 操作
 .table-operator {
   margin-bottom: 18px;
 
@@ -43,7 +41,6 @@ ol {
     margin-right: 8px;
   }
 }
-// 数据列表 搜索条件
 .table-page-search-wrapper {
   .ant-form-inline {
     .ant-form-item {
@@ -96,7 +93,6 @@ ol {
   }
 }
 
-// Hide noisy webpack dev server overlay on mobile (ResizeObserver loop warnings)
 #webpack-dev-server-client-overlay,
 #webpack-hot-middleware-client-overlay,
 .webpack-dev-server-client-overlay {
@@ -137,12 +133,8 @@ ol {
   }
 }
 
-// ========== 暗黑主题全局纯黑覆盖 ==========
-// 覆盖 Ant Design Pro Layout 的 #001529 深蓝色
 body.dark,
 body.realdark {
-  // 侧边栏
-  .ant-layout-sider,
   .ant-layout-sider-dark,
   .ant-pro-sider-menu-sider,
   .ant-pro-sider-menu-sider.ant-layout-sider-dark,
@@ -170,7 +162,6 @@ body.realdark {
     border-top: 1px solid #1c1c1c;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
   }
-  // 顶栏 - 与侧栏「亮黑」#111 一致 + 顶缘内高光
   .ant-layout-header {
     background: #111111 !important;
     border-bottom: 1px solid #1c1c1c !important;
@@ -181,7 +172,6 @@ body.realdark {
     border-bottom: none !important;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
   }
-  // 主内容区域
   .ant-layout {
     background: #0a0a0a !important;
   }
@@ -189,7 +179,6 @@ body.realdark {
   .ant-pro-basicLayout-content {
     background: #141414 !important;
   }
-  // 各页面通用卡片、表格背景
   .ant-card {
     background: #1c1c1c !important;
     border-color: #2a2a2a !important;
@@ -235,7 +224,6 @@ body.realdark {
     border-color: #2a2a2a !important;
     color: rgba(255, 255, 255, 0.85) !important;
   }
-  // 表单元素
   .ant-input,
   .ant-input-number,
   .ant-select-selection {
@@ -245,8 +233,6 @@ body.realdark {
   }
   .ant-input::placeholder { color: #555 !important; }
   .ant-form-item-label > label { color: rgba(255, 255, 255, 0.85) !important; }
-  // 输入组件尾部图标（清空/密码眼睛/数字步进/选择器箭头）暗黑模式可读性
-  .ant-input-suffix .anticon,
   .ant-input-clear-icon,
   .ant-input-clear-icon .anticon,
   .ant-input-number-handler-wrap,
@@ -264,7 +250,6 @@ body.realdark {
   .ant-select-clear:hover {
     color: #58a6ff !important;
   }
-  // 按钮
   .ant-btn-default {
     background: #1c1c1c !important;
     border-color: #2a2a2a !important;
@@ -274,7 +259,6 @@ body.realdark {
       color: #1890ff !important;
     }
   }
-  // Breadcrumb & PageHeader
   .ant-page-header {
     background: transparent !important;
   }
@@ -286,7 +270,6 @@ body.realdark {
   .ant-page-header-heading-title {
     color: rgba(255, 255, 255, 0.85) !important;
   }
-  // Tabs
   .ant-tabs-bar {
     border-bottom-color: #2a2a2a !important;
   }
@@ -297,7 +280,30 @@ body.realdark {
   .ant-tabs-tab-active {
     color: #1890ff !important;
   }
-  // Modal
+  .ant-tabs-tab-disabled {
+    color: rgba(255, 255, 255, 0.25) !important;
+  }
+  .ant-layout-header .ant-menu,
+  .ant-layout-header .ant-menu-horizontal,
+  .ant-pro-global-header .ant-menu,
+  .ant-pro-global-header .ant-menu-horizontal {
+    background: #0f0f10 !important;
+    background-color: #0f0f10 !important;
+  }
+  .ant-layout-header .ant-menu-horizontal > .ant-menu-item,
+  .ant-layout-header .ant-menu-horizontal > .ant-menu-submenu {
+    background: transparent !important;
+    background-color: transparent !important;
+  }
+  .ant-alert-info {
+    background: #141414 !important;
+    border-color: #2a2a2a !important;
+    color: rgba(255, 255, 255, 0.82) !important;
+  }
+  .ant-alert-info .ant-alert-message,
+  .ant-alert-info .ant-alert-description {
+    color: rgba(255, 255, 255, 0.82) !important;
+  }
   .ant-modal-content {
     background: #1c1c1c !important;
     .ant-modal-header {
@@ -312,7 +318,6 @@ body.realdark {
     }
     .ant-modal-close-x { color: #888 !important; }
   }
-  // Select dropdown
   .ant-select-dropdown {
     background: #1c1c1c !important;
     .ant-select-dropdown-menu-item {

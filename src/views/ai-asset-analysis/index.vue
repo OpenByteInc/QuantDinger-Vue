@@ -2,7 +2,7 @@
   <div class="ai-asset-analysis-page" :class="{ 'theme-dark': isDarkTheme }">
 
     <!-- ======== AI Trading Radar ======== -->
-    <div class="radar-section" v-if="opportunities.length > 0">
+    <div class="radar-section" v-if="showOpportunityRadar && opportunities.length > 0">
       <div class="radar-header">
         <div class="radar-header-left">
           <h2 class="radar-title">{{ $t('aiAssetAnalysis.opportunities.title') }}</h2>
@@ -85,25 +85,14 @@
       @update:symbol="handleQuickTradeSymbolChange"
     />
 
-    <!-- ======== Main Workspace Card with Tabs ======== -->
+    <!-- ======== Main Workspace ======== -->
     <a-card :bordered="false" class="workspace-card">
-      <a-tabs v-model="activeTab" class="workspace-tabs" size="large">
-        <a-tab-pane key="quick">
-          <span slot="tab">
-            <a-icon type="thunderbolt" />
-            {{ $t('aiAssetAnalysis.tabs.quick') }}
-          </span>
-          <div class="tab-body">
-            <AnalysisView
-              v-if="activeTab === 'quick'"
-              :embedded="true"
-              :preset-symbol="presetSymbol"
-              :auto-analyze-signal="autoAnalyzeSignal"
-              @symbol-change="onAnalysisSymbolChange"
-            />
-          </div>
-        </a-tab-pane>
-      </a-tabs>
+      <AnalysisView
+        :embedded="true"
+        :preset-symbol="presetSymbol"
+        :auto-analyze-signal="autoAnalyzeSignal"
+        @symbol-change="onAnalysisSymbolChange"
+      />
     </a-card>
 
   </div>
@@ -130,7 +119,7 @@ export default {
   },
   data () {
     return {
-      activeTab: 'quick',
+      showOpportunityRadar: false,
       // Opportunities (Carousel)
       opportunities: [],
       oppLoading: false,
@@ -175,19 +164,21 @@ export default {
     // immediately; then kick off a fresh fetch only when the cache is stale
     // or missing. Re-entering the page within the TTL window therefore
     // produces zero network round-trips for this section.
-    const cached = sessionCache.read(OPP_CACHE_KEY)
-    if (Array.isArray(cached) && cached.length > 0) {
-      this.opportunities = cached
-    }
-    if (!sessionCache.isFresh(OPP_CACHE_KEY)) {
-      this.loadOpportunities()
+    if (this.showOpportunityRadar) {
+      const cached = sessionCache.read(OPP_CACHE_KEY)
+      if (Array.isArray(cached) && cached.length > 0) {
+        this.opportunities = cached
+      }
+      if (!sessionCache.isFresh(OPP_CACHE_KEY)) {
+        this.loadOpportunities()
+      }
     }
   },
   activated () {
     // keep-alive re-entry: only refresh when the cache has aged past its TTL.
     // This is the "user came back after a while" path — they want fresh
     // signals but we don't want to spam the backend if they just bounced.
-    if (!sessionCache.isFresh(OPP_CACHE_KEY)) {
+    if (this.showOpportunityRadar && !sessionCache.isFresh(OPP_CACHE_KEY)) {
       this.loadOpportunities()
     }
   },
@@ -265,7 +256,6 @@ export default {
       return price.toFixed(4)
     },
     analyzeOpportunity (opp) {
-      this.activeTab = 'quick'
       const market = opp.market || 'Crypto'
       this.presetSymbol = `${market}:${opp.symbol}`
       this.$nextTick(() => {
@@ -330,8 +320,13 @@ export default {
 
 <style lang="less" scoped>
 .ai-asset-analysis-page {
-  padding: 20px;
-  min-height: calc(100vh - 120px);
+  --qd-accent: var(--primary-color, #1677ff);
+  --qd-accent-soft: color-mix(in srgb, var(--qd-accent) 10%, #ffffff);
+  --qd-accent-weak: color-mix(in srgb, var(--qd-accent) 8%, transparent);
+  --qd-accent-border: color-mix(in srgb, var(--qd-accent) 42%, transparent);
+  --qd-accent-ring: color-mix(in srgb, var(--qd-accent) 18%, transparent);
+  padding: 6px 8px;
+  min-height: calc(100vh - 76px);
   background: #f0f2f5;
   width: 100%;
   max-width: 100%;
@@ -370,7 +365,7 @@ export default {
         color: #666;
         font-size: 12px;
         font-weight: 500;
-        &:hover { border-color: #6366f1; color: #6366f1; }
+        &:hover { border-color: var(--qd-accent); color: var(--qd-accent); }
       }
     }
 
@@ -428,13 +423,13 @@ export default {
         border-radius: 12px;
         opacity: 0;
         transition: opacity 0.3s;
-        background: linear-gradient(135deg, rgba(99, 102, 241, 0.04), rgba(139, 92, 246, 0.02));
+        background: linear-gradient(135deg, var(--qd-accent-weak), color-mix(in srgb, var(--qd-accent) 3%, transparent));
       }
 
       &:hover {
         transform: translateY(-2px);
-        border-color: rgba(99, 102, 241, 0.3);
-        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(99, 102, 241, 0.1);
+        border-color: var(--qd-accent-border);
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08), 0 0 0 1px var(--qd-accent-weak);
         &::before { opacity: 1; }
       }
 
@@ -530,7 +525,7 @@ export default {
         font-size: 11px;
         font-weight: 700;
         color: #fff;
-        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        background: linear-gradient(135deg, var(--qd-accent), color-mix(in srgb, var(--qd-accent) 78%, #000000));
         padding: 4px 12px;
         border-radius: 8px;
         white-space: nowrap;
@@ -539,7 +534,7 @@ export default {
         flex-shrink: 0;
         &:hover {
           transform: scale(1.05);
-          box-shadow: 0 2px 12px rgba(99, 102, 241, 0.35);
+          box-shadow: 0 2px 12px var(--qd-accent-ring);
         }
       }
     }
@@ -553,20 +548,20 @@ export default {
     width: 48px;
     height: 48px;
     border-radius: 14px;
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    background: linear-gradient(135deg, var(--qd-accent), color-mix(in srgb, var(--qd-accent) 78%, #000000));
     color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 22px;
     cursor: pointer;
-    box-shadow: 0 4px 20px rgba(99, 102, 241, 0.35);
+    box-shadow: 0 4px 20px var(--qd-accent-ring);
     z-index: 1000;
     transition: all 0.3s;
     animation: qt-float-pulse 2.5s ease-in-out infinite;
     &:hover {
       transform: scale(1.08);
-      box-shadow: 0 6px 28px rgba(99, 102, 241, 0.5);
+      box-shadow: 0 6px 28px color-mix(in srgb, var(--qd-accent) 32%, transparent);
     }
   }
   @keyframes qt-float-pulse {
@@ -579,34 +574,24 @@ export default {
     border-radius: 14px;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
     border: 1px solid #e8e8e8;
+    overflow: hidden;
 
     ::v-deep .ant-card-body { padding: 0; }
 
-    .workspace-tabs {
-      ::v-deep .ant-tabs-bar {
-        margin-bottom: 0;
-        padding: 0 20px;
-        border-bottom: 1px solid #f0f0f0;
-      }
-      ::v-deep .ant-tabs-tab {
-        font-size: 15px;
-        font-weight: 600;
-        padding: 14px 16px;
-      }
-    }
-
-    .tab-body {
-      ::v-deep .ai-analysis-container.embedded,
-      ::v-deep .portfolio-container.embedded {
-        border-radius: 0;
-        overflow: hidden;
-      }
+    ::v-deep .ai-analysis-container.embedded,
+    ::v-deep .portfolio-container.embedded {
+      border-radius: 0;
+      overflow: hidden;
     }
   }
 
   /* ===== Dark Theme ===== */
   &.theme-dark {
     background: #141414;
+    --qd-accent-soft: color-mix(in srgb, var(--qd-accent) 16%, transparent);
+    --qd-accent-weak: color-mix(in srgb, var(--qd-accent) 10%, transparent);
+    --qd-accent-border: color-mix(in srgb, var(--qd-accent) 46%, transparent);
+    --qd-accent-ring: color-mix(in srgb, var(--qd-accent) 22%, transparent);
 
     .radar-section {
       .radar-header {
@@ -617,7 +602,7 @@ export default {
         background: #1c1c1c;
         border-color: #2a2a2a;
         color: #999;
-        &:hover { border-color: #6366f1; color: #a78bfa; }
+        &:hover { border-color: var(--qd-accent); color: var(--qd-accent); }
       }
       .radar-carousel {
         &::before { background: linear-gradient(to right, #141414, transparent); }
@@ -629,12 +614,12 @@ export default {
         border-color: rgba(255, 255, 255, 0.06);
 
         &::before {
-          background: linear-gradient(135deg, rgba(99, 102, 241, 0.06), rgba(139, 92, 246, 0.03));
+          background: linear-gradient(135deg, var(--qd-accent-weak), color-mix(in srgb, var(--qd-accent) 4%, transparent));
         }
 
         &:hover {
-          border-color: rgba(99, 102, 241, 0.25);
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(99, 102, 241, 0.15);
+          border-color: var(--qd-accent-border);
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px var(--qd-accent-weak);
         }
 
         .rc-symbol { color: #f0f0f0; }
@@ -669,22 +654,13 @@ export default {
     .workspace-card {
       background: #1c1c1c;
       border-color: #2a2a2a;
-
-      .workspace-tabs {
-        ::v-deep .ant-tabs-bar { border-bottom-color: #2a2a2a; }
-        ::v-deep .ant-tabs-tab { color: #8b949e; &:hover { color: #c9d1d9; } }
-        ::v-deep .ant-tabs-tab-active { color: #a78bfa; }
-        ::v-deep .ant-tabs-ink-bar { background-color: #a78bfa; }
-      }
-
     }
   }
 }
 
-/* ========== 移动端自适应 ========== */
 @media (max-width: 768px) {
   .ai-asset-analysis-page {
-    padding: 8px;
+    padding: 5px;
     min-height: auto;
 
     .radar-section {
@@ -731,25 +707,6 @@ export default {
 
     .workspace-card {
       border-radius: 10px;
-
-      .workspace-tabs {
-        ::v-deep .ant-tabs-bar {
-          padding: 0 6px;
-        }
-
-        ::v-deep .ant-tabs-nav-scroll {
-          overflow-x: auto;
-          -webkit-overflow-scrolling: touch;
-        }
-
-        ::v-deep .ant-tabs-tab {
-          font-size: 14px;
-          padding: 10px 8px;
-          margin-right: 2px;
-          white-space: nowrap;
-        }
-      }
-
     }
   }
 }
@@ -767,15 +724,7 @@ export default {
     }
 
     .workspace-card {
-      .workspace-tabs {
-        ::v-deep .ant-tabs-bar {
-          padding: 0 4px;
-        }
-        ::v-deep .ant-tabs-tab {
-          font-size: 13px;
-          padding: 8px 6px;
-        }
-      }
+      border-radius: 8px;
     }
   }
 }

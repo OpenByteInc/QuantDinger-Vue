@@ -1,6 +1,6 @@
 {
   "name": "quantdinger-vue",
-  "version": "3.0.15",
+  "version": "4.0.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,6 +9,9 @@
     "build": "vite build",
     "build:preview": "vite build --mode preview",
     "preview": "vite preview --port 8001",
+    "i18n:generate": "node scripts/generate-core-locales.mjs",
+    "encoding:audit": "node scripts/encoding-audit.mjs",
+    "i18n:audit": "node scripts/encoding-audit.mjs",
     "lint": "eslint \"src/**/*.{js,vue}\" --fix",
     "lint:nofix": "eslint \"src/**/*.{js,vue}\"",
     "lint:css": "stylelint \"src/**/*.{css,less,vue}\" --fix"

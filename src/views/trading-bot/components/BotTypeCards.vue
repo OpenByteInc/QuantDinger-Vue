@@ -11,7 +11,6 @@
     </div>
 
     <div class="cards-grid">
-      <!-- AI 智能创建卡片（第一个） -->
       <div class="type-card ai-card" @click="$emit('ai-create')">
         <div class="ai-card-glow"></div>
         <div class="card-icon ai-card-icon">
@@ -30,7 +29,6 @@
         </div>
       </div>
 
-      <!-- 普通机器人卡片 -->
       <div
         v-for="bot in botTypes"
         :key="bot.key"
@@ -177,7 +175,6 @@ export default {
   }
 }
 
-/* ── AI 卡片特殊样式 ── */
 .ai-card {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 40%, #f093fb 100%);
   border-color: transparent;

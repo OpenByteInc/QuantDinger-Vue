@@ -1,5 +1,5 @@
 <template>
-  <div class="setting-drawer">
+  <div class="setting-drawer" :class="{ 'setting-drawer--dark': isDarkDrawer }">
     <a-drawer
       width="300"
       placement="right"
@@ -19,7 +19,7 @@
                 {{ $t('app.setting.pagestyle.dark') }}
               </template>
               <div class="setting-drawer-index-item" @click="handleMenuTheme('dark')">
-                <img src="https://gw.alipayobjects.com/zos/rmsportal/LCkqqYNmvBEbokSDscrm.svg" alt="dark">
+                <img src="https://gw.alipayobjects.com/zos/rmsportal/LCkqqYNmvBEbokSDscrm.svg" alt="dark" />
                 <div class="setting-drawer-index-selectIcon" v-if="currentNavTheme === 'dark'">
                   <a-icon type="check"/>
                 </div>
@@ -31,7 +31,7 @@
                 {{ $t('app.setting.pagestyle.light') }}
               </template>
               <div class="setting-drawer-index-item" @click="handleMenuTheme('light')">
-                <img src="https://gw.alipayobjects.com/zos/rmsportal/jpRkZQMyYRryryPNtyIC.svg" alt="light">
+                <img src="https://gw.alipayobjects.com/zos/rmsportal/jpRkZQMyYRryryPNtyIC.svg" alt="light" />
                 <div class="setting-drawer-index-selectIcon" v-if="currentNavTheme !== 'dark'">
                   <a-icon type="check"/>
                 </div>
@@ -40,18 +40,23 @@
           </div>
         </div>
 
-        <!-- 主色切换：webpack-theme-color-replacer 已下线，主色固定在构建期，隐藏入口 -->
-        <div :style="{ marginBottom: '24px', display: 'none' }">
+        <!-- Theme color selector controls app-level accent styles. -->
+        <div :style="{ marginBottom: '24px' }">
           <h3 class="setting-drawer-index-title">{{ $t('app.setting.themecolor') }}</h3>
 
-          <div style="height: 20px">
+          <div class="setting-drawer-theme-color-list">
             <a-tooltip class="setting-drawer-theme-color-colorBlock" v-for="(item, index) in colorList" :key="index">
               <template slot="title">
                 {{ item.key }}
               </template>
-              <a-tag :color="item.color" @click="changeColor(item.color)">
+              <button
+                type="button"
+                class="setting-drawer-theme-color-swatch"
+                :style="{ backgroundColor: item.color }"
+                @click="changeColor(item.color)"
+              >
                 <a-icon type="check" v-if="item.color === currentPrimaryColor"></a-icon>
-              </a-tag>
+              </button>
             </a-tooltip>
 
           </div>
@@ -68,7 +73,7 @@
                 {{ $t('app.setting.sidemenu.nav') }}
               </template>
               <div class="setting-drawer-index-item" @click="handleLayout('sidemenu')">
-                <img src="https://gw.alipayobjects.com/zos/rmsportal/JopDzEhOqwOjeNTXkoje.svg" alt="sidemenu">
+                <img src="https://gw.alipayobjects.com/zos/rmsportal/JopDzEhOqwOjeNTXkoje.svg" alt="sidemenu" />
                 <div class="setting-drawer-index-selectIcon" v-if="layoutMode === 'sidemenu'">
                   <a-icon type="check"/>
                 </div>
@@ -80,7 +85,7 @@
                 {{ $t('app.setting.topmenu.nav') }}
               </template>
               <div class="setting-drawer-index-item" @click="handleLayout('topmenu')">
-                <img src="https://gw.alipayobjects.com/zos/rmsportal/KDNDBbriJhLwuqMoxcAr.svg" alt="topmenu">
+                <img src="https://gw.alipayobjects.com/zos/rmsportal/KDNDBbriJhLwuqMoxcAr.svg" alt="topmenu" />
                 <div class="setting-drawer-index-selectIcon" v-if="layoutMode !== 'sidemenu'">
                   <a-icon type="check"/>
                 </div>
@@ -149,13 +154,7 @@
           </div>
         </div>
         <a-divider />
-        <!-- <div :style="{ marginBottom: '24px' }">
-          <a-button
-            @click="doCopy"
-            icon="copy"
-            block
-          >拷贝设置</a-button>
-        </div> -->
+        <slot />
       </div>
     </a-drawer>
   </div>
@@ -213,13 +212,18 @@ export default {
     },
     currentMultiTab () {
       return this.settings.multiTab !== undefined ? this.settings.multiTab : (this.multiTab || false)
+    },
+    isDarkDrawer () {
+      return this.currentNavTheme === 'dark' || this.currentNavTheme === 'realdark'
     }
   },
   watch: {
 
   },
   mounted () {
-    // 初始化时静默更新主题色，不显示消息
+    // Apply the saved theme color without showing the loading message.
+    document.documentElement.style.setProperty('--primary-color', this.currentPrimaryColor)
+    updateTheme(this.currentPrimaryColor, true)
     updateTheme(this.currentPrimaryColor, true)
     if (this.currentColorWeak !== config.colorWeak) {
       updateColorWeak(this.currentColorWeak)
@@ -293,7 +297,6 @@ export default {
     },
     handleLayout (mode) {
       this.$emit('change', { type: 'layout', value: mode })
-      // 因为顶部菜单不能固定左侧菜单栏，所以强制关闭
       if (mode === 'topmenu') {
         this.$emit('change', { type: 'fixSiderbar', value: false })
       }
@@ -304,6 +307,7 @@ export default {
     changeColor (color) {
       if (this.currentPrimaryColor !== color) {
         this.$emit('change', { type: 'primaryColor', value: color })
+        document.documentElement.style.setProperty('--primary-color', color)
         updateTheme(color)
       }
     },
@@ -325,13 +329,31 @@ export default {
 </script>
 
 <style lang="less" scoped>
-  /* 隐藏所有可能的悬浮按钮 */
   :deep(.ant-drawer-handle),
   :deep(.setting-drawer-index-handle) {
     display: none !important;
   }
 
+  :deep(.ant-drawer-content),
+  :deep(.ant-drawer-wrapper-body),
+  :deep(.ant-drawer-body) {
+    background: #fff;
+    color: rgba(15, 23, 42, 0.86);
+  }
+
+  :deep(.ant-drawer-close) {
+    color: rgba(15, 23, 42, 0.58);
+  }
+
+  :deep(.ant-divider) {
+    background: rgba(15, 23, 42, 0.08);
+  }
+
   .setting-drawer-index-content {
+    .setting-drawer-index-title {
+      color: rgba(15, 23, 42, 0.9);
+      font-weight: 700;
+    }
 
     .setting-drawer-index-blockChecbox {
       display: flex;
@@ -354,24 +376,42 @@ export default {
           padding-top: 15px;
           padding-left: 24px;
           height: 100%;
-          color: #1890ff;
+          color: var(--primary-color, #1890ff);
           font-size: 14px;
           font-weight: 700;
         }
       }
     }
+    .setting-drawer-theme-color-list {
+      display: grid;
+      grid-template-columns: repeat(8, 24px);
+      gap: 10px;
+      min-height: 28px;
+      align-items: center;
+    }
+
     .setting-drawer-theme-color-colorBlock {
-      width: 20px;
-      height: 20px;
-      border-radius: 2px;
-      float: left;
+      display: inline-flex;
+    }
+
+    .setting-drawer-theme-color-swatch {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      border: 1px solid rgba(0, 0, 0, 0.08);
       cursor: pointer;
-      margin-right: 8px;
-      padding-left: 0px;
-      padding-right: 0px;
+      padding: 0;
       text-align: center;
       color: #fff;
       font-weight: 700;
+      line-height: 22px;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+      transition: transform 0.16s ease, box-shadow 0.16s ease;
+
+      &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(15, 23, 42, 0.16);
+      }
 
       i {
         font-size: 14px;
@@ -379,4 +419,196 @@ export default {
     }
   }
 
+  body.dark &,
+  body.realdark &,
+  .basic-layout-wrapper.dark &,
+  .basic-layout-wrapper.realdark & {
+    :deep(.ant-drawer-content),
+    :deep(.ant-drawer-wrapper-body),
+    :deep(.ant-drawer-body) {
+      background: #171717 !important;
+      color: rgba(226, 232, 240, 0.86) !important;
+    }
+
+    :deep(.ant-drawer-close) {
+      color: rgba(226, 232, 240, 0.66) !important;
+
+      &:hover {
+        color: var(--primary-color, #1890ff) !important;
+      }
+    }
+
+    :deep(.ant-divider) {
+      background: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    :deep(.ant-list-item-meta-title),
+    :deep(.ant-list-item-meta-title > div) {
+      color: rgba(226, 232, 240, 0.86) !important;
+    }
+
+    :deep(.ant-list-item) {
+      color: rgba(226, 232, 240, 0.78) !important;
+    }
+
+    :deep(.ant-select-selection) {
+      background: #222 !important;
+      border-color: rgba(255, 255, 255, 0.14) !important;
+      color: rgba(226, 232, 240, 0.86) !important;
+    }
+
+    :deep(.ant-select-arrow),
+    :deep(.ant-select-selection-selected-value) {
+      color: rgba(226, 232, 240, 0.78) !important;
+    }
+
+    .setting-drawer-index-content {
+      .setting-drawer-index-title {
+        color: rgba(248, 250, 252, 0.92);
+      }
+
+      .setting-drawer-index-item {
+        background: rgba(255, 255, 255, 0.04);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+
+        img {
+          opacity: 0.9;
+        }
+      }
+
+      .setting-drawer-theme-color-swatch {
+        border-color: rgba(255, 255, 255, 0.14);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.32);
+      }
+    }
+  }
+
+</style>
+
+<style lang="less">
+body.dark .setting-drawer,
+body.realdark .setting-drawer,
+.setting-drawer.setting-drawer--dark {
+  --setting-drawer-bg: #11161c;
+  --setting-drawer-panel: #171c22;
+  --setting-drawer-panel-soft: #202833;
+  --setting-drawer-border: #2b3542;
+  --setting-drawer-text: #e6edf5;
+  --setting-drawer-muted: #a4b2c2;
+  --setting-drawer-subtle: #738295;
+}
+
+body.dark .setting-drawer .ant-drawer-content,
+body.dark .setting-drawer .ant-drawer-wrapper-body,
+body.dark .setting-drawer .ant-drawer-body,
+body.realdark .setting-drawer .ant-drawer-content,
+body.realdark .setting-drawer .ant-drawer-wrapper-body,
+body.realdark .setting-drawer .ant-drawer-body,
+.setting-drawer.setting-drawer--dark .ant-drawer-content,
+.setting-drawer.setting-drawer--dark .ant-drawer-wrapper-body,
+.setting-drawer.setting-drawer--dark .ant-drawer-body {
+  background: var(--setting-drawer-bg) !important;
+  color: var(--setting-drawer-text) !important;
+}
+
+body.dark .setting-drawer .ant-drawer-body,
+body.realdark .setting-drawer .ant-drawer-body,
+.setting-drawer.setting-drawer--dark .ant-drawer-body {
+  border-left: 1px solid var(--setting-drawer-border);
+}
+
+body.dark .setting-drawer .ant-drawer-close,
+body.realdark .setting-drawer .ant-drawer-close,
+.setting-drawer.setting-drawer--dark .ant-drawer-close {
+  color: var(--setting-drawer-muted) !important;
+}
+
+body.dark .setting-drawer .ant-drawer-close:hover,
+body.realdark .setting-drawer .ant-drawer-close:hover,
+.setting-drawer.setting-drawer--dark .ant-drawer-close:hover {
+  color: var(--primary-color, #1890ff) !important;
+}
+
+body.dark .setting-drawer .setting-drawer-index-title,
+body.realdark .setting-drawer .setting-drawer-index-title,
+.setting-drawer.setting-drawer--dark .setting-drawer-index-title {
+  color: var(--setting-drawer-text) !important;
+}
+
+body.dark .setting-drawer .ant-divider,
+body.realdark .setting-drawer .ant-divider,
+.setting-drawer.setting-drawer--dark .ant-divider {
+  background: var(--setting-drawer-border) !important;
+}
+
+body.dark .setting-drawer .ant-list-item,
+body.dark .setting-drawer .ant-list-item-meta-title,
+body.dark .setting-drawer .ant-list-item-meta-title > div,
+body.realdark .setting-drawer .ant-list-item,
+body.realdark .setting-drawer .ant-list-item-meta-title,
+body.realdark .setting-drawer .ant-list-item-meta-title > div,
+.setting-drawer.setting-drawer--dark .ant-list-item,
+.setting-drawer.setting-drawer--dark .ant-list-item-meta-title,
+.setting-drawer.setting-drawer--dark .ant-list-item-meta-title > div {
+  color: var(--setting-drawer-muted) !important;
+}
+
+body.dark .setting-drawer .setting-drawer-index-item,
+body.realdark .setting-drawer .setting-drawer-index-item,
+.setting-drawer.setting-drawer--dark .setting-drawer-index-item {
+  background: var(--setting-drawer-panel-soft);
+  box-shadow: inset 0 0 0 1px var(--setting-drawer-border);
+}
+
+body.dark .setting-drawer .setting-drawer-index-selectIcon,
+body.realdark .setting-drawer .setting-drawer-index-selectIcon,
+.setting-drawer.setting-drawer--dark .setting-drawer-index-selectIcon {
+  color: var(--primary-color, #1890ff) !important;
+}
+
+body.dark .setting-drawer .setting-drawer-theme-color-swatch,
+body.realdark .setting-drawer .setting-drawer-theme-color-swatch,
+.setting-drawer.setting-drawer--dark .setting-drawer-theme-color-swatch {
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+body.dark .setting-drawer .setting-drawer-support,
+body.realdark .setting-drawer .setting-drawer-support,
+.setting-drawer.setting-drawer--dark .setting-drawer-support {
+  border-top-color: var(--setting-drawer-border) !important;
+  color: var(--setting-drawer-muted) !important;
+}
+
+body.dark .setting-drawer .setting-drawer-support .support-title,
+body.realdark .setting-drawer .setting-drawer-support .support-title,
+.setting-drawer.setting-drawer--dark .setting-drawer-support .support-title {
+  color: var(--setting-drawer-text) !important;
+}
+
+body.dark .setting-drawer .setting-drawer-support a,
+body.realdark .setting-drawer .setting-drawer-support a,
+.setting-drawer.setting-drawer--dark .setting-drawer-support a {
+  color: var(--primary-color, #1890ff) !important;
+}
+
+body.dark .setting-drawer .setting-drawer-support .separator,
+body.dark .setting-drawer .setting-drawer-support .support-copy,
+body.dark .setting-drawer .setting-drawer-support .support-version,
+body.realdark .setting-drawer .setting-drawer-support .separator,
+body.realdark .setting-drawer .setting-drawer-support .support-copy,
+body.realdark .setting-drawer .setting-drawer-support .support-version,
+.setting-drawer.setting-drawer--dark .setting-drawer-support .separator,
+.setting-drawer.setting-drawer--dark .setting-drawer-support .support-copy,
+.setting-drawer.setting-drawer--dark .setting-drawer-support .support-version {
+  color: var(--setting-drawer-subtle) !important;
+}
+
+body.dark .setting-drawer .setting-drawer-support .support-social,
+body.realdark .setting-drawer .setting-drawer-support .support-social,
+.setting-drawer.setting-drawer--dark .setting-drawer-support .support-social {
+  background: var(--setting-drawer-panel);
+  border-color: var(--setting-drawer-border);
+  color: var(--setting-drawer-muted);
+}
 </style>

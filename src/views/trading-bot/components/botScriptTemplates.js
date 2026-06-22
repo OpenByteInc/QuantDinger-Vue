@@ -1,24 +1,3 @@
-/**
- * 交易机器人预置策略脚本模板。
- * 每种机器人类型对应 on_init + on_bar Python 代码，参数由用户在向导中填写后注入顶部变量。
- * 运行时由后端 TradingExecutor 以 ScriptStrategy 方式执行。
- *
- * ctx API (StrategyScriptContext):
- *   ctx.param(name, default)       → 读取/初始化持久化参数
- *   ctx._params[name] = val        → 写入持久化参数
- *   ctx.bars(n)                    → 最近 n 根 K 线（ScriptBar: open/high/low/close/volume）
- *   ctx.position                   → ScriptPosition dict (side/size/entry_price)，bool(pos) 表示有仓位
- *   ctx.balance                    → 当前可用余额（按账户 quote currency 计价: 加密=USDT, 美股=USD, 外汇=账户基础货币）
- *   ctx.buy(price=, amount=)       → 买入信号（amount 为 quote currency 名义金额，后端按 leverage/market_type 换算成 qty/share/lot）
- *   ctx.sell(price=, amount=)      → 卖出信号
- *   ctx.close_position()           → 平仓
- *   ctx.log(msg)                   → 日志
- *
- * 多市场说明：模板逻辑只用 amount=名义金额 + price 接口，后端
- * trading_executor._to_local_qty 会按市场和杠杆换算成实际下单数量，
- * 所以同一个模板既能跑 BTC/USDT 也能跑 TSLA、EUR/USD。模板里的
- * "quote" 字样代表账户基础货币（加密=USDT，美股=USD，外汇=账户币种）。
- */
 
 const TIMEFRAME_MINUTES = {
   '1m': 1, '5m': 5, '15m': 15, '1h': 60, '4h': 240, '1d': 1440
@@ -30,144 +9,15 @@ const FREQUENCY_MINUTES = {
 
 export const BOT_SCRIPT_TEMPLATES = {
 
-  // ========== 网格交易 ==========
-  grid: (params) => `# ---- Grid Trading Bot ----
-UPPER     = ${params.upperPrice}
-LOWER     = ${params.lowerPrice}
-GRIDS     = ${params.gridCount}
-AMT       = ${params.amountPerGrid}
-MODE      = "${params.gridMode || 'arithmetic'}"
-DIRECTION = "${params.gridDirection || 'neutral'}"
-REF_PRICE = ${params.referencePrice || 0}
-BUDGET    = ${params._initialCapital || 0}
-
-def _build_levels():
-    if MODE == "geometric" and LOWER > 0:
-        r = (UPPER / LOWER) ** (1.0 / GRIDS)
-        return [LOWER * (r ** i) for i in range(GRIDS + 1)]
-    step = (UPPER - LOWER) / GRIDS
-    return [LOWER + step * i for i in range(GRIDS + 1)]
-
-LEVELS = _build_levels()
+  grid: () => `# ---- Grid Trading Bot (resting engine placeholder) ----
 
 def on_init(ctx):
-    anchor = REF_PRICE if REF_PRICE > 0 else (LOWER + UPPER) / 2.0
-    bp = []
-    sp = []
-    for i, lv in enumerate(LEVELS):
-        if lv < anchor and DIRECTION in ("neutral", "long"):
-            bp.append(i)
-        elif lv > anchor and DIRECTION in ("neutral", "short"):
-            sp.append(i)
-    ctx.param("bp", bp)
-    ctx.param("sp", sp)
-    ctx.param("prev_price", anchor)
-    ctx.param("anchor_price", anchor)
-    # 分别追踪多头/空头资金占用,防止单边网格无限开仓爆仓
-    ctx.param("long_exposure", 0.0)
-    ctx.param("short_exposure", 0.0)
-    ctx.log("Grid anchor @ %.6f | buy_pending=%d sell_pending=%d [%.6f ~ %.6f]" % (anchor, len(bp), len(sp), LOWER, UPPER))
+    ctx.log("grid bot: live execution uses resting limit-order engine")
 
 def on_bar(ctx, bar):
-    if ctx.param("waterfall_pause", False):
-        return
-
-    price = bar.close
-    upper = float(ctx.param("upperPrice", UPPER) or UPPER)
-    lower = float(ctx.param("lowerPrice", LOWER) or LOWER)
-    if price < lower or price > upper:
-        return
-
-    bounds_sig = (round(upper, 8), round(lower, 8), GRIDS, MODE)
-    if ctx.param("_bounds_sig") != bounds_sig:
-        ctx._params["_bounds_sig"] = bounds_sig
-        if MODE == "geometric" and lower > 0:
-            r = (upper / lower) ** (1.0 / GRIDS)
-            levels = [lower * (r ** i) for i in range(GRIDS + 1)]
-        else:
-            step = (upper - lower) / GRIDS
-            levels = [lower + step * i for i in range(GRIDS + 1)]
-        anchor = ctx.param("anchor_price", REF_PRICE if REF_PRICE > 0 else (lower + upper) / 2.0)
-        bp, sp = [], []
-        for i, lv in enumerate(levels):
-            if lv < anchor and DIRECTION in ("neutral", "long"):
-                bp.append(i)
-            elif lv > anchor and DIRECTION in ("neutral", "short"):
-                sp.append(i)
-        ctx._params["bp"] = bp
-        ctx._params["sp"] = sp
-
-    levels = []
-    if MODE == "geometric" and lower > 0:
-        r = (upper / lower) ** (1.0 / GRIDS)
-        levels = [lower * (r ** i) for i in range(GRIDS + 1)]
-    else:
-        step = (upper - lower) / GRIDS
-        levels = [lower + step * i for i in range(GRIDS + 1)]
-
-    prev_price = ctx.param("prev_price", -1.0)
-    anchor = ctx.param("anchor_price", REF_PRICE if REF_PRICE > 0 else (LOWER + UPPER) / 2.0)
-    long_exp = ctx.param("long_exposure", 0.0)
-    short_exp = ctx.param("short_exposure", 0.0)
-
-    if prev_price < 0:
-        prev_price = anchor
-        ctx._params["prev_price"] = anchor
-
-    if abs(price - prev_price) < 1e-8:
-        return
-
-    bp = set(ctx.param("bp", []))
-    sp = set(ctx.param("sp", []))
-
-    for i, lv in enumerate(levels):
-        if prev_price > lv >= price and i in bp:
-            # BUY: 优先减空头,否则开/加多头(需检查预算)
-            if short_exp > 0:
-                ctx.buy(price=lv, amount=AMT)
-                short_exp = max(0.0, short_exp - AMT)
-                bp.discard(i)
-                if i + 1 < len(levels):
-                    sp.add(i + 1)
-                ctx.log("BUY(cover short) grid %d @ %.6f short_exp=%.2f" % (i, lv, short_exp))
-            else:
-                if BUDGET > 0 and (long_exp + AMT) > BUDGET:
-                    ctx.log("Budget cap reached (long_exp=%.2f + %.2f > %.2f), skip BUY grid %d" % (long_exp, AMT, BUDGET, i))
-                    continue
-                ctx.buy(price=lv, amount=AMT)
-                long_exp += AMT
-                bp.discard(i)
-                if i + 1 < len(levels):
-                    sp.add(i + 1)
-                ctx.log("BUY(open long) grid %d @ %.6f long_exp=%.2f" % (i, lv, long_exp))
-        elif prev_price < lv <= price and i in sp:
-            # SELL: 优先减多头,否则开/加空头(需检查预算)
-            if long_exp > 0:
-                ctx.sell(price=lv, amount=AMT)
-                long_exp = max(0.0, long_exp - AMT)
-                sp.discard(i)
-                if i - 1 >= 0:
-                    bp.add(i - 1)
-                ctx.log("SELL(reduce long) grid %d @ %.6f long_exp=%.2f" % (i, lv, long_exp))
-            else:
-                if BUDGET > 0 and (short_exp + AMT) > BUDGET:
-                    ctx.log("Budget cap reached (short_exp=%.2f + %.2f > %.2f), skip SELL grid %d" % (short_exp, AMT, BUDGET, i))
-                    continue
-                ctx.sell(price=lv, amount=AMT)
-                short_exp += AMT
-                sp.discard(i)
-                if i - 1 >= 0:
-                    bp.add(i - 1)
-                ctx.log("SELL(open short) grid %d @ %.6f short_exp=%.2f" % (i, lv, short_exp))
-
-    ctx._params["bp"] = list(bp)
-    ctx._params["sp"] = list(sp)
-    ctx._params["prev_price"] = price
-    ctx._params["long_exposure"] = long_exp
-    ctx._params["short_exposure"] = short_exp
+    pass
 `,
 
-  // ========== 马丁格尔 ==========
   martingale: (params) => `# ---- Martingale Bot ----
 import time as _time
 
@@ -230,13 +80,13 @@ def on_bar(ctx, bar):
         if not _budget_ok(0, INIT_AMT):
             ctx.log("Budget exhausted (%.2f quote), skip opening" % BUDGET)
             return
-        entry_qty = INIT_AMT / price if price > 0 else 0
         if DIRECTION == "long":
             ctx.buy(price=price, amount=INIT_AMT)
             ctx.log("Layer 1: BUY %.2f quote @ %.4f" % (INIT_AMT, price))
         else:
             ctx.sell(price=price, amount=INIT_AMT)
             ctx.log("Layer 1: SELL %.2f quote @ %.4f" % (INIT_AMT, price))
+        entry_qty = INIT_AMT / price if price > 0 else 0
         ctx._params["layer"] = 1
         ctx._params["last_entry_price"] = price
         ctx._params["total_cost"] = INIT_AMT
@@ -329,13 +179,13 @@ def on_bar(ctx, bar):
         if not _budget_ok(cost, amt):
             ctx.log("Budget cap reached (cost=%.2f + amt=%.2f > %.2f quote), skip add layer %d" % (cost, amt, BUDGET, layer + 1))
             return
-        add_qty = amt / price if price > 0 else 0
         if DIRECTION == "long":
             ctx.buy(price=price, amount=amt)
             ctx.log("Layer %d: BUY %.2f quote @ %.4f" % (layer + 1, amt, price))
         else:
             ctx.sell(price=price, amount=amt)
             ctx.log("Layer %d: SELL %.2f quote @ %.4f" % (layer + 1, amt, price))
+        add_qty = amt / price if price > 0 else 0
         ctx._params["layer"] = layer + 1
         ctx._params["last_entry_price"] = price
         ctx._params["total_cost"] = cost + amt
@@ -347,7 +197,6 @@ def on_bar(ctx, bar):
         # trailing_active and peak_price untouched here.
 `,
 
-  // ========== 趋势跟踪 ==========
   trend: (params) => `# ---- Trend Following Bot ----
 MA_PERIOD    = ${params.maPeriod}
 MA_TYPE      = "${params.maType || 'EMA'}"
@@ -522,7 +371,6 @@ def on_bar(ctx, bar):
             _reset_trailing(ctx)
 `,
 
-  // ========== 定投 DCA ==========
   dca: (params, context) => {
     const tf = (context && context.timeframe) || '1h'
     const tfMin = TIMEFRAME_MINUTES[tf] || 60
@@ -554,7 +402,6 @@ def on_bar(ctx, bar):
     has_pos     = ctx.position and float(ctx.position.get("size", 0)) > 0
     now         = int(_time.time())
 
-    # 若仓位被外部平掉(手动/止损等),重置累计状态以便下一轮 DCA
     if buy_count > 0 and total_qty > 0 and not has_pos:
         ctx.log("DCA position closed externally, resetting stats")
         total_spent = 0.0
@@ -572,7 +419,6 @@ def on_bar(ctx, bar):
     if budget_done:
         return
 
-    # 使用真实时间戳而非 bar 计数,确保 frequency 与 timeframe 脱耦
     elapsed = now - last_ts
     due = (buy_count == 0) or (elapsed >= INTERVAL_SEC)
     if not due:
@@ -605,13 +451,6 @@ def on_bar(ctx, bar):
   }
 }
 
-/**
- * 生成完整的策略脚本代码
- * @param {string} botType - 机器人类型
- * @param {object} params - 策略参数
- * @param {object} context - 额外上下文 { timeframe }
- * @returns {string} Python 策略代码
- */
 export function generateBotScript (botType, params, context) {
   const generator = BOT_SCRIPT_TEMPLATES[botType]
   if (!generator) {

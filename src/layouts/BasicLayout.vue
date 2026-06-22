@@ -1,5 +1,5 @@
 <template>
-  <div :class="['basic-layout-wrapper', settings.theme]">
+  <div :class="['basic-layout-wrapper', settings.theme, { 'basic-layout-wrapper--multi-tab': multiTab }]">
     <pro-layout
       :menus="menus"
       :collapsed="collapsed"
@@ -17,9 +17,6 @@
           <img v-else :src="currentLogo" class="sidebar-logo" :alt="brandConfig.app_name" />
         </div>
       </template>
-      <!-- 1.0.0+ 版本 pro-layout 提供 API,
-          增加 Header 左侧内容区自定义
-    -->
       <template #headerContentRender>
         <div style="display: flex; align-items: center; height: 100%;">
           <a-tooltip :title="$t('menu.header.refreshPage')">
@@ -28,7 +25,6 @@
         </div>
       </template>
 
-      <!-- 用户协议弹窗 -->
       <a-modal :visible="showLegalModal" :footer="null" :title="$t('menu.footer.userAgreement')" @cancel="showLegalModal = false" :width="800">
         <div style="max-height: 60vh; overflow: auto; white-space: pre-wrap; line-height: 1.8; padding: 16px;">
           {{ menuFooterConfig.legal.user_agreement_text || $t('user.login.legal.content') }}
@@ -38,7 +34,6 @@
         </div>
       </a-modal>
 
-      <!-- 隐私条例弹窗 -->
       <a-modal :visible="showPrivacyModal" :footer="null" :title="$t('menu.footer.privacyPolicy')" @cancel="showPrivacyModal = false" :width="800">
         <div style="max-height: 60vh; overflow: auto; white-space: pre-wrap; line-height: 1.8; padding: 16px;">
           {{ menuFooterConfig.legal.privacy_policy_text || $t('user.login.privacy.content') }}
@@ -49,8 +44,58 @@
       </a-modal>
 
       <setting-drawer ref="settingDrawer" :settings="settings" @change="handleSettingChange">
-        <div style="margin: 12px 0;">
-          This is SettingDrawer custom footer content.
+        <div class="setting-drawer-support">
+          <div class="support-block">
+            <div class="support-title">{{ $t('menu.footer.contactUs') }}</div>
+            <div class="support-links">
+              <a :href="menuFooterConfig.contact.support_url" target="_blank" rel="noopener noreferrer">{{ $t('menu.footer.support') }}</a>
+              <span class="separator">|</span>
+              <a :href="menuFooterConfig.contact.feature_request_url" target="_blank" rel="noopener noreferrer">{{ $t('menu.footer.featureRequest') }}</a>
+            </div>
+          </div>
+          <div class="support-block">
+            <div class="support-title">{{ $t('menu.footer.getSupport') }}</div>
+            <div class="support-links">
+              <a :href="'mailto:' + menuFooterConfig.contact.email">{{ $t('menu.footer.email') }}</a>
+              <span class="separator">|</span>
+              <a :href="menuFooterConfig.contact.live_chat_url" target="_blank" rel="noopener noreferrer">{{ $t('menu.footer.liveChat') }}</a>
+            </div>
+          </div>
+          <div class="support-block" v-if="menuFooterConfig.social_accounts && menuFooterConfig.social_accounts.length > 0">
+            <div class="support-title">{{ $t('menu.footer.socialAccounts') }}</div>
+            <div class="support-socials">
+              <a
+                v-for="(account, index) in menuFooterConfig.social_accounts"
+                :key="index"
+                :href="account.url"
+                target="_blank"
+                rel="noopener noreferrer"
+                :title="account.name"
+                class="support-social"
+              >
+                <Icon :icon="`simple-icons:${account.icon}`" />
+              </a>
+            </div>
+          </div>
+          <div class="support-legal">
+            <a
+              v-if="menuFooterConfig.legal.user_agreement_url"
+              :href="menuFooterConfig.legal.user_agreement_url"
+              target="_blank"
+              rel="noopener noreferrer"
+            >{{ $t('menu.footer.userAgreement') }}</a>
+            <a v-else @click="showLegalModal = true">{{ $t('menu.footer.userAgreement') }}</a>
+            <span class="separator">&</span>
+            <a
+              v-if="menuFooterConfig.legal.privacy_policy_url"
+              :href="menuFooterConfig.legal.privacy_policy_url"
+              target="_blank"
+              rel="noopener noreferrer"
+            >{{ $t('menu.footer.privacyPolicy') }}</a>
+            <a v-else @click="showPrivacyModal = true">{{ $t('menu.footer.privacyPolicy') }}</a>
+          </div>
+          <div class="support-copy">{{ menuFooterConfig.copyright }}</div>
+          <div class="support-version">V{{ appVersion }}</div>
         </div>
       </setting-drawer>
       <template #rightContentRender>
@@ -60,13 +105,14 @@
       <template #footerRender>
         <div style="display: none;"></div>
       </template>
-      <router-view :key="refreshKey" />
+      <multi-tab v-if="multiTab" />
+      <div class="basic-route-view-shell">
+        <route-view :key="refreshKey" :keep-alive="multiTab" />
+      </div>
     </pro-layout>
 
-    <!-- 菜单底部 footer - 直接写，不依赖插槽 -->
-    <div class="custom-menu-footer" :class="{ 'collapsed': collapsed, 'drawer-open': isMobile && isDrawerOpen, 'drawer-animating': isMobile && isDrawerAnimating }">
+    <div v-if="false" class="custom-menu-footer" :class="{ 'collapsed': collapsed, 'drawer-open': isMobile && isDrawerOpen, 'drawer-animating': isMobile && isDrawerAnimating }">
       <div v-if="!collapsed" class="menu-footer-content">
-        <!-- 联系我们 -->
         <div class="footer-section">
           <div class="section-title">{{ $t('menu.footer.contactUs') }}</div>
           <div class="section-links">
@@ -76,7 +122,6 @@
           </div>
         </div>
 
-        <!-- 获取支持 -->
         <div class="footer-section">
           <div class="section-title">{{ $t('menu.footer.getSupport') }}</div>
           <div class="section-links">
@@ -86,7 +131,6 @@
           </div>
         </div>
 
-        <!-- 社交账户 -->
         <div class="footer-section" v-if="menuFooterConfig.social_accounts && menuFooterConfig.social_accounts.length > 0">
           <div class="section-title">{{ $t('menu.footer.socialAccounts') }}</div>
           <div class="social-icons">
@@ -104,7 +148,6 @@
           </div>
         </div>
 
-        <!-- 用户协议和隐私条例 -->
         <div class="footer-section">
           <div class="section-links">
             <a
@@ -125,11 +168,9 @@
           </div>
         </div>
 
-        <!-- 版权信息 -->
         <div class="footer-section copyright">
           {{ menuFooterConfig.copyright }}
         </div>
-        <!-- 版本号 -->
         <div class="footer-section version">
           V{{ appVersion }}
         </div>
@@ -160,6 +201,8 @@ import {
 import defaultSettings from '@/config/defaultSettings'
 import RightContent from '@/components/GlobalHeader/RightContent'
 import SettingDrawer from '@/components/SettingDrawer/SettingDrawer'
+import MultiTab from '@/components/MultiTab'
+import RouteView from './RouteView'
 import { Icon } from '@iconify/vue2'
 import logoLight from '@/assets/logo.png'
 import logoDark from '@/assets/logo_w.png'
@@ -170,6 +213,8 @@ export default {
   components: {
     SettingDrawer,
     RightContent,
+    MultiTab,
+    RouteView,
     Icon
     // GlobalFooter,
     // Ads
@@ -182,17 +227,13 @@ export default {
       isDev: process.env.NODE_ENV === 'development' || process.env.VUE_APP_PREVIEW === 'true',
 
       // base - menus moved to computed property
-      // 侧栏收起状态
       collapsed: false,
       title: defaultSettings.title,
       settings: {
-        // 布局类型
         layout: defaultSettings.layout, // 'sidemenu', 'topmenu'
         // CONTENT_WIDTH_TYPE
         contentWidth: defaultSettings.layout === 'sidemenu' ? CONTENT_WIDTH_TYPE.Fluid : defaultSettings.contentWidth,
-        // 主题 'dark' | 'light'
         theme: defaultSettings.navTheme,
-        // 主色调
         primaryColor: defaultSettings.primaryColor,
         fixedHeader: defaultSettings.fixedHeader,
         fixSiderbar: defaultSettings.fixSiderbar,
@@ -201,44 +242,46 @@ export default {
         hideHintAlert: false,
         hideCopyButton: false
       },
-      // 媒体查询
       query: {},
 
-      // 是否手机模式
       isMobile: false,
-      // 法律免责声明弹窗显示状态
       showLegalModal: false,
       showPrivacyModal: false,
-      // 用于刷新内容区域的 key
       refreshKey: 0,
-      // drawer 是否打开（手机端）
       isDrawerOpen: false,
-      // drawer 是否正在动画中（手机端）
       isDrawerAnimating: false,
-      // 是否是首次初始化主题色（用于决定是否显示"正在切换主题"提示）
       isInitialThemeColorLoad: true
     }
   },
   computed: {
     ...mapState({
-      // 动态主路由
       mainMenu: state => state.permission.addRouters,
-      // 后端下发的品牌配置（src/store/modules/brand.js）
-      brandConfig: state => state.brand.config
+      brandConfig: state => state.brand.config,
+      multiTab: state => state.app.multiTab
     }),
-    // 响应式菜单 - 根据 addRouters 动态更新
     menus () {
       const routes = this.mainMenu.find(item => item.path === '/')
-      return (routes && routes.children) || []
+      const children = (routes && routes.children) || []
+      if (this.settings.layout !== 'topmenu') {
+        return children
+      }
+      return this.buildTopMenuGroups(children)
     },
-    // 给模板复用：所有 footer/legal 项都从 brand store 读，留空时回退到默认
+    showAdminMenuDivider () {
+      const routes = this.mainMenu.find(item => item.path === '/')
+      const children = (routes && routes.children) || []
+      return children.some(route => {
+        if (route.hidden) return false
+        const perms = (route.meta && route.meta.permission) || []
+        return perms.includes('admin')
+      })
+    },
     menuFooterConfig () {
       return this.brandConfig
     },
     appVersion () {
       return (this.brandConfig && this.brandConfig.app_version) || defaultSettings.appVersion || '3.0.3'
     },
-    // Logo 优先用后端 BRAND_LOGO_*_URL；为空时回退到打包好的 assets/logo.png
     currentLogo () {
       const theme = this.settings.theme
       const isDark = theme === 'dark' || theme === 'realdark'
@@ -253,17 +296,14 @@ export default {
   },
   created () {
     // menus is now a computed property - no need to set here
-    // 从 store 同步主题设置（从 localStorage 恢复）
     this.settings.theme = this.$store.state.app.theme
     this.settings.primaryColor = this.$store.state.app.color || defaultSettings.primaryColor
-    // 处理侧栏收起状态
     this.$watch('collapsed', () => {
       this.$store.commit(SIDEBAR_TYPE, this.collapsed)
     })
     this.$watch('isMobile', () => {
       this.$store.commit(TOGGLE_MOBILE_TYPE, this.isMobile)
     })
-    // 监听 store 中的主题变化，同步到 settings 和 body 类名
     this.$watch('$store.state.app.theme', (val) => {
       this.settings.theme = val
       if (val === 'dark' || val === 'realdark') {
@@ -274,22 +314,18 @@ export default {
         document.body.classList.add('light')
       }
     }, { immediate: true })
-    // 监听 store 中的主题色变化，同步到 settings
     this.$watch('$store.state.app.color', (val) => {
       if (val) {
         this.settings.primaryColor = val
-        // 应用主题色
+        document.documentElement.style.setProperty('--primary-color', val)
         if (process.env.NODE_ENV !== 'production' || process.env.VUE_APP_PREVIEW === 'true') {
-          // 首次加载时静默更新，不显示"正在切换主题"提示
           updateTheme(val, this.isInitialThemeColorLoad)
-          // 首次调用后，将标志设为 false
           if (this.isInitialThemeColorLoad) {
             this.isInitialThemeColorLoad = false
           }
         }
       }
     }, { immediate: true })
-    // 监听 settings.theme 变化，同步 body 类名（作为额外保障）
     this.$watch('settings.theme', (val) => {
       if (val === 'dark' || val === 'realdark') {
         document.body.classList.add('dark')
@@ -299,6 +335,20 @@ export default {
         document.body.classList.add('light')
       }
     }, { immediate: true })
+  },
+  watch: {
+    mainMenu: {
+      handler () {
+        this.scheduleAdminMenuDivider()
+      },
+      deep: true
+    },
+    collapsed () {
+      this.scheduleAdminMenuDivider()
+    },
+    showAdminMenuDivider () {
+      this.scheduleAdminMenuDivider()
+    }
   },
   mounted () {
     const userAgent = navigator.userAgent
@@ -313,10 +363,7 @@ export default {
 
     // first update color
     // TIPS: THEME COLOR HANDLER!! PLEASE CHECK THAT!!
-    // 注意：主题色更新已在 created() 的 watch 中处理，这里不再重复调用
-    // 避免显示两次"正在切换主题"提示
 
-    // 监听显示设置抽屉事件
     this.$root.$on('show-setting-drawer', () => {
       if (this.$refs.settingDrawer) {
         this.$refs.settingDrawer.showDrawer()
@@ -325,46 +372,40 @@ export default {
 
     // Footer config is static for local OSS build
 
-    // 更新菜单底部位置（延迟执行，确保 DOM 已渲染）
     this.$nextTick(() => {
       setTimeout(() => {
         this.updateMenuFooterPosition()
+        this.updateAdminMenuDivider()
+        this.setupAdminMenuDividerObserver()
       }, 200)
     })
 
-    // 监听窗口大小变化
     window.addEventListener('resize', this.updateMenuFooterPosition)
 
-    // 桌面端：定期检查并更新 footer 位置（确保能显示）
     if (!this.isMobile) {
       this._desktopFooterInterval = setInterval(() => {
         this.updateMenuFooterPosition()
+        this.updateAdminMenuDivider()
       }, 1000)
     }
 
-    // 监听手机端菜单 drawer 的打开/关闭
-    // 使用 MutationObserver 监听 drawer 的显示/隐藏
     const observer = new MutationObserver(() => {
       if (this.isMobile) {
-        // 检查 drawer 是否打开
         const drawer = document.querySelector('.ant-drawer.ant-drawer-open')
         const wasOpen = this.isDrawerOpen
         const isOpen = !!drawer
 
         this.isDrawerOpen = isOpen
 
-        // 如果状态改变，更新 footer 位置
         if (wasOpen !== this.isDrawerOpen) {
           if (this.isDrawerOpen) {
-            // drawer 刚打开，标记为动画中，延迟显示 footer
             this.isDrawerAnimating = true
-            // 等待 drawer 动画完成（Ant Design Drawer 动画时间是 0.3s）
             setTimeout(() => {
               this.isDrawerAnimating = false
               this.updateMenuFooterPosition()
+              this.scheduleAdminMenuDivider()
             }, 300)
           } else {
-            // drawer 关闭，立即隐藏 footer
             this.isDrawerAnimating = false
             this.updateMenuFooterPosition()
           }
@@ -372,7 +413,6 @@ export default {
       }
     })
 
-    // 观察 body 的变化，检测 drawer 的添加/移除和 class 变化
     observer.observe(document.body, {
       childList: true,
       subtree: true,
@@ -380,17 +420,14 @@ export default {
       attributeFilter: ['class']
     })
 
-    // 保存 observer 以便清理
     this._menuFooterObserver = observer
 
-    // 定期检查（作为备用方案，确保 footer 位置正确）
     this._menuFooterInterval = setInterval(() => {
       if (this.isMobile) {
         const drawer = document.querySelector('.ant-drawer.ant-drawer-open')
         const currentState = !!drawer
         if (this.isDrawerOpen !== currentState) {
           this.isDrawerOpen = currentState
-          // 如果 drawer 刚打开，标记为动画中
           if (currentState) {
             this.isDrawerAnimating = true
             setTimeout(() => {
@@ -402,42 +439,192 @@ export default {
             this.updateMenuFooterPosition()
           }
         } else if (currentState && !this.isDrawerAnimating) {
-          // drawer 已打开且不在动画中，更新位置（防止 drawer 位置变化）
           this.updateMenuFooterPosition()
         }
       }
     }, 200)
   },
   beforeDestroy () {
-    // 移除事件监听
     this.$root.$off('show-setting-drawer')
     window.removeEventListener('resize', this.updateMenuFooterPosition)
 
-    // 清理 MutationObserver
     if (this._menuFooterObserver) {
       this._menuFooterObserver.disconnect()
     }
 
-    // 清理定时器
     if (this._menuFooterInterval) {
       clearInterval(this._menuFooterInterval)
     }
 
-    // 清理桌面端定时器
+    if (this._adminDividerObserver) {
+      this._adminDividerObserver.disconnect()
+      this._adminDividerObserver = null
+    }
+
+    if (this._adminDividerTimer) {
+      clearTimeout(this._adminDividerTimer)
+      this._adminDividerTimer = null
+    }
+
     if (this._desktopFooterInterval) {
       clearInterval(this._desktopFooterInterval)
     }
   },
   methods: {
     i18nRender,
+    buildTopMenuGroups (routes) {
+      const accountMenuPaths = ['/billing', '/profile']
+      const visibleRoutes = routes.filter(route => !route.hidden && !accountMenuPaths.includes(route.path))
+      const groups = [
+        {
+          name: 'MenuGroupAI',
+          path: '/menu-group/ai-workspace',
+          title: this.$t('menu.group.aiWorkspace') || 'AI Workspace',
+          icon: 'thunderbolt',
+          paths: ['/ai-asset-analysis'],
+          singleAsItem: true
+        },
+        {
+          name: 'MenuGroupMarket',
+          path: '/menu-group/market-data',
+          title: this.$t('menu.group.marketData') || 'Market & Data',
+          icon: 'database',
+          paths: ['/strategy-center', '/indicator-community']
+        },
+        {
+          name: 'MenuGroupStrategy',
+          path: '/menu-group/strategy-lab',
+          title: this.$t('menu.group.strategyLab') || 'Strategy Lab',
+          icon: 'experiment',
+          paths: ['/strategy-ide', '/strategy-live', '/strategy-script', '/trading-bot']
+        },
+        {
+          name: 'MenuGroupTrading',
+          path: '/menu-group/auto-trading',
+          title: this.$t('menu.dashboard.brokerAccounts') || 'Broker Accounts',
+          icon: 'bank',
+          paths: ['/broker-accounts'],
+          singleAsItem: true
+        },
+        {
+          name: 'MenuGroupAdmin',
+          path: '/menu-group/admin',
+          title: this.$t('menu.group.admin') || 'Admin',
+          icon: 'setting',
+          paths: ['/user-manage', '/agent-tokens', '/ai-skills', '/settings']
+        }
+      ]
+      const routeMap = visibleRoutes.reduce((map, route) => {
+        map[route.path] = route
+        return map
+      }, {})
+      const used = new Set()
+      const groupedRoutes = groups
+        .map(group => {
+          const children = group.paths
+            .map(path => routeMap[path])
+            .filter(Boolean)
+            .map(route => {
+              used.add(route.path)
+              return { ...route }
+            })
+          if (!children.length) return null
+          if (group.singleAsItem && children.length === 1) {
+            return children[0]
+          }
+          return {
+            path: group.path,
+            name: group.name,
+            redirect: children[0].path,
+            meta: {
+              title: group.title,
+              icon: group.icon,
+              permission: children.reduce((list, route) => {
+                const perms = (route.meta && route.meta.permission) || []
+                perms.forEach(permission => {
+                  if (!list.includes(permission)) list.push(permission)
+                })
+                return list
+              }, [])
+            },
+            children
+          }
+        })
+        .filter(Boolean)
+      const leftovers = visibleRoutes.filter(route => !used.has(route.path))
+      return groupedRoutes.concat(leftovers)
+    },
+    updateAdminMenuDivider () {
+      this.$nextTick(() => {
+        requestAnimationFrame(() => {
+          const menuRoots = Array.from(
+            document.querySelectorAll('.ant-pro-sider .ant-menu, .ant-drawer .ant-menu')
+          )
+          menuRoots.forEach(root => {
+            root.querySelectorAll('.sidebar-admin-divider').forEach(el => el.remove())
+            if (!this.showAdminMenuDivider) return
+
+            const profileItem = this.findProfileMenuItem(root)
+            if (!profileItem) return
+            if (profileItem.nextElementSibling && profileItem.nextElementSibling.classList.contains('sidebar-admin-divider')) {
+              return
+            }
+
+            const divider = document.createElement('li')
+            divider.className = 'ant-menu-item sidebar-admin-divider'
+            divider.setAttribute('role', 'separator')
+            divider.innerHTML = '<span class="sidebar-admin-divider-line" aria-hidden="true"></span>'
+            profileItem.insertAdjacentElement('afterend', divider)
+          })
+        })
+      })
+    },
+    findProfileMenuItem (root) {
+      const routes = this.mainMenu.find(item => item.path === '/')
+      const children = (routes && routes.children) || []
+      const visibleRoutes = children.filter(route => !route.hidden)
+      const profileIndex = visibleRoutes.findIndex(route => route.path === '/profile')
+      const items = root.querySelectorAll('li.ant-menu-item:not(.sidebar-admin-divider)')
+      if (profileIndex >= 0 && items[profileIndex]) {
+        return items[profileIndex]
+      }
+      for (const li of items) {
+        const link = li.querySelector('a')
+        if (!link) continue
+        const href = String(link.getAttribute('href') || '').toLowerCase()
+        if (href.includes('/profile') || href.endsWith('profile')) {
+          return li
+        }
+      }
+      return null
+    },
+    scheduleAdminMenuDivider () {
+      if (this._adminDividerTimer) {
+        clearTimeout(this._adminDividerTimer)
+      }
+      this._adminDividerTimer = setTimeout(() => {
+        this._adminDividerTimer = null
+        this.updateAdminMenuDivider()
+      }, 60)
+    },
+    setupAdminMenuDividerObserver () {
+      if (this._adminDividerObserver) {
+        this._adminDividerObserver.disconnect()
+        this._adminDividerObserver = null
+      }
+      const menuEl = document.querySelector('.ant-pro-sider .ant-menu')
+      if (!menuEl) return
+      this._adminDividerObserver = new MutationObserver(() => {
+        this.scheduleAdminMenuDivider()
+      })
+      this._adminDividerObserver.observe(menuEl, { childList: true })
+    },
     updateMenuFooterPosition () {
       this.$nextTick(() => {
-        // 使用 requestAnimationFrame 确保在浏览器下一次重绘前更新，避免打断 CSS 过渡
         requestAnimationFrame(() => {
           const menuFooter = this.$el?.querySelector('.custom-menu-footer')
           if (!menuFooter) return
 
-          // 手机端：查找抽屉菜单容器
           if (this.isMobile) {
             const drawer = document.querySelector('.ant-drawer.ant-drawer-open')
             this.isDrawerOpen = !!drawer
@@ -446,21 +633,16 @@ export default {
               // const drawerRect = drawer.getBoundingClientRect()
               menuFooter.style.position = 'fixed'
               // menuFooter.style.left = `${drawerRect.left}px`
-              // 宽度由 CSS 的 .collapsed 类控制，不在这里设置
               menuFooter.style.bottom = '0px'
               menuFooter.style.zIndex = '1001'
               menuFooter.style.display = 'block'
               menuFooter.style.opacity = '1'
 
-              // 动态计算footer高度，并设置drawer body的padding
               const footerHeight = menuFooter.offsetHeight || 280
               const drawerBody = drawer.querySelector('.ant-drawer-body')
               if (drawerBody) {
-                // 设置CSS变量，供CSS使用
                 drawer.style.setProperty('--footer-height', `${footerHeight}px`)
-                // 直接设置padding-bottom，确保菜单内容不被遮挡
                 drawerBody.style.paddingBottom = `${footerHeight + 10}px`
-                // 确保drawer body可以滚动
                 drawerBody.style.overflowY = 'auto'
                 drawerBody.style.overflowX = 'hidden'
                 drawerBody.style.webkitOverflowScrolling = 'touch'
@@ -468,14 +650,12 @@ export default {
 
               return
             } else if (drawer && this.isDrawerAnimating) {
-              // drawer 正在动画中，footer 应该隐藏或透明
               menuFooter.style.opacity = '0'
               menuFooter.style.display = 'block'
               return
             } else {
               menuFooter.style.display = 'none'
               menuFooter.style.opacity = '0'
-              // 清除drawer body的padding
               const drawer = document.querySelector('.ant-drawer')
               if (drawer) {
                 const drawerBody = drawer.querySelector('.ant-drawer-body')
@@ -489,20 +669,16 @@ export default {
             }
           }
 
-          // 桌面端：查找普通菜单容器
           const sider = this.$el?.querySelector('.ant-pro-sider') || document.querySelector('.ant-pro-sider')
           if (sider) {
             const siderRect = sider.getBoundingClientRect()
           const footerHeight = menuFooter.offsetHeight || 220
             menuFooter.style.position = 'fixed'
             menuFooter.style.left = `${siderRect.left}px`
-            // 宽度由 CSS 的 .collapsed 类控制，不在这里设置
             menuFooter.style.bottom = '0px'
             menuFooter.style.zIndex = '100'
             menuFooter.style.display = 'block'
-          // 将 footer 高度写入 CSS 变量，方便样式中使用
           sider.style.setProperty('--menu-footer-height', `${footerHeight}px`)
-          // 给侧栏主体预留出 footer 的高度，并允许滚动
           const siderChildren = sider.querySelector('.ant-layout-sider-children')
           if (siderChildren) {
             siderChildren.style.paddingBottom = `${footerHeight + 12}px`
@@ -510,7 +686,6 @@ export default {
             siderChildren.style.overflowX = 'hidden'
             siderChildren.style.webkitOverflowScrolling = 'touch'
           }
-          // 进一步限制菜单区域高度，避免 footer 遮挡
           const menuScroll = sider.querySelector('.ant-pro-sider-menu') ||
             sider.querySelector('.ant-menu-root') ||
             sider.querySelector('.ant-menu')
@@ -522,10 +697,8 @@ export default {
             menuScroll.style.webkitOverflowScrolling = 'touch'
           }
           } else {
-            // 如果找不到菜单，使用默认位置
             menuFooter.style.position = 'fixed'
             menuFooter.style.left = '0px'
-            // 宽度由 CSS 的 .collapsed 类控制
             menuFooter.style.bottom = '0px'
             menuFooter.style.zIndex = '100'
             menuFooter.style.display = 'block'
@@ -534,7 +707,6 @@ export default {
       })
     },
     handleRefresh () {
-      // 只刷新内容区域，通过改变 key 强制重新渲染 router-view
       this.refreshKey += 1
     },
     handleMediaQuery (val) {
@@ -558,14 +730,11 @@ export default {
     },
     handleCollapse (val) {
       this.collapsed = val
-      // 菜单折叠状态改变时，更新底部位置
-      // CSS transition 会自动处理宽度和位置的平滑过渡
       this.$nextTick(() => {
         this.updateMenuFooterPosition()
       })
     },
     handleMobileMenuToggle () {
-      // 监听手机端菜单打开/关闭
       this.$nextTick(() => {
         setTimeout(() => {
           this.updateMenuFooterPosition()
@@ -618,7 +787,6 @@ export default {
 <style lang="less">
 @import "./BasicLayout.less";
 
-/* 侧栏顶部 Logo 区域 */
 .sidebar-logo-wrapper {
   display: flex;
   align-items: center;
@@ -648,7 +816,7 @@ export default {
   }
 }
 
-/deep/ .ant-pro-sider-menu-logo {
+::v-deep .ant-pro-sider-menu-logo {
   display: flex;
   align-items: center;
   padding-left: 0 !important;
@@ -673,8 +841,7 @@ export default {
   }
 }
 
-/* 侧栏折叠时 slogo 自适应 */
-.ant-pro-sider-menu-sider.ant-layout-sider-collapsed /deep/ .ant-pro-sider-menu-logo {
+.ant-pro-sider-menu-sider.ant-layout-sider-collapsed ::v-deep .ant-pro-sider-menu-logo {
   padding: 0 !important;
   justify-content: center;
 
@@ -689,7 +856,6 @@ export default {
 .ant-pro-sider-menu-sider.light .ant-menu-light {
   height: 60vh!important;
 }
-/* 完全隐藏所有 footer */
 .basic-layout-wrapper {
   .ant-layout-footer {
     display: none !important;
@@ -700,11 +866,9 @@ export default {
   }
 }
 
-/* 菜单底部 footer 样式 - 直接定位到菜单底部 */
 .basic-layout-wrapper {
   position: relative;
 
-  /* 自定义菜单底部 - 通过 CSS 选择器定位到菜单区域 */
   .custom-menu-footer {
     position: fixed;
     bottom: 0;
@@ -713,8 +877,6 @@ export default {
     width: 256px; /* 统一固定宽度 256px */
     background: #111111;
     border-top: 1px solid #1c1c1c;
-    /* 与菜单栏抽屉动画同步：使用相同的过渡时间和缓动函数 */
-    /* Ant Design Vue Drawer 使用 0.3s 和 cubic-bezier(0.78, 0.14, 0.15, 0.86) */
     transition: left 0.3s cubic-bezier(0.78, 0.14, 0.15, 0.86),
                 width 0.3s cubic-bezier(0.78, 0.14, 0.15, 0.86),
                 max-width 0.3s cubic-bezier(0.78, 0.14, 0.15, 0.86),
@@ -728,26 +890,22 @@ export default {
       max-width: 80px;
     }
 
-    /* 手机端：当菜单在 drawer 中时，需要更高的 z-index */
     @media (max-width: 768px) {
       z-index: 1001; /* drawer 的 z-index 通常是 1000 */
       left: 0 !important;
       width: 100% !important;
       max-width: none !important;
 
-      /* 当 drawer 未打开时，隐藏 footer */
       &:not(.drawer-open) {
         display: none !important;
         opacity: 0;
       }
 
-      /* 当 drawer 正在动画中时，footer 应该透明，等待动画完成 */
       &.drawer-animating {
         opacity: 0;
         transition: opacity 0.1s ease-out;
       }
 
-      /* 当 drawer 完全打开且不在动画中时，footer 才显示 */
       &.drawer-open:not(.drawer-animating) {
         opacity: 1;
         transition: left 0.3s cubic-bezier(0.78, 0.14, 0.15, 0.86),
@@ -757,7 +915,6 @@ export default {
       }
     }
 
-    /* 浅色/暗黑 footer 配色见 src/qd-layout-dark-override.less（在 main.js 中于 global.less 之后加载） */
 
     .menu-footer-content {
       padding: 12px 16px;
@@ -766,7 +923,6 @@ export default {
       max-height: none;
       overflow: visible;
 
-      /* 隐藏滚动条但保持滚动功能 */
       scrollbar-width: thin;
       scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
       &::-webkit-scrollbar {
@@ -910,7 +1066,6 @@ export default {
     }
   }
 
-  /* 监听菜单折叠状态，动态调整宽度 */
   ::v-deep .ant-pro-layout {
     &.ant-pro-sider-collapsed ~ .custom-menu-footer,
     .ant-pro-sider-collapsed ~ .custom-menu-footer {
@@ -919,8 +1074,41 @@ export default {
   }
 }
 
-/* 侧栏菜单滚动 & 为自定义 footer 预留空间 */
 .basic-layout-wrapper {
+  ::v-deep li.ant-menu-item.sidebar-admin-divider {
+    height: auto !important;
+    line-height: 1 !important;
+    margin: 10px 16px 12px !important;
+    padding: 0 !important;
+    pointer-events: none;
+    cursor: default;
+    list-style: none;
+    overflow: hidden;
+
+    &::after {
+      display: none;
+    }
+
+    .anticon,
+    .ant-menu-item-icon {
+      display: none !important;
+    }
+
+    .sidebar-admin-divider-line {
+      display: block;
+      width: 100%;
+      height: 1px;
+      background: rgba(0, 0, 0, 0.1);
+      border-radius: 1px;
+    }
+  }
+
+  .ant-pro-sider.ant-pro-sider-collapsed {
+    ::v-deep li.ant-menu-item.sidebar-admin-divider {
+      margin: 8px 12px !important;
+    }
+  }
+
   .ant-layout-sider-children {
     padding-bottom: calc(var(--menu-footer-height, 220px) + 12px);
     overflow-y: auto;
@@ -954,7 +1142,6 @@ export default {
     }
   }
 
-  /* 强制侧栏和菜单区域可滚动，避免被 footer 遮挡 */
   .ant-pro-sider {
     height: 100vh;
     display: flex;
@@ -980,10 +1167,12 @@ export default {
   }
 }
 
-/* 暗黑主题样式 */
 .basic-layout-wrapper.dark,
 .basic-layout-wrapper.realdark {
-  /* Header 适配 - 与侧栏亮黑 #111 一致 + 顶缘内高光 */
+  ::v-deep li.ant-menu-item.sidebar-admin-divider .sidebar-admin-divider-line {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
   .ant-layout-header {
     background: #111111 !important;
     border-bottom: 1px solid #1c1c1c !important;
@@ -1010,22 +1199,17 @@ export default {
     }
   }
 
-  /* Content 适配 */
   .ant-pro-basicLayout-content {
     background-color: #141414 !important;
   }
 
-  /* 确保 Layout 本身也是深色 */
   .ant-layout {
     background-color: #141414 !important;
   }
 }
 
-/* 手机端：修复footer遮挡菜单的问题 */
 @media (max-width: 768px) {
-  /* 让drawer body可以滚动，并添加底部padding避免被footer遮挡 */
   .ant-drawer.ant-drawer-open {
-    /* 确保drawer容器可以正常显示 */
     .ant-drawer-content-wrapper {
       overflow: visible;
     }
@@ -1045,15 +1229,10 @@ export default {
     }
 
     .ant-drawer-body {
-      /* 让菜单内容可以滚动 */
       overflow-y: auto !important;
       overflow-x: hidden !important;
-      /* 添加底部padding，高度等于footer的高度（由JS动态设置） */
-      /* 默认值280px作为fallback */
       padding-bottom: var(--footer-height, 280px) !important;
-      /* 确保滚动流畅 */
       -webkit-overflow-scrolling: touch;
-      /* 隐藏滚动条但保持滚动功能 */
       scrollbar-width: thin;
       scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
       &::-webkit-scrollbar {
@@ -1069,10 +1248,125 @@ export default {
           background: rgba(255, 255, 255, 0.3);
         }
       }
-      /* 确保菜单内容区域有足够的高度 */
       min-height: 0;
       flex: 1;
     }
+  }
+}
+
+.setting-drawer-support {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  color: rgba(15, 23, 42, 0.72);
+
+  .support-block {
+    margin-bottom: 14px;
+  }
+
+  .support-title {
+    margin-bottom: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(15, 23, 42, 0.86);
+  }
+
+  .support-links,
+  .support-legal {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    line-height: 1.6;
+
+    a {
+      color: var(--primary-color, #1890ff);
+    }
+
+    .separator {
+      color: rgba(100, 116, 139, 0.58);
+    }
+  }
+
+  .support-socials {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .support-social {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 6px;
+    color: rgba(15, 23, 42, 0.72);
+    background: rgba(248, 250, 252, 0.85);
+    transition: color 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+
+    &:hover {
+      color: var(--primary-color, #1890ff);
+      border-color: color-mix(in srgb, var(--primary-color, #1890ff) 34%, transparent);
+      background: color-mix(in srgb, var(--primary-color, #1890ff) 8%, #fff);
+    }
+  }
+
+  .support-copy {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(15, 23, 42, 0.08);
+    font-size: 11px;
+    color: rgba(100, 116, 139, 0.78);
+  }
+
+  .support-version {
+    margin-top: 4px;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    color: rgba(100, 116, 139, 0.58);
+  }
+}
+
+body.dark .setting-drawer-support,
+body.realdark .setting-drawer-support,
+.basic-layout-wrapper.dark .setting-drawer-support,
+.basic-layout-wrapper.realdark .setting-drawer-support {
+  border-top-color: rgba(255, 255, 255, 0.1);
+  color: rgba(226, 232, 240, 0.72);
+
+  .support-title {
+    color: rgba(248, 250, 252, 0.9);
+  }
+
+  .support-links,
+  .support-legal {
+    .separator {
+      color: rgba(148, 163, 184, 0.58);
+    }
+  }
+
+  .support-social {
+    color: rgba(226, 232, 240, 0.74);
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+
+    &:hover {
+      color: var(--primary-color, #1890ff);
+      border-color: color-mix(in srgb, var(--primary-color, #1890ff) 36%, transparent);
+      background: color-mix(in srgb, var(--primary-color, #1890ff) 12%, transparent);
+    }
+  }
+
+  .support-copy {
+    border-top-color: rgba(255, 255, 255, 0.1);
+    color: rgba(148, 163, 184, 0.75);
+  }
+
+  .support-version {
+    color: rgba(148, 163, 184, 0.58);
   }
 }
 

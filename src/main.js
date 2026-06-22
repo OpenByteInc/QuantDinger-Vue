@@ -1,6 +1,5 @@
 import Vue from 'vue'
-// ant-design-vue 1.x 全量样式（lazy_use.js 通过 Vue.use 注册组件，但样式仍需整体引入）
-import 'ant-design-vue/dist/antd.less'
+import 'ant-design-vue/dist/antd.css'
 import App from './App.vue'
 import router from './router'
 import store from './store/'
@@ -13,7 +12,6 @@ import './core/lazy_use' // use lazy load components
 import './permission' // permission control
 import './utils/filter' // global filter
 import './global.less' // global style
-// 必须在 global.less 之后：覆盖 Pro Layout 顶栏/侧栏底栏（否则会被 global 与组件顺序盖住）
 import './qd-layout-dark-override.less'
 
 Vue.config.productionTip = false

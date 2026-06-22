@@ -9,7 +9,6 @@ export const CRYPTO_EXCHANGE_DISPLAY_NAMES = {
   kucoin: 'KuCoin',
   gate: 'Gate.io',
   bitfinex: 'Bitfinex',
-  deepcoin: 'Deepcoin',
   htx: 'HTX',
   alpaca: 'Alpaca',
   ibkr: 'IBKR',

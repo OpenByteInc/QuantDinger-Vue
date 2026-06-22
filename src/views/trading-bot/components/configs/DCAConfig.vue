@@ -158,7 +158,18 @@ export default {
     font-size: 13px;
 
     .label { color: #8c8c8c; }
-    .value { font-weight: 600; color: #262626; }
+    .value { font-weight: 600; color: rgba(0, 0, 0, 0.85); }
+  }
+
+  body.dark &,
+  body.realdark & {
+    background: rgba(82, 196, 26, 0.08);
+    border-color: rgba(82, 196, 26, 0.35);
+
+    .summary-item {
+      .label { color: rgba(255, 255, 255, 0.45); }
+      .value { color: rgba(255, 255, 255, 0.85); }
+    }
   }
 }
 </style>

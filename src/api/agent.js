@@ -53,6 +53,44 @@ export function listAgentAudit (params) {
   })
 }
 
+/** Self-service token policy + risk disclosure (any logged-in user). */
+export function getMyAgentTokenPolicy () {
+  return request({
+    url: '/api/agent/v1/me/tokens/policy',
+    method: 'get'
+  })
+}
+
+export function issueMyAgentToken (data) {
+  return request({
+    url: '/api/agent/v1/me/tokens',
+    method: 'post',
+    data
+  })
+}
+
+export function listMyAgentTokens () {
+  return request({
+    url: '/api/agent/v1/me/tokens',
+    method: 'get'
+  })
+}
+
+export function revokeMyAgentToken (tokenId) {
+  return request({
+    url: `/api/agent/v1/me/tokens/${tokenId}`,
+    method: 'delete'
+  })
+}
+
+export function listMyAgentAudit (params) {
+  return request({
+    url: '/api/agent/v1/me/audit',
+    method: 'get',
+    params
+  })
+}
+
 /**
  * Jobs submitted by agents (paged via limit only; newest first).
  * NOTE: this hits an agent-scoped endpoint, so it requires an agent token —

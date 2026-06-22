@@ -1,13 +1,9 @@
 <template>
   <div class="indicator-community-container" :class="{ 'theme-dark': isDarkTheme }">
-    <!-- 顶部 tab 切换：所有用户都能看到「指标市场」和「我的指标后台」，
-         审核 tab 仅管理员可见。 -->
     <a-tabs v-model="activeTab" class="admin-tabs" @change="handleTabChange">
       <a-tab-pane key="market" :tab="$t('community.title')">
-        <!-- 市场内容在下方 -->
       </a-tab-pane>
       <a-tab-pane key="author" :tab="$t('community.authorTab')">
-        <!-- 作者后台内容在下方 -->
       </a-tab-pane>
       <a-tab-pane v-if="isAdmin" key="review">
         <template slot="tab">
@@ -18,16 +14,24 @@
       </a-tab-pane>
     </a-tabs>
 
-    <!-- 顶部工具栏（市场模式） -->
     <div v-show="activeTab === 'market'" class="market-header">
       <div class="header-left">
         <h2 class="page-title">
           <a-icon type="shop" />
           {{ $t('community.title') }}
         </h2>
+        <a-radio-group
+          v-model="marketAssetType"
+          button-style="solid"
+          class="market-asset-tabs"
+          @change="handleMarketAssetTypeChange"
+        >
+          <a-radio-button value="indicator">{{ $t('community.tabIndicators') }}</a-radio-button>
+          <a-radio-button value="script_template">{{ $t('community.tabScriptTemplates') }}</a-radio-button>
+          <a-radio-button value="bot_preset">{{ $t('community.tabBotPresets') }}</a-radio-button>
+        </a-radio-group>
       </div>
       <div class="header-right">
-        <!-- 搜索 -->
         <a-input-search
           v-model="filters.keyword"
           :placeholder="$t('community.searchPlaceholder')"
@@ -36,7 +40,6 @@
           @search="handleSearch"
           @pressEnter="handleSearch"
         />
-        <!-- 价格筛选 -->
         <a-radio-group v-model="filters.pricingType" button-style="solid" @change="handleFilterChange">
           <a-radio-button value="">{{ $t('community.all') }}</a-radio-button>
           <a-radio-button value="free">{{ $t('community.freeOnly') }}</a-radio-button>
@@ -56,7 +59,6 @@
           <a-select-option value="price_asc">{{ $t('community.sortPriceLow') }}</a-select-option>
           <a-select-option value="price_desc">{{ $t('community.sortPriceHigh') }}</a-select-option>
         </a-select>
-        <!-- 我的购买 -->
         <a-button type="link" @click="showMyPurchases = true">
           <a-icon type="shopping" />
           {{ $t('community.myPurchases') }}
@@ -64,13 +66,15 @@
       </div>
     </div>
 
-    <!-- 指标网格（市场模式） -->
     <template v-if="activeTab === 'market'">
       <a-spin :spinning="loading">
         <div v-if="indicators.length === 0 && !loading" class="empty-state">
-          <a-empty :description="$t('community.noIndicators')">
-            <a-button type="primary" @click="goToCreate">
+          <a-empty :description="marketEmptyDescription">
+            <a-button v-if="marketAssetType === 'indicator'" type="primary" @click="goToCreate">
               {{ $t('community.createFirst') }}
+            </a-button>
+            <a-button v-else-if="marketAssetType === 'bot_preset'" type="primary" @click="goToTradingBot">
+              {{ $t('community.createBotPreset') }}
             </a-button>
           </a-empty>
         </div>
@@ -84,7 +88,6 @@
         </div>
       </a-spin>
 
-      <!-- 分页 -->
       <div v-if="pagination.total > 0" class="pagination-wrapper">
         <a-pagination
           :current="pagination.current"
@@ -97,7 +100,6 @@
       </div>
     </template>
 
-    <!-- 作者后台（普通用户 + 管理员都可看，仅展示当前用户自己的数据） -->
     <template v-if="activeTab === 'author'">
       <author-dashboard
         :is-dark-theme="isDarkTheme"
@@ -105,10 +107,8 @@
       />
     </template>
 
-    <!-- 管理员审核区域 -->
     <template v-if="activeTab === 'review' && isAdmin">
       <div class="review-panel">
-        <!-- 审核状态筛选 -->
         <div class="review-header">
           <a-radio-group v-model="reviewFilter" button-style="solid" @change="loadPendingIndicators">
             <a-radio-button value="pending">
@@ -125,7 +125,6 @@
           </a-radio-group>
         </div>
 
-        <!-- 审核列表 -->
         <a-spin :spinning="reviewLoading">
           <div v-if="pendingIndicators.length === 0 && !reviewLoading" class="empty-state">
             <a-empty :description="$t('community.admin.noItems')" />
@@ -135,6 +134,7 @@
               <div class="review-item-header">
                 <div class="item-info">
                   <span class="item-name">{{ item.name }}</span>
+                  <a-tag color="blue">{{ getAssetTypeText(item.asset_type) }}</a-tag>
                   <a-tag v-if="item.pricing_type === 'free'" color="green">{{ $t('community.free') }}</a-tag>
                   <a-tag v-else color="orange">{{ item.price }} {{ $t('community.credits') }}</a-tag>
                   <a-tag :color="getStatusColor(item.review_status)">{{ getStatusText(item.review_status) }}</a-tag>
@@ -192,7 +192,6 @@
           </div>
         </a-spin>
 
-        <!-- 审核分页 -->
         <div v-if="reviewPagination.total > 0" class="pagination-wrapper">
           <a-pagination
             :current="reviewPagination.current"
@@ -205,7 +204,6 @@
       </div>
     </template>
 
-    <!-- 审核弹窗 -->
     <a-modal
       v-model="showReviewModal"
       :title="reviewAction === 'approve' ? $t('community.admin.approveTitle') : $t('community.admin.rejectTitle')"
@@ -224,7 +222,6 @@
       </a-form>
     </a-modal>
 
-    <!-- 详情弹窗 -->
     <indicator-detail
       :visible="detailVisible"
       :indicator-id="selectedIndicatorId"
@@ -233,7 +230,6 @@
       @purchased="handlePurchased"
     />
 
-    <!-- 我的购买弹窗 -->
     <a-modal
       v-model="showMyPurchases"
       :title="$t('community.myPurchases')"
@@ -270,8 +266,8 @@
               </template>
             </a-list-item-meta>
             <template #actions>
-              <a-button type="link" size="small" @click="goToUse">
-                {{ $t('community.useNow') }}
+              <a-button type="link" size="small" @click="goToUse(item)">
+                {{ usePurchaseActionLabel(item) }}
               </a-button>
             </template>
           </a-list-item>
@@ -304,8 +300,6 @@ export default {
     isDarkTheme () {
       return this.navTheme === 'dark' || this.navTheme === 'realdark'
     },
-    /** Apply our themed wrapper class to the "我购买的指标" modal so it
-     * inherits dark styles even when it's portaled out to <body> by Ant. */
     myPurchasesWrapClass () {
       const base = 'qd-my-purchases-modal'
       return this.isDarkTheme ? `${base} ${base}--dark` : base
@@ -314,11 +308,21 @@ export default {
       if (!this.userRole) return false
       const roleId = this.userRole.id || this.userRole
       return roleId === 'admin'
+    },
+    marketEmptyDescription () {
+      if (this.marketAssetType === 'script_template') {
+        return this.$t('community.scriptTemplatesEmpty')
+      }
+      if (this.marketAssetType === 'bot_preset') {
+        return this.$t('community.botPresetsEmpty')
+      }
+      return this.$t('community.noIndicators')
     }
   },
   data () {
     return {
       loading: false,
+      marketAssetType: 'indicator',
       indicators: [],
       filters: {
         keyword: '',
@@ -339,7 +343,6 @@ export default {
       showMyPurchases: false,
       purchasesLoading: false,
       myPurchases: [],
-      // 管理员审核相关
       activeTab: 'market',
       reviewFilter: 'pending',
       reviewLoading: false,
@@ -355,7 +358,6 @@ export default {
         rejected: 0
       },
       expandedCodes: {},
-      // 审核弹窗
       showReviewModal: false,
       reviewAction: 'approve',
       reviewNote: '',
@@ -378,6 +380,10 @@ export default {
     }
   },
   mounted () {
+    const q = this.$route.query
+    if (q && q.asset_type) {
+      this.marketAssetType = String(q.asset_type)
+    }
     this.loadIndicators()
   },
   methods: {
@@ -392,7 +398,8 @@ export default {
             page_size: this.pagination.pageSize,
             keyword: this.filters.keyword || undefined,
             pricing_type: this.filters.pricingType || undefined,
-            sort_by: this.filters.sortBy
+            sort_by: this.filters.sortBy,
+            asset_type: this.marketAssetType
           }
         })
         if (res.code === 1) {
@@ -442,6 +449,11 @@ export default {
       this.loadIndicators()
     },
 
+    handleMarketAssetTypeChange () {
+      this.pagination.current = 1
+      this.loadIndicators()
+    },
+
     handlePageChange (page) {
       this.pagination.current = Number(page || 1)
       this.loadIndicators()
@@ -459,7 +471,6 @@ export default {
     },
 
     handlePurchased () {
-      // 刷新列表
       this.loadIndicators()
     },
 
@@ -467,8 +478,49 @@ export default {
       this.$router.push('/indicator-ide')
     },
 
-    goToUse () {
+    goToTradingBot () {
+      this.$router.push('/trading-bot')
+    },
+
+    usePurchaseActionLabel (item) {
+      const assetType = item && item.indicator && item.indicator.asset_type
+      if (assetType === 'script_template') {
+        return this.$t('community.useScriptStrategy')
+      }
+      if (assetType === 'bot_preset') {
+        return this.$t('community.useBotPreset')
+      }
+      return this.$t('community.useNow')
+    },
+
+    goToUse (item) {
       this.showMyPurchases = false
+      const indicator = item && item.indicator
+      const assetType = (indicator && indicator.asset_type) || 'indicator'
+      if (assetType === 'script_template') {
+        const sid = (item && (item.script_source_id || item.purchased_script_source_id)) || (indicator && (indicator.script_source_id || indicator.purchased_script_source_id))
+        if (sid) {
+          this.$router.push({
+            path: '/strategy-ide',
+            query: { tab: 'script', source_id: String(sid) }
+          })
+        } else {
+          this.$router.push({ path: '/strategy-ide', query: { tab: 'script' } })
+        }
+        return
+      }
+      if (assetType === 'bot_preset') {
+        const sid = (item && item.purchased_strategy_id) || (indicator && indicator.purchased_strategy_id)
+        if (sid) {
+          this.$router.push({
+            path: '/trading-bot',
+            query: { strategy_id: String(sid), action: 'edit' }
+          })
+        } else {
+          this.$router.push('/trading-bot')
+        }
+        return
+      }
       this.$router.push('/indicator-ide')
     },
 
@@ -485,7 +537,6 @@ export default {
       return Number.isInteger(n) ? String(n) : n.toFixed(2)
     },
 
-    // ==================== 管理员审核方法 ====================
 
     handleTabChange (tab) {
       if (tab === 'review') {
@@ -494,9 +545,6 @@ export default {
       }
     },
 
-    // 子组件 AuthorDashboard 发出的事件：作者点「到市场查看」时，
-    // 切回 market tab 并打开该指标的详情弹窗（指标本来就是当前用户自己发布的，
-    // 一定能在市场里找到对应记录）。
     handleViewInMarket (record) {
       this.activeTab = 'market'
       this.selectedIndicatorId = record.id
@@ -566,6 +614,13 @@ export default {
         rejected: this.$t('community.admin.rejected')
       }
       return texts[status] || status
+    },
+
+    getAssetTypeText (assetType) {
+      const type = assetType || 'indicator'
+      if (type === 'script_template') return this.$t('community.tabScriptTemplates')
+      if (type === 'bot_preset') return this.$t('community.tabBotPresets')
+      return this.$t('community.tabIndicators')
     },
 
     handleReview (indicator, action) {
@@ -668,6 +723,10 @@ export default {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 
     .header-left {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+
       .page-title {
         margin: 0;
         font-size: 20px;
@@ -677,6 +736,10 @@ export default {
           margin-right: 8px;
           color: #1890ff;
         }
+      }
+
+      .market-asset-tabs {
+        align-self: flex-start;
       }
     }
 
@@ -715,7 +778,6 @@ export default {
     padding: 40px 0;
   }
 
-  // 管理员标签
   .admin-tabs {
     margin-bottom: 16px;
     padding: 0 20px;
@@ -723,7 +785,6 @@ export default {
     border-radius: 8px;
   }
 
-  // 审核区域
   .review-panel {
     .review-header {
       margin-bottom: 20px;
@@ -828,14 +889,13 @@ export default {
   }
 }
 
-// 暗色主题
 .indicator-community-container.theme-dark {
   background: #141414;
 
   .admin-tabs {
     background: #1f1f1f;
 
-    /deep/ .ant-tabs-nav .ant-tabs-tab {
+    ::v-deep .ant-tabs-nav .ant-tabs-tab {
       color: rgba(255, 255, 255, 0.65);
       &.ant-tabs-tab-active {
         color: #40a9ff;
@@ -899,8 +959,7 @@ export default {
     background: #1f1f1f;
   }
 
-  // 穿透子组件样式 - IndicatorCard
-  /deep/ .indicator-card {
+  ::v-deep .indicator-card {
     background: #1f1f1f;
     border-color: #303030;
 
@@ -923,8 +982,7 @@ export default {
     }
   }
 
-  // 修复搜索框、下拉框等组件的暗色样式
-  /deep/ .ant-input {
+  ::v-deep .ant-input {
     background: #262626;
     border-color: #434343;
     color: rgba(255, 255, 255, 0.85);
@@ -934,11 +992,11 @@ export default {
     }
   }
 
-  /deep/ .ant-input-search-icon {
+  ::v-deep .ant-input-search-icon {
     color: rgba(255, 255, 255, 0.45);
   }
 
-  /deep/ .ant-radio-group {
+  ::v-deep .ant-radio-group {
     .ant-radio-button-wrapper {
       background: #262626;
       border-color: #434343;
@@ -956,7 +1014,7 @@ export default {
     }
   }
 
-  /deep/ .ant-select {
+  ::v-deep .ant-select {
     .ant-select-selection {
       background: #262626;
       border-color: #434343;
@@ -968,11 +1026,11 @@ export default {
     }
   }
 
-  /deep/ .ant-btn-link {
+  ::v-deep .ant-btn-link {
     color: #40a9ff;
   }
 
-  /deep/ .ant-pagination {
+  ::v-deep .ant-pagination {
     .ant-pagination-item {
       background: #262626;
       border-color: #434343;
@@ -1015,8 +1073,7 @@ export default {
     }
   }
 
-  // 我的购买弹窗
-  /deep/ .ant-modal-content {
+  ::v-deep .ant-modal-content {
     background: #1f1f1f;
 
     .ant-modal-header {
@@ -1046,7 +1103,6 @@ export default {
   }
 }
 
-// 响应式
 @media (max-width: 768px) {
   .indicator-community-container {
     padding: 12px;

@@ -15,7 +15,11 @@ import defaultSettings from '@/config/defaultSettings'
 export default function Initializer () {
   printANSI() // 请自行移除该行.  please remove this line
 
-  store.commit(TOGGLE_LAYOUT, storage.get(TOGGLE_LAYOUT, defaultSettings.layout))
+  const savedLayout = storage.get(TOGGLE_LAYOUT, defaultSettings.layout)
+  const nextLayout = defaultSettings.layout === 'topmenu' && savedLayout === 'sidemenu'
+    ? defaultSettings.layout
+    : savedLayout
+  store.commit(TOGGLE_LAYOUT, nextLayout)
   store.commit(TOGGLE_FIXED_HEADER, storage.get(TOGGLE_FIXED_HEADER, defaultSettings.fixedHeader))
   store.commit(TOGGLE_FIXED_SIDEBAR, storage.get(TOGGLE_FIXED_SIDEBAR, defaultSettings.fixSiderbar))
   store.commit(TOGGLE_CONTENT_WIDTH, storage.get(TOGGLE_CONTENT_WIDTH, defaultSettings.contentWidth))
@@ -24,7 +28,6 @@ export default function Initializer () {
   store.commit(TOGGLE_WEAK, storage.get(TOGGLE_WEAK, defaultSettings.colorWeak))
   store.commit(TOGGLE_COLOR, storage.get(TOGGLE_COLOR, defaultSettings.primaryColor))
   store.commit(TOGGLE_MULTI_TAB, storage.get(TOGGLE_MULTI_TAB, defaultSettings.multiTab))
-  // 处理 token 可能是字符串或对象的情况
   let token = storage.get(ACCESS_TOKEN)
   if (token && typeof token !== 'string') {
     token = token.token || token.value || (typeof token === 'object' ? null : token)

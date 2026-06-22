@@ -8,7 +8,6 @@
     @close="$emit('cancel')"
     class="backtest-history-drawer"
   >
-    <!-- 顶部工具栏 -->
     <div class="drawer-toolbar">
       <div class="toolbar-left">
         <a-button type="primary" :loading="loading" icon="reload" size="small" @click="loadRuns">
@@ -59,7 +58,7 @@
       size="small"
       :pagination="{ pageSize: 15, size: 'small' }"
       rowKey="id"
-      :scroll="{ x: 980 }"
+      :scroll="{ x: 1090 }"
       :customRow="customRowProps"
       :rowSelection="{ selectedRowKeys: selectedRowKeys, onChange: onRowSelectionChange }"
     >
@@ -82,6 +81,20 @@
         </a-tag>
         <a-tag v-else size="small" color="blue">
           {{ $t('dashboard.indicator.backtest.historyFillTimingNext') }}
+        </a-tag>
+      </template>
+      <template slot="simulation" slot-scope="text, record">
+        <a-tag v-if="simulationKind(record) === 'aggressive_1m'" size="small" color="geekblue">
+          {{ simulationLabel(record) }}
+        </a-tag>
+        <a-tag v-else-if="simulationKind(record) === 'strict'" size="small" color="blue">
+          {{ simulationLabel(record) }}
+        </a-tag>
+        <a-tag v-else-if="simulationFallback(record)" size="small" color="orange">
+          {{ simulationLabel(record) }}
+        </a-tag>
+        <a-tag v-else size="small">
+          {{ simulationLabel(record) }}
         </a-tag>
       </template>
       <template slot="createdAt" slot-scope="text">
@@ -108,7 +121,6 @@
 
     <a-empty v-if="!loading && runs.length === 0" :description="$t('dashboard.indicator.backtest.historyNoData')" />
 
-    <!-- AI 修正建议 Modal -->
     <a-modal
       :title="$t('dashboard.indicator.backtest.historyAISuggestTitle')"
       :visible="showAIResult"
@@ -274,6 +286,34 @@ export default {
       if (r === 'same_bar_close' || r === 'current_bar_close' || r === 'bar_close' || r === 'close') return 'same'
       return 'next'
     },
+    simulationSummary (record) {
+      return (record && record.simulation_summary) || {}
+    },
+    simulationKind (record) {
+      const sum = this.simulationSummary(record)
+      const mode = String(sum.mode || '').toLowerCase()
+      if (mode === 'strict') return 'strict'
+      if (mode === 'aggressive_1m' || mode === 'mtf') return 'aggressive_1m'
+      return 'aggressive_bar'
+    },
+    simulationFallback (record) {
+      return !!this.simulationSummary(record).mtfFallbackReason
+    },
+    simulationLabel (record) {
+      const sum = this.simulationSummary(record)
+      const kind = this.simulationKind(record)
+      if (sum.mtfFallbackReason && kind === 'aggressive_bar') {
+        return this.$t('dashboard.indicator.backtest.historySimulationFallback')
+      }
+      if (kind === 'strict') {
+        return this.$t('dashboard.indicator.backtest.historySimulationStrict')
+      }
+      if (kind === 'aggressive_1m') {
+        const tf = sum.execTimeframe || '1m'
+        return this.$t('dashboard.indicator.backtest.historySimulationAggressive1m', { tf })
+      }
+      return this.$t('dashboard.indicator.backtest.historySimulationAggressiveBar')
+    },
     initColumns () {
       const columns = [
         { title: '#', dataIndex: 'id', key: 'id', width: 60 },
@@ -281,6 +321,7 @@ export default {
         { title: this.$t('dashboard.indicator.backtest.historySymbol') || 'Symbol', key: 'symbol', width: 150, scopedSlots: { customRender: 'symbol' } },
         { title: this.$t('dashboard.indicator.backtest.timeframe') || 'TF', dataIndex: 'timeframe', key: 'timeframe', width: 70 },
         { title: this.$t('dashboard.indicator.backtest.historyFillTimingCol'), key: 'fillTiming', width: 96, scopedSlots: { customRender: 'fillTiming' } },
+        { title: this.$t('dashboard.indicator.backtest.historySimulationCol'), key: 'simulation', width: 110, scopedSlots: { customRender: 'simulation' } },
         { title: this.$t('dashboard.indicator.backtest.historyRange'), key: 'range', width: 180, scopedSlots: { customRender: 'range' } },
         { title: this.$t('dashboard.indicator.backtest.tradeDirection'), dataIndex: 'trade_direction', key: 'trade_direction', width: 80 },
         { title: this.$t('dashboard.indicator.backtest.leverage'), dataIndex: 'leverage', key: 'leverage', width: 60 },
@@ -561,7 +602,7 @@ export default {
   flex-basis: 100%;
   margin-top: 2px;
 }
-/deep/ .ant-table-tbody > tr.backtest-history-row--clickable:hover > td {
+::v-deep .ant-table-tbody > tr.backtest-history-row--clickable:hover > td {
   background: #fafafa;
 }
 .ai-modal-content {
@@ -599,42 +640,42 @@ export default {
   color: #262626;
   font-size: 14px;
   line-height: 1.8;
-  /deep/ h1,
-  /deep/ h2,
-  /deep/ h3 {
+  ::v-deep h1,
+  ::v-deep h2,
+  ::v-deep h3 {
     margin: 0 0 12px;
     font-weight: 700;
     color: #1f1f1f;
     line-height: 1.5;
   }
-  /deep/ h1 { font-size: 20px; }
-  /deep/ h2 { font-size: 17px; }
-  /deep/ h3 {
+  ::v-deep h1 { font-size: 20px; }
+  ::v-deep h2 { font-size: 17px; }
+  ::v-deep h3 {
     font-size: 15px;
     padding-left: 10px;
     border-left: 3px solid #1890ff;
   }
-  /deep/ p {
+  ::v-deep p {
     margin: 0 0 12px;
     color: #434343;
   }
-  /deep/ ul,
-  /deep/ ol {
+  ::v-deep ul,
+  ::v-deep ol {
     margin: 0 0 14px 20px;
     padding: 0;
   }
-  /deep/ li {
+  ::v-deep li {
     margin-bottom: 8px;
     color: #434343;
   }
-  /deep/ strong {
+  ::v-deep strong {
     color: #262626;
     font-weight: 700;
   }
-  /deep/ em {
+  ::v-deep em {
     color: #595959;
   }
-  /deep/ code {
+  ::v-deep code {
     padding: 2px 6px;
     border-radius: 6px;
     background: #f5f5f5;
@@ -642,7 +683,7 @@ export default {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 12px;
   }
-  /deep/ pre {
+  ::v-deep pre {
     overflow: auto;
     margin: 0 0 14px;
     padding: 14px;
@@ -650,12 +691,12 @@ export default {
     background: #141414;
     color: #f0f0f0;
   }
-  /deep/ pre code {
+  ::v-deep pre code {
     padding: 0;
     background: transparent;
     color: inherit;
   }
-  /deep/ blockquote {
+  ::v-deep blockquote {
     margin: 0 0 14px;
     padding: 10px 14px;
     border-left: 4px solid #91d5ff;

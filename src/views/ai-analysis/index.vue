@@ -1,10 +1,9 @@
 <template>
   <div class="ai-analysis-container" :class="{ 'theme-dark': isDarkTheme, embedded: embedded }" :style="{ '--primary-color': primaryColor }">
-    <!-- 全宽主内容区域 -->
+    <!-- Full-width main content -->
     <div class="main-content-full">
-      <!-- 顶部指数条 -->
-      <div class="top-index-bar">
-        <!-- 情绪指标 - 独立加载 -->
+      <!-- Top index strip -->
+      <div v-if="false" class="top-index-bar">
         <template v-if="loadingSentiment">
           <div class="indicator-box skeleton-box">
             <span class="skeleton-text short"></span>
@@ -34,7 +33,7 @@
           </div>
         </template>
 
-        <!-- 全球指数滚动条 - 独立加载 -->
+        <!-- Global index ticker - disabled by default -->
         <div class="indices-marquee">
           <template v-if="loadingIndices">
             <div class="indices-loading">
@@ -72,12 +71,11 @@
         </a-button>
       </div>
 
-      <!-- 主体三栏布局 -->
-      <div class="main-body">
-        <!-- 左侧：热力图 + 财经日历 -->
+      <copilot-workbench />
+      <div v-if="false" class="main-body">
         <div class="left-panel">
-          <!-- 热力图 - 独立加载 -->
-          <div class="heatmap-box">
+          <!-- Heatmap - disabled by default -->
+          <div v-if="false" class="heatmap-box">
             <div class="box-header">
               <a-radio-group v-model="heatmapType" size="small" button-style="solid" class="heatmap-type-tabs">
                 <a-radio-button value="us_stocks">{{ $t('globalMarket.usStockHeatmap') }}</a-radio-button>
@@ -108,7 +106,6 @@
             </div>
           </div>
 
-          <!-- 财经日历 - 独立加载 -->
           <div class="calendar-box">
             <div class="box-header">
               <span class="box-title"><a-icon type="calendar" /> {{ $t('globalMarket.calendar') }}</span>
@@ -122,29 +119,70 @@
                 </div>
               </template>
               <template v-else-if="marketData.calendar.length > 0">
-                <div v-for="evt in marketData.calendar.slice(0, 10)" :key="evt.id" class="cal-item" :class="evt.importance">
-                  <span class="cal-date">{{ formatCalendarDate(evt.date) }}</span>
-                  <span class="cal-time">{{ evt.time || '--:--' }}</span>
-                  <span class="cal-flag">{{ getCountryFlag(evt.country) }}</span>
-                  <span class="cal-name">{{ isZhLocale ? evt.name : evt.name_en }}</span>
-                  <span class="cal-impact" :class="getImpactClass(evt)">
-                    <a-icon v-if="getImpactClass(evt) === 'bullish'" type="arrow-up" />
-                    <a-icon v-else-if="getImpactClass(evt) === 'bearish'" type="arrow-down" />
-                    <a-icon v-else type="minus" />
-                    {{ evt.actual || evt.forecast || '--' }}
-                  </span>
+                <div v-for="evt in marketData.calendar.slice(0, 6)" :key="`${evt.date}-${evt.time}-${evt.name_en}-${evt.country}`" class="cal-item" :class="evt.importance">
+                  <div class="cal-main-row">
+                    <span class="cal-date">{{ formatCalendarDate(evt.date) }}</span>
+                    <span class="cal-time">{{ evt.time || '--:--' }}</span>
+                    <span class="cal-flag">{{ getCountryFlag(evt.country) }}</span>
+                    <span class="cal-name">{{ isZhLocale ? evt.name : evt.name_en }}</span>
+                    <span class="cal-impact" :class="getImpactClass(evt)">
+                      <a-icon v-if="getImpactClass(evt) === 'bullish'" type="arrow-up" />
+                      <a-icon v-else-if="getImpactClass(evt) === 'bearish'" type="arrow-down" />
+                      <a-icon v-else type="minus" />
+                      {{ formatCalendarValue(evt) }}
+                    </span>
+                  </div>
+                  <div v-if="evt.ai_insight" class="cal-ai-insight" :class="evt.ai_insight.risk_level">
+                    <div class="cal-ai-title">
+                      <a-icon type="thunderbolt" />
+                      <span>{{ getCalendarInsightTitle(evt) }}</span>
+                      <em>{{ getCalendarRiskWindow(evt) }}</em>
+                    </div>
+                    <div class="cal-ai-summary">{{ getCalendarInsightSummary(evt) }}</div>
+                    <div class="cal-ai-assets" v-if="getCalendarInsightAssets(evt).length">
+                      <span
+                        v-for="asset in getCalendarInsightAssets(evt)"
+                        :key="`${evt.id}-${asset.symbol}`"
+                        class="cal-ai-asset"
+                        :class="asset.bias"
+                      >
+                        {{ asset.symbol }} · {{ isZhLocale ? asset.bias_label : asset.bias_label_en }}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </template>
               <template v-else>
-                <div class="cal-empty">{{ $t('globalMarket.noEvents') }}</div>
+                <div class="cal-empty">
+                  <template v-if="calendarStatus === 'missing_config'">
+                    <div class="cal-empty-title">{{ $t('globalMarket.calendarUnavailable') }}</div>
+                    <div class="cal-empty-desc">{{ $t('globalMarket.calendarMissingFinnhub') }}</div>
+                    <a-button type="link" size="small" @click="$router.push('/settings')">
+                      {{ $t('globalMarket.configureDataSource') }}
+                    </a-button>
+                  </template>
+                  <template v-else-if="calendarStatus === 'forbidden'">
+                    <div class="cal-empty-title">{{ $t('globalMarket.calendarForbidden') }}</div>
+                    <div class="cal-empty-desc">{{ $t('globalMarket.calendarFinnhubForbidden') }}</div>
+                    <a-button type="link" size="small" @click="$router.push('/settings')">
+                      {{ $t('globalMarket.configureDataSource') }}
+                    </a-button>
+                  </template>
+                  <template v-else-if="calendarStatus === 'rate_limited' || calendarStatus === 'upstream_error' || calendarStatus === 'error'">
+                    <div class="cal-empty-title">{{ $t('globalMarket.calendarLoadFailed') }}</div>
+                    <div class="cal-empty-desc">{{ calendarErrorMessage }}</div>
+                  </template>
+                  <template v-else>
+                    {{ $t('globalMarket.noEvents') }}
+                  </template>
+                </div>
               </template>
             </div>
           </div>
         </div>
 
-        <!-- 右侧：工具栏 + AI 分析 -->
         <div class="right-panel">
-          <!-- 分析工具栏 -->
+          <!-- Analysis toolbar -->
           <div class="analysis-toolbar">
             <a-select
               v-model="selectedSymbol"
@@ -190,7 +228,6 @@ class="analyze-button">
             </a-button>
           </div>
 
-          <!-- 分析结果区域 -->
           <div class="analysis-main">
             <div v-if="!analysisResult && !analyzing && !analysisError" class="analysis-placeholder">
               <div class="placeholder-hero">
@@ -251,7 +288,6 @@ class="analyze-button">
           </div>
         </div>
 
-        <!-- 右侧自选股面板 -->
         <div class="watchlist-panel">
           <div class="panel-header">
             <span class="panel-title"><a-icon type="star" theme="filled" /> {{ $t('dashboard.analysis.watchlist.title') }}</span>
@@ -268,7 +304,6 @@ class="analyze-button">
             </span>
           </div>
 
-          <!-- 汇总统计条 -->
           <div class="panel-summary" v-if="watchlist && watchlist.length > 0">
             <div class="summary-chip">
               <span class="sc-num">{{ watchlist.length }}</span>
@@ -288,7 +323,6 @@ class="analyze-button">
             </div>
           </div>
 
-          <!-- 批量勾选栏 -->
           <div class="batch-bar" v-if="batchMode">
             <a-checkbox :checked="batchSelectedAll" :indeterminate="batchIndeterminate" @change="onBatchSelectAll" class="batch-all-cb">
               {{ $t('aiAssetAnalysis.batch.selectAll') }}
@@ -315,7 +349,7 @@ class="analyze-button">
                 @click.native.stop
               />
               <div class="wl-card-body" :class="{ 'with-cb': batchMode }">
-                <!-- 主信息行：代码 + 价格/涨跌 -->
+                <!-- Main row: symbol + price/change -->
                 <div class="wl-row-main">
                   <div class="wl-info-left">
                     <div class="wl-symbol-line">
@@ -344,7 +378,6 @@ class="analyze-button">
                     </span>
                   </div>
                 </div>
-                <!-- 持仓/盈亏行（仅有持仓时） -->
                 <div class="wl-row-pnl" v-if="positionSummaryMap[`${stock.market}:${stock.symbol}`]">
                   <span class="wl-pnl-qty">{{ formatNum(positionSummaryMap[`${stock.market}:${stock.symbol}`].quantity, 4) }} @ {{ formatPrice(positionSummaryMap[`${stock.market}:${stock.symbol}`].avgEntry || 0) }}</span>
                   <span class="wl-pnl-val" :class="positionSummaryMap[`${stock.market}:${stock.symbol}`].pnl >= 0 ? 'up' : 'down'">
@@ -352,7 +385,6 @@ class="analyze-button">
                     ({{ positionSummaryMap[`${stock.market}:${stock.symbol}`].pnlPercent >= 0 ? '+' : '' }}{{ formatNum(positionSummaryMap[`${stock.market}:${stock.symbol}`].pnlPercent || 0) }}%)
                   </span>
                 </div>
-                <!-- 任务状态（仅有任务时） -->
                 <div class="wl-row-task" v-if="getMonitorMeta(stock)">
                   <span class="wl-task-badge" :class="getMonitorMeta(stock).activeCount > 0 ? 'active' : 'paused'" @click.stop="toggleStockMonitor(stock)">
                     <a-icon :type="getMonitorMeta(stock).activeCount > 0 ? 'sync' : 'pause-circle'" :spin="getMonitorMeta(stock).activeCount > 0" />
@@ -361,7 +393,6 @@ class="analyze-button">
                   <span class="wl-task-next" v-if="getMonitorMeta(stock).nextRunAtText">{{ getMonitorMeta(stock).nextRunAtText }}</span>
                 </div>
               </div>
-              <!-- hover 浮出操作 -->
               <div class="wl-card-hover-actions">
                 <a-tooltip :title="$t('aiAssetAnalysis.position.quickAdd')"><span class="wl-hover-btn" @click.stop="openPositionModal(stock)"><a-icon type="wallet" /></span></a-tooltip>
                 <a-tooltip :title="$t('aiAssetAnalysis.monitor.quickTask')"><span class="wl-hover-btn" @click.stop="openMonitorModal(stock)"><a-icon type="clock-circle" /></span></a-tooltip>
@@ -380,7 +411,6 @@ class="analyze-button">
       </div>
     </div>
 
-    <!-- 添加股票弹窗 -->
     <a-modal
       :title="$t('dashboard.analysis.modal.addStock.title')"
       :visible="showAddStockModal"
@@ -393,7 +423,6 @@ class="analyze-button">
       :cancelText="$t('dashboard.analysis.modal.addStock.cancel')"
     >
       <div class="add-stock-modal-content">
-        <!-- Tab标签 -->
         <a-tabs v-model="selectedMarketTab" @change="handleMarketTabChange" class="market-tabs">
           <a-tab-pane
             v-for="marketType in marketTypes"
@@ -403,7 +432,7 @@ class="analyze-button">
           </a-tab-pane>
         </a-tabs>
 
-        <!-- 搜索/输入框 -->
+        <!-- Search/input -->
         <div class="symbol-search-section">
           <a-input-search
             v-model="symbolSearchKeyword"
@@ -437,7 +466,6 @@ class="analyze-button">
           </div>
         </div>
 
-        <!-- 搜索结果 -->
         <div v-if="symbolSearchResults.length > 0" class="search-results-section">
           <div class="section-title">
             <a-icon type="search" style="margin-right: 4px;" />
@@ -465,7 +493,6 @@ class="analyze-button">
           </a-list>
         </div>
 
-        <!-- 热门标的 -->
         <div class="hot-symbols-section">
           <div class="section-title">
             <a-icon type="fire" style="color: #ff4d4f; margin-right: 4px;" />
@@ -496,7 +523,7 @@ class="analyze-button">
           </a-spin>
         </div>
 
-        <!-- 选中的标的显示 -->
+        <!-- Selected symbol -->
         <div v-if="selectedSymbolForAdd" class="selected-symbol-section">
           <a-alert
             :message="$t('dashboard.analysis.modal.addStock.selectedSymbol')"
@@ -571,7 +598,6 @@ class="analyze-button">
       </a-form>
     </a-modal>
 
-    <!-- 批量定时任务弹窗 -->
     <a-modal
       :visible="showBatchScheduleModal"
       :title="$t('aiAssetAnalysis.batch.scheduleTitle')"
@@ -609,7 +635,6 @@ class="analyze-button">
       <a-alert :message="$t('aiAssetAnalysis.batch.scheduleTip')" type="info" show-icon style="margin-top: 8px;" />
     </a-modal>
 
-    <!-- 任务管理抽屉 -->
     <a-drawer
       :title="$t('aiAssetAnalysis.tasks.manage')"
       :visible="showTaskDrawer"
@@ -651,7 +676,6 @@ class="analyze-button">
       </div>
     </a-drawer>
 
-    <!-- 编辑任务弹窗 -->
     <a-modal
       :visible="showEditTaskModal"
       :title="$t('aiAssetAnalysis.tasks.edit')"
@@ -684,7 +708,6 @@ class="analyze-button">
       </a-form>
     </a-modal>
 
-    <!-- 历史分析列表弹窗 -->
     <a-modal
       :title="$t('dashboard.analysis.modal.history.title')"
       :visible="showHistoryModal"
@@ -778,26 +801,21 @@ class="analyze-button">
 <script>
 import { mapGetters, mapState } from 'vuex'
 import { getUserInfo } from '@/api/login'
-import { getWatchlist, addWatchlist, removeWatchlist, getWatchlistPrices, getMarketTypes, searchSymbols, getHotSymbols } from '@/api/market'
+import { getWatchlist, addWatchlist, removeWatchlist, getWatchlistPrices, searchSymbols, getHotSymbols } from '@/api/market'
 import { getPositions, addPosition, getMonitors, addMonitor, updateMonitor, deleteMonitor } from '@/api/portfolio'
 import { fastAnalyze, getAllAnalysisHistory, deleteAnalysisHistory } from '@/api/fast-analysis'
-import { getMarketSentiment, getMarketOverview, getMarketHeatmap, getEconomicCalendar } from '@/api/global-market'
+import { getMarketSentiment, getEconomicCalendar } from '@/api/global-market'
 import FastAnalysisReport from './components/FastAnalysisReport.vue'
+import CopilotWorkbench from './components/CopilotWorkbench.vue'
 import sessionCache from '@/utils/sessionCache'
+import { loadEnabledMarketOptions, firstMarketValue } from '@/utils/marketModules'
 
-// Cache keys + TTLs for the four "market overview" widgets. Numbers picked
-// from the natural update cadence of each upstream:
-//  - sentiment (fear & greed / VIX / DXY) updates daily-ish → 5 min is safe
-//  - global indices update tick-by-tick but UI only needs minute-level → 2 min
-//  - sector / commodity / forex / crypto heatmap → 2 min
-//  - economic calendar is a near-static schedule → 10 min
-// On a keep-alive re-enter we render the cached value instantly, then kick
-// off a silent background refresh only when the TTL has elapsed.
+// Cache only the context panels that remain on the default AI analysis screen.
+// Market heatmaps and global index tickers are not loaded by default because
+// they cost API calls without directly helping the user start an analysis.
 const MARKET_CACHE = {
   sentiment: { key: 'aiAnalysis.market.sentiment', ttl: 5 * 60 * 1000 },
-  indices: { key: 'aiAnalysis.market.indices', ttl: 2 * 60 * 1000 },
-  heatmap: { key: 'aiAnalysis.market.heatmap.v4', ttl: 2 * 60 * 1000 },
-  calendar: { key: 'aiAnalysis.market.calendar', ttl: 10 * 60 * 1000 }
+  calendar: { key: 'aiAnalysis.market.calendar.v3', ttl: 10 * 60 * 1000 }
 }
 
 // `window.requestIdleCallback` is unavailable on Safari < 16. Fall back to a
@@ -826,7 +844,8 @@ export default {
     }
   },
   components: {
-    FastAnalysisReport
+    FastAnalysisReport,
+    CopilotWorkbench
   },
   data () {
     return {
@@ -840,7 +859,7 @@ export default {
         heatmap: { us_stocks: [], hk_stocks: [], crypto: [], commodities: [], sectors: [], forex: [] },
         calendar: []
       },
-      // 独立加载状态 - 渐进式加载
+      calendarMeta: {},
       loadingSentiment: false,
       loadingIndices: false,
       loadingHeatmap: false,
@@ -923,7 +942,24 @@ export default {
       return this.navTheme === 'dark' || this.navTheme === 'realdark'
     },
     isZhLocale () {
-      return this.$i18n.locale === 'zh-CN'
+      return String(this.$i18n.locale || '').toLowerCase().startsWith('zh')
+    },
+    calendarStatus () {
+      const status = (this.calendarMeta && this.calendarMeta.status) || ''
+      const message = String((this.calendarMeta && this.calendarMeta.message) || '')
+      if (status === 'upstream_error' && /403|forbidden/i.test(message)) {
+        return 'forbidden'
+      }
+      if (status === 'upstream_error' && /429|rate limit/i.test(message)) {
+        return 'rate_limited'
+      }
+      return status
+    },
+    calendarErrorMessage () {
+      const message = String((this.calendarMeta && this.calendarMeta.message) || this.$t('globalMarket.fetchError') || '')
+      return message
+        .replace(/([?&]token=)[^&\s]+/ig, '$1***')
+        .replace(/([?&]api_?key=)[^&\s]+/ig, '$1***')
     },
     currentHeatmap () {
       return this.marketData.heatmap[this.heatmapType] || []
@@ -957,13 +993,13 @@ export default {
       // canonicalises bare bases (BTC -> BTC/USDT) but storing the canonical
       // shape from the start makes UI / dedupe / search far less surprising.
       const examples = {
-        USStock: 'e.g. AAPL, MSFT, NVDA',
-        CNStock: 'e.g. 600519, 000001, 300750',
-        HKStock: 'e.g. 00700, 09988, 03690',
-        Crypto: 'e.g. BTC/USDT, ETH/USDT, SOL/USDT',
-        Forex: 'e.g. EURUSD, GBPUSD',
-        Futures: 'e.g. GC, CL, ES',
-        MOEX: 'e.g. SBER, GAZP, LKOH'
+        USStock: this.i18nText('dashboard.analysis.modal.addStock.example.USStock', 'e.g. AAPL, MSFT, NVDA'),
+        CNStock: this.i18nText('dashboard.analysis.modal.addStock.example.CNStock', 'e.g. 600519, 000001, 300750'),
+        HKStock: this.i18nText('dashboard.analysis.modal.addStock.example.HKStock', 'e.g. 00700, 09988, 03690'),
+        Crypto: this.i18nText('dashboard.analysis.modal.addStock.example.Crypto', 'e.g. BTC/USDT, ETH/USDT, SOL/USDT'),
+        Forex: this.i18nText('dashboard.analysis.modal.addStock.example.Forex', 'e.g. EURUSD, GBPUSD'),
+        Futures: this.i18nText('dashboard.analysis.modal.addStock.example.Futures', 'e.g. GC, CL, ES'),
+        MOEX: this.i18nText('dashboard.analysis.modal.addStock.example.MOEX', 'e.g. SBER, GAZP, LKOH')
       }
       const fallback = this.$t('dashboard.analysis.modal.addStock.searchOrInputPlaceholder')
       return examples[this.selectedMarketTab] || fallback
@@ -976,35 +1012,48 @@ export default {
       const raw = (this.symbolSearchKeyword || '').trim().toUpperCase()
       if (!raw || !this.selectedMarketTab) return null
 
-      // 6 digits → CN A-share. The exact shape of every other market
+      // 6 digits => CN A-share. The exact shape of every other market
       // (US tickers, FX pairs, HK with 4-5 digits + optional .HK) is too
       // ambiguous to warn on without false positives, so we only flag this
       // one high-confidence pattern.
       if (/^\d{6}$/.test(raw) && this.selectedMarketTab !== 'CNStock') {
         const hasCN = (this.marketTypes || []).some(m => m.value === 'CNStock')
         return {
-          msg: `"${raw}" 看起来是 A 股代码（6 位数字），当前却选在 ${this.selectedMarketTab} 市场。 / Looks like a CN A-share, not ${this.selectedMarketTab}.`,
+          msg: this.i18nText('dashboard.analysis.modal.addStock.mismatch.cn', '"{symbol}" looks like a CN A-share code (6 digits), not {market}.', {
+            symbol: raw,
+            market: this.marketLabel(this.selectedMarketTab)
+          }),
           suggestedMarket: hasCN ? 'CNStock' : '',
-          switchLabel: '切换到 CNStock / Switch to CNStock'
+          switchLabel: this.i18nText('dashboard.analysis.modal.addStock.switchTo', 'Switch to {market}', {
+            market: this.marketLabel('CNStock')
+          })
         }
       }
-      // Explicit .HK suffix → must be HKStock.
+      // Explicit .HK suffix => must be HKStock.
       if (raw.endsWith('.HK') && this.selectedMarketTab !== 'HKStock') {
         const hasHK = (this.marketTypes || []).some(m => m.value === 'HKStock')
         return {
-          msg: `"${raw}" 看起来是港股代码（.HK 后缀），当前却选在 ${this.selectedMarketTab} 市场。 / Looks like an HK stock, not ${this.selectedMarketTab}.`,
+          msg: this.i18nText('dashboard.analysis.modal.addStock.mismatch.hk', '"{symbol}" looks like a Hong Kong stock code (.HK suffix), not {market}.', {
+            symbol: raw,
+            market: this.marketLabel(this.selectedMarketTab)
+          }),
           suggestedMarket: hasHK ? 'HKStock' : '',
-          switchLabel: '切换到 HKStock / Switch to HKStock'
+          switchLabel: this.i18nText('dashboard.analysis.modal.addStock.switchTo', 'Switch to {market}', {
+            market: this.marketLabel('HKStock')
+          })
         }
       }
-      // Crypto on the Crypto tab without a "/" — the backend will canonicalise
+      // Crypto on the Crypto tab without a "/" => the backend will canonicalise
       // bare bases (BTC -> BTC/USDT) and the price layer also does it at
       // runtime, but spelling out the convention here keeps users from being
       // confused later when search results / strategy lists show "BTC/USDT".
-      // No suggestedMarket → renders as a plain hint without a switch button.
+      // No suggestedMarket; renders as a plain hint without a switch button.
       if (this.selectedMarketTab === 'Crypto' && raw && !raw.includes('/')) {
         return {
-          msg: `加密货币建议用交易对形式输入（如 BTC/USDT）。提交时若只写 "${raw}"，系统会默认补全为 ${raw}/USDT。 / Crypto symbols should be entered as BASE/QUOTE; "${raw}" will be auto-completed to ${raw}/USDT.`,
+          msg: this.i18nText('dashboard.analysis.modal.addStock.mismatch.cryptoPairHint', 'Crypto symbols should be entered as BASE/QUOTE, such as BTC/USDT. If you submit "{symbol}", it will be auto-completed to {pair}.', {
+            symbol: raw,
+            pair: `${raw}/USDT`
+          }),
           suggestedMarket: '',
           switchLabel: ''
         }
@@ -1013,9 +1062,8 @@ export default {
     }
   },
   created () {
-    // 1. Render-from-cache pass: hydrate the four market-overview blocks
-    //    from sessionStorage so the first paint shows real numbers even
-    //    when the upstream APIs are slow. No network round-trips here.
+    // 1. Render-from-cache pass: hydrate lightweight context panels from
+    //    sessionStorage. No network round-trips here.
     this._hydrateMarketCache()
 
     // 2. Critical-path requests: user info + market types are tiny and
@@ -1027,18 +1075,15 @@ export default {
     this.loadWatchlist()
     this.loadPositionData()
 
-    // 3. Deferred path: the heavy "market overview" pulls (sentiment /
-    //    indices / heatmap / calendar) run after the first paint and only
-    //    when the cached value is stale. This is what makes the page feel
-    //    snappy on a cold open — the user sees the top carousel + the
-    //    analysis panel without waiting on four upstream finance APIs.
+    // 3. Deferred path: refresh the economic calendar after first paint and
+    //    only when the cached value is stale.
     _onIdle(() => this.loadMarketData())
   },
   mounted () {
     this.startWatchlistPriceRefresh()
   },
   activated () {
-    // keep-alive re-entry. We *don't* re-run the entire created() — we just
+    // keep-alive re-entry. We don't re-run the entire created() path; we just
     // top up any data whose cache window has aged past TTL. Critical user
     // data (positions, watchlist prices) is refreshed unconditionally
     // because users expect those to reflect "right now".
@@ -1080,7 +1125,7 @@ export default {
           if (task.full_result) {
             this.analysisResult = task.full_result
           } else {
-            // 复用已有回填逻辑，避免显示字段不一致
+            // Reuse the existing hydration path so displayed fields stay consistent.
             await this.viewHistoryResult(task)
           }
           this.$message.success(this.$t('dashboard.analysis.message.analysisComplete'))
@@ -1095,13 +1140,13 @@ export default {
           this.analyzing = false
           this.stopTaskPolling()
         } else if (Date.now() - this.taskPollingStartedAt > 3 * 60 * 1000) {
-          // 超时后停止自动轮询，用户可手动在历史中查看
+          // Stop automatic polling after timeout; users can refresh history manually.
           this.$message.warning(this.$t('fastAnalysis.analysisStillProcessing') || '任务仍在处理中，请稍后在历史记录查看')
           this.analyzing = false
           this.stopTaskPolling()
         }
       } catch (e) {
-        // 轮询异常不打断流程，等待下一轮
+        // Polling errors should not interrupt the visible analysis flow.
       }
     },
     async startTaskPolling (taskId) {
@@ -1173,7 +1218,7 @@ export default {
       return { width: `${width}%` }
     },
     /**
-     * 与 profile 中设置的 IANA 时区一致；未设置或非法时回退为浏览器本地时区。
+     * Match the IANA timezone configured in profile; fallback to browser local time when missing or invalid.
      */
     _displayDateTimeLocaleOptions () {
       const tz = String((this.storeUserInfo && this.storeUserInfo.timezone) || '').trim()
@@ -1194,12 +1239,11 @@ export default {
     },
 
     /**
-     * 将后端时刻（建议 RFC3339 / 带 Z 的 UTC）解析为 Date；展示时再按 _displayDateTimeLocaleOptions 转本地。
+     * Parse backend timestamps (prefer RFC3339 / UTC Z) and display them with _displayDateTimeLocaleOptions.
      */
     _parseInstantForDisplay (s) {
       s = String(s || '').trim()
       if (!s) return null
-      // 无时区后缀时按 UTC 解析（与当前后端 _serialize_monitor_ts 约定一致），再交给 toLocale 转到用户本地
       const hasTz = /[zZ]$/.test(s) || /[+-]\d{2}:?\d{2}$/.test(s)
       if (!hasTz) {
         const norm = s.replace(' ', 'T')
@@ -1522,9 +1566,8 @@ export default {
         this.$message.error(e?.response?.data?.msg || e?.message || 'Failed')
       }
     },
-    // Cache-first hydration. Called from created() before any network work
-    // so the four market-overview widgets paint with last-session's data
-    // while a real refresh is queued. Safe no-op when cache is empty.
+    // Cache-first hydration. Called from created() before any network work so
+    // lightweight context panels can paint with last-session's data.
     _hydrateMarketCache () {
       try {
         const sentiment = sessionCache.read(MARKET_CACHE.sentiment.key)
@@ -1533,45 +1576,33 @@ export default {
           this.marketData.vix = sentiment.vix ?? null
           this.marketData.dxy = sentiment.dxy ?? null
         }
-        const indices = sessionCache.read(MARKET_CACHE.indices.key)
-        if (Array.isArray(indices)) {
-          this.marketData.indices = indices
-        }
-        const heatmap = sessionCache.read(MARKET_CACHE.heatmap.key)
-        if (heatmap && typeof heatmap === 'object') {
-          this.marketData.heatmap = {
-            us_stocks: heatmap.us_stocks || [],
-            hk_stocks: heatmap.hk_stocks || [],
-            crypto: heatmap.crypto || [],
-            commodities: heatmap.commodities || [],
-            sectors: heatmap.sectors || [],
-            forex: heatmap.forex || []
-          }
-        }
         const calendar = sessionCache.read(MARKET_CACHE.calendar.key)
         if (Array.isArray(calendar)) {
           this.marketData.calendar = calendar
+          this.calendarMeta = {}
+        } else if (calendar && typeof calendar === 'object') {
+          this.marketData.calendar = Array.isArray(calendar.events) ? calendar.events : []
+          this.calendarMeta = calendar.meta || {}
         }
       } catch (e) {
         // Cache hydration is best-effort; never let it block UI render.
       }
     },
     async loadMarketData (force = false) {
-      // Progressive loader: each widget respects its TTL cache.
-      // Heatmap runs after overview so backend crypto/forex/commodity caches
-      // are already warm — avoids a 40s+ cold-start that used to hit the
-      // 30s axios timeout and leave all heatmap tabs empty.
+      // Default screen only loads visible, decision-relevant context.
+      // Opportunity radar, index ticker, heatmap and sentiment widgets stay
+      // off the hot path so opening this page does not burn unnecessary API calls.
       const bypass = force === true
       this.loadingMarket = true
-      this.loadSentimentData(bypass)
+      this.loadingSentiment = false
+      this.loadingIndices = false
+      this.loadingHeatmap = false
       this.loadCalendarData(bypass)
-      await this.loadIndicesData(bypass)
-      this.loadHeatmapData(bypass)
     },
     async loadSentimentData (force = false) {
       const meta = MARKET_CACHE.sentiment
       if (!force && sessionCache.isFresh(meta.key) && this.marketData.fearGreed != null) {
-        // Cache still warm — nothing to do. checkAllLoaded() handles the
+        // Cache still warm; nothing to do. checkAllLoaded() handles the
         // collective loading flag.
         this.loadingSentiment = false
         this.checkAllLoaded()
@@ -1598,66 +1629,6 @@ export default {
         this.checkAllLoaded()
       }
     },
-    async loadIndicesData (force = false) {
-      const meta = MARKET_CACHE.indices
-      if (!force && sessionCache.isFresh(meta.key) && this.marketData.indices.length > 0) {
-        this.loadingIndices = false
-        this.checkAllLoaded()
-        return
-      }
-      this.loadingIndices = true
-      try {
-        const res = await getMarketOverview()
-        if (res?.code === 1 && res?.data) {
-          const next = res.data.indices || []
-          this.marketData.indices = next
-          sessionCache.write(meta.key, next, meta.ttl)
-        }
-      } catch (e) {
-        console.error('Load indices failed:', e)
-      } finally {
-        this.loadingIndices = false
-        this.checkAllLoaded()
-      }
-    },
-    async loadHeatmapData (force = false) {
-      const meta = MARKET_CACHE.heatmap
-      const h = this.marketData.heatmap || {}
-      const have = h && (
-        (h.us_stocks || []).length +
-        (h.hk_stocks || []).length +
-        (h.crypto || []).length +
-        (h.sectors || []).length +
-        (h.commodities || []).length +
-        (h.forex || []).length
-      ) > 0
-      if (!force && sessionCache.isFresh(meta.key) && have) {
-        this.loadingHeatmap = false
-        this.checkAllLoaded()
-        return
-      }
-      this.loadingHeatmap = true
-      try {
-        const res = await getMarketHeatmap(force ? { force: 'true' } : {})
-        if (res?.code === 1 && res?.data) {
-          const next = {
-            us_stocks: res.data.us_stocks || [],
-            hk_stocks: res.data.hk_stocks || [],
-            crypto: res.data.crypto || [],
-            commodities: res.data.commodities || [],
-            sectors: res.data.sectors || [],
-            forex: res.data.forex || []
-          }
-          this.marketData.heatmap = next
-          sessionCache.write(meta.key, next, meta.ttl)
-        }
-      } catch (e) {
-        console.error('Load heatmap failed:', e)
-      } finally {
-        this.loadingHeatmap = false
-        this.checkAllLoaded()
-      }
-    },
     async loadCalendarData (force = false) {
       const meta = MARKET_CACHE.calendar
       if (!force && sessionCache.isFresh(meta.key) && (this.marketData.calendar || []).length > 0) {
@@ -1667,11 +1638,13 @@ export default {
       }
       this.loadingCalendar = true
       try {
-        const res = await getEconomicCalendar()
+        const res = await getEconomicCalendar({ force: force ? '1' : undefined })
         if (res?.code === 1) {
-          const next = res.data || []
+          const next = Array.isArray(res.data) ? res.data : []
+          const responseMeta = res.meta || {}
           this.marketData.calendar = next
-          sessionCache.write(meta.key, next, meta.ttl)
+          this.calendarMeta = responseMeta
+          sessionCache.write(meta.key, { events: next, meta: responseMeta }, meta.ttl)
         }
       } catch (e) {
         console.error('Load calendar failed:', e)
@@ -1681,8 +1654,8 @@ export default {
       }
     },
     checkAllLoaded () {
-      // 当所有数据都加载完成时，关闭总loading状态
-      if (!this.loadingSentiment && !this.loadingIndices && !this.loadingHeatmap && !this.loadingCalendar) {
+      // Close the aggregate loading state once visible context is ready.
+      if (!this.loadingSentiment && !this.loadingCalendar) {
         this.loadingMarket = false
       }
     },
@@ -1758,7 +1731,6 @@ export default {
         const tomorrow = new Date(today)
         tomorrow.setDate(tomorrow.getDate() + 1)
 
-        // 判断是否是今天或明天
         if (date.toDateString() === today.toDateString()) {
           return this.isZhLocale ? '今天' : 'Today'
         }
@@ -1766,7 +1738,6 @@ export default {
           return this.isZhLocale ? '明天' : 'Tmrw'
         }
 
-        // 显示月/日
         const month = date.getMonth() + 1
         const day = date.getDate()
         return `${month}/${day}`
@@ -1795,7 +1766,6 @@ export default {
       if (this.heatmapType === 'us_stocks') {
         return item.name || item.fullName || ''
       }
-      // sectors, commodities, forex 都需要多语言适配
       if (this.heatmapType === 'sectors' || this.heatmapType === 'commodities' || this.heatmapType === 'forex') {
         return this.isZhLocale ? (item.name_cn || item.name) : (item.name_en || item.name)
       }
@@ -1803,6 +1773,31 @@ export default {
     },
     getImpactClass (evt) {
       return evt.actual_impact || evt.expected_impact || 'neutral'
+    },
+    formatCalendarValue (evt) {
+      const val = evt && (evt.actual || evt.forecast)
+      if (val == null || val === '' || val === '-') return '--'
+      return val
+    },
+    getCalendarInsightTitle (evt) {
+      const insight = evt && evt.ai_insight
+      if (!insight) return ''
+      return this.isZhLocale ? (insight.title || insight.title_en || '') : (insight.title_en || insight.title || '')
+    },
+    getCalendarInsightSummary (evt) {
+      const insight = evt && evt.ai_insight
+      if (!insight) return ''
+      return this.isZhLocale ? (insight.summary || insight.summary_en || '') : (insight.summary_en || insight.summary || '')
+    },
+    getCalendarRiskWindow (evt) {
+      const insight = evt && evt.ai_insight
+      const window = insight && insight.volatility_window
+      return (window && window.label) || ''
+    },
+    getCalendarInsightAssets (evt) {
+      const insight = evt && evt.ai_insight
+      const assets = insight && Array.isArray(insight.affected_assets) ? insight.affected_assets : []
+      return assets.slice(0, 4)
     },
     getMarketColor (market) {
       const colors = {
@@ -1833,7 +1828,6 @@ export default {
           this.$store.commit('SET_INFO', res.data)
         }
       } catch (e) {
-        // 静默失败，积分以接口返回为准
       }
     },
     handleGenerateStrategy (result) {
@@ -1967,7 +1961,6 @@ export default {
         this.$message.info(this.$t('fastAnalysis.analysisStillProcessing') || '该任务仍在处理中，请稍后刷新历史记录')
         return
       }
-      // 如果有完整结果，直接显示
       if (item.full_result) {
         this.analysisResult = item.full_result
         this.selectedSymbol = `${item.market}:${item.symbol}`
@@ -1975,7 +1968,7 @@ export default {
         return
       }
 
-      // 否则使用历史记录中的基本信息构建显示（止损/止盈几何须与 decision 一致）
+      // Otherwise build a display payload from the historical row; stop loss/take profit geometry must match decision.
       const p = Number(item.price) || 0
       const dec = String(item.decision || 'HOLD').toUpperCase()
       let stopLoss = null
@@ -2116,7 +2109,7 @@ export default {
           const pricesObj = {}
           res.data.forEach(item => {
             priceMap[`${item.market}-${item.symbol}`] = item
-            // 同时填充 watchlistPrices 对象（使用 : 作为键）
+            // Also fill watchlistPrices object, using ":" as the key separator.
             pricesObj[`${item.market}:${item.symbol}`] = {
               price: item.price || 0,
               change: item.changePercent || 0
@@ -2159,13 +2152,20 @@ export default {
     // a round-trip and gives clearer guidance to the user. Returns an error
     // string when the pair is implausible, or '' when it looks OK.
     _validateWatchlistPair (market, symbol) {
-      if (!market || !symbol) return 'Missing market or symbol'
+      if (!market || !symbol) return this.i18nText('dashboard.analysis.modal.addStock.missingMarketOrSymbol', 'Missing market or symbol')
       // Pure 6-digit codes are CN A-shares and must not go to Crypto / US / etc.
       if (/^\d{6}$/.test(symbol) && market !== 'CNStock') {
-        return `"${symbol}" 看起来是 A 股代码，市场应选择 CNStock 而不是 ${market}。 / "${symbol}" looks like a CN A-share; choose CNStock instead of ${market}.`
+        return this.i18nText('dashboard.analysis.modal.addStock.validate.cn', '"{symbol}" looks like a CN A-share; choose {target} instead of {market}.', {
+          symbol,
+          market: this.marketLabel(market),
+          target: this.marketLabel('CNStock')
+        })
       }
       if (symbol.toUpperCase().endsWith('.HK') && market !== 'HKStock') {
-        return `"${symbol}" 看起来是港股代码，市场应选择 HKStock。 / "${symbol}" looks like a HK stock; choose HKStock.`
+        return this.i18nText('dashboard.analysis.modal.addStock.validate.hk', '"{symbol}" looks like a Hong Kong stock; choose {target}.', {
+          symbol,
+          target: this.marketLabel('HKStock')
+        })
       }
       return ''
     },
@@ -2240,7 +2240,7 @@ export default {
     },
     // Triggered by the inline mismatch-hint's "Switch to <market>" button.
     // Keeps the keyword the user already typed so they don't have to retype
-    // it after switching tabs — they just see the search re-fire on the
+    // it after switching tabs; they just see the search re-fire on the
     // correct market.
     switchToSuggestedMarket (targetMarket) {
       if (!targetMarket || targetMarket === this.selectedMarketTab) return
@@ -2320,7 +2320,7 @@ export default {
           this.symbolSearchResults = res.data
         } else {
           // Search returned nothing. Previously we silently fabricated a
-          // selection of {market: <currentTab>, symbol: <userInput>}, which
+          // synthetic result from the typed text, which made it too easy to
           // let users persist things like {Crypto, 000159}. Now we keep the
           // selection empty so the "Add" button stays disabled, and only
           // pre-fill the selection when the symbol format actually fits the
@@ -2340,7 +2340,7 @@ export default {
           }
         }
       } catch (error) {
-        // Network / server error: same policy as "no results" — never blindly
+        // Network / server error: same policy as "no results"; never blindly
         // accept the user's typed symbol against an arbitrary market tab.
         this.symbolSearchResults = []
         const candidate = keyword.trim().toUpperCase()
@@ -2417,7 +2417,6 @@ export default {
     },
     async removeFromWatchlist (stock) {
       if (!this.userId) return
-      // 支持传入 stock 对象或单独的 symbol/market
       const symbol = typeof stock === 'object' ? stock.symbol : stock
       const market = typeof stock === 'object' ? stock.market : arguments[1]
       try {
@@ -2436,44 +2435,25 @@ export default {
         this.$message.error(this.$t('dashboard.analysis.message.removeStockFailed'))
       }
     },
+    i18nText (key, fallback, values) {
+      const translated = this.$t ? this.$t(key, values) : key
+      if (translated && translated !== key) return translated
+      return Object.entries(values || {}).reduce((text, [name, value]) => {
+        return text.replace(new RegExp(`\\{${name}\\}`, 'g'), value)
+      }, fallback)
+    },
     getMarketName (market) {
-      return this.$t(`dashboard.analysis.market.${market}`) || market
+      return this.i18nText(`dashboard.analysis.market.${market}`, market || '')
     },
     formatNumber (num) {
       if (typeof num === 'string') return num
       return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     },
     async loadMarketTypes () {
-      try {
-        const res = await getMarketTypes()
-        if (res && res.code === 1 && res.data && Array.isArray(res.data)) {
-          this.marketTypes = res.data.map(item => ({
-            value: item.value,
-            i18nKey: item.i18nKey || `dashboard.analysis.market.${item.value}`
-          }))
-        } else {
-          this.marketTypes = [
-            { value: 'USStock', i18nKey: 'dashboard.analysis.market.USStock' },
-            { value: 'CNStock', i18nKey: 'dashboard.analysis.market.CNStock' },
-            { value: 'HKStock', i18nKey: 'dashboard.analysis.market.HKStock' },
-            { value: 'Crypto', i18nKey: 'dashboard.analysis.market.Crypto' },
-            { value: 'Forex', i18nKey: 'dashboard.analysis.market.Forex' },
-            { value: 'Futures', i18nKey: 'dashboard.analysis.market.Futures' }
-          ]
-        }
-      } catch (error) {
-        this.marketTypes = [
-          { value: 'USStock', i18nKey: 'dashboard.analysis.market.USStock' },
-          { value: 'CNStock', i18nKey: 'dashboard.analysis.market.CNStock' },
-          { value: 'HKStock', i18nKey: 'dashboard.analysis.market.HKStock' },
-          { value: 'Crypto', i18nKey: 'dashboard.analysis.market.Crypto' },
-          { value: 'Forex', i18nKey: 'dashboard.analysis.market.Forex' },
-          { value: 'Futures', i18nKey: 'dashboard.analysis.market.Futures' }
-        ]
-      }
+      this.marketTypes = await loadEnabledMarketOptions({ includeFeatures: ['research'] })
 
       if (this.marketTypes.length > 0 && !this.selectedMarketTab) {
-        this.selectedMarketTab = this.marketTypes[0].value
+        this.selectedMarketTab = firstMarketValue(this.marketTypes)
       }
     }
   },
@@ -2521,7 +2501,7 @@ export default {
 <style lang="less" scoped>
 .ai-analysis-container {
   display: flex;
-  height: calc(100vh - 120px);
+  height: calc(100vh - 88px);
   background: #f0f2f5;
   overflow: hidden;
   width: 100%;
@@ -2529,8 +2509,8 @@ export default {
 }
 
 .ai-analysis-container.embedded {
-  height: auto;
-  min-height: 700px;
+  height: calc(100vh - 92px);
+  min-height: 560px;
   background: transparent;
 }
 
@@ -2549,20 +2529,20 @@ export default {
   margin-top: 6px;
 }
 
-// 全宽主内容
+// Full-width main content
 .main-content-full {
   flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #fff;
-  border-radius: 12px;
+  background: transparent;
+  border-radius: 0;
   height: 100%;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: none;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-// 顶部指数条
+// Top index strip
 .top-index-bar {
   display: flex;
   align-items: center;
@@ -2646,19 +2626,17 @@ export default {
   }
 }
 
-// 主体三栏布局
 .main-body {
   flex: 1;
   display: flex;
-  gap: 12px;
-  padding: 12px;
+  gap: 16px;
+  padding: 16px;
   overflow: hidden;
   min-height: 0;
 }
 
-// 左侧面板：热力图 + 财经日历
 .left-panel {
-  width: 280px;
+  width: 300px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -2768,10 +2746,7 @@ export default {
       &::-webkit-scrollbar-thumb { background: #d4d8dd; border-radius: 2px; }
 
       .cal-item {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 6px 0;
+        padding: 7px 0;
         border-bottom: 1px solid #f1f5f9;
         font-size: 10px;
         &:last-child { border-bottom: none; }
@@ -2779,6 +2754,12 @@ export default {
         &.medium { border-left: 3px solid #ca8a04; padding-left: 8px; margin-left: -4px; }
         &.low { border-left: 3px solid #16a34a; padding-left: 8px; margin-left: -4px; }
 
+        .cal-main-row {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          min-width: 0;
+        }
         .cal-date {
           font-size: 9px;
           color: #94a3b8;
@@ -2798,13 +2779,94 @@ export default {
           &.bearish { color: #dc2626; }
           &.neutral { color: #94a3b8; }
         }
+        .cal-ai-insight {
+          margin: 6px 0 0 74px;
+          padding: 6px 7px;
+          border-radius: 7px;
+          background: #f8fafc;
+          border: 1px solid #e5edf5;
+          &.high {
+            background: #fff7ed;
+            border-color: #fed7aa;
+          }
+          &.medium {
+            background: #f8fbff;
+            border-color: #dbeafe;
+          }
+          &.low {
+            background: #f8fafc;
+            border-color: #e5edf5;
+          }
+        }
+        .cal-ai-title {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          color: #1e293b;
+          font-weight: 700;
+          line-height: 1.3;
+          .anticon { color: var(--primary-color, #1890ff); }
+          span {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+          em {
+            flex: none;
+            font-style: normal;
+            color: #64748b;
+            font-weight: 600;
+            font-size: 9px;
+          }
+        }
+        .cal-ai-summary {
+          margin-top: 4px;
+          color: #64748b;
+          line-height: 1.45;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        .cal-ai-assets {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 4px;
+          margin-top: 5px;
+        }
+        .cal-ai-asset {
+          padding: 1px 5px;
+          border-radius: 999px;
+          background: #eef2ff;
+          color: #475569;
+          font-weight: 600;
+          line-height: 1.5;
+          &.up { background: #dcfce7; color: #15803d; }
+          &.down { background: #fee2e2; color: #b91c1c; }
+          &.volatility { background: #fef3c7; color: #92400e; }
+        }
       }
-      .cal-empty { text-align: center; color: #94a3b8; padding: 20px 0; font-size: 12px; }
+      .cal-empty {
+        text-align: center;
+        color: #94a3b8;
+        padding: 20px 12px;
+        font-size: 12px;
+        line-height: 1.6;
+        .cal-empty-title {
+          color: #334155;
+          font-weight: 600;
+          margin-bottom: 4px;
+        }
+        .cal-empty-desc {
+          max-width: 320px;
+          margin: 0 auto 4px;
+        }
+      }
     }
   }
 }
 
-// 中间分析面板
 .right-panel {
   flex: 1;
   display: flex;
@@ -2886,12 +2948,11 @@ export default {
   }
 }
 
-// 右侧自选股面板
 .watchlist-panel {
-  width: 320px;
+  width: 300px;
   flex-shrink: 0;
   align-self: flex-start;
-  max-height: calc(100vh - 200px);
+  max-height: calc(100vh - 180px);
   background: #fff;
   border-radius: 10px;
   border: 1px solid #eaeef3;
@@ -3016,7 +3077,7 @@ export default {
   }
 }
 
-/* 手机端：单列堆叠、避免热力图与日历并排过窄 */
+/* Mobile: single-column stack; avoid cramped heatmap/calendar panels */
 @media (max-width: 576px) {
   .main-body {
     padding: 4px 6px;
@@ -3052,6 +3113,10 @@ export default {
 
     .calendar-box {
       max-height: 220px;
+    }
+
+    .calendar-list .cal-item .cal-ai-insight {
+      margin-left: 0;
     }
 
     .heatmap-box .box-header {
@@ -3172,7 +3237,7 @@ export default {
   }
 }
 
-/* Dark Theme — pure black / dark gray */
+/* Dark Theme - pure black / dark gray */
 .ai-analysis-container.theme-dark {
   background: #0a0a0a;
   color: #d4d4d4;
@@ -3325,8 +3390,35 @@ export default {
         .cal-date { color: #555; }
         .cal-time { color: #777; }
         .cal-name { color: #ccc; }
+        .cal-ai-insight {
+          background: #202226;
+          border-color: rgba(255, 255, 255, 0.08);
+          &.high {
+            background: rgba(251, 146, 60, 0.08);
+            border-color: rgba(251, 146, 60, 0.22);
+          }
+          &.medium {
+            background: rgba(59, 130, 246, 0.08);
+            border-color: rgba(59, 130, 246, 0.20);
+          }
+        }
+        .cal-ai-title {
+          color: #e5e7eb;
+          em { color: #94a3b8; }
+        }
+        .cal-ai-summary { color: #94a3b8; }
+        .cal-ai-asset {
+          background: rgba(99, 102, 241, 0.16);
+          color: #c7d2fe;
+          &.up { background: rgba(34, 197, 94, 0.14); color: #86efac; }
+          &.down { background: rgba(239, 68, 68, 0.14); color: #fca5a5; }
+          &.volatility { background: rgba(245, 158, 11, 0.14); color: #fcd34d; }
+        }
       }
-      .cal-empty { color: #555; }
+      .cal-empty {
+        color: #777;
+        .cal-empty-title { color: #ccc; }
+      }
 
       .calendar-list {
         &::-webkit-scrollbar-thumb { background: #333; }
@@ -4094,7 +4186,7 @@ export default {
   }
 }
 
-/* 骨架屏加载动画 - 渐进式加载 */
+/* Skeleton loading animation - progressive loading */
 .skeleton-box {
   .skeleton-text {
     display: block;
@@ -4175,7 +4267,7 @@ export default {
   100% { background-position: -200% 0; }
 }
 
-/* 暗色主题下的骨架屏 */
+/* Dark theme skeletons */
 .theme-dark {
   .skeleton-box, .skeleton-cell, .skeleton-item {
     .skeleton-text {
