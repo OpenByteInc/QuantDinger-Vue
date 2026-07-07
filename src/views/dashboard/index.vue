@@ -514,6 +514,7 @@ import * as echarts from 'echarts'
 import { getDashboardSummary, getPendingOrders } from '@/api/dashboard'
 import { mapState } from 'vuex'
 import { formatUserDateTime } from '@/utils/userTime'
+import { createVisibilityPolling } from '@/utils/visibilityPolling'
 
 export default {
   name: 'Dashboard',
@@ -558,8 +559,9 @@ export default {
         total: 0
       },
       orderPollTimer: null,
+      orderPoller: null,
       lastOrderId: 0,
-      orderPollIntervalMs: 5000,
+      orderPollIntervalMs: 15000,
       soundEnabled: true,
       beepCtx: null
     }
@@ -850,11 +852,16 @@ export default {
     startOrderPolling () {
       this.stopOrderPolling()
       this.initLastOrderId()
-      this.orderPollTimer = setInterval(() => {
-        this.pollNewOrders()
-      }, this.orderPollIntervalMs)
+      this.orderPoller = createVisibilityPolling(() => this.pollNewOrders(), this.orderPollIntervalMs, {
+        immediate: false
+      })
+      this.orderPoller.start()
     },
     stopOrderPolling () {
+      if (this.orderPoller) {
+        this.orderPoller.stop()
+        this.orderPoller = null
+      }
       if (this.orderPollTimer) {
         clearInterval(this.orderPollTimer)
         this.orderPollTimer = null

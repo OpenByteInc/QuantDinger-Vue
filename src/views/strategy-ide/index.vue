@@ -12,90 +12,6 @@
 
           <div class="script-workspace">
             <section class="script-panel script-panel--editor">
-              <div class="panel-head">
-                <div>
-                  <div class="panel-title">
-                    <a-icon type="code" />
-                    <span>{{ text.codeTitle }}</span>
-                    <a-tag v-if="scriptDraftStrategyId" color="blue">#{{ scriptDraftStrategyId }}</a-tag>
-                  </div>
-                  <div class="panel-desc">{{ text.codeDesc }}</div>
-                </div>
-                <div class="script-code-actions">
-                  <a-select
-                    v-model="selectedScriptId"
-                    class="script-select"
-                    show-search
-                    allow-clear
-                    option-filter-prop="children"
-                    :loading="loadingScripts"
-                    :placeholder="text.selectScriptPlaceholder"
-                    @change="handleScriptSelect"
-                  >
-                    <a-select-option
-                      v-for="item in scriptStrategyOptions"
-                      :key="String(item.id)"
-                      :value="String(item.id)"
-                    >
-                      {{ item.optionLabel }}
-                    </a-select-option>
-                  </a-select>
-                  <a-tooltip :title="text.newScript">
-                    <a-button class="ide-icon-btn" @click="newScriptDraft">
-                      <a-icon type="plus" />
-                    </a-button>
-                  </a-tooltip>
-                  <a-tooltip :title="text.refreshScripts">
-                    <a-button class="ide-icon-btn" :loading="loadingScripts" @click="loadScriptStrategies">
-                      <a-icon type="reload" />
-                    </a-button>
-                  </a-tooltip>
-                  <span class="action-divider"></span>
-                  <a-input
-                    v-model="scriptName"
-                    class="save-inline__input"
-                    :placeholder="text.strategyNamePlaceholder"
-                  />
-                  <a-tooltip :title="scriptDraftStrategyId ? text.updateScript : text.saveScript">
-                    <a-button
-                    class="ide-icon-btn"
-                    type="primary"
-                    :loading="savingScript"
-                    @click="saveScriptStrategy(false)"
-                    >
-                      <a-icon type="save" />
-                    </a-button>
-                  </a-tooltip>
-                  <a-tooltip v-if="scriptDraftStrategyId" :title="text.saveAsNew">
-                    <a-button
-                      class="ide-icon-btn"
-                      :loading="savingScript"
-                      @click="saveScriptStrategy(true)"
-                    >
-                      <a-icon type="copy" />
-                    </a-button>
-                  </a-tooltip>
-                  <a-tooltip v-if="scriptDraftStrategyId" :title="text.publishScript">
-                    <a-button
-                      class="ide-icon-btn"
-                      :loading="savingScript || publishingScript"
-                      @click="openPublishScriptModal"
-                    >
-                      <a-icon type="shop" />
-                    </a-button>
-                  </a-tooltip>
-                  <a-tooltip v-if="scriptDraftStrategyId" :title="text.deleteScript">
-                    <a-button
-                      class="ide-icon-btn ide-icon-btn--danger"
-                      :loading="savingScript"
-                      @click="deleteCurrentScriptSource"
-                    >
-                      <a-icon type="delete" />
-                    </a-button>
-                  </a-tooltip>
-                </div>
-              </div>
-
               <strategy-editor
                 ref="scriptEditor"
                 :key="scriptEditorKey"
@@ -104,10 +20,102 @@
                 :visible="activeMode === 'script'"
                 :user-id="userId"
                 :strategy-id="scriptDraftStrategyId"
+                :strategy-name="deriveScriptName()"
                 :initial-template-key="editorInitialTemplateKey"
                 @verified="scriptVerified = true"
                 @template-change="onScriptTemplateChange"
-              />
+                @name-change="scriptName = $event"
+              >
+                <template #toolbar>
+                  <div class="script-code-actions">
+                    <span class="script-select-label">{{ text.selectScriptLabel }}</span>
+                    <a-select
+                      v-model="selectedScriptId"
+                      class="script-select"
+                      show-search
+                      allow-clear
+                      option-filter-prop="children"
+                      :loading="loadingScripts"
+                      :placeholder="text.selectScriptPlaceholder"
+                      @change="handleScriptSelect"
+                    >
+                      <a-select-option
+                        v-for="item in scriptStrategyOptions"
+                        :key="String(item.id)"
+                        :value="String(item.id)"
+                      >
+                        {{ item.optionLabel }}
+                      </a-select-option>
+                    </a-select>
+                    <a-tooltip :title="text.newScript">
+                      <a-button class="ide-icon-btn" @click="newScriptDraft">
+                        <a-icon type="plus" />
+                      </a-button>
+                    </a-tooltip>
+                    <a-tooltip :title="text.refreshScripts">
+                      <a-button class="ide-icon-btn" :loading="loadingScripts" @click="loadScriptStrategies">
+                        <a-icon type="reload" />
+                      </a-button>
+                    </a-tooltip>
+                    <a-tooltip :title="text.versionHistory">
+                      <a-button
+                        class="ide-icon-btn"
+                        :disabled="!scriptDraftStrategyId"
+                        :loading="scriptVersionLoading"
+                        @click="openScriptVersionDrawer"
+                      >
+                        <a-icon type="history" />
+                      </a-button>
+                    </a-tooltip>
+                    <a-tooltip :title="scriptDraftStrategyId ? text.updateScript : text.saveScript">
+                      <a-button
+                        class="ide-icon-btn"
+                        type="primary"
+                        :loading="savingScript"
+                        @click="saveScriptStrategy(false)"
+                      >
+                        <a-icon type="save" />
+                      </a-button>
+                    </a-tooltip>
+                    <a-button
+                      class="script-live-button"
+                      type="primary"
+                      :loading="savingScript"
+                      @click="createLiveFromScript"
+                    >
+                      <a-icon type="thunderbolt" />
+                      {{ text.createLive }}
+                    </a-button>
+                    <a-tooltip v-if="scriptDraftStrategyId" :title="text.saveAsNew">
+                      <a-button
+                        class="ide-icon-btn"
+                        :loading="savingScript"
+                        @click="saveScriptStrategy(true)"
+                      >
+                        <a-icon type="copy" />
+                      </a-button>
+                    </a-tooltip>
+                    <a-tooltip v-if="scriptDraftStrategyId" :title="text.publishScript">
+                      <a-button
+                        class="ide-icon-btn"
+                        :loading="savingScript || publishingScript"
+                        @click="openPublishScriptModal"
+                      >
+                        <a-icon type="shop" />
+                      </a-button>
+                    </a-tooltip>
+                    <a-tooltip v-if="scriptDraftStrategyId" :title="text.deleteScript">
+                      <a-button
+                        class="ide-icon-btn ide-icon-btn--danger"
+                        :loading="savingScript"
+                        @click="deleteCurrentScriptSource"
+                      >
+                        <a-icon type="delete" />
+                      </a-button>
+                    </a-tooltip>
+                  </div>
+                </template>
+              </strategy-editor>
             </section>
 
             <section class="script-panel script-panel--backtest">
@@ -128,43 +136,41 @@
                     <a-icon type="star" />
                     <span>{{ text.runTarget }}</span>
                   </div>
-                  <div class="run-field run-field--wide">
-                    <label>{{ text.watchlistSymbol }}</label>
-                    <a-select
-                      v-model="selectedWatchKey"
-                      class="run-control run-control--symbol"
-                      show-search
-                      option-filter-prop="children"
-                      :loading="loadingWatchlist"
-                      :placeholder="text.watchlistPlaceholder"
-                      @change="onWatchSymbolChange"
-                    >
-                      <a-select-option
-                        v-for="item in watchlistOptions"
-                        :key="item.value"
-                        :value="item.value"
+                  <div class="run-target-grid run-target-grid--simple">
+                    <div class="run-field">
+                      <label>{{ text.watchlistSymbol }}</label>
+                      <a-select
+                        v-model="selectedWatchKey"
+                        class="run-control run-control--symbol"
+                        show-search
+                        option-filter-prop="children"
+                        :loading="loadingWatchlist"
+                        :placeholder="text.watchlistPlaceholder"
+                        @change="onWatchSymbolChange"
                       >
-                        {{ item.label }}
-                      </a-select-option>
-                    </a-select>
+                        <a-select-option
+                          v-for="item in watchlistOptions"
+                          :key="item.value"
+                          :value="item.value"
+                        >
+                          {{ item.label }}
+                        </a-select-option>
+                      </a-select>
+                    </div>
+                    <div class="run-field">
+                      <label>{{ text.runtimeCadence }}</label>
+                      <div class="run-fixed-cadence">
+                        <a-tag color="green">1m</a-tag>
+                        <a-tag color="blue">10s</a-tag>
+                      </div>
+                    </div>
                   </div>
                   <div class="target-summary">
                     <a-tag color="blue">{{ marketLabel(runForm.marketCategory) }}</a-tag>
                     <strong>{{ runForm.symbol || text.noSymbol }}</strong>
                     <span v-if="selectedWatchItem && selectedWatchItem.name">{{ selectedWatchItem.name }}</span>
-                  </div>
-                  <div class="run-field">
-                    <label>{{ text.timeframe }}</label>
-                    <a-select v-model="runForm.timeframe" class="run-control run-control--timeframe">
-                      <a-select-option value="1m">1m</a-select-option>
-                      <a-select-option value="5m">5m</a-select-option>
-                      <a-select-option value="15m">15m</a-select-option>
-                      <a-select-option value="30m">30m</a-select-option>
-                      <a-select-option value="1H">1H</a-select-option>
-                      <a-select-option value="4H">4H</a-select-option>
-                      <a-select-option value="1D">1D</a-select-option>
-                      <a-select-option value="1W">1W</a-select-option>
-                    </a-select>
+                    <span class="target-summary__divider"></span>
+                    <span>{{ text.timeframeBoundary }}</span>
                   </div>
                 </div>
 
@@ -178,22 +184,26 @@
                       <label>{{ text.marketType }}</label>
                       <a-radio-group v-model="runForm.marketType" button-style="solid" class="run-segment">
                         <a-radio-button value="spot">{{ text.spot }}</a-radio-button>
-                        <a-radio-button value="swap" :disabled="!supportsSwap">{{ text.swap }}</a-radio-button>
+                        <a-radio-button value="swap">{{ text.swap }}</a-radio-button>
                       </a-radio-group>
                     </div>
                     <div class="run-field">
                       <label>{{ text.direction }}</label>
-                      <a-radio-group v-model="runForm.tradeDirection" button-style="solid" class="run-segment">
+                      <a-radio-group v-model="runForm.tradeDirection" button-style="solid" class="run-segment" :disabled="!supportsSwap || runForm.marketType === 'spot'">
                         <a-radio-button value="long">{{ text.long }}</a-radio-button>
-                        <a-radio-button value="short" :disabled="runForm.marketType === 'spot' || !supportsSwap">{{ text.short }}</a-radio-button>
-                        <a-radio-button value="both" :disabled="runForm.marketType === 'spot' || !supportsSwap">{{ text.both }}</a-radio-button>
+                        <a-radio-button value="short" :disabled="!supportsSwap || runForm.marketType === 'spot'">{{ text.short }}</a-radio-button>
+                        <a-radio-button value="both" :disabled="!supportsSwap || runForm.marketType === 'spot'">{{ text.both }}</a-radio-button>
                       </a-radio-group>
+                      <div v-if="runForm.marketType === 'spot'" class="run-field__hint">
+                        {{ text.spotDirectionHint }}
+                      </div>
                     </div>
                     <div class="run-field">
                       <label>{{ text.initialCapital }}</label>
                       <a-input-number
                         v-model="runForm.initialCapital"
-                        :min="100"
+                        :min="investmentAmountMin"
+                        :max="investmentAmountMax"
                         :step="1000"
                         :precision="2"
                         style="width: 100%"
@@ -206,7 +216,7 @@
                         :min="1"
                         :max="125"
                         :step="1"
-                        :disabled="runForm.marketType === 'spot' || !supportsSwap"
+                        :disabled="!supportsSwap || runForm.marketType === 'spot'"
                         style="width: 100%"
                       />
                     </div>
@@ -217,6 +227,10 @@
                   <a-icon type="info-circle" />
                   <span>{{ text.runNote }}</span>
                 </div>
+                <div class="run-field run-field--note run-field--boundary-note">
+                  <a-icon type="partition" />
+                  <span>{{ text.strategyBoundaryNote }}</span>
+                </div>
               </div>
 
               <strategy-backtest-panel
@@ -226,8 +240,10 @@
                 :strategy="scriptBacktestStrategy"
                 :is-dark="isDarkTheme"
                 :prepare-run="prepareScriptBacktest"
+                :script-code="scriptCode"
                 class="script-backtest-panel"
                 @backtested="loadScriptStrategies"
+                @apply-tune-params="applyScriptTuneParams"
               />
             </section>
           </div>
@@ -269,6 +285,51 @@
         />
       </div>
     </a-modal>
+
+    <a-drawer
+      :title="text.versionHistory"
+      :visible="showScriptVersionDrawer"
+      :width="560"
+      :wrap-class-name="isDarkTheme ? 'script-version-drawer script-version-drawer--dark' : 'script-version-drawer'"
+      @close="showScriptVersionDrawer = false"
+    >
+      <div class="code-version-toolbar">
+        <span>{{ scriptName || text.defaultName }}</span>
+        <a-button size="small" icon="reload" :loading="scriptVersionLoading" @click="loadScriptVersions">
+          {{ text.refreshScripts }}
+        </a-button>
+      </div>
+      <a-spin :spinning="scriptVersionLoading">
+        <a-empty v-if="!scriptVersions.length" :description="text.versionEmpty" />
+        <div v-else class="code-version-list">
+          <div v-for="item in scriptVersions" :key="item.id" class="code-version-item">
+            <div class="code-version-item__main">
+              <strong>{{ text.versionNo.replace('{version}', item.version_no) }}</strong>
+              <span>{{ formatScriptVersionTime(item.created_at) }}</span>
+              <small>{{ item.name || scriptName || text.defaultName }}</small>
+            </div>
+            <div class="code-version-item__actions">
+              <a-button size="small" @click="previewScriptVersion(item)">{{ text.versionPreview }}</a-button>
+              <a-button
+                size="small"
+                type="primary"
+                :loading="restoringScriptVersionId === item.id"
+                @click="confirmRestoreScriptVersion(item)"
+              >
+                {{ text.versionRestore }}
+              </a-button>
+            </div>
+          </div>
+        </div>
+      </a-spin>
+      <div v-if="scriptVersionPreview" class="code-version-preview">
+        <div class="code-version-preview__head">
+          <strong>{{ text.versionPreviewTitle.replace('{version}', scriptVersionPreview.version_no) }}</strong>
+          <a-button size="small" icon="close" @click="scriptVersionPreview = null">{{ text.close }}</a-button>
+        </div>
+        <pre>{{ scriptVersionPreview.code }}</pre>
+      </div>
+    </a-drawer>
   </div>
 </template>
 
@@ -282,7 +343,10 @@ import {
   deleteScriptSource,
   getScriptSourceDetail,
   getScriptSourceList,
+  getScriptSourceVersion,
+  getScriptSourceVersions,
   publishScriptSource,
+  restoreScriptSourceVersion,
   updateScriptSource
 } from '@/api/strategy'
 import { getWatchlist } from '@/api/market'
@@ -313,12 +377,18 @@ export default {
       scriptCode: DEFAULT_SCRIPT_CODE,
       scriptName: '',
       scriptTemplateKey: '',
+      scriptTemplateParams: {},
       editorInitialTemplateKey: '',
       scriptEditorKeySeed: 0,
       scriptVerified: false,
       savingScript: false,
       publishingScript: false,
       showPublishModal: false,
+      showScriptVersionDrawer: false,
+      scriptVersionLoading: false,
+      scriptVersions: [],
+      scriptVersionPreview: null,
+      restoringScriptVersionId: null,
       publishForm: {
         name: '',
         description: '',
@@ -329,6 +399,8 @@ export default {
       scriptDraftStrategyId: null,
       scriptRuntimeStrategyId: null,
       scriptDraftStrategy: null,
+      investmentAmountMin: 10,
+      investmentAmountMax: 1000000,
       lastSavedScriptSnapshot: '',
       loadingWatchlist: false,
       selectedWatchKey: '',
@@ -336,11 +408,11 @@ export default {
       runForm: {
         marketCategory: 'Crypto',
         symbol: 'BTC/USDT',
-        timeframe: '15m',
-        marketType: 'spot',
+        timeframe: '1m',
+        marketType: 'swap',
         tradeDirection: 'long',
         initialCapital: 10000,
-        leverage: 1
+        leverage: 5
       }
     }
   },
@@ -417,23 +489,37 @@ export default {
     },
     text () {
       const zh = {
-        indicator: '指标策略',
-        script: '脚本策略',
+        indicator: '指标编写',
+        script: '交易脚本',
         libraryTitle: '脚本源码库',
-        libraryDesc: '在这里切换、编辑、回测和发布脚本源码。标的、周期、资金和方向属于本次回测或实盘运行配置。',
+        libraryDesc: '在这里切换、编辑、回测和发布脚本源码。运行时选择标的、现货/合约、方向、投入金额和杠杆。',
+        selectScriptLabel: '当前脚本',
         selectScriptPlaceholder: '选择已保存脚本源码',
         newScript: '新建脚本',
-        codeTitle: '策略代码',
-        codeDesc: '这里只保存脚本逻辑。运行标的、周期、资金、账户和通知在回测或实盘启动时选择。',
+        codeTitle: '脚本代码',
+        codeDesc: '这里只保存脚本逻辑。运行标的、现货/合约、方向、投入金额、杠杆、账户和通知在回测或实盘启动时选择。',
         backtestTitle: '脚本回测',
-        backtestDesc: '从自选标的发起回测，市场自动识别；K 线输入周期会作为 on_bar 的数据粒度。',
+        backtestDesc: '从自选标的发起回测，市场自动识别；系统固定使用 1m on_bar 和 10s 价格检查。',
         strategyNamePlaceholder: '可选策略名，留空自动生成',
         saveScript: '保存脚本',
         updateScript: '更新脚本',
         saveAsNew: '另存为新脚本',
+        createLive: '创建实盘',
         publishScript: '发布到市场',
         deleteScript: '删除',
         refreshScripts: '刷新脚本列表',
+        versionHistory: '历史版本',
+        versionEmpty: '暂无历史版本',
+        versionNo: '版本 #{version}',
+        versionPreview: '查看',
+        versionRestore: '恢复',
+        versionRestoreTitle: '恢复历史版本？',
+        versionRestoreContent: '将当前脚本恢复到版本 #{version}，恢复后会自动生成一个新的历史版本。',
+        versionPreviewTitle: '版本 #{version} 预览',
+        versionRestored: '已恢复历史版本',
+        versionLoadFailed: '加载历史版本失败',
+        versionRestoreFailed: '恢复历史版本失败',
+        close: '关闭',
         deleteConfirmTitle: '删除脚本源码？',
         deleteConfirmDesc: '删除后不会删除已创建的实盘策略，但这些策略如果仍引用该源码将无法继续回测或运行。',
         deleteSuccess: '脚本源码已删除',
@@ -459,7 +545,8 @@ export default {
         watchlistPlaceholder: '从自选列表选择标的',
         noSymbol: '未选择标的',
         accountDirection: '账户与方向',
-        timeframe: 'K 线输入周期',
+        timeframe: '脚本触发周期',
+        runtimeCadence: '运行频率',
         marketType: '市场类型',
         spot: '现货',
         swap: '合约',
@@ -467,10 +554,13 @@ export default {
         long: '做多',
         short: '做空',
         both: '双向',
-        initialCapital: '初始资金',
+        initialCapital: '投入金额',
         leverage: '杠杆',
-        runNote: '运行回测时会先同步当前脚本源码；实盘账户、通知、风控和仓位参数仍在策略实盘页绑定。',
-        codeRequired: '请先编写脚本策略代码',
+        spotDirectionHint: '现货只能做多，系统会固定方向为做多、杠杆为 1x。',
+        timeframeBoundary: '固定 1m 触发 on_bar，实盘每 10s 检查一次最新价格。',
+        strategyBoundaryNote: '边界：这里仅选择标的、现货/合约、方向、投入金额和杠杆；分仓、间距、马丁倍数、止盈止损等高级设置由脚本代码决定。',
+        runNote: '运行回测时会先同步当前脚本源码；实盘账户、通知和账户级风控仍在策略实盘页绑定。',
+        codeRequired: '请先编写交易脚本代码',
         symbolRequired: '请选择回测标的',
         saveSuccess: '脚本源码已保存',
         saveFailed: '保存脚本源码失败',
@@ -479,26 +569,41 @@ export default {
         loadScriptFailed: '加载脚本源码失败',
         runningEditBlocked: '策略正在运行，请先停止后再修改代码',
         autoNameSuffix: '脚本源码',
-        defaultName: '未命名脚本'
+        defaultName: '未命名脚本',
+        noScriptChanges: '脚本已是最新'
       }
       const en = {
-        indicator: 'Indicator Strategy',
-        script: 'Script Strategy',
+        indicator: 'Indicator Builder',
+        script: 'Trading Script',
         libraryTitle: 'Script Source Library',
-        libraryDesc: 'Switch, edit, backtest, and publish script source here. Symbol, timeframe, capital, and direction are run settings.',
+        libraryDesc: 'Switch, edit, backtest, and publish script source here. Runs ask for symbol, spot/swap, direction, investment amount, and leverage.',
+        selectScriptLabel: 'Script',
         selectScriptPlaceholder: 'Select a saved script source',
         newScript: 'New Script',
-        codeTitle: 'Strategy Code',
-        codeDesc: 'Save only script logic here. Choose symbol, timeframe, capital, account, and notifications when backtesting or going live.',
+        codeTitle: 'Script Code',
+        codeDesc: 'Save only script logic here. Choose symbol, spot/swap, direction, investment amount, leverage, account, and notifications when backtesting or going live.',
         backtestTitle: 'Script Backtest',
-        backtestDesc: 'Choose a watchlist symbol for this run. Market is inferred automatically; timeframe is the bar feed for on_bar.',
+        backtestDesc: 'Choose a watchlist symbol for this run. Market is inferred automatically; scripts use fixed 1m on_bar and 10s price checks.',
         strategyNamePlaceholder: 'Optional name, auto-generated if empty',
         saveScript: 'Save Script',
         updateScript: 'Update Script',
         saveAsNew: 'Save as New',
+        createLive: 'Create Live',
         publishScript: 'Publish',
         deleteScript: 'Delete',
         refreshScripts: 'Refresh scripts',
+        versionHistory: 'Version History',
+        versionEmpty: 'No version history yet',
+        versionNo: 'Version #{version}',
+        versionPreview: 'View',
+        versionRestore: 'Restore',
+        versionRestoreTitle: 'Restore this version?',
+        versionRestoreContent: 'Restore the current script to version #{version}. This restore will be saved as a new version.',
+        versionPreviewTitle: 'Version #{version} Preview',
+        versionRestored: 'Version restored',
+        versionLoadFailed: 'Failed to load version history',
+        versionRestoreFailed: 'Failed to restore version',
+        close: 'Close',
         deleteConfirmTitle: 'Delete script source?',
         deleteConfirmDesc: 'Existing live strategies are not deleted, but strategies still referencing this source will no longer backtest or run.',
         deleteSuccess: 'Script source deleted',
@@ -524,7 +629,8 @@ export default {
         watchlistPlaceholder: 'Select from watchlist',
         noSymbol: 'No symbol selected',
         accountDirection: 'Account & Direction',
-        timeframe: 'K-line Feed',
+        timeframe: 'Trigger Interval',
+        runtimeCadence: 'Runtime Cadence',
         marketType: 'Market Type',
         spot: 'Spot',
         swap: 'Swap',
@@ -532,10 +638,14 @@ export default {
         long: 'Long',
         short: 'Short',
         both: 'Both',
-        initialCapital: 'Initial Capital',
+        initialCapital: 'Investment Amount',
+        investmentAmountRange: 'Investment amount must be between 10 and 1,000,000',
         leverage: 'Leverage',
-        runNote: 'Backtest syncs the current script source first. Live account, notifications, risk, and sizing remain bound in Strategy Live.',
-        codeRequired: 'Write script strategy code first',
+        spotDirectionHint: 'Spot can only run long; direction is fixed to Long and leverage to 1x.',
+        timeframeBoundary: 'Fixed 1m on_bar trigger; live mode checks the latest price every 10s.',
+        strategyBoundaryNote: 'Boundary: this panel only chooses symbol, spot/swap, direction, investment amount, and leverage. Layers, spacing, martingale sizing, exits, and other advanced settings belong in script code.',
+        runNote: 'Backtest syncs the current script source first. Live account, notifications, and account-level risk remain bound in Strategy Live.',
+        codeRequired: 'Write trading script code first',
         symbolRequired: 'Select a backtest symbol',
         saveSuccess: 'Script source saved',
         saveFailed: 'Failed to save script source',
@@ -544,12 +654,18 @@ export default {
         loadScriptFailed: 'Failed to load script source',
         runningEditBlocked: 'Stop the running strategy before editing its code',
         autoNameSuffix: 'Script Source',
-        defaultName: 'Untitled Script'
+        defaultName: 'Untitled Script',
+        noScriptChanges: 'Script is already up to date'
       }
-      return this.isZh ? zh : en
+      const bundle = this.isZh ? zh : en
+      bundle.selectScriptLabel = this.$t('strategyIde.selectScriptLabel')
+      bundle.investmentAmountRange = this.$t('trading-assistant.validation.initialCapitalRange')
+      return bundle
     }
   },
   mounted () {
+    this._scriptSaveShortcutListener = (event) => this.handleScriptSaveShortcut(event)
+    window.addEventListener('keydown', this._scriptSaveShortcutListener, true)
     const tab = String((this.$route.query && this.$route.query.tab) || '').toLowerCase()
     if (tab === 'script') this.activeMode = 'script'
     const template = String((this.$route.query && this.$route.query.template) || '').trim()
@@ -557,8 +673,15 @@ export default {
       this.scriptTemplateKey = template
       this.editorInitialTemplateKey = template
     }
+    this.applyCopilotScriptDraft()
     this.loadWatchlist()
     this.loadScriptStrategies()
+  },
+  beforeDestroy () {
+    if (this._scriptSaveShortcutListener) {
+      window.removeEventListener('keydown', this._scriptSaveShortcutListener, true)
+      this._scriptSaveShortcutListener = null
+    }
   },
   watch: {
     activeMode (mode) {
@@ -588,6 +711,63 @@ export default {
     }
   },
   methods: {
+    applyCopilotScriptDraft () {
+      const query = this.$route.query || {}
+      const isScriptDraft = String(query.aiDraft || '') === '1' && String(query.tab || '').toLowerCase() === 'script'
+      if (!isScriptDraft || typeof sessionStorage === 'undefined') return
+      const code = String(sessionStorage.getItem('qd_copilot_script_strategy_code') || '').trim()
+      if (!code) return
+
+      let meta = {}
+      try {
+        meta = JSON.parse(sessionStorage.getItem('qd_copilot_script_strategy_meta') || '{}') || {}
+      } catch (_) {
+        meta = {}
+      }
+
+      this.activeMode = 'script'
+      this.selectedScriptId = undefined
+      this.scriptDraftStrategyId = null
+      this.scriptRuntimeStrategyId = null
+      this.scriptDraftStrategy = null
+      this.scriptCode = code
+      this.scriptName = String(meta.name || '').trim() || this.extractScriptTitleFromCode(code) || this.text.defaultName
+      this.scriptTemplateKey = ''
+      this.scriptTemplateParams = {}
+      this.editorInitialTemplateKey = ''
+      this.scriptVerified = false
+      this.lastSavedScriptSnapshot = ''
+      this.scriptEditorKeySeed += 1
+
+      const market = meta.market || query.market
+      const symbol = meta.symbol || query.symbol
+      if (market) this.runForm.marketCategory = this.normalizeMarket(market)
+      if (symbol) this.runForm.symbol = String(symbol).trim()
+      this.syncSelectedWatchKey()
+    },
+    hasCopilotScriptDraft () {
+      return String((this.$route.query && this.$route.query.aiDraft) || '') === '1' &&
+        String((this.$route.query && this.$route.query.tab) || '').toLowerCase() === 'script' &&
+        !this.scriptDraftStrategyId &&
+        String(this.scriptCode || '').trim() &&
+        String(this.scriptCode || '').trim() !== String(DEFAULT_SCRIPT_CODE || '').trim()
+    },
+    handleScriptSaveShortcut (event) {
+      if (!event || (!event.ctrlKey && !event.metaKey) || String(event.key || '').toLowerCase() !== 's') return
+      if (this.activeMode !== 'script') return
+      event.preventDefault()
+      event.stopPropagation()
+      if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation()
+      this.saveScriptFromShortcut()
+    },
+    async saveScriptFromShortcut () {
+      if (this.savingScript) return
+      if (this.scriptDraftStrategyId && this.lastSavedScriptSnapshot === this.scriptSourceSnapshot()) {
+        this.$message.info(this.text.noScriptChanges || this.text.saveSuccess)
+        return
+      }
+      await this.saveScriptStrategy(false)
+    },
     marketLabel (market) {
       const key = String(market || '').trim()
       const labels = {
@@ -653,7 +833,7 @@ export default {
         })
         const firstScript = this.scriptStrategies[0]
         const firstId = firstScript && (firstScript.id || firstScript.source_id || firstScript.sourceId)
-        const targetId = queryId || (currentExists ? currentId : firstId)
+        const targetId = queryId || (currentExists ? currentId : (this.hasCopilotScriptDraft() ? null : firstId))
 
         if (targetId && String(targetId) !== String(this.scriptDraftStrategyId || '')) {
           this.selectedScriptId = String(targetId)
@@ -677,20 +857,24 @@ export default {
       this.scriptName = strategy.name || strategy.strategy_name || ''
       this.scriptCode = strategy.code || strategy.strategy_code || DEFAULT_SCRIPT_CODE
       this.scriptTemplateKey = strategy.template_key || tc.script_template_key || ''
+      this.scriptTemplateParams = {
+        ...((metadata && metadata.script_template_params) || {}),
+        ...((tc && tc.script_template_params) || {})
+      }
       this.editorInitialTemplateKey = ''
       this.scriptVerified = !!(metadata.lifecycle_verified || metadata.script_verified)
       this.scriptEditorKeySeed += 1
       this.runForm.marketCategory = this.normalizeMarket(tc.market_category || 'Crypto')
       this.runForm.symbol = tc.symbol || this.runForm.symbol || 'BTC/USDT'
-      this.runForm.timeframe = tc.timeframe || this.runForm.timeframe || '15m'
-      this.runForm.marketType = 'spot'
-      this.runForm.tradeDirection = this.runForm.marketType === 'spot'
-        ? 'long'
-        : (tc.trade_direction || this.runForm.tradeDirection || 'both')
+      this.runForm.timeframe = '1m'
+      this.runForm.marketType = this.supportsSwap && (tc.market_type === 'swap' || tc.market_type === 'futures') ? 'swap' : 'spot'
+      this.runForm.tradeDirection = this.supportsSwap
+        ? (tc.trade_direction || this.runForm.tradeDirection || 'long')
+        : 'long'
       this.runForm.initialCapital = Number(tc.initial_capital || strategy.initial_capital || this.runForm.initialCapital || 10000)
-      this.runForm.leverage = this.runForm.marketType === 'spot'
+      this.runForm.leverage = !this.supportsSwap
         ? 1
-        : Number(tc.leverage || strategy.leverage || this.runForm.leverage || 1)
+        : Number(tc.leverage || strategy.leverage || this.runForm.leverage || 5)
       this.syncSelectedWatchKey()
       this.lastSavedScriptSnapshot = this.scriptSourceSnapshot()
     },
@@ -721,6 +905,7 @@ export default {
       this.scriptName = ''
       this.scriptCode = DEFAULT_SCRIPT_CODE
       this.scriptTemplateKey = ''
+      this.scriptTemplateParams = {}
       this.editorInitialTemplateKey = ''
       this.scriptEditorKeySeed += 1
       this.scriptVerified = false
@@ -763,11 +948,22 @@ export default {
     deriveScriptName () {
       const explicit = String(this.scriptName || '').trim()
       if (explicit) return explicit
+      const codeTitle = this.extractScriptTitleFromCode(this.scriptCode)
+      if (codeTitle) return codeTitle
       const symbol = String(this.runForm.symbol || '').trim()
       return symbol ? `${symbol} ${this.text.autoNameSuffix}` : this.text.defaultName
     },
+    extractScriptTitleFromCode (code) {
+      const source = String(code || '')
+      const match = source.match(/^\s*("""|''')([\s\S]*?)\1/)
+      if (!match) return ''
+      const lines = String(match[2] || '').split(/\r?\n/)
+      const title = lines.map(line => String(line || '').trim()).find(Boolean)
+      return title || ''
+    },
     onScriptTemplateChange (payload) {
       this.scriptTemplateKey = (payload && payload.key) || ''
+      this.scriptTemplateParams = (payload && payload.params && typeof payload.params === 'object') ? { ...payload.params } : {}
       this.scriptVerified = false
     },
     validateScriptCode () {
@@ -783,21 +979,33 @@ export default {
         this.$message.warning(this.text.symbolRequired)
         return false
       }
+      const investmentAmount = Number(this.runForm.initialCapital)
+      if (!Number.isFinite(investmentAmount) || investmentAmount < this.investmentAmountMin || investmentAmount > this.investmentAmountMax) {
+        this.$message.warning(this.text.investmentAmountRange)
+        return false
+      }
       return true
     },
     buildTradingConfig () {
       const marketSupportsSwap = String(this.runForm.marketCategory || '') === 'Crypto'
       const marketType = marketSupportsSwap && this.runForm.marketType === 'swap' ? 'swap' : 'spot'
-      const tradeDirection = marketType === 'spot' ? 'long' : (this.runForm.tradeDirection || 'both')
+      const tradeDirection = marketType === 'spot' ? 'long' : (this.runForm.tradeDirection || 'long')
+      const investmentAmount = Number(this.runForm.initialCapital || 10000)
       const config = {
+        runtime_contract_version: 'simple_script_v1',
         symbol: String(this.runForm.symbol || '').trim(),
-        timeframe: this.runForm.timeframe || '15m',
-        market_type: marketSupportsSwap ? marketType : undefined,
+        timeframe: '1m',
+        tick_interval_sec: 10,
+        market_type: marketType,
         trade_direction: tradeDirection,
-        initial_capital: Number(this.runForm.initialCapital || 10000),
+        initial_capital: investmentAmount,
+        investment_amount: investmentAmount,
         leverage: marketType === 'spot' ? 1 : Number(this.runForm.leverage || 1)
       }
       if (this.scriptTemplateKey) config.script_template_key = this.scriptTemplateKey
+      if (this.scriptTemplateParams && Object.keys(this.scriptTemplateParams).length) {
+        config.script_template_params = { ...this.scriptTemplateParams }
+      }
       return config
     },
     buildScriptPayload () {
@@ -806,8 +1014,10 @@ export default {
         name: this.deriveScriptName(),
         code: this.scriptCode,
         template_key: this.scriptTemplateKey,
+        template_params: { ...this.scriptTemplateParams },
         metadata: {
           last_run_config: this.buildTradingConfig(),
+          script_template_params: { ...this.scriptTemplateParams },
           lifecycle_verified: this.scriptVerified,
           script_verified: this.scriptVerified
         }
@@ -857,6 +1067,77 @@ export default {
         this.savingScript = false
       }
     },
+    openScriptVersionDrawer () {
+      if (!this.scriptDraftStrategyId) return
+      this.showScriptVersionDrawer = true
+      this.scriptVersionPreview = null
+      this.loadScriptVersions()
+    },
+    async loadScriptVersions () {
+      if (!this.scriptDraftStrategyId) return
+      this.scriptVersionLoading = true
+      try {
+        const res = await getScriptSourceVersions(this.scriptDraftStrategyId)
+        if (res && res.code === 1) {
+          this.scriptVersions = Array.isArray(res.data) ? res.data : []
+        } else {
+          this.$message.error((res && res.msg) || this.text.versionLoadFailed)
+        }
+      } catch (e) {
+        this.$message.error(e.backendMessage || e.message || this.text.versionLoadFailed)
+      } finally {
+        this.scriptVersionLoading = false
+      }
+    },
+    async previewScriptVersion (item) {
+      if (!item || !item.id) return
+      try {
+        const res = await getScriptSourceVersion(item.id)
+        if (res && res.code === 1) {
+          this.scriptVersionPreview = res.data || null
+        } else {
+          this.$message.error((res && res.msg) || this.text.versionLoadFailed)
+        }
+      } catch (e) {
+        this.$message.error(e.backendMessage || e.message || this.text.versionLoadFailed)
+      }
+    },
+    confirmRestoreScriptVersion (item) {
+      if (!item || !item.id) return
+      this.$confirm({
+        title: this.text.versionRestoreTitle,
+        content: this.text.versionRestoreContent.replace('{version}', item.version_no),
+        okText: this.text.versionRestore,
+        cancelText: this.text.cancel,
+        onOk: () => this.restoreScriptVersion(item)
+      })
+    },
+    async restoreScriptVersion (item) {
+      if (!item || !item.id) return
+      this.restoringScriptVersionId = item.id
+      try {
+        const res = await restoreScriptSourceVersion(item.id)
+        if (res && res.code === 1 && res.data) {
+          this.applyStrategyToEditor(res.data)
+          await this.loadScriptStrategies()
+          await this.loadScriptVersions()
+          this.scriptVersionPreview = null
+          this.$message.success(this.text.versionRestored)
+        } else {
+          this.$message.error((res && res.msg) || this.text.versionRestoreFailed)
+        }
+      } catch (e) {
+        this.$message.error(e.backendMessage || e.message || this.text.versionRestoreFailed)
+      } finally {
+        this.restoringScriptVersionId = null
+      }
+    },
+    formatScriptVersionTime (value) {
+      if (!value) return ''
+      const date = new Date(value)
+      if (Number.isNaN(date.getTime())) return String(value)
+      return date.toLocaleString()
+    },
     async openPublishScriptModal () {
       const sourceId = await this.saveScriptStrategy(false)
       if (!sourceId) return
@@ -868,6 +1149,28 @@ export default {
         price: 0
       }
       this.showPublishModal = true
+    },
+    async createLiveFromScript () {
+      if (!this.validateScriptCode()) return
+      this.savingScript = true
+      try {
+        const sourceId = await this.saveScriptStrategy(false, { skipUnchanged: true, silent: true })
+        if (!sourceId) return
+        const tradingConfig = this.buildTradingConfig()
+        this.$router.push({
+          path: '/strategy-script',
+          query: {
+            mode: 'create',
+            source_id: String(sourceId),
+            market_type: tradingConfig.market_type,
+            trade_direction: tradingConfig.trade_direction,
+            initial_capital: String(tradingConfig.initial_capital || 10000),
+            leverage: String(tradingConfig.leverage || 1)
+          }
+        }).catch(() => {})
+      } finally {
+        this.savingScript = false
+      }
     },
     closePublishScriptModal () {
       if (!this.publishingScript) this.showPublishModal = false
@@ -962,6 +1265,16 @@ export default {
         this.preparingBacktest = false
         if (typeof hide === 'function') hide()
       }
+    },
+    applyScriptTuneParams (payload) {
+      if (!payload || !payload.code) return
+      this.scriptCode = payload.code
+      this.scriptVerified = false
+      this.$nextTick(() => {
+        if (this.$refs.scriptEditor && typeof this.$refs.scriptEditor.setCode === 'function') {
+          this.$refs.scriptEditor.setCode(payload.code)
+        }
+      })
     }
   }
 }
@@ -985,16 +1298,27 @@ export default {
 }
 
 .script-select {
-  width: 230px;
-  max-width: 24vw;
+  width: 260px;
+  max-width: 28vw;
+}
+
+.script-select-label {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: #8c8c8c;
+  white-space: nowrap;
+  line-height: 34px;
 }
 
 .script-workspace {
   display: grid;
   grid-template-columns: minmax(680px, 1.2fr) minmax(560px, 0.95fr);
-  align-items: start;
+  align-items: stretch;
   gap: 12px;
   padding: 12px;
+  height: calc(100vh - 118px);
+  overflow: hidden;
 }
 
 .script-panel {
@@ -1007,21 +1331,24 @@ export default {
 
 .script-panel--editor {
   min-width: 0;
-  max-height: calc(100vh - 160px);
+  height: 100%;
+  max-height: none;
   display: flex;
   flex-direction: column;
 
   ::v-deep .strategy-editor {
     flex: 1 1 auto;
+    height: 100%;
     min-height: 0;
-    padding: 12px;
+    padding: 10px;
+    box-sizing: border-box;
     overflow: hidden;
   }
 
   ::v-deep .editor-layout {
-    height: calc(100vh - 305px);
-    min-height: 480px;
-    max-height: calc(100vh - 305px);
+    height: calc(100% - 42px);
+    min-height: 0;
+    max-height: none;
     overflow: hidden;
   }
 
@@ -1062,7 +1389,8 @@ export default {
 
 .script-panel--backtest {
   min-width: 0;
-  max-height: calc(100vh - 170px);
+  height: 100%;
+  max-height: none;
   overflow-y: auto;
 
   &::-webkit-scrollbar {
@@ -1099,7 +1427,7 @@ export default {
   color: #172033;
 
   .anticon {
-    color: #1890ff;
+    color: var(--primary-color, #1890ff);
   }
 }
 
@@ -1115,13 +1443,18 @@ export default {
   align-items: center;
   gap: 8px;
   min-width: 0;
-  flex: 0 1 auto;
-  max-width: 760px;
+  width: 100%;
+  flex: 1 1 auto;
+  max-width: none;
   justify-content: flex-end;
 }
 
-.save-inline__input {
-  width: 190px;
+.script-live-button {
+  height: 34px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .ide-icon-btn {
@@ -1153,6 +1486,99 @@ export default {
   background: #e5e7eb;
 }
 
+.code-version-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: #64748b;
+
+  span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.code-version-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.code-version-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.code-version-item__main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  strong {
+    color: #0f172a;
+  }
+
+  span,
+  small {
+    color: #64748b;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.code-version-item__actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.code-version-preview {
+  margin-top: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #0f172a;
+}
+
+.code-version-preview__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  background: transparent;
+  border-bottom: 1px solid #e5e7eb;
+
+  strong {
+    color: #0f172a;
+  }
+}
+
+.code-version-preview pre {
+  max-height: 360px;
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  color: #e2e8f0;
+  font-size: 12px;
+  line-height: 1.55;
+  font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+  white-space: pre;
+}
+
 .run-config-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -1180,7 +1606,7 @@ export default {
   color: #172033;
 
   .anticon {
-    color: #1890ff;
+    color: var(--primary-color, #1890ff);
   }
 }
 
@@ -1190,14 +1616,33 @@ export default {
   gap: 12px;
 }
 
+.run-target-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(132px, 180px);
+  align-items: end;
+  gap: 12px;
+}
+
+.run-fixed-cadence {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+}
+
+.run-field__hint {
+  margin-top: 6px;
+  color: #64748b;
+  font-size: 12px;
+}
+
 .target-summary {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 34px;
-  margin: 10px 0 12px;
-  padding: 8px 10px;
-  border-radius: 8px;
+  min-height: 28px;
+  margin-top: 8px;
+  padding: 0;
   background: #f8fafc;
   color: #64748b;
   font-size: 12px;
@@ -1205,6 +1650,12 @@ export default {
   strong {
     color: #172033;
   }
+}
+
+.target-summary__divider {
+  width: 1px;
+  height: 14px;
+  background: #dbe3ef;
 }
 
 .run-field {
@@ -1231,15 +1682,14 @@ export default {
 
 .run-control {
   width: 100%;
-  max-width: 260px;
 }
 
 .run-control--symbol {
-  max-width: 360px;
+  max-width: none;
 }
 
 .run-control--timeframe {
-  max-width: 180px;
+  max-width: none;
 }
 
 .run-segment {
@@ -1261,6 +1711,16 @@ export default {
   color: #2563eb;
   font-size: 12px;
   line-height: 1.6;
+}
+
+.run-field--template-note {
+  background: #eef2ff;
+  color: #1d39c4;
+}
+
+.run-field--boundary-note {
+  background: #f0fdf4;
+  color: #15803d;
 }
 
 .script-backtest-panel {
@@ -1320,6 +1780,22 @@ export default {
 
   ::v-deep .ant-table-content {
     overflow-x: auto;
+    scrollbar-color: #cbd5e1 #f3f4f6;
+    scrollbar-width: thin;
+
+    &::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      border-radius: 999px;
+      background: #cbd5e1;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: #f3f4f6;
+    }
   }
 
   ::v-deep .ant-pagination {
@@ -1346,7 +1822,7 @@ export default {
   }
 
   ::v-deep .ant-tabs-tab-active {
-    color: #177ddc !important;
+    color: var(--primary-color-active, #177ddc) !important;
   }
 
   ::v-deep .ant-tabs-tab-disabled {
@@ -1363,6 +1839,10 @@ export default {
     color: rgba(255, 255, 255, 0.5);
   }
 
+  .script-select-label {
+    color: rgba(255, 255, 255, 0.42);
+  }
+
   .action-divider {
     background: rgba(255, 255, 255, 0.12);
   }
@@ -1371,6 +1851,89 @@ export default {
     background: #181818;
     border-color: #303030;
     box-shadow: none;
+  }
+
+  .script-backtest-panel {
+    ::v-deep .bt-toolbar,
+    ::v-deep .bt-tuner-card,
+    ::v-deep .bt-result-card,
+    ::v-deep .bt-history-empty {
+      background: #181818;
+      border-color: #303030;
+      box-shadow: none;
+    }
+
+    ::v-deep .ant-table {
+      background: transparent;
+      color: rgba(255, 255, 255, 0.74);
+    }
+
+    ::v-deep .ant-table-content {
+      scrollbar-color: #5b6472 #202020;
+
+      &::-webkit-scrollbar-thumb {
+        background: #5b6472;
+      }
+
+      &::-webkit-scrollbar-track {
+        background: #202020;
+      }
+    }
+
+    ::v-deep .ant-table-bordered,
+    ::v-deep .ant-table-bordered .ant-table-content,
+    ::v-deep .ant-table-bordered .ant-table-body,
+    ::v-deep .ant-table-small,
+    ::v-deep .ant-table-content,
+    ::v-deep .ant-table-body,
+    ::v-deep .ant-table-scroll,
+    ::v-deep .ant-table-header,
+    ::v-deep table {
+      border-color: #303030 !important;
+      box-shadow: none !important;
+    }
+
+    ::v-deep .ant-table-thead > tr > th {
+      background: #141414;
+      color: rgba(255, 255, 255, 0.72);
+      border-color: #303030 !important;
+    }
+
+    ::v-deep .ant-table-tbody > tr > td {
+      color: rgba(255, 255, 255, 0.74);
+      border-color: #282828 !important;
+      box-shadow: none !important;
+    }
+
+    ::v-deep .ant-table-tbody > tr:hover > td,
+    ::v-deep .bt-tuner-row--active td {
+      background: #1f2a33 !important;
+    }
+
+    ::v-deep .ant-pagination-item,
+    ::v-deep .ant-pagination-prev .ant-pagination-item-link,
+    ::v-deep .ant-pagination-next .ant-pagination-item-link {
+      background: #181818;
+      border-color: #303030;
+      color: rgba(255, 255, 255, 0.68);
+    }
+
+    ::v-deep .ant-pagination-item a {
+      color: rgba(255, 255, 255, 0.68);
+    }
+
+    ::v-deep .ant-pagination-item-active {
+      background: #0f5fb8;
+      border-color: var(--primary-color-active, #177ddc);
+    }
+
+    ::v-deep .ant-pagination-item-active a {
+      color: #fff;
+    }
+
+    ::v-deep .ant-badge-status-text {
+      color: rgba(255, 255, 255, 0.66) !important;
+    }
   }
 
   .panel-head {
@@ -1392,7 +1955,7 @@ export default {
   }
 
   .target-summary {
-    background: rgba(255, 255, 255, 0.04);
+    background: transparent;
     color: rgba(255, 255, 255, 0.52);
 
     strong {
@@ -1400,9 +1963,18 @@ export default {
     }
   }
 
+  .target-summary__divider {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
   .run-field--note {
     background: rgba(24, 144, 255, 0.09);
     color: #69c0ff;
+  }
+
+  .run-field--boundary-note {
+    background: rgba(82, 196, 26, 0.1);
+    color: #95de64;
   }
 
   ::v-deep .ant-input,
@@ -1423,14 +1995,16 @@ export default {
 
   ::v-deep .ant-radio-button-wrapper-checked {
     color: #fff;
-    background: #177ddc;
-    border-color: #177ddc;
+    background: var(--primary-color-active, #177ddc);
+    border-color: var(--primary-color-active, #177ddc);
   }
 }
 
 @media (max-width: 1280px) {
   .script-workspace {
     grid-template-columns: 1fr;
+    height: auto;
+    overflow: visible;
   }
 
   .script-panel--backtest {
@@ -1464,16 +2038,25 @@ export default {
     justify-content: flex-start;
   }
 
-  .script-select,
-  .save-inline__input {
+  .script-select {
     width: 100%;
     max-width: none;
+  }
+
+  .script-select-label {
+    width: 100%;
+    line-height: 1.4;
   }
 
   .run-control,
   .run-control--symbol,
   .run-control--timeframe {
     max-width: none;
+  }
+
+  .run-target-grid,
+  .run-form-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>
@@ -1523,6 +2106,55 @@ export default {
     background: #141414;
     border-color: rgba(255, 255, 255, 0.12);
     color: #d1d4dc;
+  }
+}
+
+.script-version-drawer--dark {
+  .ant-drawer-content {
+    background: #181818;
+  }
+
+  .ant-drawer-header {
+    background: #181818;
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .ant-drawer-title,
+  .ant-drawer-close {
+    color: rgba(255, 255, 255, 0.88);
+  }
+
+  .code-version-toolbar {
+    color: rgba(255, 255, 255, 0.58);
+  }
+
+  .code-version-item {
+    background: #141414;
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .code-version-item__main {
+    strong {
+      color: rgba(255, 255, 255, 0.88);
+    }
+
+    span,
+    small {
+      color: rgba(255, 255, 255, 0.52);
+    }
+  }
+
+  .code-version-preview {
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .code-version-preview__head {
+    background: #141414;
+    border-color: rgba(255, 255, 255, 0.08);
+
+    strong {
+      color: rgba(255, 255, 255, 0.88);
+    }
   }
 }
 </style>

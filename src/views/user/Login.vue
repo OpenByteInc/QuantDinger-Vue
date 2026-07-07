@@ -73,7 +73,7 @@
               <Turnstile
                 ref="loginTurnstile"
                 :siteKey="securityConfig.turnstile_site_key"
-                :enabled="securityConfig.turnstile_enabled"
+                :enabled="securityConfig.turnstile_enabled && activeTab === 'login' && loginMethod === 'password'"
                 @success="(t) => loginTurnstileToken = t"
                 @error="() => loginTurnstileToken = null"
               />
@@ -150,7 +150,7 @@
                       size="large"
                       block
                       :loading="codeLoginSendingCode"
-                      :disabled="codeLoginSendingCode || codeLoginCountdown > 0"
+                      :disabled="codeLoginSendingCode || codeLoginCountdown > 0 || (securityConfig.turnstile_enabled && !codeLoginTurnstileToken)"
                       @click="handleCodeLoginSendCode"
                     >
                       {{ codeLoginCountdown > 0 ? `${codeLoginCountdown}s` : ($t('user.login.sendCode') || 'Send') }}
@@ -160,6 +160,7 @@
               </a-form-item>
 
               <Turnstile
+                v-if="showCodeLoginTurnstile"
                 ref="codeLoginTurnstile"
                 :siteKey="securityConfig.turnstile_site_key"
                 :enabled="securityConfig.turnstile_enabled"
@@ -174,7 +175,7 @@
                   htmlType="submit"
                   class="submit-button"
                   :loading="codeLoginLoading"
-                  :disabled="codeLoginLoading || (securityConfig.turnstile_enabled && !codeLoginTurnstileToken)"
+                  :disabled="codeLoginLoading"
                   block
                 >{{ $t('user.login.submit') || 'Login' }}</a-button>
               </a-form-item>
@@ -269,7 +270,7 @@
                       size="large"
                       block
                       :loading="registerSendingCode"
-                      :disabled="registerSendingCode || registerCountdown > 0"
+                      :disabled="registerSendingCode || registerCountdown > 0 || (securityConfig.turnstile_enabled && !registerTurnstileToken)"
                       @click="handleRegisterSendCode"
                     >
                       {{ registerCountdown > 0 ? `${registerCountdown}s` : ($t('user.register.sendCode') || 'Send') }}
@@ -370,6 +371,7 @@
 
               <!-- Turnstile for Register -->
               <Turnstile
+                v-if="showRegisterTurnstile"
                 ref="registerTurnstile"
                 :siteKey="securityConfig.turnstile_site_key"
                 :enabled="securityConfig.turnstile_enabled"
@@ -384,7 +386,7 @@
                   htmlType="submit"
                   class="submit-button"
                   :loading="registerLoading"
-                  :disabled="registerLoading || (securityConfig.turnstile_enabled && !registerTurnstileToken)"
+                  :disabled="registerLoading"
                   block
                 >{{ $t('user.register.submit') || 'Create Account' }}</a-button>
               </a-form-item>
@@ -505,7 +507,7 @@
                 size="large"
                 block
                 :loading="resetSendingCode"
-                :disabled="resetSendingCode || resetCountdown > 0"
+                :disabled="resetSendingCode || resetCountdown > 0 || (securityConfig.turnstile_enabled && !resetTurnstileToken)"
                 @click="handleResetSendCode"
               >
                 {{ resetCountdown > 0 ? `${resetCountdown}s` : ($t('user.resetPassword.sendCode') || 'Send') }}
@@ -515,6 +517,7 @@
         </a-form-item>
 
         <Turnstile
+          v-if="showResetTurnstile"
           ref="resetTurnstile"
           :siteKey="securityConfig.turnstile_site_key"
           :enabled="securityConfig.turnstile_enabled"
@@ -528,7 +531,6 @@
             type="primary"
             htmlType="submit"
             class="submit-button"
-            :disabled="securityConfig.turnstile_enabled && !resetTurnstileToken"
             block
           >{{ $t('user.resetPassword.next') || 'Next' }}</a-button>
         </a-form-item>
@@ -750,6 +752,23 @@ export default {
     hasOAuth () {
       return this.securityConfig.oauth_google_enabled || this.securityConfig.oauth_github_enabled
     },
+    showCodeLoginTurnstile () {
+      return this.securityConfig.turnstile_enabled &&
+        this.activeTab === 'login' &&
+        this.loginMethod === 'code' &&
+        this.codeLoginCountdown <= 0
+    },
+    showRegisterTurnstile () {
+      return this.securityConfig.turnstile_enabled &&
+        this.activeTab === 'register' &&
+        this.registerCountdown <= 0
+    },
+    showResetTurnstile () {
+      return this.securityConfig.turnstile_enabled &&
+        this.showResetModal &&
+        this.resetStep === 1 &&
+        this.resetCountdown <= 0
+    },
     regPwdValid () {
       return this.regHasMinLength && this.regHasUppercase && this.regHasLowercase && this.regHasNumber
     },
@@ -769,6 +788,12 @@ export default {
     '$route.query' () {
       // Re-extract referral code when route query changes
       this.extractReferralCode()
+    },
+    activeTab () {
+      this.resetLoginTurnstiles()
+    },
+    loginMethod () {
+      this.resetLoginTurnstiles()
     }
   },
   beforeDestroy () {
@@ -778,6 +803,21 @@ export default {
   },
   methods: {
     ...mapActions(['Login', 'Logout']),
+
+    resetLoginTurnstiles () {
+      this.loginTurnstileToken = null
+      this.codeLoginTurnstileToken = null
+      this.registerTurnstileToken = null
+
+      this.$nextTick(() => {
+        const refNames = ['loginTurnstile', 'codeLoginTurnstile', 'registerTurnstile']
+        refNames.forEach(refName => {
+          if (this.$refs[refName]) {
+            this.$refs[refName].reset()
+          }
+        })
+      })
+    },
 
     async loadSecurityConfig () {
       try {
@@ -971,6 +1011,11 @@ export default {
       this.codeLoginForm.validateFields(['email'], async (err, values) => {
         if (err) return
 
+        if (this.securityConfig.turnstile_enabled && !this.codeLoginTurnstileToken) {
+          this.codeLoginError = this.$t('user.security.verificationFailed') || 'Please complete security verification'
+          return
+        }
+
         this.codeLoginSendingCode = true
         this.codeLoginError = ''
 
@@ -984,6 +1029,7 @@ export default {
           if (res.code === 1) {
             this.$message.success(this.$t('user.login.codeSent') || 'Verification code sent')
             this.startCodeLoginCountdown()
+            this.codeLoginTurnstileToken = null
           } else {
             this.codeLoginError = res.msg || 'Failed to send code'
           }
@@ -1024,7 +1070,6 @@ export default {
           const res = await loginWithCode({
             email: values.email,
             code: values.code,
-            turnstile_token: this.codeLoginTurnstileToken,
             referral_code: this.referralCode
           })
 
@@ -1148,6 +1193,11 @@ export default {
       this.registerForm.validateFields(['email'], async (err, values) => {
         if (err) return
 
+        if (this.securityConfig.turnstile_enabled && !this.registerTurnstileToken) {
+          this.registerError = this.$t('user.security.verificationFailed') || 'Please complete security verification'
+          return
+        }
+
         this.registerSendingCode = true
         this.registerError = ''
 
@@ -1161,6 +1211,7 @@ export default {
           if (res.code === 1) {
             this.$message.success(this.$t('user.register.codeSent') || 'Verification code sent')
             this.startRegisterCountdown()
+            this.registerTurnstileToken = null
           } else {
             this.registerError = res.msg || 'Failed to send code'
           }
@@ -1203,7 +1254,6 @@ export default {
             code: values.code,
             username: values.username,
             password: values.password,
-            turnstile_token: this.registerTurnstileToken,
             referral_code: this.referralCode
           })
 
@@ -1304,6 +1354,7 @@ export default {
       this.resetError = ''
       this.resetEmail = ''
       this.resetCode = ''
+      this.resetTurnstileToken = null
       this.resetCountdown = 0
       if (this.resetCountdownTimer) {
         clearInterval(this.resetCountdownTimer)
@@ -1314,6 +1365,11 @@ export default {
     async handleResetSendCode () {
       this.resetForm.validateFields(['email'], async (err, values) => {
         if (err) return
+
+        if (this.securityConfig.turnstile_enabled && !this.resetTurnstileToken) {
+          this.resetError = this.$t('user.security.verificationFailed') || 'Please complete security verification'
+          return
+        }
 
         this.resetSendingCode = true
         this.resetError = ''
@@ -1328,6 +1384,7 @@ export default {
           if (res.code === 1) {
             this.$message.success(this.$t('user.resetPassword.codeSent') || 'Verification code sent')
             this.startResetCountdown()
+            this.resetTurnstileToken = null
           } else {
             this.resetError = res.msg || 'Failed to send code'
           }
@@ -1402,8 +1459,7 @@ export default {
           const res = await resetPassword({
             email: this.resetEmail,
             code: this.resetCode,
-            new_password: values.new_password,
-            turnstile_token: this.resetTurnstileToken
+            new_password: values.new_password
           })
 
           if (res.code === 1) {
@@ -1461,6 +1517,51 @@ export default {
     padding: 32px;
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+
+    ::v-deep .ant-input,
+    ::v-deep .ant-input-affix-wrapper,
+    ::v-deep .ant-input-password,
+    ::v-deep .ant-input-password .ant-input {
+      background: #fff !important;
+      border-color: #d9d9d9 !important;
+      color: rgba(0, 0, 0, 0.85) !important;
+      box-shadow: none;
+    }
+
+    ::v-deep .ant-input:hover,
+    ::v-deep .ant-input-affix-wrapper:hover,
+    ::v-deep .ant-input-password:hover,
+    ::v-deep .ant-input:focus,
+    ::v-deep .ant-input-affix-wrapper-focused,
+    ::v-deep .ant-input-affix-wrapper:focus,
+    ::v-deep .ant-input-password:focus-within {
+      border-color: var(--primary-color, #1890ff) !important;
+      box-shadow: 0 0 0 2px var(--primary-color-soft, rgba(24, 144, 255, 0.12)) !important;
+    }
+
+    ::v-deep .ant-input::placeholder,
+    ::v-deep .ant-input-password .ant-input::placeholder {
+      color: rgba(0, 0, 0, 0.35) !important;
+    }
+
+    ::v-deep .ant-input-prefix,
+    ::v-deep .ant-input-suffix,
+    ::v-deep .ant-input-password-icon,
+    ::v-deep .ant-input-password .anticon {
+      color: rgba(0, 0, 0, 0.25) !important;
+    }
+
+    ::v-deep .ant-btn-default {
+      background: #fff !important;
+      border-color: #d9d9d9 !important;
+      color: rgba(0, 0, 0, 0.65) !important;
+    }
+
+    ::v-deep .ant-btn-default:hover,
+    ::v-deep .ant-btn-default:focus {
+      border-color: var(--primary-color, #1890ff) !important;
+      color: var(--primary-color, #1890ff) !important;
+    }
   }
 
   .oauth-processing {
@@ -1496,12 +1597,12 @@ export default {
       transition: all 0.3s;
 
       &:hover {
-        color: #1890ff;
+        color: var(--primary-color, #1890ff);
       }
 
       &.active {
-        color: #1890ff;
-        border-bottom-color: #1890ff;
+        color: var(--primary-color, #1890ff);
+        border-bottom-color: var(--primary-color, #1890ff);
         font-weight: 500;
       }
     }
@@ -1521,7 +1622,7 @@ export default {
     color: rgba(0, 0, 0, 0.45);
 
     .anticon {
-      color: #1890ff;
+      color: var(--primary-color, #1890ff);
     }
   }
 
@@ -1531,7 +1632,7 @@ export default {
     font-size: 14px;
 
     a {
-      color: #1890ff;
+      color: var(--primary-color, #1890ff);
       cursor: pointer;
 
       &:hover {
@@ -1612,7 +1713,7 @@ export default {
     }
     .legal-toggle {
       font-size: 12px;
-      color: #1890ff;
+      color: var(--primary-color, #1890ff);
       cursor: pointer;
     }
     .legal-content {

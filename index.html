@@ -32,7 +32,8 @@
       }
 
       .first-loading-card {
-        width: min(420px, 100%);
+        width: 360px;
+        max-width: calc(100% - 32px);
         display: grid;
         justify-items: center;
         gap: 18px;
@@ -136,7 +137,13 @@
       }
 
       @media (max-width: 640px) {
+        .first-loading-wrp {
+          padding: 16px;
+        }
+
         .first-loading-card {
+          width: 100%;
+          max-width: calc(100% - 16px);
           padding: 30px 22px;
         }
 

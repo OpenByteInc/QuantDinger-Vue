@@ -1,0 +1,694 @@
+/*
+ * PC web mobile adaptation.
+ * This layer keeps desktop pages intact while making the authenticated web app
+ * usable on narrow screens. Page-specific styles still own their desktop
+ * composition; these rules normalize the shared Ant Design/pro-layout surfaces.
+ */
+
+@mobile-max: 768px;
+@phone-max: 480px;
+
+@media (max-width: @mobile-max) {
+  html,
+  body,
+  #app,
+  #root {
+    width: 100%;
+    min-width: 0 !important;
+    overflow-x: hidden;
+  }
+
+  body {
+    touch-action: manipulation;
+  }
+
+  .user-layout-wrapper,
+  .user-layout-wrapper .container,
+  .user-layout-wrapper .user-layout-content,
+  .user-layout-wrapper .main-content,
+  .user-layout-wrapper .main {
+    width: 100% !important;
+    max-width: 100vw !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+  }
+
+  .user-layout-wrapper .container {
+    min-height: 100vh !important;
+    background-size: cover !important;
+  }
+
+  .user-layout-wrapper .user-layout-lang {
+    height: 38px !important;
+    line-height: 38px !important;
+  }
+
+  .user-layout-wrapper .select-lang-trigger {
+    margin-right: 8px !important;
+    padding: 8px !important;
+  }
+
+  .user-layout-wrapper .user-layout-content {
+    min-height: calc(100vh - 38px) !important;
+    padding: 12px 12px 18px !important;
+  }
+
+  .user-layout-wrapper .top .header {
+    height: auto !important;
+    line-height: 1 !important;
+  }
+
+  .user-layout-wrapper .top .header .logo {
+    width: 220px !important;
+    max-width: 68vw !important;
+    height: auto !important;
+  }
+
+  .user-layout-wrapper .main {
+    min-height: auto !important;
+    padding: 16px 0 !important;
+  }
+
+  .user-layout-wrapper .auth-intro {
+    margin-bottom: 16px !important;
+  }
+
+  .user-layout-wrapper .auth-card {
+    width: 100% !important;
+    max-width: 420px !important;
+    min-width: 0 !important;
+    padding: 20px !important;
+    border-radius: 8px !important;
+  }
+
+  .user-layout-wrapper .auth-card .ant-row {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    gap: 8px;
+  }
+
+  .user-layout-wrapper .auth-card .ant-row .ant-col {
+    flex: 1 1 auto !important;
+    width: auto !important;
+    padding: 0 !important;
+  }
+
+  .user-layout-wrapper .auth-card .ant-row .ant-col:last-child {
+    flex: 0 0 104px !important;
+  }
+
+  .user-layout-wrapper .oauth-buttons {
+    flex-direction: column !important;
+  }
+
+  .user-layout-wrapper .footer {
+    padding: 0 8px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .user-layout-wrapper .footer .copyright {
+    font-size: 12px !important;
+    line-height: 1.5 !important;
+  }
+
+  .basic-layout-wrapper,
+  .basic-layout-wrapper .ant-layout,
+  .basic-layout-wrapper .ant-layout-content,
+  .basic-layout-wrapper .ant-pro-basicLayout-content,
+  .basic-layout-wrapper .ant-pro-basicLayout-children-content-wrap,
+  .basic-layout-wrapper .basic-route-view-shell {
+    width: 100% !important;
+    max-width: 100vw !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+  }
+
+  .basic-layout-wrapper .ant-pro-global-header {
+    height: 56px !important;
+    line-height: 56px !important;
+    padding: 0 8px !important;
+  }
+
+  .basic-layout-wrapper .ant-pro-global-header-logo {
+    flex: 0 1 auto !important;
+    min-width: 0 !important;
+    max-width: 46vw !important;
+    overflow: hidden;
+
+    h1,
+    span {
+      overflow: hidden;
+      max-width: 36vw;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    img {
+      max-width: 118px !important;
+      max-height: 34px !important;
+      object-fit: contain;
+    }
+  }
+
+  .basic-layout-wrapper .ant-pro-global-header-content {
+    flex: 0 0 auto !important;
+    min-width: 0 !important;
+  }
+
+  .basic-layout-wrapper .ant-pro-global-header-index-right {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: flex-end;
+    min-width: 0;
+    margin-right: 0;
+    overflow: hidden;
+
+    .ant-pro-global-header-index-action,
+    .action {
+      min-width: 34px;
+      height: 56px;
+      padding: 0 7px !important;
+      line-height: 56px;
+    }
+
+    .ant-pro-account-avatar,
+    .antd-pro-global-header-index-account {
+      max-width: 126px;
+      overflow: hidden;
+      white-space: nowrap;
+
+      > span:not(.ant-avatar),
+      .name {
+        display: none;
+      }
+    }
+  }
+
+  .basic-layout-wrapper .ant-pro-multi-tab {
+    max-width: 100vw;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .ant-drawer-content-wrapper {
+    max-width: 92vw !important;
+  }
+
+  .ant-drawer-body {
+    padding: 14px !important;
+    overflow-x: hidden !important;
+  }
+
+  .ant-modal {
+    width: calc(100vw - 24px) !important;
+    max-width: calc(100vw - 24px) !important;
+    margin: 0 auto !important;
+    top: 16px !important;
+  }
+
+  .ant-modal-body {
+    max-height: calc(100vh - 132px);
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 16px !important;
+  }
+
+  .ant-modal-footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+    padding: 10px 16px !important;
+
+    .ant-btn + .ant-btn {
+      margin-left: 0;
+    }
+  }
+
+  .ant-card {
+    border-radius: 8px !important;
+  }
+
+  .ant-card-body {
+    padding: 14px !important;
+  }
+
+  .ant-tabs-bar {
+    margin-bottom: 12px !important;
+  }
+
+  .ant-tabs-nav-container {
+    max-width: 100%;
+  }
+
+  .ant-tabs-nav-scroll,
+  .ant-tabs-nav-wrap {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .ant-tabs-tab {
+    margin-right: 16px !important;
+    padding: 10px 0 !important;
+    white-space: nowrap;
+  }
+
+  .ant-form-inline {
+    display: block;
+
+    .ant-form-item {
+      display: block !important;
+      width: 100% !important;
+      margin-right: 0 !important;
+      margin-bottom: 12px !important;
+    }
+  }
+
+  .ant-input,
+  .ant-input-affix-wrapper,
+  .ant-select,
+  .ant-input-number,
+  .ant-calendar-picker,
+  .ant-time-picker,
+  .ant-cascader-picker,
+  .ant-input-search,
+  .ant-btn-block {
+    max-width: 100%;
+  }
+
+  .ant-select,
+  .ant-input-search,
+  .ant-calendar-picker,
+  .ant-input-number {
+    width: 100% !important;
+  }
+
+  .ant-radio-group,
+  .ant-checkbox-group {
+    max-width: 100%;
+  }
+
+  .ant-radio-group .ant-radio-button-wrapper {
+    padding: 0 10px;
+  }
+
+  .ant-table-wrapper,
+  .ant-table-content,
+  .ant-table-body {
+    width: 100%;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .ant-table {
+    min-width: 560px;
+  }
+
+  .ant-descriptions-view,
+  .ant-list,
+  .ant-collapse,
+  .ant-steps {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .ant-steps-horizontal:not(.ant-steps-label-vertical) {
+    display: flex;
+    min-width: 520px;
+  }
+
+  .ant-pagination {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: flex-start;
+
+    .ant-pagination-options {
+      margin-left: 0;
+    }
+  }
+
+  .table-page-search-wrapper,
+  .table-operator,
+  .toolbar,
+  .filters,
+  .filter-bar,
+  .filter-row,
+  .search-bar,
+  .action-bar,
+  .button-bar,
+  .page-actions,
+  .header-right,
+  .page-header-right,
+  .ba-header-actions,
+  .sc-header-actions,
+  .hero-actions,
+  .market-header .header-right,
+  .script-code-actions,
+  .assistant-guide-actions {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    width: 100% !important;
+
+    .ant-btn,
+    .ant-input-search,
+    .ant-select,
+    .ant-radio-group {
+      flex: 1 1 148px;
+      min-width: 0;
+      margin: 0 !important;
+    }
+  }
+
+  .page-header,
+  .settings-header,
+  .market-header,
+  .ba-header,
+  .sc-header,
+  .skill-hero {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    padding: 14px !important;
+  }
+
+  .page-title,
+  .sc-header-title,
+  .ba-title,
+  .skill-hero h1 {
+    font-size: 20px !important;
+    line-height: 1.28 !important;
+    letter-spacing: 0 !important;
+  }
+
+  .page-desc,
+  .page-subtitle,
+  .sc-header-sub,
+  .ba-subtitle,
+  .skill-hero p {
+    font-size: 13px !important;
+    line-height: 1.55 !important;
+  }
+
+  .ai-asset-analysis-page,
+  .strategy-center,
+  .indicator-community-container,
+  .trading-bot,
+  .broker-accounts,
+  .profile-page,
+  .user-manage-page,
+  .settings-page,
+  .billing-page,
+  .agent-tokens-page,
+  .ai-skill-center,
+  .portfolio-page,
+  .dashboard-page,
+  .trading-assistant,
+  .strategy-ide-shell,
+  .indicator-ide {
+    width: 100% !important;
+    max-width: 100vw !important;
+    min-width: 0 !important;
+    min-height: calc(100vh - 56px) !important;
+    padding: 12px !important;
+    overflow-x: hidden !important;
+  }
+
+  .sc-mini-stats,
+  .stat-grid,
+  .summary-cards,
+  .metric-grid,
+  .overview-grid,
+  .kpi-row,
+  .snapshot-row,
+  .plans-grid,
+  .settings-layout,
+  .skill-main,
+  .skill-grid,
+  .registry-grid,
+  .market-grid,
+  .indicator-grid,
+  .positions-grid,
+  .portfolio-grid,
+  .quick-stat-grid,
+  .ba-account-grid,
+  .exchange-account-grid,
+  .assistant-guide-steps,
+  .strategy-grid,
+  .script-workspace {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .right-cards-row,
+  .profile-cards-row,
+  .stats-row,
+  .cards-row,
+  .ant-row {
+    max-width: 100%;
+  }
+
+  .ant-row {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  .ant-col {
+    max-width: 100%;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .settings-nav,
+  .settings-content,
+  .modal-content,
+  .drawer-content,
+  .detail-panel,
+  .form-panel,
+  .script-panel,
+  .script-panel--editor,
+  .script-panel--runtime,
+  .skill-detail,
+  .skill-list,
+  .profile-card,
+  .credits-card,
+  .referral-card,
+  .edit-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .settings-nav {
+    position: static !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .settings-content {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .CodeMirror,
+  .cm-editor,
+  .monaco-editor,
+  .code-editor,
+  .strategy-editor,
+  .script-editor,
+  .json-editor {
+    max-width: 100% !important;
+  }
+
+  .CodeMirror,
+  .cm-editor {
+    min-height: 320px;
+  }
+
+  .strategy-ide-shell {
+    .strategy-ide-tabs {
+      width: 100%;
+      overflow-x: hidden;
+    }
+
+    .script-workspace {
+      height: auto !important;
+      min-height: 0 !important;
+      overflow: visible !important;
+    }
+
+    .script-panel {
+      height: auto !important;
+      min-height: 0 !important;
+      overflow: visible !important;
+    }
+  }
+
+  .indicator-ide {
+    .ide-main,
+    .ide-workspace,
+    .ide-body {
+      display: flex !important;
+      flex-direction: column !important;
+      height: auto !important;
+      min-height: 0 !important;
+      overflow: visible !important;
+    }
+
+    .ide-left,
+    .ide-right,
+    .ide-chart,
+    .ide-output,
+    .code-panel,
+    .chart-panel,
+    .result-panel {
+      position: relative !important;
+      top: auto !important;
+      left: auto !important;
+      right: auto !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+      height: auto !important;
+      max-height: none !important;
+    }
+
+    .ide-code-rail {
+      display: none !important;
+    }
+  }
+
+  .copilot-workbench,
+  .copilot-shell,
+  .analysis-workbench {
+    width: 100% !important;
+    max-width: 100vw !important;
+    height: auto !important;
+    min-height: calc(100vh - 80px) !important;
+    overflow: visible !important;
+  }
+
+  .copilot-workbench,
+  .copilot-grid,
+  .workbench-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .kline-chart,
+  .tv-chart,
+  .lightweight-chart,
+  .chart-container,
+  .chart-window,
+  .chart-panel,
+  .equity-chart,
+  .market-chart {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 300px;
+  }
+
+  .ant-form-item-label,
+  .ant-form-item-control-wrapper {
+    width: 100% !important;
+  }
+
+  .ant-form-item {
+    margin-bottom: 14px !important;
+  }
+
+  .ant-input-group,
+  .ant-input-group-wrapper {
+    width: 100% !important;
+  }
+
+  .ant-input-group {
+    display: flex !important;
+  }
+
+  .ant-input-group .ant-input {
+    min-width: 0;
+  }
+}
+
+@media (max-width: @phone-max) {
+  .basic-layout-wrapper .ant-pro-global-header {
+    height: 52px !important;
+    line-height: 52px !important;
+  }
+
+  .basic-layout-wrapper .ant-pro-global-header-index-right {
+    .ant-pro-global-header-index-action,
+    .action {
+      min-width: 30px;
+      height: 52px;
+      padding: 0 5px !important;
+      line-height: 52px;
+    }
+  }
+
+  .ai-asset-analysis-page,
+  .strategy-center,
+  .indicator-community-container,
+  .trading-bot,
+  .broker-accounts,
+  .profile-page,
+  .user-manage-page,
+  .settings-page,
+  .billing-page,
+  .agent-tokens-page,
+  .ai-skill-center,
+  .portfolio-page,
+  .dashboard-page,
+  .trading-assistant,
+  .strategy-ide-shell,
+  .indicator-ide {
+    padding: 8px !important;
+  }
+
+  .ant-card-body {
+    padding: 12px !important;
+  }
+
+  .user-layout-wrapper .user-layout-content {
+    padding: 8px !important;
+  }
+
+  .user-layout-wrapper .auth-card {
+    padding: 16px !important;
+  }
+
+  .user-layout-wrapper .auth-card .ant-row .ant-col:last-child {
+    flex-basis: 92px !important;
+  }
+
+  .ant-btn {
+    max-width: 100%;
+  }
+
+  .ant-radio-group .ant-radio-button-wrapper {
+    padding: 0 8px;
+    font-size: 12px;
+  }
+
+  .ant-table {
+    min-width: 520px;
+  }
+
+  .page-title,
+  .sc-header-title,
+  .ba-title,
+  .skill-hero h1 {
+    font-size: 18px !important;
+  }
+}

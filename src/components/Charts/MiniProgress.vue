@@ -66,7 +66,7 @@ export default {
       .progress {
         transition: all .4s cubic-bezier(.08,.82,.17,1) 0s;
         border-radius: 1px 0 0 1px;
-        background-color: #1890ff;
+        background-color: var(--primary-color, #1890ff);
         width: 0;
         height: 100%;
       }

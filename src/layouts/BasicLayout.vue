@@ -475,7 +475,12 @@ export default {
     i18nRender,
     buildTopMenuGroups (routes) {
       const accountMenuPaths = ['/billing', '/profile']
-      const visibleRoutes = routes.filter(route => !route.hidden && !accountMenuPaths.includes(route.path))
+      const strategyDetailPaths = ['/strategy-live', '/strategy-script']
+      const visibleRoutes = routes.filter(route => {
+        return !route.hidden &&
+          !accountMenuPaths.includes(route.path) &&
+          !strategyDetailPaths.includes(route.path)
+      })
       const groups = [
         {
           name: 'MenuGroupAI',
@@ -490,14 +495,22 @@ export default {
           path: '/menu-group/market-data',
           title: this.$t('menu.group.marketData') || 'Market & Data',
           icon: 'database',
-          paths: ['/strategy-center', '/indicator-community']
+          paths: []
         },
         {
           name: 'MenuGroupStrategy',
           path: '/menu-group/strategy-lab',
           title: this.$t('menu.group.strategyLab') || 'Strategy Lab',
           icon: 'experiment',
-          paths: ['/strategy-ide', '/strategy-live', '/strategy-script', '/trading-bot']
+          paths: ['/strategy-ide', '/trading-bot', '/indicator-community']
+        },
+        {
+          name: 'MenuGroupLiveMonitor',
+          path: '/menu-group/live-monitor',
+          title: this.$t('menu.dashboard.strategyCenter') || 'Live Monitor',
+          icon: 'fund',
+          paths: ['/strategy-center'],
+          singleAsItem: true
         },
         {
           name: 'MenuGroupTrading',

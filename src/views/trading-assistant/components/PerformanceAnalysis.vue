@@ -49,7 +49,7 @@
                numbers (e.g. 3h latency on a 4h strategy) look alarming when
                they're actually structural. -->
           <div v-if="deviationLongTimeframeNote" class="deviation-tf-note">
-            <a-icon type="info-circle" theme="filled" style="color: #1890ff; margin-right: 6px;" />
+            <a-icon type="info-circle" theme="filled" style="color: var(--primary-color, #1890ff); margin-right: 6px;" />
             <span>{{ deviationLongTimeframeNote }}</span>
           </div>
           <a-spin :spinning="deviationLoading">
@@ -539,7 +539,7 @@ export default {
       const xData = this.equityData.map(d => this.formatAxisTime(d.time))
       const yData = this.equityData.map(d => d.equity)
 
-      const lineColor = this.isDark ? '#58a6ff' : '#1890ff'
+      const lineColor = this.isDark ? '#58a6ff' : 'var(--primary-color, #1890ff)'
       this.equityChartInstance.setOption({
         tooltip: { trigger: 'axis' },
         grid: { left: 56, right: 16, top: 24, bottom: 28 },
@@ -704,7 +704,7 @@ export default {
   background: #f1f5f9;
   color: #475569;
 
-  &.icon-return { background: rgba(24, 144, 255, 0.12); color: #1890ff; }
+  &.icon-return { background: rgba(24, 144, 255, 0.12); color: var(--primary-color, #1890ff); }
   &.icon-annual { background: rgba(114, 46, 209, 0.1); color: #722ed1; }
   &.icon-dd { background: rgba(250, 173, 20, 0.15); color: #d48806; }
   &.icon-sharpe { background: rgba(19, 194, 194, 0.12); color: #13c2c2; }

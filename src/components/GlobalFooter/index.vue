@@ -83,7 +83,7 @@ export default {
       color: rgba(0, 0, 0, 0.65) !important;
 
       &:hover {
-        color: #1890ff !important;
+        color: var(--primary-color, #1890ff) !important;
       }
     }
   }
@@ -111,7 +111,7 @@ export default {
       color: rgba(255, 255, 255, 0.65) !important;
 
       &:hover {
-        color: #1890ff !important;
+        color: var(--primary-color, #1890ff) !important;
       }
     }
   }

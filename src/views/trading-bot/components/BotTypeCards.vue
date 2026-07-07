@@ -290,7 +290,7 @@ export default {
     }
 
     &.scene {
-      color: #1890ff;
+      color: var(--primary-color, #1890ff);
       background: rgba(24, 144, 255, 0.1);
     }
   }

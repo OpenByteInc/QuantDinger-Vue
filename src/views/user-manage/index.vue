@@ -260,7 +260,7 @@
                 </a-tooltip>
                 <a-tooltip :title="$t('systemOverview.viewUserStrategies') || 'View strategies'">
                   <a-button type="link" size="small" @click.stop="filterStrategiesByUser(record.id)">
-                    <a-icon type="bar-chart" style="color: #1890ff" />
+                    <a-icon type="bar-chart" style="color: var(--primary-color, #1890ff)" />
                   </a-button>
                 </a-tooltip>
                 <a-tooltip :title="$t('common.delete') || 'Delete'">
@@ -419,7 +419,7 @@
             @change="handleStrategyTableChange"
           >
             <!-- Strategy ID -->
-            <template slot="strategyId" slot-scope="text, record">
+            <template slot="strategyId" slot-scope="text">
               <span class="id-cell">
                 <span class="mono-id">{{ text }}</span>
                 <a-tooltip :title="$t('common.copy') || 'Copy'">
@@ -567,6 +567,17 @@
                 <a-tooltip :title="$t('systemOverview.viewUserStrategies') || 'View user strategies'">
                   <a-button type="link" size="small" @click.stop="filterStrategiesByUser(record.user_id)">
                     <a-icon type="user" />
+                  </a-button>
+                </a-tooltip>
+                <a-tooltip :title="$t('common.delete') || 'Delete'">
+                  <a-button
+                    type="link"
+                    size="small"
+                    class="danger-link"
+                    :loading="strategyDeletingId === record.id"
+                    @click.stop="handleStrategyDelete(record)"
+                  >
+                    <a-icon type="delete" />
                   </a-button>
                 </a-tooltip>
               </a-space>
@@ -894,7 +905,7 @@
 
             <!-- Analysis Count -->
             <template slot="analysisCountInfo" slot-scope="text">
-              <span style="font-weight: 600; color: #1890ff;">{{ text || 0 }}</span>
+              <span style="font-weight: 600; color: var(--primary-color, #1890ff);">{{ text || 0 }}</span>
             </template>
 
             <!-- Correct/Incorrect -->
@@ -1152,7 +1163,7 @@
 </template>
 
 <script>
-import { getUserList, exportUsers, createUser, updateUser, deleteUser, resetUserPassword, getRoles, setUserCredits, setUserVip, getSystemStrategies, adminToggleStrategy, getAdminOrders, manualConfirmOrder, getAdminAiStats, getUserAdminStats } from '@/api/user'
+import { getUserList, exportUsers, createUser, updateUser, deleteUser, resetUserPassword, getRoles, setUserCredits, setUserVip, getSystemStrategies, adminToggleStrategy, adminDeleteStrategy, getAdminOrders, manualConfirmOrder, getAdminAiStats, getUserAdminStats } from '@/api/user'
 import { baseMixin } from '@/store/app-mixin'
 import { mapGetters } from 'vuex'
 import * as echarts from 'echarts'
@@ -1219,6 +1230,7 @@ export default {
       strategyIdSearch: '',
       strategyUserIdSearch: '',
       strategyTogglingId: null,
+      strategyDeletingId: null,
       strategyPagination: {
         current: 1,
         pageSize: 20,
@@ -1557,7 +1569,7 @@ export default {
         {
           title: this.$t('common.actions') || 'Actions',
           key: 'actions',
-          width: 120,
+          width: 150,
           fixed: 'right',
           scopedSlots: { customRender: 'strategyActions' }
         }
@@ -1987,8 +1999,8 @@ export default {
               const row = (this.systemStrategies || []).find(s => s.id === record.id)
               if (row && String(row.status || '').toLowerCase() !== 'running') {
                 this.$message.warning(
-                  this.$t('systemOverview.strategyStartNotPersisted')
-                    || '策略未能保持运行，请打开该策略查看运行日志'
+                  this.$t('systemOverview.strategyStartNotPersisted') ||
+                    '策略未能保持运行，请打开该策略查看运行日志'
                 )
               }
             }
@@ -2016,8 +2028,35 @@ export default {
       runToggle()
     },
 
+    handleStrategyDelete (record) {
+      if (!record || !record.id) return
+      this.$confirm({
+        title: this.$t('systemOverview.confirmDeleteTitle') || '删除该策略？',
+        content: this.$t('systemOverview.confirmDeleteDesc') || '删除后不可恢复；如果策略正在运行，系统会先停止再删除。',
+        okText: this.$t('common.delete') || '删除',
+        cancelText: this.$t('common.cancel') || '取消',
+        okType: 'danger',
+        onOk: async () => {
+          this.strategyDeletingId = record.id
+          try {
+            const res = await adminDeleteStrategy(record.id)
+            if (res && res.code === 1) {
+              this.$message.success(res.msg || (this.$t('common.deleteSuccess') || 'Deleted'))
+              await this.loadSystemStrategies()
+            } else {
+              this.$message.error((res && res.msg) || (this.$t('common.deleteFailed') || 'Delete failed'))
+            }
+          } catch (e) {
+            this.$message.error(this.$t('common.deleteFailed') || 'Delete failed')
+          } finally {
+            this.strategyDeletingId = null
+          }
+        }
+      })
+    },
+
     getUserColor (userId) {
-      const colors = ['#1890ff', '#722ed1', '#13c2c2', '#fa8c16', '#eb2f96', '#52c41a', '#2f54eb', '#faad14']
+      const colors = ['var(--primary-color, #1890ff)', '#722ed1', '#13c2c2', '#fa8c16', '#eb2f96', '#52c41a', '#2f54eb', '#faad14']
       return colors[(userId || 0) % colors.length]
     },
 
@@ -2788,15 +2827,14 @@ export default {
 </script>
 
 <style lang="less" scoped>
-@primary-color: #1890ff;
-
 .user-manage-page {
-  padding: 24px;
+  padding: 16px !important;
   min-height: calc(100vh - 120px);
   background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
 
   .page-header {
     margin-bottom: 24px;
+    max-width: 720px;
 
     .page-title {
       font-size: 24px;
@@ -2809,7 +2847,7 @@ export default {
 
       .anticon {
         font-size: 28px;
-        color: @primary-color;
+        color: var(--primary-color, #1890ff);
       }
     }
 
@@ -2823,6 +2861,15 @@ export default {
   .manage-tabs {
     ::v-deep .ant-tabs-bar {
       margin-bottom: 20px;
+    }
+
+    ::v-deep .ant-tabs-ink-bar {
+      background: var(--primary-color, #1890ff);
+    }
+
+    ::v-deep .ant-tabs-tab-active,
+    ::v-deep .ant-tabs-tab:hover {
+      color: var(--primary-color, #1890ff);
     }
   }
 
@@ -3014,6 +3061,14 @@ export default {
     .text-muted {
       color: #94a3b8;
     }
+
+    .danger-link {
+      color: #ff4d4f;
+
+      &:hover {
+        color: #ff7875;
+      }
+    }
   }
 
   .email-col-title {
@@ -3147,7 +3202,7 @@ export default {
   .hash-text {
     font-family: 'Roboto Mono', 'Courier New', monospace;
     font-size: 12px;
-    color: #1890ff;
+    color: var(--primary-color, #1890ff);
     cursor: pointer;
 
     &:hover {
@@ -3188,7 +3243,7 @@ export default {
         }
       }
       ::v-deep .ant-tabs-tab-active {
-        color: @primary-color;
+        color: var(--primary-color, #1890ff);
       }
     }
 
@@ -3330,7 +3385,7 @@ export default {
 
     .value {
       font-weight: 600;
-      color: #1890ff;
+      color: var(--primary-color, #1890ff);
       font-size: 18px;
 
       &.active {
@@ -3760,6 +3815,8 @@ export default {
   .ant-input,
   .ant-input-password,
   .ant-input-affix-wrapper,
+  .ant-input-number,
+  .ant-input-number-input,
   .ant-select-selection,
   .ant-calendar-picker-input {
     background: #141414 !important;
@@ -3768,8 +3825,19 @@ export default {
   }
 
   .ant-input::placeholder,
-  .ant-input-password input::placeholder {
+  .ant-input-password input::placeholder,
+  .ant-input-number-input::placeholder {
     color: #6e7681;
+  }
+
+  .ant-input-number-handler-wrap {
+    background: #1f1f1f;
+    border-left-color: #303030;
+  }
+
+  .ant-input-number-handler {
+    border-color: #303030;
+    color: rgba(255, 255, 255, 0.55);
   }
 
   .ant-input-prefix,
@@ -3783,7 +3851,16 @@ export default {
 
   .current-credits-info,
   .current-vip-info {
-    background: #141414;
+    background: #141414 !important;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+
+    .label {
+      color: rgba(255, 255, 255, 0.68) !important;
+    }
+
+    .value {
+      color: var(--primary-color, #1890ff) !important;
+    }
   }
 }
 

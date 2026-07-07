@@ -207,7 +207,7 @@ export default {
           label: this.$t('trading-bot.kpi.totalEquity'),
           value: '$' + totalEquity.toLocaleString('en-US', { minimumFractionDigits: 2 }),
           icon: 'wallet',
-          color: '#1890ff'
+          color: 'var(--primary-color, #1890ff)'
         },
         {
           label: this.$t('trading-bot.kpi.totalPnl'),
@@ -360,11 +360,15 @@ export default {
           this.actionLoading = true
           this.actionLoadingId = item.id
           try {
-            await stopStrategy(item.id)
-            this.$message.success(this.$t('trading-bot.msg.stopped'))
-            this.loadBots()
+            const res = await stopStrategy(item.id)
+            if (res && res.code === 1) {
+              this.$message.success(this.$t('trading-bot.msg.stopped'))
+              this.loadBots()
+            } else {
+              this.$message.error((res && res.msg) || this.$t('trading-bot.msg.stopFail'))
+            }
           } catch (e) {
-            this.$message.error(e.message || this.$t('trading-bot.msg.stopFail'))
+            this.$message.error(e.backendMessage || e.message || this.$t('trading-bot.msg.stopFail'))
           } finally {
             this.actionLoading = false
             this.actionLoadingId = null
@@ -567,7 +571,7 @@ export default {
   }
 
   &__link {
-    color: #1890ff;
+    color: var(--primary-color, #1890ff);
     cursor: pointer;
     transition: color 0.2s;
 
@@ -577,7 +581,7 @@ export default {
     }
 
     &:hover {
-      color: #40a9ff;
+      color: var(--primary-color-hover, #40a9ff);
     }
   }
 }
@@ -607,7 +611,7 @@ export default {
 
     .title-icon {
       font-size: 24px;
-      -webkit-text-fill-color: #1890ff;
+      -webkit-text-fill-color: var(--primary-color, #1890ff);
     }
   }
 
@@ -626,7 +630,7 @@ export default {
     font-size: 14px;
     color: #8c8c8c;
 
-    &:hover { color: #1890ff; }
+    &:hover { color: var(--primary-color, #1890ff); }
   }
 }
 
@@ -698,7 +702,7 @@ export default {
     &__icon { color: rgba(255, 255, 255, 0.25); }
     &__text { color: rgba(255, 255, 255, 0.45); }
     &__link {
-      color: #177ddc;
+      color: var(--primary-color-active, #177ddc);
       &:hover { color: #3c9ae8; }
     }
   }
@@ -712,8 +716,8 @@ export default {
     .page-subtitle { color: rgba(255, 255, 255, 0.45); }
 
     .title-icon {
-      color: #40a9ff !important;
-      -webkit-text-fill-color: #40a9ff;
+      color: var(--primary-color-hover, #40a9ff) !important;
+      -webkit-text-fill-color: var(--primary-color-hover, #40a9ff);
     }
   }
 
@@ -786,20 +790,20 @@ export default {
     &:hover,
     &:focus {
       background: #222 !important;
-      border-color: var(--primary-color, #177ddc) !important;
-      color: var(--primary-color, #177ddc) !important;
+      border-color: var(--primary-color-active, #177ddc) !important;
+      color: var(--primary-color-active, #177ddc) !important;
     }
   }
 
   ::v-deep .bot-actions .bot-action-btn--start {
     background: rgba(24, 144, 255, 0.1) !important;
     border-color: rgba(24, 144, 255, 0.45) !important;
-    color: #40a9ff !important;
+    color: var(--primary-color-hover, #40a9ff) !important;
 
     &:hover,
     &:focus {
       background: rgba(24, 144, 255, 0.18) !important;
-      border-color: #40a9ff !important;
+      border-color: var(--primary-color-hover, #40a9ff) !important;
       color: #69c0ff !important;
     }
   }
@@ -832,8 +836,8 @@ export default {
   // Ant Tabs
   ::v-deep .ant-tabs-bar { border-bottom-color: #303030; }
   ::v-deep .ant-tabs-tab { color: rgba(255, 255, 255, 0.65); }
-  ::v-deep .ant-tabs-tab-active { color: #177ddc !important; }
-  ::v-deep .ant-tabs-ink-bar { background: #177ddc; }
+  ::v-deep .ant-tabs-tab-active { color: var(--primary-color-active, #177ddc) !important; }
+  ::v-deep .ant-tabs-ink-bar { background: var(--primary-color-active, #177ddc); }
   ::v-deep .ant-card-head { border-bottom-color: #303030; background: transparent; }
   ::v-deep .ant-card-head-title { color: rgba(255, 255, 255, 0.85); }
 
@@ -863,7 +867,7 @@ export default {
 
   ::v-deep .form-hint {
     color: rgba(255, 255, 255, 0.45);
-    a { color: #177ddc; }
+    a { color: var(--primary-color-active, #177ddc); }
   }
 
   ::v-deep .confirm-section h4 { color: rgba(255, 255, 255, 0.85); }
@@ -881,7 +885,7 @@ export default {
   ::v-deep .ant-steps-item-finish .ant-steps-item-title { color: rgba(255, 255, 255, 0.85) !important; }
   ::v-deep .ant-steps-item-process .ant-steps-item-title { color: rgba(255, 255, 255, 0.85) !important; }
   ::v-deep .ant-steps-item-tail::after { background: #303030 !important; }
-  ::v-deep .ant-steps-item-finish .ant-steps-item-tail::after { background: #177ddc !important; }
+  ::v-deep .ant-steps-item-finish .ant-steps-item-tail::after { background: var(--primary-color-active, #177ddc) !important; }
 
   // Ant Form
   ::v-deep .ant-form-item-label > label { color: rgba(255, 255, 255, 0.85); }
@@ -918,7 +922,7 @@ export default {
 
   // Ant Slider
   ::v-deep .ant-slider-rail { background: #434343; }
-  ::v-deep .ant-slider-track { background: #177ddc; }
+  ::v-deep .ant-slider-track { background: var(--primary-color-active, #177ddc); }
 
   // Ant Switch
   ::v-deep .ant-switch { background: #434343; }
@@ -999,7 +1003,7 @@ export default {
 
   .form-hint {
     color: rgba(255, 255, 255, 0.45);
-    a { color: #177ddc; }
+    a { color: var(--primary-color-active, #177ddc); }
   }
 
   .confirm-section h4 { color: rgba(255, 255, 255, 0.85); }
@@ -1024,7 +1028,7 @@ export default {
   .ant-steps-item-finish .ant-steps-item-title { color: rgba(255, 255, 255, 0.85) !important; }
   .ant-steps-item-process .ant-steps-item-title { color: rgba(255, 255, 255, 0.85) !important; }
   .ant-steps-item-tail::after { background: #303030 !important; }
-  .ant-steps-item-finish .ant-steps-item-tail::after { background: #177ddc !important; }
+  .ant-steps-item-finish .ant-steps-item-tail::after { background: var(--primary-color-active, #177ddc) !important; }
 
   .ant-form-item-label > label,
   .ant-form-item-label label { color: rgba(255, 255, 255, 0.85); }
@@ -1053,7 +1057,7 @@ export default {
   .ant-radio-inner { background: #1f1f1f; border-color: #434343; }
 
   .ant-slider-rail { background: #434343; }
-  .ant-slider-track { background: #177ddc; }
+  .ant-slider-track { background: var(--primary-color-active, #177ddc); }
 
   .ant-switch { background: #434343; }
 
@@ -1081,7 +1085,7 @@ export default {
     border-color: rgba(24, 144, 255, 0.3);
 
     .ant-alert-icon {
-      color: #177ddc;
+      color: var(--primary-color-active, #177ddc);
     }
   }
 

@@ -487,21 +487,29 @@ export default {
   padding: 16px;
 
   .page-header {
-    margin-bottom: 16px;
+    margin-bottom: 24px;
+    max-width: 720px;
 
     .page-title {
       display: flex;
       align-items: center;
-      gap: 8px;
-      margin: 0;
-      font-size: 22px;
-      color: rgba(0, 0, 0, 0.85);
+      gap: 12px;
+      margin: 0 0 8px 0;
+      font-size: 24px;
+      font-weight: 700;
+      color: #1e3a5f;
+
+      .anticon {
+        font-size: 28px;
+        color: var(--primary-color, #1890ff);
+      }
     }
 
     .page-desc {
-      margin-top: 6px;
-      color: rgba(0, 0, 0, 0.55);
-      max-width: 920px;
+      margin: 0;
+      color: #64748b;
+      font-size: 14px;
+      line-height: 1.6;
     }
   }
 
@@ -521,6 +529,17 @@ export default {
     .entries-label {
       margin-left: 8px;
       color: rgba(0, 0, 0, 0.45);
+    }
+  }
+
+  .manage-tabs {
+    ::v-deep .ant-tabs-ink-bar {
+      background-color: var(--primary-color, #1890ff);
+    }
+
+    ::v-deep .ant-tabs-tab-active,
+    ::v-deep .ant-tabs-tab:hover {
+      color: var(--primary-color, #1890ff);
     }
   }
 
@@ -579,8 +598,8 @@ export default {
 
     ::v-deep .ant-tabs-bar { border-bottom-color: #303030; }
     ::v-deep .ant-tabs-tab { color: rgba(255, 255, 255, 0.65); }
-    ::v-deep .ant-tabs-tab-active { color: #1890ff; }
-    ::v-deep .ant-tabs-ink-bar { background-color: #1890ff; }
+    ::v-deep .ant-tabs-tab-active { color: var(--primary-color, #1890ff); }
+    ::v-deep .ant-tabs-ink-bar { background-color: var(--primary-color, #1890ff); }
 
     ::v-deep .ant-table {
       color: rgba(255, 255, 255, 0.85);
@@ -625,8 +644,8 @@ export default {
       a, .anticon { color: rgba(255, 255, 255, 0.65); }
     }
     ::v-deep .ant-pagination-item-active {
-      border-color: #1890ff;
-      a { color: #1890ff; }
+      border-color: var(--primary-color, #1890ff);
+      a { color: var(--primary-color, #1890ff); }
     }
     ::v-deep .ant-pagination-disabled .ant-pagination-item-link {
       color: rgba(255, 255, 255, 0.25);

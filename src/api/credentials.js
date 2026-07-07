@@ -59,7 +59,7 @@ export function getCredentialsEgressIp () {
   })
 }
 
-/** IBKR/MT5 allowed on this deployment (ALLOW_LOCAL_DESKTOP_BROKERS). */
+/** IBKR allowed on this deployment (ALLOW_LOCAL_DESKTOP_BROKERS). */
 export function getDesktopBrokersPolicy () {
   return request({
     url: api.desktopBrokersPolicy,

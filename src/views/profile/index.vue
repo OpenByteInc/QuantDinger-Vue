@@ -77,7 +77,7 @@
               </div>
               <a-divider />
               <div class="credits-actions">
-                <a-button type="primary" icon="shopping" @click="handleRecharge">
+                <a-button class="credits-recharge-btn" icon="shopping" @click="handleRecharge">
                   {{ $t('profile.credits.recharge') || '开通/充值' }}
                 </a-button>
               </div>
@@ -377,7 +377,7 @@
                   <!-- Default Channels -->
                   <a-form-item :label="$t('profile.notifications.defaultChannels') || '默认通知渠道'">
                     <a-checkbox-group
-                      v-decorator="['default_channels', { initialValue: notificationSettings.default_channels || ['browser'] }]"
+                      v-decorator="['default_channels', { initialValue: notificationSettings.default_channels || ['browser', 'email'] }]"
                     >
                       <a-row :gutter="16">
                         <a-col :span="8">
@@ -746,6 +746,11 @@ import { baseMixin } from '@/store/app-mixin'
 import ProfileAgentTokens from '@/views/profile/components/ProfileAgentTokens.vue'
 import { formatBrowserLocalDateTime } from '@/utils/userTime'
 
+const DEFAULT_NOTIFICATION_CHANNELS = ['browser', 'email']
+const normalizeNotificationChannels = channels => (
+  Array.isArray(channels) && channels.length ? channels : DEFAULT_NOTIFICATION_CHANNELS
+)
+
 export default {
   name: 'Profile',
   components: { ProfileAgentTokens },
@@ -832,7 +837,7 @@ export default {
       rechargeTelegramUrl: 'https://t.me/your_support_bot',
       // Notification settings
       notificationSettings: {
-        default_channels: ['browser'],
+        default_channels: [...DEFAULT_NOTIFICATION_CHANNELS],
         telegram_bot_token: '',
         telegram_chat_id: '',
         email: '',
@@ -1107,7 +1112,7 @@ export default {
           }
           if (res.data.notification_settings) {
             this.notificationSettings = {
-              default_channels: res.data.notification_settings.default_channels || ['browser'],
+              default_channels: normalizeNotificationChannels(res.data.notification_settings.default_channels),
               telegram_bot_token: res.data.notification_settings.telegram_bot_token || '',
               telegram_chat_id: res.data.notification_settings.telegram_chat_id || '',
               email: res.data.notification_settings.email || res.data.email || '',
@@ -1565,7 +1570,7 @@ export default {
         const res = await getNotificationSettings()
         if (res.code === 1 && res.data) {
           this.notificationSettings = {
-            default_channels: res.data.default_channels || ['browser'],
+            default_channels: normalizeNotificationChannels(res.data.default_channels),
             telegram_bot_token: res.data.telegram_bot_token || '',
             telegram_chat_id: res.data.telegram_chat_id || '',
             email: res.data.email || this.profile.email || '',
@@ -1630,7 +1635,7 @@ export default {
         this.savingNotifications = true
         try {
           const res = await updateNotificationSettings({
-            default_channels: values.default_channels || ['browser'],
+            default_channels: normalizeNotificationChannels(values.default_channels),
             telegram_bot_token: values.telegram_bot_token || '',
             telegram_chat_id: values.telegram_chat_id || '',
             email: values.email || '',
@@ -1741,7 +1746,7 @@ export default {
 </script>
 
 <style lang="less" scoped>
-@primary-color: #1890ff;
+@primary-color: var(--primary-color, #1890ff);
 
 .profile-page {
   padding: 24px;
@@ -2194,14 +2199,17 @@ export default {
         border-radius: 20px;
         padding: 0 24px;
         height: 36px;
-        font-weight: 500;
+        font-weight: 700;
         background: #fff;
-        color: #667eea;
-        border: none;
+        color: #3f2f8f;
+        border: 1px solid rgba(255, 255, 255, 0.92);
+        box-shadow: 0 8px 20px rgba(26, 18, 75, 0.22);
 
         &:hover {
-          background: rgba(255, 255, 255, 0.9);
-          color: #764ba2;
+          background: #f8fbff;
+          color: #251464;
+          border-color: #fff;
+          box-shadow: 0 10px 24px rgba(26, 18, 75, 0.28);
         }
       }
     }
@@ -2438,8 +2446,8 @@ export default {
       }
 
       .mfa-icon {
-        color: #6ea8ff;
-        background: rgba(110, 168, 255, 0.12);
+        color: var(--primary-color-hover, var(--primary-color, #1890ff));
+        background: color-mix(in srgb, var(--primary-color, #1890ff) 12%, transparent);
       }
 
       .mfa-title {
@@ -2453,9 +2461,9 @@ export default {
 
       .mfa-feature-list {
         span {
-          background: rgba(24, 144, 255, 0.1);
-          border-color: rgba(24, 144, 255, 0.22);
-          color: #7db6ff;
+          background: color-mix(in srgb, var(--primary-color, #1890ff) 12%, transparent);
+          border-color: color-mix(in srgb, var(--primary-color, #1890ff) 24%, transparent);
+          color: var(--primary-color-hover, var(--primary-color, #1890ff));
         }
       }
 
@@ -2541,7 +2549,11 @@ export default {
       }
       .ant-tag-red { background: rgba(245,34,45,0.25); border-color: #f5222d; color: #ff7875; }
       .ant-tag-green { background: rgba(82,196,26,0.25); border-color: #52c41a; color: #73d13d; }
-      .ant-tag-blue { background: rgba(24,144,255,0.25); border-color: #1890ff; color: #69c0ff; }
+      .ant-tag-blue {
+        background: color-mix(in srgb, var(--primary-color, #1890ff) 24%, transparent);
+        border-color: var(--primary-color, #1890ff);
+        color: var(--primary-color-hover, var(--primary-color, #1890ff));
+      }
       .ant-tag-orange { background: rgba(250,173,20,0.25); border-color: #faad14; color: #ffc53d; }
       .ant-tag-gold { background: rgba(250,173,20,0.25); border-color: #faad14; color: #ffc53d; }
       .ant-tag-cyan { background: rgba(19,194,194,0.25); border-color: #13c2c2; color: #5cdbd3; }

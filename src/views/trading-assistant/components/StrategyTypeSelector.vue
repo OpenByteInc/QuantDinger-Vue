@@ -72,7 +72,6 @@
           class="template-tag"
           @click="$emit('use-template', tpl.key)"
         >
-          <span class="tpl-icon">{{ tpl.icon }}</span>
           {{ $t(`trading-assistant.template.${tpl.key}`) }}
         </a-tag>
       </div>
@@ -96,7 +95,7 @@ export default {
   },
   data () {
     return {
-      templates: SCRIPT_TEMPLATE_CATALOG.map(item => ({ key: item.key, icon: item.icon }))
+      templates: SCRIPT_TEMPLATE_CATALOG.map(item => ({ key: item.key }))
     }
   }
 }
@@ -148,13 +147,13 @@ export default {
   overflow: hidden;
 
   &:hover {
-    border-color: #1890ff;
+    border-color: var(--primary-color, #1890ff);
     box-shadow: 0 4px 16px rgba(24, 144, 255, 0.12);
     transform: translateY(-2px);
   }
 
   &.selected {
-    border-color: #1890ff;
+    border-color: var(--primary-color, #1890ff);
     background: rgba(24, 144, 255, 0.02);
 
     &::after {
@@ -162,7 +161,7 @@ export default {
       position: absolute;
       top: 8px;
       right: 12px;
-      color: #1890ff;
+      color: var(--primary-color, #1890ff);
       font-size: 18px;
       font-weight: bold;
     }
@@ -181,7 +180,7 @@ export default {
 
   &.signal-icon {
     background: linear-gradient(135deg, #e6f7ff, #bae7ff);
-    color: #1890ff;
+    color: var(--primary-color, #1890ff);
   }
 
   &.script-icon {
@@ -203,7 +202,7 @@ export default {
     padding: 3px 10px;
     border-radius: 999px;
     background: rgba(24, 144, 255, 0.08);
-    color: #1890ff;
+    color: var(--primary-color, #1890ff);
     font-size: 12px;
     font-weight: 600;
     line-height: 1.4;
@@ -274,13 +273,9 @@ export default {
   border-radius: 16px;
   transition: all 0.2s;
 
-  .tpl-icon {
-    margin-right: 4px;
-  }
-
   &:hover {
-    color: #1890ff;
-    border-color: #1890ff;
+    color: var(--primary-color, #1890ff);
+    border-color: var(--primary-color, #1890ff);
     background: #e6f7ff;
   }
 }
@@ -296,16 +291,16 @@ export default {
     background: #1c1c1c;
 
     &:hover {
-      border-color: #177ddc;
+      border-color: var(--primary-color-active, #177ddc);
       box-shadow: 0 4px 16px rgba(23, 125, 220, 0.2);
     }
 
     &.selected {
-      border-color: #177ddc;
+      border-color: var(--primary-color-active, #177ddc);
       background: rgba(23, 125, 220, 0.06);
 
       &::after {
-        color: #40a9ff;
+        color: var(--primary-color-hover, #40a9ff);
       }
     }
   }
@@ -313,7 +308,7 @@ export default {
   .card-icon {
     &.signal-icon {
       background: linear-gradient(135deg, rgba(24, 144, 255, 0.15), rgba(24, 144, 255, 0.08));
-      color: #40a9ff;
+      color: var(--primary-color-hover, #40a9ff);
     }
 
     &.script-icon {
@@ -344,11 +339,11 @@ export default {
 
   .card-btn {
     border-color: rgba(24, 144, 255, 0.4);
-    color: #40a9ff;
+    color: var(--primary-color-hover, #40a9ff);
 
     &:hover {
-      border-color: #1890ff;
-      color: #1890ff;
+      border-color: var(--primary-color, #1890ff);
+      color: var(--primary-color, #1890ff);
     }
   }
 
@@ -373,8 +368,8 @@ export default {
     color: rgba(255, 255, 255, 0.65);
 
     &:hover {
-      color: #40a9ff;
-      border-color: #177ddc;
+      color: var(--primary-color-hover, #40a9ff);
+      border-color: var(--primary-color-active, #177ddc);
       background: rgba(23, 125, 220, 0.1);
     }
   }

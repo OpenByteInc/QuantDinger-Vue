@@ -11,7 +11,7 @@
           <a-progress
             :percent="progressPercent"
             :showInfo="false"
-            strokeColor="#1890ff"
+            strokeColor="var(--primary-color, #1890ff)"
             :strokeWidth="8"
           />
           <span class="progress-text">{{ formatProgress(progressPercent) }}%</span>
@@ -120,24 +120,6 @@
               {{ formatAgreementPct(consensusBlock.agreement_ratio) }}
             </span>
           </div>
-        </div>
-      </div>
-
-      <!-- Golden Path: Next Step Actions -->
-      <div class="golden-path-bar" v-if="result && !result.error">
-        <div class="gp-label">
-          <a-icon type="thunderbolt" />
-          <span>{{ $t('fastAnalysis.nextStep') || '下一步' }}</span>
-        </div>
-        <div class="gp-actions">
-          <a-button type="primary" size="small" @click="$emit('generate-strategy', result)">
-            <a-icon type="robot" />
-            {{ $t('fastAnalysis.generateStrategy') || '生成策略' }}
-          </a-button>
-          <a-button size="small" @click="$emit('go-backtest', result)">
-            <a-icon type="experiment" />
-            {{ $t('fastAnalysis.goBacktest') || '回测验证' }}
-          </a-button>
         </div>
       </div>
 
@@ -599,7 +581,7 @@ export default {
     confidenceColor () {
       const c = this.result?.confidence || 50
       if (c >= 70) return '#52c41a'
-      if (c >= 50) return '#1890ff'
+      if (c >= 50) return 'var(--primary-color, #1890ff)'
       return '#faad14'
     },
     consensusBlock () {
@@ -894,7 +876,7 @@ export default {
     },
     getScoreColor (score) {
       if (score >= 70) return '#52c41a'
-      if (score >= 50) return '#1890ff'
+      if (score >= 50) return 'var(--primary-color, #1890ff)'
       if (score >= 30) return '#faad14'
       return '#ff4d4f'
     },
@@ -1083,34 +1065,6 @@ export default {
       .empty-icon { font-size: 56px; color: #ccc; }
       .empty-title { margin-top: 14px; font-size: 17px; font-weight: 700; color: @rpt-text; }
       .empty-hint { margin-top: 6px; color: @rpt-text3; font-size: 13px; }
-    }
-  }
-
-  // ── Golden Path Bar ──
-  .golden-path-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 20px;
-    background: linear-gradient(90deg, color-mix(in srgb, var(--primary-color, #1890ff) 6%, @rpt-surface), @rpt-surface);
-    margin-bottom: 2px;
-    border-left: 3px solid var(--primary-color, #1890ff);
-
-    .gp-label {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--primary-color, #1890ff);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      .anticon { font-size: 14px; }
-    }
-    .gp-actions {
-      display: flex;
-      gap: 8px;
-      .ant-btn { border-radius: 6px; font-weight: 600; font-size: 12px; }
     }
   }
 
@@ -1535,17 +1489,6 @@ export default {
   background: @dk-bg;
 
   &::-webkit-scrollbar-thumb { background: #333; }
-
-  .golden-path-bar {
-    background: linear-gradient(90deg, color-mix(in srgb, var(--primary-color, #1890ff) 8%, @dk-surface), @dk-surface);
-    border-left-color: var(--primary-color, #1890ff);
-    .gp-label { color: var(--primary-color, #1890ff); }
-    .gp-actions .ant-btn {
-      background: @dk-surface2; border-color: @dk-border; color: @dk-text2;
-      &:hover { border-color: var(--primary-color, #1890ff); color: var(--primary-color, #1890ff); }
-      &.ant-btn-primary { background: var(--primary-color, #1890ff); border-color: var(--primary-color, #1890ff); color: #fff; }
-    }
-  }
 
   .performance-strip {
     background: @dk-surface;

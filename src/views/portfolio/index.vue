@@ -316,7 +316,7 @@
                   <template slot="header">
                     <div class="group-header">
                       <span class="group-name">
-                        <a-icon type="folder" style="margin-right: 8px; color: #1890ff;" />
+                        <a-icon type="folder" style="margin-right: 8px; color: var(--primary-color, #1890ff);" />
                         {{ group.name }}
                       </span>
                       <span class="group-stats">
@@ -520,9 +520,9 @@
               :value="symbolSearchKeyword.toUpperCase()"
             >
               <div class="symbol-option manual-input">
-                <a-icon type="edit" style="margin-right: 6px; color: #1890ff;" />
+                <a-icon type="edit" style="margin-right: 6px; color: var(--primary-color, #1890ff);" />
                 <span>{{ $t('portfolio.form.useAsSymbol') }} </span>
-                <strong style="color: #1890ff;">{{ symbolSearchKeyword.toUpperCase() }}</strong>
+                <strong style="color: var(--primary-color, #1890ff);">{{ symbolSearchKeyword.toUpperCase() }}</strong>
                 <span> {{ $t('portfolio.form.asSymbolCode') }}</span>
               </div>
             </a-select-option>
@@ -700,7 +700,7 @@
           <template #message>
             <span>
               {{ $t('portfolio.form.notificationFromProfile') }}
-              <router-link to="/profile" style="margin-left: 8px">
+              <router-link :to="{ path: '/profile', query: { tab: 'notifications' } }" style="margin-left: 8px">
                 <a-icon type="setting" /> {{ $t('portfolio.form.goToProfile') }}
               </router-link>
             </span>
@@ -773,7 +773,7 @@
           <template #message>
             <span>
               {{ $t('portfolio.form.notificationFromProfile') }}
-              <router-link to="/profile" style="margin-left: 8px">
+              <router-link :to="{ path: '/profile', query: { tab: 'notifications' } }" style="margin-left: 8px">
                 <a-icon type="setting" /> {{ $t('portfolio.form.goToProfile') }}
               </router-link>
             </span>
@@ -857,6 +857,11 @@ import {
 } from '@/api/portfolio'
 import { getNotificationSettings } from '@/api/user'
 
+const DEFAULT_NOTIFICATION_CHANNELS = ['browser', 'email']
+const normalizeNotificationChannels = channels => (
+  Array.isArray(channels) && channels.length ? channels : DEFAULT_NOTIFICATION_CHANNELS
+)
+
 export default {
   name: 'Portfolio',
   props: {
@@ -921,16 +926,16 @@ export default {
       alertForm: null,
       alertPosition: null,
       // Alert channels (for reactive display)
-      alertChannels: ['browser'],
+      alertChannels: [...DEFAULT_NOTIFICATION_CHANNELS],
       // Monitor channels (for reactive display)
-      monitorChannels: ['browser'],
+      monitorChannels: [...DEFAULT_NOTIFICATION_CHANNELS],
       // Monitor scope (all or selected positions)
       monitorScope: 'all',
       // Selected positions for monitoring
       selectedMonitorPositions: [],
       // User's default notification settings (loaded from profile)
       userNotificationSettings: {
-        default_channels: ['browser'],
+        default_channels: [...DEFAULT_NOTIFICATION_CHANNELS],
         telegram_bot_token: '',
         telegram_chat_id: '',
         email: '',
@@ -1039,7 +1044,7 @@ export default {
         const res = await getNotificationSettings()
         if (res.code === 1 && res.data) {
           this.userNotificationSettings = {
-            default_channels: res.data.default_channels || ['browser'],
+            default_channels: normalizeNotificationChannels(res.data.default_channels),
             telegram_bot_token: res.data.telegram_bot_token || '',
             telegram_chat_id: res.data.telegram_chat_id || '',
             email: res.data.email || '',
@@ -1293,7 +1298,7 @@ export default {
       }
       this.editingAlert = null
       this.alertPosition = pos
-      this.alertChannels = [...(this.userNotificationSettings.default_channels || ['browser'])]
+      this.alertChannels = [...normalizeNotificationChannels(this.userNotificationSettings.default_channels)]
       this.showAddAlertModal = true
       this.$nextTick(() => {
         this.alertForm.setFieldsValue({
@@ -1315,7 +1320,7 @@ export default {
         entry_price: 0
       }
       // Set channels directly with v-model binding
-      this.alertChannels = [...(alert.notification_config?.channels || ['browser'])]
+      this.alertChannels = [...normalizeNotificationChannels(alert.notification_config?.channels)]
       // Show modal
       this.showAddAlertModal = true
       // Set form values for fields still using v-decorator
@@ -1367,7 +1372,7 @@ export default {
             alert_type: values.alert_type,
             threshold: values.threshold,
             notification_config: {
-              channels: this.alertChannels.length > 0 ? this.alertChannels : ['browser'],
+              channels: normalizeNotificationChannels(this.alertChannels),
               targets: targets,
               language: this.$store.getters.lang || 'en-US'
             },
@@ -1414,7 +1419,7 @@ export default {
       this.showAddAlertModal = false
       this.editingAlert = null
       this.alertPosition = null
-      this.alertChannels = [...(this.userNotificationSettings.default_channels || ['browser'])]
+      this.alertChannels = [...normalizeNotificationChannels(this.userNotificationSettings.default_channels)]
       this.alertForm.resetFields()
     },
     confirmDeleteAlert () {
@@ -1461,7 +1466,7 @@ export default {
     openAddMonitorModal () {
       // Initialize with user's default notification settings
       this.editingMonitor = null
-      this.monitorChannels = [...(this.userNotificationSettings.default_channels || ['browser'])]
+      this.monitorChannels = [...normalizeNotificationChannels(this.userNotificationSettings.default_channels)]
       this.monitorScope = 'all'
       this.selectedMonitorPositions = []
       this.showAddMonitorModal = true
@@ -1477,7 +1482,7 @@ export default {
     editMonitor (monitor) {
       this.editingMonitor = monitor
       // Set channels directly with v-model binding
-      this.monitorChannels = [...(monitor.notification_config?.channels || ['browser'])]
+      this.monitorChannels = [...normalizeNotificationChannels(monitor.notification_config?.channels)]
       // Update monitor scope and selected positions
       let positionIds = []
       if (monitor.position_ids) {
@@ -1542,7 +1547,7 @@ export default {
             },
             notification_config: {
               // Use user's profile notification settings
-              channels: this.monitorChannels.length > 0 ? this.monitorChannels : ['browser'],
+              channels: normalizeNotificationChannels(this.monitorChannels),
               targets: {
                 telegram: this.userNotificationSettings.telegram_chat_id || '',
                 telegram_bot_token: this.userNotificationSettings.telegram_bot_token || '',
@@ -1647,7 +1652,7 @@ export default {
       this.showAddMonitorModal = false
       this.editingMonitor = null
       this.monitorForm.resetFields()
-      this.monitorChannels = [...(this.userNotificationSettings.default_channels || ['browser'])] // Reset to user default
+      this.monitorChannels = [...normalizeNotificationChannels(this.userNotificationSettings.default_channels)] // Reset to user default
       this.monitorScope = 'all' // Reset monitor scope
       this.selectedMonitorPositions = [] // Reset selected positions
     },
@@ -2021,7 +2026,7 @@ export default {
     &.sync {
       background: rgba(59, 130, 246, 0.1);
       color: @blue;
-      &.syncing { color: #1890ff; }
+      &.syncing { color: var(--primary-color, #1890ff); }
     }
   }
 
@@ -2301,9 +2306,9 @@ export default {
     }
 
     .scope-selected {
-      color: #1890ff;
+      color: var(--primary-color, #1890ff);
       cursor: help;
-      border-bottom: 1px dashed #1890ff;
+      border-bottom: 1px dashed var(--primary-color, #1890ff);
     }
 
     .scope-all {
@@ -2489,7 +2494,7 @@ export default {
 
     .price {
       font-weight: 600;
-      color: #1890ff;
+      color: var(--primary-color, #1890ff);
       font-size: 14px;
     }
   }
@@ -2669,7 +2674,7 @@ export default {
       }
 
       .price {
-        color: #40a9ff;
+        color: var(--primary-color-hover, #40a9ff);
       }
     }
   }
@@ -3107,4 +3112,3 @@ export default {
 }
 
 </style>
-

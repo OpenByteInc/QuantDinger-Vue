@@ -36,11 +36,6 @@
               Interactive Brokers (IBKR)
             </a-select-option>
           </a-select-opt-group>
-          <a-select-opt-group :label="$t('profile.exchange.typeMT5')">
-            <a-select-option value="mt5">
-              MetaTrader 5
-            </a-select-option>
-          </a-select-opt-group>
         </a-select>
       </a-form-item>
 
@@ -187,41 +182,6 @@
         </a-form-item>
       </template>
 
-      <template v-if="addExchangeType === 'mt5'">
-        <a-alert
-          type="warning"
-          showIcon
-          style="margin-bottom: 16px"
-          :message="$t('profile.exchange.localDeploymentRequired')"
-          :description="$t('profile.exchange.localDeploymentHint')"
-        />
-        <a-form-item :label="$t('profile.exchange.mt5Server')">
-          <a-input v-decorator="['mt5_server', { rules: [{ required: true, message: 'Server is required' }] }]" placeholder="MetaQuotes-Demo" />
-        </a-form-item>
-        <a-form-item :label="$t('profile.exchange.mt5Login')">
-          <a-input-number
-            v-decorator="['mt5_login', { rules: [{ required: true, message: 'Login is required' }] }]"
-            :min="1"
-            style="width: 100%"
-            placeholder="12345678"
-          />
-        </a-form-item>
-        <a-form-item :label="$t('profile.exchange.mt5Password')">
-          <a-input-password
-            v-decorator="['mt5_password', { rules: [{ required: true, message: 'Password is required' }] }]"
-            placeholder="Password"
-            autocomplete="new-password"
-          />
-        </a-form-item>
-        <a-form-item :label="$t('profile.exchange.mt5TerminalPath')">
-          <a-input v-decorator="['mt5_terminal_path']" placeholder="C:\Program Files\MetaTrader 5\terminal64.exe" />
-          <div class="field-hint">
-            <a-icon type="info-circle" />
-            <span>{{ $t('profile.exchange.mt5TerminalPathHint') }}</span>
-          </div>
-        </a-form-item>
-      </template>
-
       <a-form-item v-if="addExchangeType">
         <a-button
           block
@@ -341,7 +301,6 @@ export default {
         bitfinex: 'Bitfinex',
         htx: 'HTX',
         ibkr: 'IBKR',
-        mt5: 'MetaTrader 5',
         alpaca: 'Alpaca'
       }
       return names[id] || id
@@ -357,8 +316,6 @@ export default {
         f.push('api_key', 'secret_key', 'base_url')
       } else if (this.addExchangeType === 'ibkr') {
         f.push('ibkr_host', 'ibkr_port', 'ibkr_client_id')
-      } else if (this.addExchangeType === 'mt5') {
-        f.push('mt5_server', 'mt5_login', 'mt5_password')
       }
       return f
     },
@@ -374,18 +331,12 @@ export default {
       if (this.addExchangeType === 'ibkr') {
         return ['exchange_id', 'ibkr_host', 'ibkr_port', 'ibkr_client_id']
       }
-      if (this.addExchangeType === 'mt5') {
-        return ['exchange_id', 'mt5_server', 'mt5_login', 'mt5_password']
-      }
       return ['exchange_id']
     },
     _normalizeCredentialPayload (values) {
       const p = { ...values }
       if (typeof p.name === 'string') {
         p.name = p.name.trim()
-      }
-      if (p.exchange_id === 'mt5' && p.mt5_login != null && p.mt5_login !== '') {
-        p.mt5_login = String(p.mt5_login)
       }
       if (p.exchange_id === 'alpaca') {
         if (typeof p.base_url === 'string') p.base_url = p.base_url.trim()
@@ -454,8 +405,6 @@ export default {
         this.addExchangeType = 'alpaca'
       } else if (val === 'ibkr') {
         this.addExchangeType = 'ibkr'
-      } else if (val === 'mt5') {
-        this.addExchangeType = 'mt5'
       } else {
         this.addExchangeType = ''
       }
@@ -568,7 +517,7 @@ export default {
     align-items: center;
     justify-content: center;
     background: rgba(24, 144, 255, 0.12);
-    color: #1890ff;
+    color: var(--primary-color, #1890ff);
     flex: 0 0 auto;
   }
 

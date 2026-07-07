@@ -67,6 +67,7 @@
 
 <script>
 import { getStrategyPositions } from '@/api/strategy'
+import { createVisibilityPolling } from '@/utils/visibilityPolling'
 
 export default {
   name: 'PositionRecords',
@@ -103,7 +104,9 @@ export default {
         status: 'not_checked',
         notes: [],
         account_positions: []
-      }
+      },
+      pollingTimer: null,
+      positionPoller: null
     }
   },
   computed: {
@@ -296,11 +299,16 @@ export default {
     },
     startPolling () {
       this.stopPolling()
-      this.pollingTimer = setInterval(() => {
-        this.loadPositions()
-      }, 5000)
+      this.positionPoller = createVisibilityPolling(() => this.loadPositions(), 15000, {
+        immediate: false
+      })
+      this.positionPoller.start()
     },
     stopPolling () {
+      if (this.positionPoller) {
+        this.positionPoller.stop()
+        this.positionPoller = null
+      }
       if (this.pollingTimer) {
         clearInterval(this.pollingTimer)
         this.pollingTimer = null

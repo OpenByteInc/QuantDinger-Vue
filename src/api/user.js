@@ -326,6 +326,18 @@ export function adminToggleStrategy (strategyId, action) {
 }
 
 /**
+ * Admin: delete any strategy from the system overview.
+ * @param {Number} strategyId
+ */
+export function adminDeleteStrategy (strategyId) {
+  return request({
+    url: '/api/users/system-strategies/delete',
+    method: 'delete',
+    params: { id: strategyId }
+  })
+}
+
+/**
  * Get all orders across the system (admin only)
  * @param {Object} params - { page, page_size, status, search }
  */

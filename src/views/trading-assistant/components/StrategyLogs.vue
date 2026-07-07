@@ -249,10 +249,10 @@ export default {
     .tab-count { background: #e0e0e0; color: #595959; }
     &:hover { background: #ebebeb; }
     &.active {
-      color: #1890ff;
+      color: var(--primary-color, #1890ff);
       background: #e6f7ff;
       border-color: #91d5ff;
-      .tab-count { background: #1890ff; color: #fff; }
+      .tab-count { background: var(--primary-color, #1890ff); color: #fff; }
     }
   }
 
@@ -385,10 +385,10 @@ export default {
       .tab-count { background: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.5); }
       &:hover { background: rgba(255, 255, 255, 0.1); }
       &.active {
-        color: #40a9ff;
+        color: var(--primary-color-hover, #40a9ff);
         background: rgba(24, 144, 255, 0.15);
         border-color: rgba(24, 144, 255, 0.4);
-        .tab-count { background: #1890ff; color: #fff; }
+        .tab-count { background: var(--primary-color, #1890ff); color: #fff; }
       }
     }
     &.tab-trade {

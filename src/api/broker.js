@@ -3,7 +3,7 @@ import request from '@/utils/request'
 /**
  * Unified broker API client.
  *
- * Wraps `/api/ibkr/*`, `/api/alpaca/*`, and `/api/mt5/*` behind one shape:
+ * Wraps `/api/ibkr/*` and `/api/alpaca/*` behind one shape:
  *
  *   broker.<id>.status()
  *   broker.<id>.connect(payload)
@@ -39,16 +39,6 @@ const ENDPOINTS = {
     orders: '/api/alpaca/orders',
     order: '/api/alpaca/order',
     quote: '/api/alpaca/quote'
-  },
-  mt5: {
-    status: '/api/mt5/status',
-    connect: '/api/mt5/connect',
-    disconnect: '/api/mt5/disconnect',
-    account: '/api/mt5/account',
-    positions: '/api/mt5/positions',
-    orders: '/api/mt5/orders',
-    order: '/api/mt5/order',
-    quote: '/api/mt5/quote'
   }
 }
 
@@ -96,11 +86,10 @@ function makeBrokerClient (id) {
 
 export const broker = {
   ibkr: makeBrokerClient('ibkr'),
-  alpaca: makeBrokerClient('alpaca'),
-  mt5: makeBrokerClient('mt5')
+  alpaca: makeBrokerClient('alpaca')
 }
 
-export const BROKER_IDS = ['alpaca', 'ibkr', 'mt5']
+export const BROKER_IDS = ['alpaca', 'ibkr']
 
 /**
  * Static descriptor for each broker (logo color, market focus, connect form
@@ -123,15 +112,6 @@ export const BROKER_META = {
     accent: '#d4380d',
     markets: ['USStock', 'Forex', 'Futures'],
     badges: ['tws_required', 'pro_features'],
-    cloudFriendly: false
-  },
-  mt5: {
-    id: 'mt5',
-    icon: 'line-chart',
-    color: '#52c41a',
-    accent: '#237804',
-    markets: ['Forex', 'CFD'],
-    badges: ['terminal_required', 'windows_only'],
     cloudFriendly: false
   }
 }

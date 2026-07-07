@@ -49,18 +49,5 @@ export const CRYPTO_SIGNUP_CARDS = [
   }
 ]
 
-export const FOREX_SIGNUP_CARDS = [
-  {
-    id: 'tmgm',
-    name: 'TMGM',
-    subtitle: 'MetaTrader 5',
-    short: 'TG',
-    brandBg: 'rgba(0, 82, 155, 0.12)',
-    brandColor: '#0052a3',
-    signupUrl: 'https://portal.tmgm.com/register?node=MTM0Mzc5&language=en',
-    tags: ['Forex', 'CFD', 'MT5']
-  }
-]
-
-/** @deprecated Use CRYPTO_SIGNUP_CARDS + FOREX_SIGNUP_CARDS */
-export const EXCHANGE_SIGNUP_CARDS = [...CRYPTO_SIGNUP_CARDS, ...FOREX_SIGNUP_CARDS]
+/** @deprecated Use CRYPTO_SIGNUP_CARDS */
+export const EXCHANGE_SIGNUP_CARDS = [...CRYPTO_SIGNUP_CARDS]

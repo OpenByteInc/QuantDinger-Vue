@@ -1,6 +1,6 @@
 {
   "name": "quantdinger-vue",
-  "version": "4.0.1",
+  "version": "4.0.4",
   "private": true,
   "type": "module",
   "scripts": {
@@ -47,6 +47,8 @@
   "devDependencies": {
     "@vitejs/plugin-vue2": "^2.3.4",
     "@vitejs/plugin-vue2-jsx": "^1.1.1",
+    "@vue/eslint-config-standard": "^6.1.0",
+    "babel-eslint": "^10.1.0",
     "eslint": "^7.32.0",
     "eslint-plugin-html": "^6.2.0",
     "eslint-plugin-vue": "^7.20.0",

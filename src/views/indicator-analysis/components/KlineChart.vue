@@ -106,7 +106,7 @@
 
       <div v-if="!symbol && !loading && !error && !pyodideLoadFailed" class="chart-overlay initial-hint">
         <div class="hint-box">
-          <a-icon type="line-chart" style="font-size: 48px; color: #1890ff; margin-bottom: 16px" />
+          <a-icon type="line-chart" style="font-size: 48px; color: var(--primary-color, #1890ff); margin-bottom: 16px" />
           <div class="hint-title">{{ $t('dashboard.indicator.hint.selectSymbol') }}</div>
           <div class="hint-desc">{{ $t('dashboard.indicator.hint.selectSymbolDesc') }}</div>
         </div>
@@ -497,7 +497,7 @@ export default {
     const normalizeIndicatorStyle = (style = {}, fallbackColor = '') => {
       const lineWidth = Math.max(1, Math.min(6, parseInt(style.lineWidth, 10) || 2))
       return {
-        color: String(style.color || fallbackColor || '').trim() || fallbackColor || '#1890ff',
+        color: String(style.color || fallbackColor || '').trim() || fallbackColor || 'var(--primary-color, #1890ff)',
         lineWidth
       }
     }
@@ -852,7 +852,7 @@ export default {
           splitAreaColor: ['rgba(250,250,250,0.05)', 'rgba(200,200,200,0.02)'],
           dataZoomBorder: '#e8e8e8',
           dataZoomFiller: 'rgba(24, 144, 255, 0.15)',
-          dataZoomHandle: '#1890ff',
+          dataZoomHandle: 'var(--primary-color, #1890ff)',
           dataZoomText: '#999',
           dataZoomBg: '#f0f2f5'
         }
@@ -866,8 +866,6 @@ export default {
         return ['#13c2c2', '#9c27b0', '#f57c00', '#1976d2', '#c2185b', '#7b1fa2'][idx % 6]
       }
     }
-
-
 
     const castPythonParamValue = (rawValue, type) => {
       const paramType = String(type || '').toLowerCase()
@@ -1037,22 +1035,6 @@ export default {
       }
     }
 
-const normalizeBacktestMarkerText = (text, side) => {
-  const raw = String(text || '').trim()
-  const lower = raw.toLowerCase()
-  if (lower.includes('liquid') || raw.includes('强平')) return 'LQ'
-  if (lower.includes('trailing') || raw.includes('追踪')) return 'TR'
-  if (lower.includes('profit') || lower.includes('tp') || raw.includes('止盈')) return 'TP'
-  if (lower.includes('stop') || lower.includes('sl') || raw.includes('止损')) return 'SL'
-  if (raw.includes('开多') || lower.includes('open long')) return 'L'
-  if (raw.includes('开空') || lower.includes('open short')) return 'S'
-  if (raw.includes('平多') || lower.includes('close long')) return 'XL'
-  if (raw.includes('平空') || lower.includes('close short')) return 'XS'
-  if (raw.includes('信号') || lower.includes('signal')) return side === 'buy' ? 'L?' : 'S?'
-  if (/^[A-Za-z0-9?]{1,4}$/.test(raw)) return raw
-  return side === 'buy' ? 'L' : 'S'
-}
-
 const withAlpha = (color, alpha) => {
   const hex = String(color || '').replace('#', '')
   if (!/^[0-9a-fA-F]{6}$/.test(hex)) return color
@@ -1140,7 +1122,7 @@ registerOverlay({
           const shortText = normalizeCompactBacktestMarkerText(overlay.extendData?.shortText || textStr, side)
           const compactFontSize = Number(overlay.extendData?.fontSize) || (isDashed ? 9 : 10)
           const compactHeight = isDashed ? 13 : 15
-          const compactWidth = Math.max(17, Math.min(32, shortText.length * 7 + 9))
+          const compactWidth = Math.max(18, Math.min(38, shortText.length * 7 + 10))
           const laneShift = lane * 16
           const compactY = isBuy ? signalY + laneShift : signalY - compactHeight - laneShift
           const dotY = anchorY
@@ -1329,7 +1311,7 @@ registerOverlay({
         const lowerText = text.toLowerCase()
         const semanticAccent = lowerText.includes('risk') || lowerText.includes('atr')
           ? '#fa8c16'
-          : (lowerText.includes('support') ? '#13c2c2' : (lowerText.includes('resistance') ? '#f5222d' : '#1890ff'))
+          : (lowerText.includes('support') ? '#13c2c2' : (lowerText.includes('resistance') ? '#f5222d' : 'var(--primary-color, #1890ff)'))
         const color = data.color || semanticAccent
         const opacity = Number.isFinite(Number(data.opacity)) ? Math.min(Number(data.opacity), 0.10) : (isDark ? 0.075 : 0.055)
         const fillColor = resolveLayerColor(data.fillColor, color, opacity)
@@ -1392,7 +1374,7 @@ registerOverlay({
       createPointFigures: ({ coordinates, overlay }) => {
         if (!coordinates[0] || !coordinates[1]) return []
         const data = overlay.extendData || {}
-        const color = data.color || '#1890ff'
+        const color = data.color || 'var(--primary-color, #1890ff)'
         const figures = [
           {
             type: 'line',
@@ -1779,6 +1761,26 @@ registerOverlay({
       })
     }
 
+    const appendRealtimeBarsToChart = (bars) => {
+      if (!chartRef.value || !Array.isArray(bars) || bars.length === 0) return
+      if (typeof chartRef.value.updateData === 'function') {
+        bars.forEach(bar => {
+          chartRef.value.updateData({
+            timestamp: bar.timestamp,
+            open: bar.open,
+            high: bar.high,
+            low: bar.low,
+            close: bar.close,
+            volume: bar.volume != null ? bar.volume : 0
+          })
+        })
+        return
+      }
+      try {
+        chartRef.value.applyNewData(klineData.value)
+      } catch (_) {}
+    }
+
     const updatePricePanel = (data, options = {}) => {
       const force = !!(options && options.force)
       if (!data || data.length === 0) return
@@ -1855,10 +1857,11 @@ registerOverlay({
           return date1.getFullYear() === date2.getFullYear() &&
                  date1.getMonth() === date2.getMonth() &&
                  date1.getDate() === date2.getDate()
-        case '1W':
+        case '1W': {
           const week1 = Math.floor((date1.getTime() - new Date(date1.getFullYear(), 0, 1).getTime()) / (7 * 24 * 60 * 60 * 1000))
           const week2 = Math.floor((date2.getTime() - new Date(date2.getFullYear(), 0, 1).getTime()) / (7 * 24 * 60 * 60 * 1000))
           return date1.getFullYear() === date2.getFullYear() && week1 === week2
+        }
         default:
           return time1 === time2
       }
@@ -1884,25 +1887,26 @@ registerOverlay({
               market: props.market,
               symbol: props.symbol,
               timeframe: props.timeframe,
-              limit: 500
-            }
+              limit: 300
+            },
+            timeout: 45000
           })
 
           if (response.code === 1 && response.data && Array.isArray(response.data)) {
             formattedData = formatKlineData(response.data)
           } else {
-            let errMsg = response.msg || '获取K线数据失败'
+            let errMsg = response.msg || 'Failed to load K-line data'
             if (response.hint === 'tiingo_subscription') {
               errMsg = proxy.$t('dashboard.indicator.error.tiingoSubscription') || 'Forex 1-minute data requires Tiingo paid subscription'
             }
             throw new Error(errMsg)
           }
         } catch (apiErr) {
-          throw apiErr
+          throw new Error(apiErr && apiErr.message ? apiErr.message : String(apiErr))
         }
 
         if (!formattedData || formattedData.length === 0) {
-          throw new Error('未获取到K线数据')
+          throw new Error('No K-line data returned')
         }
 
         klineData.value = formattedData
@@ -1930,11 +1934,7 @@ registerOverlay({
             )
 
             if (validData.length > 0 && chartRef.value) {
-              try {
-                chartRef.value.applyNewData(validData)
-              } catch (e) {
-                chartRef.value.applyNewData(validData)
-              }
+              chartRef.value.applyNewData(validData)
 
               setTimeout(() => {
                 if (chartRef.value) {
@@ -1963,6 +1963,7 @@ registerOverlay({
           try {
             chartRef.value.applyNewData([])
           } catch (e) {
+            // Best-effort cleanup after a failed load.
           }
         }
       } finally {
@@ -1997,92 +1998,89 @@ registerOverlay({
         await nextTick()
 
         try {
-        const beforeTime = Math.floor(timestamp / 1000)
-
-        const response = await request({
-          url: '/api/indicator/kline',
-          method: 'get',
-          params: {
-            market: props.market,
-            symbol: props.symbol,
-            timeframe: props.timeframe,
-            limit: 500,
-            before_time: beforeTime // 获取此时间之前的数据
-          }
-        })
-
-        if (response.code === 1 && response.data && Array.isArray(response.data)) {
-          const newData = formatKlineData(response.data)
-
-          if (newData.length === 0) {
-            hasMoreHistory.value = false
-            if (chartRef.value && typeof chartRef.value.noMoreData === 'function') {
-              chartRef.value.noMoreData()
-            }
-            return
-          }
-
-          const filteredNewData = newData.filter(item => item.timestamp < timestamp)
-
-          if (filteredNewData.length === 0) {
-            hasMoreHistory.value = false
-            if (chartRef.value && typeof chartRef.value.noMoreData === 'function') {
-              chartRef.value.noMoreData()
-            }
-            return
-          }
-
-          let savedVisibleRange = null
-          try {
-            if (chartRef.value && typeof chartRef.value.getVisibleRange === 'function') {
-              savedVisibleRange = chartRef.value.getVisibleRange()
-            }
-          } catch (e) {
-          }
-
-          const newDataCount = filteredNewData.length
-
-          klineData.value = [...filteredNewData, ...klineData.value]
-
-          nextTick(() => {
-            if (chartRef.value) {
-              chartRef.value.applyNewData(klineData.value)
-
-              if (savedVisibleRange && typeof savedVisibleRange.from === 'number') {
-                const newFrom = savedVisibleRange.from + newDataCount
-                const newTo = savedVisibleRange.to + newDataCount
-
-                setTimeout(() => {
-                  try {
-                    if (chartRef.value) {
-                      if (typeof chartRef.value.scrollToDataIndex === 'function') {
-                        chartRef.value.scrollToDataIndex(newFrom)
-                      } else if (typeof chartRef.value.setVisibleRange === 'function') {
-                        chartRef.value.setVisibleRange(newFrom, newTo)
-                      }
-                    }
-                  } catch (e) {
-                  }
-                }, 50)
-              }
-
-              updateIndicators()
-            }
+          const beforeTime = Math.floor(timestamp / 1000)
+          const response = await request({
+            url: '/api/indicator/kline',
+            method: 'get',
+            params: {
+              market: props.market,
+              symbol: props.symbol,
+              timeframe: props.timeframe,
+              limit: 300,
+              before_time: beforeTime
+            },
+            timeout: 45000
           })
-        } else {
-          if (chartRef.value && typeof chartRef.value.noMoreData === 'function') {
+
+          if (response.code === 1 && response.data && Array.isArray(response.data)) {
+            const newData = formatKlineData(response.data)
+
+            if (newData.length === 0) {
+              hasMoreHistory.value = false
+              if (chartRef.value && typeof chartRef.value.noMoreData === 'function') {
+                chartRef.value.noMoreData()
+              }
+              return
+            }
+
+            const filteredNewData = newData.filter(item => item.timestamp < timestamp)
+
+            if (filteredNewData.length === 0) {
+              hasMoreHistory.value = false
+              if (chartRef.value && typeof chartRef.value.noMoreData === 'function') {
+                chartRef.value.noMoreData()
+              }
+              return
+            }
+
+            let savedVisibleRange = null
+            try {
+              if (chartRef.value && typeof chartRef.value.getVisibleRange === 'function') {
+                savedVisibleRange = chartRef.value.getVisibleRange()
+              }
+            } catch (e) {
+            }
+
+            const newDataCount = filteredNewData.length
+            klineData.value = [...filteredNewData, ...klineData.value]
+
+            nextTick(() => {
+              if (chartRef.value) {
+                chartRef.value.applyNewData(klineData.value)
+
+                if (savedVisibleRange && typeof savedVisibleRange.from === 'number') {
+                  const newFrom = savedVisibleRange.from + newDataCount
+                  const newTo = savedVisibleRange.to + newDataCount
+
+                  setTimeout(() => {
+                    try {
+                      if (chartRef.value) {
+                        if (typeof chartRef.value.scrollToDataIndex === 'function') {
+                          chartRef.value.scrollToDataIndex(newFrom)
+                        } else if (typeof chartRef.value.setVisibleRange === 'function') {
+                          chartRef.value.setVisibleRange(newFrom, newTo)
+                        }
+                      }
+                    } catch (e) {
+                    }
+                  }, 50)
+                }
+
+                updateIndicators()
+              }
+            })
+          } else if (chartRef.value && typeof chartRef.value.noMoreData === 'function') {
             chartRef.value.noMoreData()
           }
-        }
         } catch (err) {
           if (chartRef.value && typeof chartRef.value.noMoreData === 'function') {
             chartRef.value.noMoreData()
           }
         } finally {
           loadingHistory.value = false
-          loadingHistoryPromise = null // 清除请求追踪
+          loadingHistoryPromise = null
         }
-      })() // 立即执行 Promise
+      })()
 
       try {
         await loadingHistoryPromise
@@ -2103,7 +2101,7 @@ registerOverlay({
 
       try {
         const earliestTimestamp = klineData.value[0].timestamp
-        const earliestTime = Math.floor(earliestTimestamp / 1000) // 转换为秒级
+        const earliestTime = Math.floor(earliestTimestamp / 1000)
         const response = await request({
           url: '/api/indicator/kline',
           method: 'get',
@@ -2111,9 +2109,10 @@ registerOverlay({
             market: props.market,
             symbol: props.symbol,
             timeframe: props.timeframe,
-            limit: 500,
-            before_time: earliestTime // 获取此时间之前的数据
-          }
+            limit: 300,
+            before_time: earliestTime
+          },
+          timeout: 45000
         })
 
         if (response.code === 1 && response.data && Array.isArray(response.data)) {
@@ -2121,7 +2120,6 @@ registerOverlay({
 
           if (newData.length === 0) {
             hasMoreHistory.value = false
-            loadingHistory.value = false
             return
           }
 
@@ -2129,7 +2127,6 @@ registerOverlay({
 
           if (filteredNewData.length === 0) {
             hasMoreHistory.value = false
-            loadingHistory.value = false
             return
           }
 
@@ -2141,9 +2138,9 @@ registerOverlay({
               updateIndicators()
             }
           })
-        } else {
         }
       } catch (err) {
+        // Keep the current chart usable when older history fails.
       } finally {
         loadingHistory.value = false
       }
@@ -2151,7 +2148,7 @@ registerOverlay({
 
     const updateKlineRealtime = async () => {
       if (!props.symbol || !klineData.value || klineData.value.length === 0) {
-        return // 如果没有现有数据，不进行增量更新
+        return
       }
       if (realtimeFetchInFlight.value) {
         return
@@ -2166,8 +2163,9 @@ registerOverlay({
             market: props.market,
             symbol: props.symbol,
             timeframe: props.timeframe,
-            limit: 5 // 只获取最新5根
-          }
+            limit: 3
+          },
+          timeout: 12000
         })
 
         if (response.code === 1 && response.data && Array.isArray(response.data) && response.data.length > 0) {
@@ -2175,7 +2173,7 @@ registerOverlay({
           const existingData = [...klineData.value]
 
           if (newData.length > 0) {
-            const lastNewTime = Math.floor(newData[newData.length - 1].timestamp / 1000) // 转回秒级用于比较
+            const lastNewTime = Math.floor(newData[newData.length - 1].timestamp / 1000)
             const lastExistingTime = Math.floor(existingData[existingData.length - 1].timestamp / 1000)
 
             if (isSameTimeframe(lastNewTime, lastExistingTime, props.timeframe)) {
@@ -2183,12 +2181,12 @@ registerOverlay({
               const newLast = newData[newData.length - 1]
 
               const mergedLast = {
-                timestamp: existingLast.timestamp, // 保持原有时间戳（毫秒）
-                open: existingLast.open, // 开盘价保持不变
-                high: Math.max(existingLast.high, newLast.high), // 最高价取最大值
-                low: Math.min(existingLast.low, newLast.low), // 最低价取最小值
-                close: newLast.close, // 收盘价更新为最新价格
-                volume: newLast.volume // 成交量使用API返回的最新值（已是该周期的总成交量）
+                timestamp: existingLast.timestamp,
+                open: existingLast.open,
+                high: Math.max(existingLast.high, newLast.high),
+                low: Math.min(existingLast.low, newLast.low),
+                close: newLast.close,
+                volume: newLast.volume
               }
               if (klineBarSnapshotKey(mergedLast) === klineBarSnapshotKey(existingLast)) {
                 return
@@ -2233,13 +2231,8 @@ registerOverlay({
                 const internalData = convertToInternalFormat(klineData.value)
                 updatePricePanel(internalData, { force: true })
 
-                if (chartRef.value && typeof chartRef.value.applyMoreData === 'function') {
-                  chartRef.value.applyMoreData(uniqueNewData)
-                  maybeUpdateIndicators(true)
-                } else if (chartRef.value) {
-                  chartRef.value.applyNewData(klineData.value)
-                  maybeUpdateIndicators(true)
-                }
+                appendRealtimeBarsToChart(uniqueNewData)
+                maybeUpdateIndicators(true)
               }
             }
           }
@@ -2255,20 +2248,22 @@ registerOverlay({
         clearInterval(realtimeTimer.value)
       }
       const intervalMap = {
-        '1m': 5000,
-        '5m': 10000,
-        '15m': 15000,
-        '30m': 30000,
+        '1m': 30000,
+        '3m': 30000,
+        '5m': 30000,
+        '15m': 45000,
+        '30m': 60000,
         '1H': 60000,
-        '4H': 300000,
-        '1D': 600000,
-        '1W': 1800000
+        '4H': 60000,
+        '1D': 60000,
+        '1W': 60000
       }
-      const base = intervalMap[props.timeframe] || 10000
-      realtimeInterval.value = Math.min(Math.max(base, 2000), 15000)
+      const base = intervalMap[props.timeframe] || 30000
+      realtimeInterval.value = Math.min(Math.max(base, 30000), 60000)
 
       if (props.realtimeEnabled && props.symbol && klineData.value.length > 0) {
         realtimeTimer.value = setInterval(() => {
+          if (typeof document !== 'undefined' && document.hidden) return
           if (!loading.value && props.symbol && klineData.value && klineData.value.length > 0) {
             updateKlineRealtime()
           }
@@ -2282,7 +2277,6 @@ registerOverlay({
         realtimeTimer.value = null
       }
     }
-
 
     let pendingWsBar = null
     let wsTickRafId = null
@@ -2338,11 +2332,7 @@ registerOverlay({
 
         updatePricePanelFromLastBars(arr, true)
 
-        if (chartRef.value && typeof chartRef.value.applyMoreData === 'function') {
-          chartRef.value.applyMoreData([bar])
-        } else if (chartRef.value) {
-          chartRef.value.applyNewData(klineData.value)
-        }
+        appendRealtimeBarsToChart([bar])
         maybeUpdateIndicators(true)
       }
     }
@@ -2683,7 +2673,6 @@ registerOverlay({
               } catch (e2) {
               }
             }
-
 
             nextTick(() => {
               updateIndicators()
@@ -3147,9 +3136,9 @@ registerOverlay({
                               }
                             }
                           } catch (overlayErr) {
+                            // Drawing overlays are best-effort; one failed marker should not break the chart.
                           }
                         }
-                      } else {
                       }
                     }
                   }
@@ -3336,9 +3325,9 @@ registerOverlay({
                               }
                             }
                           } catch (overlayErr) {
+                            // Drawing overlays are best-effort; one failed marker should not break the chart.
                           }
                         }
-                      } else {
                       }
                     }
                   }
@@ -3435,7 +3424,6 @@ registerOverlay({
             }
             continue
           }
-
 
           const indicatorStyle = normalizeIndicatorStyle(indicator.style || {}, getIndicatorColor(idx))
           const color = indicatorStyle.color
@@ -4267,7 +4255,7 @@ registerOverlay({
 
 .drawing-tool-btn:hover {
   background: #f0f2f5;
-  color: #1890ff;
+  color: var(--primary-color, #1890ff);
 }
 
 .chart-left.theme-dark .drawing-tool-btn:hover {
@@ -4277,8 +4265,8 @@ registerOverlay({
 
 .drawing-tool-btn.active {
   background: #e6f7ff;
-  color: #1890ff;
-  border: 1px solid #1890ff;
+  color: var(--primary-color, #1890ff);
+  border: 1px solid var(--primary-color, #1890ff);
 }
 
 .chart-left.theme-dark .drawing-tool-btn.active {
@@ -4374,7 +4362,7 @@ registerOverlay({
 }
 
 .indicator-active-chip__action:hover {
-  color: #1890ff;
+  color: var(--primary-color, #1890ff);
 }
 
 .chart-left.theme-dark .indicator-active-chip__action {
@@ -4474,7 +4462,7 @@ registerOverlay({
 
 ::v-deep .indicator-editor-modal--dark .ant-input-number:hover,
 ::v-deep .indicator-editor-modal--dark .ant-input-number-focused {
-  border-color: #177ddc;
+  border-color: var(--primary-color-active, #177ddc);
 }
 
 ::v-deep .indicator-editor-modal--dark .indicator-editor-field__label {
@@ -4541,8 +4529,8 @@ registerOverlay({
 }
 
 .indicator-btn:hover {
-  color: #1890ff;
-  border-color: #1890ff;
+  color: var(--primary-color, #1890ff);
+  border-color: var(--primary-color, #1890ff);
   background: #f0f8ff;
 }
 
@@ -4553,9 +4541,9 @@ registerOverlay({
 }
 
 .indicator-btn.active {
-  color: #1890ff;
+  color: var(--primary-color, #1890ff);
   background: #fff;
-  border-color: #1890ff;
+  border-color: var(--primary-color, #1890ff);
   border-width: 2px;
   box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
 }

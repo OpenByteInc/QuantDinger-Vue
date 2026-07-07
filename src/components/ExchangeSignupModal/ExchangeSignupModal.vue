@@ -51,59 +51,12 @@
         </div>
       </section>
 
-      <div class="signup-section-divider">
-        <span class="signup-section-divider-label">{{ $t('profile.exchange.signupSectionDivider') }}</span>
-      </div>
-
-      <section class="signup-section signup-section--forex">
-        <div class="signup-section-head">
-          <div class="signup-section-icon signup-section-icon--forex">
-            <a-icon type="line-chart" />
-          </div>
-          <div class="signup-section-text">
-            <div class="signup-section-title">
-              {{ $t('profile.exchange.signupSectionForex') }}
-              <a-tag color="green" class="signup-section-tag">{{ $t('profile.exchange.signupTagTerminal') }}</a-tag>
-            </div>
-            <div class="signup-section-desc">{{ $t('profile.exchange.signupSectionForexHint') }}</div>
-          </div>
-        </div>
-        <div
-          v-for="item in forexCards"
-          :key="item.id"
-          class="forex-signup-banner"
-        >
-          <div class="forex-signup-banner__accent" />
-          <div class="forex-signup-logo" :style="{ background: item.brandBg, color: item.brandColor }">
-            {{ item.short }}
-          </div>
-          <div class="forex-signup-banner__body">
-            <div class="forex-signup-name">{{ item.name }}</div>
-            <div v-if="item.subtitle" class="forex-signup-subtitle">{{ item.subtitle }}</div>
-            <div class="forex-signup-tags">
-              <a-tag v-for="tag in item.tags" :key="tag" color="green">{{ tag }}</a-tag>
-            </div>
-            <div class="forex-signup-note">{{ $t('profile.exchange.signupMt5Note') }}</div>
-          </div>
-          <div class="forex-signup-banner__action">
-            <a-button
-              type="primary"
-              class="forex-signup-btn"
-              :disabled="!item.signupUrl"
-              @click="openSignupLink(item.signupUrl)"
-            >
-              {{ $t('profile.exchange.openAccountButton') }}
-              <a-icon type="arrow-right" />
-            </a-button>
-          </div>
-        </div>
-      </section>
     </div>
   </a-modal>
 </template>
 
 <script>
-import { CRYPTO_SIGNUP_CARDS, FOREX_SIGNUP_CARDS } from '@/constants/exchangeSignupCards'
+import { CRYPTO_SIGNUP_CARDS } from '@/constants/exchangeSignupCards'
 
 export default {
   name: 'ExchangeSignupModal',
@@ -113,8 +66,7 @@ export default {
   },
   data () {
     return {
-      cryptoCards: CRYPTO_SIGNUP_CARDS,
-      forexCards: FOREX_SIGNUP_CARDS
+      cryptoCards: CRYPTO_SIGNUP_CARDS
     }
   },
   computed: {
@@ -302,7 +254,7 @@ export default {
     top: 0;
     bottom: 0;
     width: 4px;
-    background: linear-gradient(180deg, #1890ff 0%, #0052a3 100%);
+    background: linear-gradient(180deg, var(--primary-color, #1890ff) 0%, #0052a3 100%);
     border-radius: 16px 0 0 16px;
   }
 
@@ -363,12 +315,12 @@ export default {
   .forex-signup-btn {
     height: 40px;
     padding: 0 20px;
-    background: linear-gradient(135deg, #1890ff 0%, #0052a3 100%);
+    background: linear-gradient(135deg, var(--primary-color, #1890ff) 0%, #0052a3 100%);
     border: none;
     box-shadow: 0 4px 12px rgba(0, 82, 155, 0.25);
     &:hover,
     &:focus {
-      background: linear-gradient(135deg, #40a9ff 0%, #1890ff 100%);
+      background: linear-gradient(135deg, var(--primary-color-hover, #40a9ff) 0%, var(--primary-color, #1890ff) 100%);
     }
   }
 }

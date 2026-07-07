@@ -11,8 +11,41 @@ export const CRYPTO_EXCHANGE_DISPLAY_NAMES = {
   bitfinex: 'Bitfinex',
   htx: 'HTX',
   alpaca: 'Alpaca',
-  ibkr: 'IBKR',
-  mt5: 'MetaTrader 5'
+  ibkr: 'IBKR'
+}
+
+export const CRYPTO_EXCHANGE_IDS = new Set([
+  'binance',
+  'okx',
+  'bitget',
+  'bybit',
+  'coinbaseexchange',
+  'coinbase_exchange',
+  'kraken',
+  'kucoin',
+  'gate',
+  'bitfinex',
+  'htx'
+])
+
+export const QUICK_TRADE_EXCHANGE_IDS = new Set([
+  'binance',
+  'okx',
+  'bitget',
+  'bybit',
+  'coinbaseexchange',
+  'coinbase_exchange',
+  'kraken',
+  'gate',
+  'htx'
+])
+
+export function isCryptoExchangeCredential (cred) {
+  return CRYPTO_EXCHANGE_IDS.has(String(cred?.exchange_id || '').trim().toLowerCase())
+}
+
+export function isQuickTradeExchangeCredential (cred) {
+  return QUICK_TRADE_EXCHANGE_IDS.has(String(cred?.exchange_id || '').trim().toLowerCase())
 }
 
 export function getExchangeDisplayName (exchangeId) {

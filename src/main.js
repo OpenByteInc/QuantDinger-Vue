@@ -13,6 +13,7 @@ import './permission' // permission control
 import './utils/filter' // global filter
 import './global.less' // global style
 import './qd-layout-dark-override.less'
+import './mobile-responsive.less'
 
 Vue.config.productionTip = false
 

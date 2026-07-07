@@ -208,7 +208,7 @@
                 </span>
               </a-select-option>
               <a-select-option key="add-stock-option" value="__add_stock_option__" class="add-stock-option">
-                <div style="text-align: center; padding: 4px 0; color: #1890ff;">
+                <div style="text-align: center; padding: 4px 0; color: var(--primary-color, #1890ff);">
                   <a-icon type="plus" style="margin-right: 4px;" />{{ $t('dashboard.analysis.watchlist.add') }}
                 </div>
               </a-select-option>
@@ -936,7 +936,7 @@ export default {
     ...mapGetters(['userInfo']),
     ...mapState({
       navTheme: state => state.app.theme,
-      primaryColor: state => state.app.color || '#1890ff'
+      primaryColor: state => state.app.color || 'var(--primary-color, #1890ff)'
     }),
     isDarkTheme () {
       return this.navTheme === 'dark' || this.navTheme === 'realdark'
@@ -2077,11 +2077,15 @@ export default {
       try {
         const res = await getWatchlist({ userid: this.userId })
         if (res && res.code === 1 && res.data) {
+          const prevByKey = {}
+          ;(this.watchlist || []).forEach(item => {
+            prevByKey[`${item.market}:${item.symbol}`] = item
+          })
           this.watchlist = res.data.map(item => ({
             ...item,
-            price: 0,
-            change: 0,
-            changePercent: 0
+            price: prevByKey[`${item.market}:${item.symbol}`]?.price || 0,
+            change: prevByKey[`${item.market}:${item.symbol}`]?.change || 0,
+            changePercent: prevByKey[`${item.market}:${item.symbol}`]?.changePercent || 0
           }))
           await this.loadWatchlistPrices()
         }
@@ -2106,13 +2110,15 @@ export default {
 
         if (res && res.code === 1 && res.data) {
           const priceMap = {}
-          const pricesObj = {}
+          const pricesObj = { ...this.watchlistPrices }
           res.data.forEach(item => {
+            const price = Number(item.price || 0)
+            if (price <= 0) return
             priceMap[`${item.market}-${item.symbol}`] = item
-            // Also fill watchlistPrices object, using ":" as the key separator.
             pricesObj[`${item.market}:${item.symbol}`] = {
-              price: item.price || 0,
-              change: item.changePercent || 0
+              price,
+              change: item.changePercent || 0,
+              stale: !!item.stale
             }
           })
           this.watchlistPrices = pricesObj
@@ -2120,7 +2126,7 @@ export default {
           this.watchlist = this.watchlist.map(item => {
             const key = `${item.market}-${item.symbol}`
             const priceData = priceMap[key]
-            if (priceData) {
+            if (priceData && Number(priceData.price || 0) > 0) {
               return {
                 ...item,
                 price: priceData.price || 0,
@@ -2136,7 +2142,12 @@ export default {
       }
     },
     startWatchlistPriceRefresh () {
+      if (this.watchlistPriceTimer) {
+        clearInterval(this.watchlistPriceTimer)
+        this.watchlistPriceTimer = null
+      }
       this.watchlistPriceTimer = setInterval(() => {
+        if (typeof document !== 'undefined' && document.hidden) return
         if (this.watchlist && this.watchlist.length > 0) {
           this.loadWatchlistPrices()
         }
@@ -2317,7 +2328,11 @@ export default {
           limit: 20
         })
         if (res && res.code === 1 && res.data && res.data.length > 0) {
-          this.symbolSearchResults = res.data
+          const usable = res.data.filter(this.isUsableSymbolSearchResult)
+          this.symbolSearchResults = usable
+          if (usable.length === 0) {
+            this.selectedSymbolForAdd = null
+          }
         } else {
           // Search returned nothing. Previously we silently fabricated a
           // synthetic result from the typed text, which made it too easy to
@@ -2390,6 +2405,16 @@ export default {
         symbol: symbol.symbol,
         name: symbol.name || symbol.symbol
       }
+    },
+    isUsableSymbolSearchResult (item) {
+      const market = item && item.market
+      const symbol = String((item && item.symbol) || '').trim().toUpperCase()
+      if (!market || !symbol) return false
+      if (market === 'CNStock') return /^\d{6}$/.test(symbol)
+      if (market === 'HKStock') return /^\d{1,5}(\.HK)?$/.test(symbol) || /^HK\d{1,5}$/.test(symbol)
+      if (market === 'USStock') return /^[A-Z][A-Z0-9.-]{0,9}$/.test(symbol)
+      if (market === 'Crypto') return /^[A-Z0-9]+\/[A-Z0-9]+$/.test(symbol)
+      return !/\s/.test(symbol)
     },
     async loadHotSymbols (market) {
       if (!market) {
@@ -3448,7 +3473,7 @@ export default {
     background: #1c1c1c;
     border-color: #2a2a2a;
     color: #d4d4d4;
-    &:hover { border-color: #1890ff; color: #1890ff; }
+    &:hover { border-color: var(--primary-color, #1890ff); color: var(--primary-color, #1890ff); }
   }
 
   .wl-change.up { background: rgba(74,222,128,0.10); }
@@ -3511,8 +3536,8 @@ export default {
   ::v-deep {
     .ant-tabs-bar { border-bottom-color: #2a2a2a; }
     .ant-tabs-tab { color: #888; &:hover { color: #d4d4d4; } }
-    .ant-tabs-tab-active { color: #1890ff !important; }
-    .ant-tabs-ink-bar { background-color: #1890ff; }
+    .ant-tabs-tab-active { color: var(--primary-color, #1890ff) !important; }
+    .ant-tabs-ink-bar { background-color: var(--primary-color, #1890ff); }
     .ant-input { background: #1c1c1c; border-color: #2a2a2a; color: #d4d4d4; &::placeholder { color: #555; } }
     .ant-input-number { background: #1c1c1c; border-color: #2a2a2a; color: #d4d4d4; .ant-input-number-handler-wrap { background: #1c1c1c; } }
     .ant-select-selection { background: #1c1c1c; border-color: #2a2a2a; color: #d4d4d4; }
@@ -3520,7 +3545,7 @@ export default {
     .ant-form-item-label > label { color: #d4d4d4; }
     .ant-checkbox-wrapper { color: #d4d4d4; }
     .ant-radio-wrapper { color: #d4d4d4; }
-    .ant-btn-default { background: #1c1c1c; border-color: #2a2a2a; color: #d4d4d4; &:hover { border-color: #1890ff; color: #1890ff; } }
+    .ant-btn-default { background: #1c1c1c; border-color: #2a2a2a; color: #d4d4d4; &:hover { border-color: var(--primary-color, #1890ff); color: var(--primary-color, #1890ff); } }
     .ant-alert { background: rgba(24,144,255,0.06); border-color: #2a2a2a; }
     .ant-alert-message { color: #d4d4d4; }
     .ant-tag { background: #1c1c1c; border-color: #2a2a2a; color: #d4d4d4; }
@@ -4305,7 +4330,7 @@ export default {
   .ant-modal-footer {
     background: #141414;
     border-top-color: #2a2a2a;
-    .ant-btn-default { background: #1c1c1c; border-color: #2a2a2a; color: #d4d4d4; &:hover { border-color: #1890ff; color: #1890ff; } }
+    .ant-btn-default { background: #1c1c1c; border-color: #2a2a2a; color: #d4d4d4; &:hover { border-color: var(--primary-color, #1890ff); color: var(--primary-color, #1890ff); } }
   }
   .ant-form-item-label > label { color: #d4d4d4; }
   .ant-input { background: #1c1c1c; border-color: #2a2a2a; color: #d4d4d4; &::placeholder { color: #555; } }
@@ -4316,12 +4341,12 @@ export default {
   .ant-radio-wrapper { color: #d4d4d4; }
   .ant-tabs-bar { border-bottom-color: #2a2a2a; }
   .ant-tabs-tab { color: #888; &:hover { color: #d4d4d4; } }
-  .ant-tabs-tab-active { color: #1890ff !important; }
+  .ant-tabs-tab-active { color: var(--primary-color, #1890ff) !important; }
   .ant-tag { background: #1c1c1c; border-color: #2a2a2a; color: #d4d4d4; }
-  .ant-tag-blue { background: rgba(24,144,255,0.1); border-color: rgba(24,144,255,0.3); color: #1890ff; }
+  .ant-tag-blue { background: rgba(24,144,255,0.1); border-color: rgba(24,144,255,0.3); color: var(--primary-color, #1890ff); }
   .ant-alert { background: rgba(24,144,255,0.06); border-color: #2a2a2a; }
   .ant-alert-message { color: #d4d4d4; }
-  .ant-alert-info .ant-alert-icon { color: #1890ff; }
+  .ant-alert-info .ant-alert-icon { color: var(--primary-color, #1890ff); }
   .ant-list-item { border-bottom-color: #2a2a2a; color: #d4d4d4; }
   .ant-list-item-meta-title { color: #d4d4d4; }
   .ant-list-item-meta-description { color: #888; }
@@ -4343,7 +4368,7 @@ export default {
     .selected-symbol-info span { color: #888 !important; }
   }
   .batch-modal-summary p { color: #d4d4d4; }
-  .batch-symbols-preview .ant-tag { background: rgba(24,144,255,0.1); border-color: rgba(24,144,255,0.3); color: #1890ff; }
+  .batch-symbols-preview .ant-tag { background: rgba(24,144,255,0.1); border-color: rgba(24,144,255,0.3); color: var(--primary-color, #1890ff); }
   .task-item { background: #1c1c1c; border-color: #2a2a2a; &:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.3); } }
   .task-item-name { color: #d4d4d4; }
   .task-item-meta { color: #888; }
@@ -4367,7 +4392,7 @@ export default {
     &.ant-btn-default { background: #2a2a2c; border-color: #3a3a3c; color: #b0b0b8; &:hover { background: #333336; border-color: var(--primary-color, #1890ff); color: var(--primary-color, #1890ff); } }
     &.ant-btn-danger { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.25); color: #f87171; &:hover { background: rgba(239,68,68,0.18); border-color: rgba(239,68,68,0.4); color: #fca5a5; } }
   }
-  .ant-btn-default { background: #1c1c1c; border-color: #2a2a2a; color: #d4d4d4; &:hover { border-color: #1890ff; color: #1890ff; } }
+  .ant-btn-default { background: #1c1c1c; border-color: #2a2a2a; color: #d4d4d4; &:hover { border-color: var(--primary-color, #1890ff); color: var(--primary-color, #1890ff); } }
   .ant-btn-danger { background: transparent; }
   .ant-popover-inner { background: #1c1c1c; }
   .ant-popover-message { color: #d4d4d4; }
@@ -4384,6 +4409,6 @@ body.colorWeak .ant-select-dropdown,
   .ant-select-dropdown-menu-item { color: #d4d4d4; }
   .ant-select-dropdown-menu-item:hover { background: #252525; }
   .ant-select-dropdown-menu-item-active { background: #252525; }
-  .ant-select-dropdown-menu-item-selected { background: rgba(24,144,255,0.1); color: #1890ff; }
+  .ant-select-dropdown-menu-item-selected { background: rgba(24,144,255,0.1); color: var(--primary-color, #1890ff); }
 }
 </style>

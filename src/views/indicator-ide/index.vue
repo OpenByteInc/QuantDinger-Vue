@@ -25,39 +25,53 @@
             </div>
             <div class="panel-title__trailing">
               <div class="panel-title-actions" @click.stop>
-                <a-tooltip :title="$t('dashboard.indicator.create')">
-                  <a-button size="small" :loading="creatingIndicator" @click="handleCreateIndicator"><a-icon type="plus" /></a-button>
-                </a-tooltip>
-                <a-tooltip :title="selectedIndicatorIsPurchased ? $t('indicatorIde.saveBlockedPurchased') : $t('indicatorIde.save')">
-                  <a-button size="small" :disabled="!selectedIndicatorId || !codeDirty || selectedIndicatorIsPurchased" @click="saveIndicator"><a-icon type="save" /></a-button>
-                </a-tooltip>
-                <a-tooltip :title="selectedIndicatorIsPurchased ? $t('indicatorIde.deleteBlockedPurchased') : $t('dashboard.indicator.action.delete')">
+                <div class="panel-title-icon-actions">
+                  <a-tooltip :title="$t('dashboard.indicator.create')">
+                    <a-button size="small" :loading="creatingIndicator" @click="handleCreateIndicator"><a-icon type="plus" /></a-button>
+                  </a-tooltip>
+                  <a-tooltip :title="selectedIndicatorIsPurchased ? $t('indicatorIde.deleteBlockedPurchased') : $t('dashboard.indicator.action.delete')">
+                    <a-button
+                      size="small"
+                      :disabled="!selectedIndicatorId || selectedIndicatorIsPurchased"
+                      :loading="deletingIndicator"
+                      @click="handleDeleteIndicator"
+                    ><a-icon type="delete" /></a-button>
+                  </a-tooltip>
+                  <a-tooltip :title="selectedIndicatorIsPurchased ? $t('indicatorIde.publishBlockedPurchased') : $t('dashboard.indicator.action.publish')">
+                    <a-button size="small" :disabled="!selectedIndicatorId || selectedIndicatorIsPurchased" @click="handlePublishIndicator"><a-icon type="cloud-upload" /></a-button>
+                  </a-tooltip>
+                  <a-tooltip :title="$t('dashboard.indicator.action.createStrategy')">
+                    <a-button size="small" :disabled="!selectedIndicatorId" @click="handleCreateStrategyFromIndicator"><a-icon type="deployment-unit" /></a-button>
+                  </a-tooltip>
+                  <a-tooltip :title="$t('indicatorIde.saveAsNew')">
+                    <a-button size="small" :disabled="!userId || !currentCode" @click="openSaveAsIndicatorModal"><a-icon type="copy" /></a-button>
+                  </a-tooltip>
+                  <a-tooltip :title="editorFullscreen ? $t('indicatorIde.exitFullscreen') : $t('indicatorIde.fullscreenEditor')">
+                    <a-button size="small" @click="toggleEditorFullscreen"><a-icon :type="editorFullscreen ? 'fullscreen-exit' : 'fullscreen'" /></a-button>
+                  </a-tooltip>
+                  <a-tooltip :title="chartIndicatorRunning ? $t('indicatorIde.stopIndicatorOnChart') : $t('indicatorIde.runIndicatorOnChart')">
+                    <a-button
+                      size="small"
+                      :disabled="chartIndicatorToggleDisabled"
+                      @click="toggleChartIndicatorRun"
+                    >
+                      <a-icon :type="chartIndicatorRunning ? 'pause-circle' : 'play-circle'" />
+                    </a-button>
+                  </a-tooltip>
+                  <a-tooltip :title="$t('indicatorIde.codeVersionHistory')">
+                    <a-button size="small" :disabled="!selectedIndicatorId" @click="openCodeVersionDrawer"><a-icon type="history" /></a-button>
+                  </a-tooltip>
+                </div>
+                <a-tooltip :title="selectedIndicatorIsPurchased ? $t('indicatorIde.saveBlockedPurchased') : $t('indicatorIde.saveShortcutHint')">
                   <a-button
+                    class="ide-save-button"
+                    type="primary"
                     size="small"
-                    :disabled="!selectedIndicatorId || selectedIndicatorIsPurchased"
-                    :loading="deletingIndicator"
-                    @click="handleDeleteIndicator"
-                  ><a-icon type="delete" /></a-button>
-                </a-tooltip>
-                <a-tooltip :title="selectedIndicatorIsPurchased ? $t('indicatorIde.publishBlockedPurchased') : $t('dashboard.indicator.action.publish')">
-                  <a-button size="small" :disabled="!selectedIndicatorId || selectedIndicatorIsPurchased" @click="handlePublishIndicator"><a-icon type="cloud-upload" /></a-button>
-                </a-tooltip>
-                <a-tooltip :title="$t('dashboard.indicator.action.createStrategy')">
-                  <a-button size="small" :disabled="!selectedIndicatorId" @click="handleCreateStrategyFromIndicator"><a-icon type="deployment-unit" /></a-button>
-                </a-tooltip>
-                <a-tooltip :title="$t('indicatorIde.saveAsNew')">
-                  <a-button size="small" :disabled="!userId || !currentCode" @click="openSaveAsIndicatorModal"><a-icon type="copy" /></a-button>
-                </a-tooltip>
-                <a-tooltip :title="editorFullscreen ? $t('indicatorIde.exitFullscreen') : $t('indicatorIde.fullscreenEditor')">
-                  <a-button size="small" @click="toggleEditorFullscreen"><a-icon :type="editorFullscreen ? 'fullscreen-exit' : 'fullscreen'" /></a-button>
-                </a-tooltip>
-                <a-tooltip :title="chartIndicatorRunning ? $t('indicatorIde.stopIndicatorOnChart') : $t('indicatorIde.runIndicatorOnChart')">
-                  <a-button
-                    size="small"
-                    :disabled="chartIndicatorToggleDisabled"
-                    @click="toggleChartIndicatorRun"
+                    :loading="savingIndicator"
+                    :disabled="!selectedIndicatorId || !codeDirty || selectedIndicatorIsPurchased"
+                    @click="saveIndicator"
                   >
-                    <a-icon :type="chartIndicatorRunning ? 'pause-circle' : 'play-circle'" />
+                    {{ $t('indicatorIde.save') }}
                   </a-button>
                 </a-tooltip>
               </div>
@@ -68,7 +82,7 @@
             <div class="ide-guide-bar">
               <a-icon type="book" />
               <span>{{ $t('indicatorIde.devGuideTooltip') }}</span>
-              <a href="https://github.com/brokermr810/QuantDinger/blob/main/docs/STRATEGY_DEV_GUIDE.md" target="_blank" rel="noopener noreferrer" class="ide-guide-link" @click.stop>
+              <a href="https://www.quantdinger.com/docs-zh.html#strategy-overview" target="_blank" rel="noopener noreferrer" class="ide-guide-link" @click.stop>
                 {{ $t('indicatorIde.devGuide') }} <a-icon type="arrow-right" />
               </a>
             </div>
@@ -90,7 +104,7 @@
                   class="code-ai-overlay"
                 >
                   <div class="code-ai-overlay-inner">
-                    <a-icon type="loading" spin style="font-size: 22px; color: #1890ff;" />
+                    <a-icon type="loading" spin style="font-size: 22px; color: var(--primary-color, #1890ff);" />
                     <span>{{ $t('indicatorIde.generating') }}</span>
                     <div class="code-ai-overlay-dots">
                       <span class="dot dot1"></span><span class="dot dot2"></span><span class="dot dot3"></span>
@@ -723,101 +737,102 @@
                         <div v-if="hasResult" class="workbench-panel-meta">{{ symbol }} / {{ timeframe }}</div>
                       </div>
                       <div class="workbench-panel-body">
-                      <!-- Running state -->
-                      <div v-if="running" class="result-running">
-                        <a-spin size="large" />
-                        <div class="running-time">{{ fmtElapsed(elapsedSec) }}</div>
-                        <div class="running-tip">{{ $t('indicatorIde.runningBacktest') }}</div>
-                      </div>
-
-                      <!-- Empty state -->
-                      <div v-else-if="!hasResult" class="result-empty">
-                        <a-icon type="bar-chart" style="font-size: 48px; color: #d9d9d9;" />
-                        <p>{{ $t('indicatorIde.emptyHint') }}</p>
-                      </div>
-
-                      <!-- Results -->
-                      <div v-else class="result-data result-data--workbench">
-                        <div class="backtest-workbench">
-                          <div class="backtest-workbench-main">
-                            <div class="backtest-overview-head">
-                              <div>
-                                <div class="backtest-overview-kicker">{{ symbol }} / {{ timeframe }}</div>
-                                <div class="backtest-overview-title">{{ backtestInsight }}</div>
-                              </div>
-                            </div>
-
-                            <div class="metrics-grid metrics-grid--workbench">
-                              <div v-for="m in metricCards" :key="m.label" :class="['metric-card', m.cls]">
-                                <div class="metric-label">{{ m.label }}</div>
-                                <div class="metric-value">{{ m.value }}</div>
-                              </div>
-                            </div>
-
-                            <div v-if="backtestDiagnostics.length" class="backtest-quality-strip">
-                              <span class="backtest-quality-strip__title">
-                                <a-icon type="safety-certificate" />
-                                {{ $t('indicatorIde.resultDiagnostics') }}
-                              </span>
-                              <span
-                                v-for="item in backtestDiagnostics"
-                                :key="item.key"
-                                :class="['backtest-quality-chip', 'backtest-quality-chip--' + item.tone]"
-                                :title="item.desc"
-                              >
-                                <a-icon :type="item.icon" />
-                                <span>{{ item.title }}</span>
-                                <strong>{{ item.value }}</strong>
-                              </span>
-                            </div>
-
-                            <div class="eq-section eq-section--hero">
-                              <div class="eq-title">
-                                <a-icon type="area-chart" style="margin-right: 6px;" />
-                                {{ $t('indicatorIde.equityCurve') }}
-                              </div>
-                              <div ref="eqChart" class="equity-chart equity-chart--large"></div>
-                            </div>
-
-                            <div class="trades-section trades-section--workbench">
-                              <div class="trades-title">
-                                <a-icon type="swap" style="margin-right: 6px;" />
-                                {{ $t('indicatorIde.trades') }}
-                                <span class="trades-count">({{ pairedTrades.length }})</span>
-                              </div>
-                              <a-table
-                                :columns="tradeColumns"
-                                :dataSource="pairedTrades"
-                                :pagination="{ pageSize: 8, size: 'small' }"
-                                size="small"
-                                :scroll="{ x: 820 }"
-                                rowKey="id"
-                              >
-                                <template slot="type" slot-scope="text">
-                                  <a-tag :color="text === 'long' ? 'green' : 'red'" style="margin: 0;">{{ text.toUpperCase() }}</a-tag>
-                                </template>
-                                <template slot="exitTag" slot-scope="text, record">
-                                  <a-tag
-                                    v-if="record"
-                                    :color="exitTagColor(record)"
-                                    style="margin: 0;"
-                                  >{{ exitTagLabel(record) }}</a-tag>
-                                </template>
-                                <template slot="price" slot-scope="text">
-                                  <span style="font-variant-numeric: tabular-nums;">{{ fmtPrice(text) }}</span>
-                                </template>
-                                <template slot="profit" slot-scope="text">
-                                  <span :style="{ color: text > 0 ? '#52c41a' : text < 0 ? '#f5222d' : '#666', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }">{{ fmtMoney(text) }}</span>
-                                </template>
-                                <template slot="money" slot-scope="text">
-                                  <span style="font-weight: 600; font-variant-numeric: tabular-nums;">{{ fmtMoney(text) }}</span>
-                                </template>
-                              </a-table>
-                            </div>
-                          </div>
-
+                        <!-- Running state -->
+                        <div v-if="running" class="result-running">
+                          <a-spin size="large" />
+                          <div class="running-time">{{ fmtElapsed(elapsedSec) }}</div>
+                          <div class="running-tip">{{ $t('indicatorIde.runningBacktest') }}</div>
                         </div>
-                      </div>
+
+                        <!-- Empty state -->
+                        <div v-else-if="!hasResult" class="result-empty">
+                          <a-icon type="bar-chart" style="font-size: 48px; color: #d9d9d9;" />
+                          <p>{{ $t('indicatorIde.emptyHint') }}</p>
+                        </div>
+
+                        <!-- Results -->
+                        <div v-else class="result-data result-data--workbench">
+                          <div class="backtest-workbench">
+                            <div class="backtest-workbench-main">
+                              <div class="backtest-overview-head">
+                                <div>
+                                  <div class="backtest-overview-kicker">{{ symbol }} / {{ timeframe }}</div>
+                                  <div class="backtest-overview-title">{{ backtestInsight }}</div>
+                                </div>
+                              </div>
+
+                              <div class="metrics-grid metrics-grid--workbench">
+                                <div v-for="m in metricCards" :key="m.label" :class="['metric-card', m.cls]">
+                                  <div class="metric-label">{{ m.label }}</div>
+                                  <div class="metric-value">{{ m.value }}</div>
+                                </div>
+                              </div>
+
+                              <div v-if="backtestDiagnostics.length" class="backtest-quality-strip">
+                                <span class="backtest-quality-strip__title">
+                                  <a-icon type="safety-certificate" />
+                                  {{ $t('indicatorIde.resultDiagnostics') }}
+                                </span>
+                                <span
+                                  v-for="item in backtestDiagnostics"
+                                  :key="item.key"
+                                  :class="['backtest-quality-chip', 'backtest-quality-chip--' + item.tone]"
+                                  :title="item.desc"
+                                >
+                                  <a-icon :type="item.icon" />
+                                  <span>{{ item.title }}</span>
+                                  <strong>{{ item.value }}</strong>
+                                </span>
+                              </div>
+
+                              <div class="eq-section eq-section--hero">
+                                <div class="eq-title">
+                                  <a-icon type="area-chart" style="margin-right: 6px;" />
+                                  {{ $t('indicatorIde.equityCurve') }}
+                                </div>
+                                <div ref="eqChart" class="equity-chart equity-chart--large"></div>
+                              </div>
+
+                              <div class="trades-section trades-section--workbench">
+                                <div class="trades-title">
+                                  <a-icon type="swap" style="margin-right: 6px;" />
+                                  {{ $t('indicatorIde.trades') }}
+                                  <span class="trades-count">({{ pairedTrades.length }})</span>
+                                </div>
+                                <a-table
+                                  class="trades-table"
+                                  :columns="tradeColumns"
+                                  :dataSource="pairedTrades"
+                                  :pagination="{ pageSize: 8, size: 'small' }"
+                                  size="small"
+                                  :scroll="{ x: 980 }"
+                                  rowKey="id"
+                                >
+                                  <template slot="type" slot-scope="text">
+                                    <a-tag :color="text === 'long' ? 'green' : 'red'" style="margin: 0;">{{ text.toUpperCase() }}</a-tag>
+                                  </template>
+                                  <template slot="exitTag" slot-scope="text, record">
+                                    <a-tag
+                                      v-if="record"
+                                      :color="exitTagColor(record)"
+                                      style="margin: 0;"
+                                    >{{ exitTagLabel(record) }}</a-tag>
+                                  </template>
+                                  <template slot="price" slot-scope="text">
+                                    <span style="font-variant-numeric: tabular-nums;">{{ fmtPrice(text) }}</span>
+                                  </template>
+                                  <template slot="profit" slot-scope="text">
+                                    <span :style="{ color: text > 0 ? '#52c41a' : text < 0 ? '#f5222d' : '#666', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }">{{ fmtMoney(text) }}</span>
+                                  </template>
+                                  <template slot="money" slot-scope="text">
+                                    <span style="font-weight: 600; font-variant-numeric: tabular-nums;">{{ fmtMoney(text) }}</span>
+                                  </template>
+                                </a-table>
+                              </div>
+                            </div>
+
+                          </div>
+                        </div>
                       </div>
                     </section>
 
@@ -830,19 +845,19 @@
                         <div class="workbench-panel-meta">{{ $t('indicatorIde.tuningLaunchDesc') }}</div>
                       </div>
                       <div class="workbench-panel-body">
-                      <div v-if="!experimentRunning" class="ide-tuning-launch">
-                        <div class="optimizer-workflow">
-                          <div class="optimizer-workflow-step">
-                            <div class="optimizer-step-index">1</div>
-                            <div>
-                              <div class="optimizer-step-title">{{ $t('indicatorIde.optimizeStepMethod') }}</div>
-                              <div class="optimizer-step-desc">{{ activeTuneMethodOption ? activeTuneMethodOption.hint : $t('indicatorIde.optimizeStepMethodDesc') }}</div>
+                        <div v-if="!experimentRunning" class="ide-tuning-launch">
+                          <div class="optimizer-workflow">
+                            <div class="optimizer-workflow-step">
+                              <div class="optimizer-step-index">1</div>
+                              <div>
+                                <div class="optimizer-step-title">{{ $t('indicatorIde.optimizeStepMethod') }}</div>
+                                <div class="optimizer-step-desc">{{ activeTuneMethodOption ? activeTuneMethodOption.hint : $t('indicatorIde.optimizeStepMethodDesc') }}</div>
+                              </div>
                             </div>
                           </div>
-                        </div>
 
-                        <div class="ide-tuning-method-cards ide-tuning-method-cards--single">
-                          <div class="ide-tuning-method-card">
+                          <div class="ide-tuning-method-cards ide-tuning-method-cards--single">
+                            <div class="ide-tuning-method-card">
                               <div class="ide-tune-pills ide-tune-pills--five">
                                 <button
                                   v-for="opt in tuneMethodOptions"
@@ -884,10 +899,6 @@
                                     </span>
                                   </span>
                                 </div>
-                                <div v-if="experimentMethodAutoSuggest" class="ide-tune-dimensions-warning">
-                                  <a-icon type="info-circle" />
-                                  {{ $t('indicatorIde.sweepMethodAutoSwitchHint', { size: experimentMethodAutoSuggest.size.toLocaleString() }) }}
-                                </div>
                                 <div v-if="experimentSweepDimensions.length === 0" class="ide-tune-dimensions-empty">
                                   {{ $t('indicatorIde.sweepDimensionsEmpty') }}
                                 </div>
@@ -919,378 +930,430 @@
                                 </div>
                               </div>
 
-                            <div v-if="structuredTuneMethod === 'ai'" class="ide-tune-ai-feature-list">
-                              <div class="ide-tune-ai-feature"><a-icon type="rocket" /><span>{{ $t('indicatorIde.aiTuneFeature1') }}</span></div>
-                              <div class="ide-tune-ai-feature"><a-icon type="bulb" /><span>{{ $t('indicatorIde.aiTuneFeature2') }}</span></div>
-                              <div class="ide-tune-ai-feature"><a-icon type="safety" /><span>{{ $t('indicatorIde.aiTuneFeature3') }}</span></div>
-                            </div>
+                              <div v-if="structuredTuneMethod === 'ai'" class="ide-tune-ai-feature-list">
+                                <div class="ide-tune-ai-feature"><a-icon type="rocket" /><span>{{ $t('indicatorIde.aiTuneFeature1') }}</span></div>
+                                <div class="ide-tune-ai-feature"><a-icon type="bulb" /><span>{{ $t('indicatorIde.aiTuneFeature2') }}</span></div>
+                                <div class="ide-tune-ai-feature"><a-icon type="safety" /><span>{{ $t('indicatorIde.aiTuneFeature3') }}</span></div>
+                              </div>
 
-                            <div class="ide-tune-method-meta" :class="{ 'ide-tune-method-meta--ai': structuredTuneMethod === 'ai' }">
-                              <span class="ide-tune-method-meta-hint">
-                                <template v-if="structuredTuneMethod === 'ai'">{{ $t('indicatorIde.aiTuneCta') }}</template>
-                                <template v-else>{{ activeTuneMethodOption ? activeTuneMethodOption.hint : '' }}</template>
+                              <div class="ide-tune-method-meta" :class="{ 'ide-tune-method-meta--ai': structuredTuneMethod === 'ai' }">
+                                <span class="ide-tune-method-meta-hint">
+                                  <template v-if="structuredTuneMethod === 'ai'">{{ $t('indicatorIde.aiTuneCta') }}</template>
+                                  <template v-else>{{ activeTuneMethodOption ? activeTuneMethodOption.hint : '' }}</template>
+                                </span>
+                                <a-button
+                                  type="primary"
+                                  :ghost="structuredTuneMethod !== 'ai'"
+                                  size="small"
+                                  :class="['ide-tune-run-btn', { 'ide-tune-run-btn--ai': structuredTuneMethod === 'ai' }]"
+                                  :loading="experimentRunning && (structuredTuneMethod === 'ai' ? experimentRunKind === 'llm' : experimentRunKind === 'structured')"
+                                  :disabled="experimentRunning"
+                                  @click="handleRunCurrentMode"
+                                >
+                                  <a-icon type="thunderbolt" />
+                                  {{ $t('indicatorIde.runTune') }}
+                                </a-button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- Running state with real-time progress -->
+                        <div v-if="experimentRunning" class="experiment-panel">
+                          <div class="experiment-progress-bar">
+                            <div class="experiment-progress-header">
+                              <a-spin size="small" />
+                              <span v-if="experimentRunKind === 'structured'">{{ $t('indicatorIde.structuredTuneRunning') }}</span>
+                              <span v-else>
+                                {{ $t('indicatorIde.aiOptimizing') }}
+                                <template v-if="experimentCurrentRound > 0">
+                                  &mdash; {{ $t('indicatorIde.round') }} {{ experimentCurrentRound }}/{{ experimentMaxRounds }}
+                                </template>
                               </span>
-                              <a-button
-                                type="primary"
-                                :ghost="structuredTuneMethod !== 'ai'"
-                                size="small"
-                                :class="['ide-tune-run-btn', { 'ide-tune-run-btn--ai': structuredTuneMethod === 'ai' }]"
-                                :loading="experimentRunning && (structuredTuneMethod === 'ai' ? experimentRunKind === 'llm' : experimentRunKind === 'structured')"
-                                :disabled="experimentRunning"
-                                @click="handleRunCurrentMode"
-                              >
-                                <a-icon type="thunderbolt" />
-                                {{ $t('indicatorIde.runTune') }}
-                              </a-button>
+                              <span class="running-time">{{ fmtElapsed(elapsedSec) }}</span>
                             </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <!-- Running state with real-time progress -->
-                      <div v-if="experimentRunning" class="experiment-panel">
-                        <div class="experiment-progress-bar">
-                          <div class="experiment-progress-header">
-                            <a-spin size="small" />
-                            <span v-if="experimentRunKind === 'structured'">{{ $t('indicatorIde.structuredTuneRunning') }}</span>
-                            <span v-else>
-                              {{ $t('indicatorIde.aiOptimizing') }}
-                              <template v-if="experimentCurrentRound > 0">
-                                &mdash; {{ $t('indicatorIde.round') }} {{ experimentCurrentRound }}/{{ experimentMaxRounds }}
-                              </template>
-                            </span>
-                            <span class="running-time">{{ fmtElapsed(elapsedSec) }}</span>
-                          </div>
-                          <div v-if="experimentRunKind === 'llm' && experimentLiveHint" class="experiment-live-hint">{{ experimentLiveHint }}</div>
-                          <a-progress
-                            v-if="experimentRunKind === 'structured'"
-                            :percent="35"
-                            status="active"
-                            :show-info="false"
-                            size="small"
-                            strokeColor="#1890ff"
-                          />
-                          <a-progress
-                            v-else
-                            :percent="experimentProgressPct"
-                            status="active"
-                            :show-info="false"
-                            size="small"
-                            strokeColor="#1890ff"
-                          />
-                          <div v-if="experimentRoundScores.length" class="experiment-round-scores">
-                            <span v-for="(rs, idx) in experimentRoundScores" :key="idx" class="experiment-round-badge" :class="{ best: rs === experimentGlobalBestScoreLive }">
-                              R{{ idx + 1 }}: {{ rs.toFixed(1) }}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <!-- Empty state -->
-                      <div v-else-if="!hasExperimentResult" class="result-empty">
-                        <a-icon type="experiment" style="font-size: 48px; color: #d9d9d9;" />
-                        <p>{{ $t('indicatorIde.aiExperimentEmpty') }}</p>
-                      </div>
-
-                      <!-- Results -->
-                      <div v-else class="experiment-panel">
-                        <!-- Round progress indicators -->
-                        <div class="experiment-round-row">
-                          <div v-for="(rd, idx) in experimentRoundsInfo" :key="idx" class="experiment-round-card" :class="{ best: rd.globalBestScore === rd.bestScore && rd.bestScore > 0 }">
-                            <div class="experiment-round-num">R{{ rd.round }}</div>
-                            <div class="experiment-round-detail">
-                              <div class="experiment-round-score">{{ rd.bestScore.toFixed(1) }}</div>
-                              <div class="experiment-round-meta">{{ rd.candidateCount }} {{ $t('indicatorIde.candidates') }} &middot; {{ rd.elapsed }}s</div>
+                            <div v-if="experimentRunKind === 'llm' && experimentLiveHint" class="experiment-live-hint">{{ experimentLiveHint }}</div>
+                            <a-progress
+                              v-if="experimentRunKind === 'structured'"
+                              :percent="35"
+                              status="active"
+                              :show-info="false"
+                              size="small"
+                              strokeColor="var(--primary-color, #1890ff)"
+                            />
+                            <a-progress
+                              v-else
+                              :percent="experimentProgressPct"
+                              status="active"
+                              :show-info="false"
+                              size="small"
+                              strokeColor="var(--primary-color, #1890ff)"
+                            />
+                            <div v-if="experimentRoundScores.length" class="experiment-round-scores">
+                              <span v-for="(rs, idx) in experimentRoundScores" :key="idx" class="experiment-round-badge" :class="{ best: rs === experimentGlobalBestScoreLive }">
+                                R{{ idx + 1 }}: {{ rs.toFixed(1) }}
+                              </span>
                             </div>
                           </div>
                         </div>
 
-                        <!-- Action bar (rerun shortcuts only; "apply best" lives on the best-candidate card to avoid duplication) -->
-                        <div class="experiment-action-bar experiment-action-bar--split">
-                          <a-button size="small" @click="handleRunAIExperiment">
-                            <a-icon type="experiment" /> {{ $t('indicatorIde.rerunAiTuning') }}
-                          </a-button>
-                          <a-button size="small" @click="handleRunStructuredTune">
-                            <a-icon type="deployment-unit" /> {{ $t('indicatorIde.rerunStructuredTuning') }}
-                          </a-button>
-                        </div>
-
-                        <!-- Hero: regime + best score -->
-                        <div class="experiment-hero">
-                          <div class="experiment-hero-main">
-                            <div class="experiment-kicker">{{ $t('indicatorIde.marketRegime') }}</div>
-                            <div class="experiment-regime-title">
-                              {{ experimentRegimeLabel }}
-                              <a-tag color="blue">{{ experimentRegimeConfidence }}</a-tag>
-                            </div>
-                            <div class="experiment-hint">{{ experimentPromptHint }}</div>
-                            <div class="experiment-family-tags">
-                              <a-tag v-for="family in experimentPreferredFamilies" :key="family.key" color="purple">{{ family.label }}</a-tag>
-                            </div>
-                            <div v-if="experimentTopWeights.length" class="experiment-weights-row">
-                              <span class="experiment-weights-label">{{ $t('indicatorIde.scoringProfile') }}:</span>
-                              <a-tooltip v-for="w in experimentTopWeights" :key="w.key" :title="`${w.label} ${(w.value * 100).toFixed(0)}%`">
-                                <a-tag size="small" color="cyan">{{ w.label }} {{ (w.value * 100).toFixed(0) }}%</a-tag>
-                              </a-tooltip>
+                        <!-- Results -->
+                        <div v-else-if="hasExperimentResult" class="experiment-panel">
+                          <!-- Round progress indicators -->
+                          <div class="experiment-round-row">
+                            <div v-for="(rd, idx) in experimentRoundsInfo" :key="idx" class="experiment-round-card" :class="{ best: rd.globalBestScore === rd.bestScore && rd.bestScore > 0 }">
+                              <div class="experiment-round-num">R{{ rd.round }}</div>
+                              <div class="experiment-round-detail">
+                                <div class="experiment-round-score">{{ rd.bestScore.toFixed(1) }}</div>
+                                <div class="experiment-round-meta">{{ rd.candidateCount }} {{ $t('indicatorIde.candidates') }} &middot; {{ rd.elapsed }}s</div>
+                              </div>
                             </div>
                           </div>
-                          <div class="experiment-best-score">
-                            <div class="experiment-kicker">{{ $t('indicatorIde.bestStrategyOutput') }}</div>
-                            <div class="experiment-score">{{ experimentBestScore }}</div>
-                            <div class="experiment-grade">{{ experimentBestGrade }}</div>
-                          </div>
-                        </div>
 
-                        <a-alert
-                          v-if="experimentOosMeta && experimentOosMeta.enabled"
-                          type="warning"
-                          show-icon
-                          class="experiment-oos-banner"
-                          :message="$t('indicatorIde.oosBanner', {
-                            trainStart: experimentOosMeta.trainStart,
-                            trainEnd: experimentOosMeta.trainEnd,
-                            oosStart: experimentOosMeta.oosStart,
-                            oosEnd: experimentOosMeta.oosEnd
-                          })"
-                        />
-
-                        <!-- Best candidate card -->
-                        <div
-                          v-if="experimentBest"
-                          class="experiment-best-card"
-                          :class="{ 'is-overfit': experimentBestOverfit }">
-                          <div class="experiment-section-title">
-                            <a-icon type="trophy" style="margin-right: 6px;" />
-                            {{ $t('indicatorIde.bestStrategyOutput') }}
-                            <span v-if="experimentBest.name" style="font-weight: 400; margin-left: 8px; font-size: 12px; opacity: 0.65;">{{ experimentBest.name }}</span>
+                          <!-- Hero: regime + best score -->
+                          <div class="experiment-hero">
+                            <div class="experiment-hero-main">
+                              <div class="experiment-kicker">{{ $t('indicatorIde.marketRegime') }}</div>
+                              <div class="experiment-regime-title">
+                                {{ experimentRegimeLabel }}
+                                <a-tag color="blue">{{ experimentRegimeConfidence }}</a-tag>
+                              </div>
+                              <div class="experiment-hint">{{ experimentPromptHint }}</div>
+                              <div class="experiment-family-tags">
+                                <a-tag v-for="family in experimentPreferredFamilies" :key="family.key" color="purple">{{ family.label }}</a-tag>
+                              </div>
+                              <div v-if="experimentTopWeights.length" class="experiment-weights-row">
+                                <span class="experiment-weights-label">{{ $t('indicatorIde.scoringProfile') }}:</span>
+                                <a-tooltip v-for="w in experimentTopWeights" :key="w.key" :title="`${w.label} ${(w.value * 100).toFixed(0)}%`">
+                                  <a-tag size="small" color="cyan">{{ w.label }} {{ (w.value * 100).toFixed(0) }}%</a-tag>
+                                </a-tooltip>
+                              </div>
+                            </div>
+                            <div class="experiment-best-score">
+                              <div class="experiment-kicker">{{ $t('indicatorIde.bestStrategyOutput') }}</div>
+                              <div class="experiment-score">{{ experimentBestScore }}</div>
+                              <div class="experiment-grade">{{ experimentBestGrade }}</div>
+                            </div>
                           </div>
-                          <div v-if="experimentBest.reasoning" class="experiment-reasoning">{{ experimentBest.reasoning }}</div>
+
                           <a-alert
-                            v-if="experimentBestOverfit"
-                            type="error"
+                            v-if="experimentOosMeta && experimentOosMeta.enabled"
+                            type="warning"
                             show-icon
-                            style="margin-bottom: 10px;"
-                            :message="$t('indicatorIde.oosOverfitWarning', { degrade: experimentBestDegradePct })" />
-                          <div class="experiment-best-dual">
-                            <div class="experiment-best-panel">
-                              <div class="experiment-best-panel-header">
-                                <a-tag color="blue">{{ $t('indicatorIde.isBadge') }}</a-tag>
-                                <span class="experiment-best-panel-title">{{ $t('indicatorIde.isPanelTitle') }}</span>
-                                <span v-if="experimentOosMeta && experimentOosMeta.enabled" class="experiment-best-panel-range">
-                                  {{ experimentOosMeta.trainStart }} ~ {{ experimentOosMeta.trainEnd }}
-                                </span>
-                              </div>
-                              <div class="experiment-best-summary">
-                                <div class="experiment-best-metric">
-                                  <span>{{ $t('indicatorIde.totalReturn') }}</span>
-                                  <strong>{{ experimentBestSummary.totalReturn }}</strong>
-                                </div>
-                                <div class="experiment-best-metric">
-                                  <span>{{ $t('indicatorIde.maxDrawdown') }}</span>
-                                  <strong>{{ experimentBestSummary.maxDrawdown }}</strong>
-                                </div>
-                                <div class="experiment-best-metric">
-                                  <span>{{ $t('indicatorIde.sharpeRatio') }}</span>
-                                  <strong>{{ experimentBestSummary.sharpeRatio }}</strong>
-                                </div>
-                                <div class="experiment-best-metric">
-                                  <span>{{ $t('indicatorIde.tradeCount') }}</span>
-                                  <strong>{{ experimentBestSummary.totalTrades }}</strong>
-                                </div>
-                              </div>
-                            </div>
-                            <div
-                              class="experiment-best-panel"
-                              :class="{ 'panel-overfit': experimentBestOverfit, 'panel-disabled': !experimentBestOosSummary }">
-                              <div class="experiment-best-panel-header">
-                                <a-tag :color="experimentBestOverfit ? 'red' : 'orange'">{{ $t('indicatorIde.oosBadge') }}</a-tag>
-                                <span class="experiment-best-panel-title">{{ $t('indicatorIde.oosPanelTitle') }}</span>
-                                <span v-if="experimentOosMeta && experimentOosMeta.enabled" class="experiment-best-panel-range">
-                                  {{ experimentOosMeta.oosStart }} ~ {{ experimentOosMeta.oosEnd }}
-                                </span>
-                                <span v-if="experimentBest.oosDegradation != null" class="experiment-best-degrade">
-                                  {{ $t('indicatorIde.oosDegradation') }} {{ experimentBestDegradePct }}%
-                                </span>
-                              </div>
-                              <div v-if="experimentBestOosSummary" class="experiment-best-summary">
-                                <div class="experiment-best-metric">
-                                  <span>{{ $t('indicatorIde.totalReturn') }}</span>
-                                  <strong>{{ experimentBestOosSummary.totalReturn }}</strong>
-                                </div>
-                                <div class="experiment-best-metric">
-                                  <span>{{ $t('indicatorIde.maxDrawdown') }}</span>
-                                  <strong>{{ experimentBestOosSummary.maxDrawdown }}</strong>
-                                </div>
-                                <div class="experiment-best-metric">
-                                  <span>{{ $t('indicatorIde.sharpeRatio') }}</span>
-                                  <strong>{{ experimentBestOosSummary.sharpeRatio }}</strong>
-                                </div>
-                                <div class="experiment-best-metric">
-                                  <span>{{ $t('indicatorIde.tradeCount') }}</span>
-                                  <strong>{{ experimentBestOosSummary.totalTrades }}</strong>
-                                </div>
-                              </div>
-                              <div v-else class="experiment-best-oos-na">
-                                {{ $t('indicatorIde.oosNotAvailable') }}
-                              </div>
-                            </div>
-                          </div>
-                          <div class="experiment-best-actions">
-                            <a-tooltip :title="$t('indicatorIde.applyAndVerifyHint')">
-                              <a-button
-                                type="primary"
-                                :disabled="!experimentOosMeta || !experimentOosMeta.enabled"
-                                @click="runBacktestWithExperimentBest('train')">
-                                <a-icon type="check-circle" />
-                                {{ $t('indicatorIde.applyAndVerifyOnTrain') }}
-                              </a-button>
-                            </a-tooltip>
-                            <a-tooltip :title="$t('indicatorIde.applyAndRunFullHint')">
-                              <a-button @click="runBacktestWithExperimentBest('full')">
-                                <a-icon type="play-circle" />
-                                {{ $t('indicatorIde.applyAndRunOnFull') }}
-                              </a-button>
-                            </a-tooltip>
-                            <a-button @click="applyBestExperimentCandidate">
-                              <a-icon type="check" />
-                              {{ $t('indicatorIde.applyBestParams') }}
-                            </a-button>
-                          </div>
-                        </div>
+                            class="experiment-oos-banner"
+                            :message="$t('indicatorIde.oosBannerSimple', {
+                              trainStart: experimentOosMeta.trainStart,
+                              trainEnd: experimentOosMeta.trainEnd,
+                              oosStart: experimentOosMeta.oosStart,
+                              oosEnd: experimentOosMeta.oosEnd
+                            })"
+                          />
 
-                        <!-- Top candidates -->
-                        <div class="experiment-candidate-grid">
+                          <!-- Best candidate card -->
                           <div
-                            v-for="candidate in experimentCandidateCards"
-                            :key="candidate.name"
-                            class="experiment-candidate-card"
-                            :class="{ active: experimentSelectedCandidate && experimentSelectedCandidate.name === candidate.name }"
-                            @click="selectExperimentCandidate(candidate)"
-                          >
-                            <div class="experiment-candidate-header">
-                              <div>
-                                <div class="experiment-candidate-name">{{ candidate.name }}</div>
-                                <div class="experiment-candidate-source">{{ formatExperimentSource(candidate.source) }}</div>
+                            v-if="experimentBest"
+                            class="experiment-best-card"
+                            :class="{ 'is-overfit': experimentBestOverfit }">
+                            <div class="experiment-section-title">
+                              <a-icon type="trophy" style="margin-right: 6px;" />
+                              {{ $t('indicatorIde.bestStrategyOutput') }}
+                              <span v-if="experimentBest.name" style="font-weight: 400; margin-left: 8px; font-size: 12px; opacity: 0.65;">{{ experimentBest.name }}</span>
+                            </div>
+                            <div v-if="experimentBest.reasoning" class="experiment-reasoning">{{ experimentBest.reasoning }}</div>
+                            <a-alert
+                              v-if="experimentBestOverfit"
+                              type="error"
+                              show-icon
+                              style="margin-bottom: 10px;"
+                              :message="$t('indicatorIde.oosOverfitWarning', { degrade: experimentBestDegradePct })" />
+                            <div class="experiment-best-dual">
+                              <div class="experiment-best-panel">
+                                <div class="experiment-best-panel-header">
+                                  <a-tag color="blue">{{ $t('indicatorIde.isBadge') }}</a-tag>
+                                  <span class="experiment-best-panel-title">{{ $t('indicatorIde.isPanelTitle') }}</span>
+                                  <span v-if="experimentOosMeta && experimentOosMeta.enabled" class="experiment-best-panel-range">
+                                    {{ experimentOosMeta.trainStart }} ~ {{ experimentOosMeta.trainEnd }}
+                                  </span>
+                                </div>
+                                <div class="experiment-best-summary">
+                                  <div class="experiment-best-metric">
+                                    <span>{{ $t('indicatorIde.totalReturn') }}</span>
+                                    <strong>{{ experimentBestSummary.totalReturn }}</strong>
+                                  </div>
+                                  <div class="experiment-best-metric">
+                                    <span>{{ $t('indicatorIde.maxDrawdown') }}</span>
+                                    <strong>{{ experimentBestSummary.maxDrawdown }}</strong>
+                                  </div>
+                                  <div class="experiment-best-metric">
+                                    <span>{{ $t('indicatorIde.sharpeRatio') }}</span>
+                                    <strong>{{ experimentBestSummary.sharpeRatio }}</strong>
+                                  </div>
+                                  <div class="experiment-best-metric">
+                                    <span>{{ $t('indicatorIde.tradeCount') }}</span>
+                                    <strong>{{ experimentBestSummary.totalTrades }}</strong>
+                                  </div>
+                                </div>
                               </div>
-                              <a-tag color="blue">{{ ((candidate.score || {}).grade || 'C') }}</a-tag>
+                              <div
+                                class="experiment-best-panel"
+                                :class="{ 'panel-overfit': experimentBestOverfit, 'panel-disabled': !experimentBestOosSummary }">
+                                <div class="experiment-best-panel-header">
+                                  <a-tag :color="experimentBestOverfit ? 'red' : 'orange'">{{ $t('indicatorIde.oosBadge') }}</a-tag>
+                                  <span class="experiment-best-panel-title">{{ $t('indicatorIde.oosPanelTitle') }}</span>
+                                  <span v-if="experimentOosMeta && experimentOosMeta.enabled" class="experiment-best-panel-range">
+                                    {{ experimentOosMeta.oosStart }} ~ {{ experimentOosMeta.oosEnd }}
+                                  </span>
+                                  <span v-if="experimentBest.oosDegradation != null" class="experiment-best-degrade">
+                                    {{ $t('indicatorIde.oosDegradation') }} {{ experimentBestDegradePct }}%
+                                  </span>
+                                </div>
+                                <div v-if="experimentBestOosSummary" class="experiment-best-summary">
+                                  <div class="experiment-best-metric">
+                                    <span>{{ $t('indicatorIde.totalReturn') }}</span>
+                                    <strong>{{ experimentBestOosSummary.totalReturn }}</strong>
+                                  </div>
+                                  <div class="experiment-best-metric">
+                                    <span>{{ $t('indicatorIde.maxDrawdown') }}</span>
+                                    <strong>{{ experimentBestOosSummary.maxDrawdown }}</strong>
+                                  </div>
+                                  <div class="experiment-best-metric">
+                                    <span>{{ $t('indicatorIde.sharpeRatio') }}</span>
+                                    <strong>{{ experimentBestOosSummary.sharpeRatio }}</strong>
+                                  </div>
+                                  <div class="experiment-best-metric">
+                                    <span>{{ $t('indicatorIde.tradeCount') }}</span>
+                                    <strong>{{ experimentBestOosSummary.totalTrades }}</strong>
+                                  </div>
+                                </div>
+                                <div v-else class="experiment-best-oos-na">
+                                  {{ experimentBestOosUnavailableText }}
+                                </div>
+                              </div>
                             </div>
-                            <div class="experiment-candidate-score">{{ (((candidate.score || {}).overallScore || 0)).toFixed(2) }}</div>
-                            <div v-if="candidate.reasoning" class="experiment-candidate-reasoning">{{ candidate.reasoning }}</div>
-                            <div class="experiment-candidate-stats">
-                              <span>{{ $t('indicatorIde.totalReturn') }} {{ fmtPct((candidate.result || {}).totalReturn) }}</span>
-                              <span>{{ $t('indicatorIde.sharpeRatio') }} {{ (((candidate.result || {}).sharpeRatio || 0)).toFixed(2) }}</span>
-                            </div>
-                            <div
-                              v-if="candidate.oosScore"
-                              class="experiment-candidate-oos"
-                              :class="{ 'is-overfit': candidate.oosOverfit }">
-                              <span>
-                                {{ $t('indicatorIde.oosScore') }}
-                                {{ ((candidate.oosScore.overallScore || 0)).toFixed(1) }}
-                              </span>
-                              <span v-if="candidate.oosDegradation != null">
-                                {{ $t('indicatorIde.oosDegradation') }}
-                                {{ ((candidate.oosDegradation || 0) * 100).toFixed(1) }}%
-                              </span>
-                              <a-tag v-if="candidate.oosOverfit" color="red" style="margin-left: 4px;">
-                                {{ $t('indicatorIde.oosOverfitTag') }}
-                              </a-tag>
+                            <div class="experiment-best-actions">
+                              <a-button type="primary" @click="applyBestExperimentCandidate">
+                                <a-icon type="check" />
+                                {{ $t('indicatorIde.applyBestParams') }}
+                              </a-button>
                             </div>
                           </div>
-                        </div>
-                        <div v-if="experimentHasAnalytics" class="experiment-lab">
-                          <div class="experiment-lab-head">
-                            <div>
-                              <div class="experiment-section-title">
-                                <a-icon type="fund" style="margin-right: 6px;" />
-                                {{ $t('indicatorIde.optimizationLab') }}
-                              </div>
-                              <div class="experiment-lab-subtitle">{{ $t('indicatorIde.optimizationLabHint') }}</div>
-                            </div>
-                            <a-tag color="blue">{{ $t('indicatorIde.analyticsDataSource') }}</a-tag>
-                          </div>
-                          <div class="experiment-audit-grid">
-                            <div v-for="card in experimentDataAuditCards" :key="card.key" class="experiment-audit-card">
-                              <a-icon :type="card.icon" />
-                              <div>
-                                <span>{{ card.label }}</span>
-                                <strong>{{ card.value }}</strong>
-                                <small>{{ card.hint }}</small>
-                              </div>
-                            </div>
-                          </div>
-                          <div class="experiment-analytics experiment-analytics--lab">
-                            <div class="experiment-analytics-card experiment-analytics-card--wide">
-                              <div class="experiment-analytics-head">
-                                <a-icon type="line-chart" />
-                                <span class="experiment-analytics-title">{{ $t('indicatorIde.analyticsConvergence') }}</span>
-                                <span class="experiment-analytics-sub">{{ $t('indicatorIde.analyticsConvergenceHint') }}</span>
-                              </div>
-                              <div ref="experimentConvergenceChart" class="experiment-analytics-chart"></div>
-                            </div>
-                            <div class="experiment-analytics-card">
-                              <div class="experiment-analytics-head">
-                                <a-icon type="cluster" />
-                                <span class="experiment-analytics-title">{{ $t('indicatorIde.analyticsOosMatrix') }}</span>
-                                <span class="experiment-analytics-sub">{{ $t('indicatorIde.analyticsOosMatrixHint') }}</span>
-                              </div>
-                              <div ref="experimentOosMatrixChart" class="experiment-analytics-chart"></div>
-                            </div>
-                            <div class="experiment-analytics-card">
-                              <div class="experiment-analytics-head">
-                                <a-icon type="sliders" />
-                                <span class="experiment-analytics-title">{{ $t('indicatorIde.analyticsParamSensitivity') }}</span>
-                                <span class="experiment-analytics-sub">{{ $t('indicatorIde.analyticsParamSensitivityHint') }}</span>
-                              </div>
-                              <div ref="experimentParamSensitivityChart" class="experiment-analytics-chart"></div>
-                            </div>
-                            <div class="experiment-analytics-card">
-                              <div class="experiment-analytics-head">
-                                <a-icon type="dot-chart" />
-                                <span class="experiment-analytics-title">{{ $t('indicatorIde.analyticsRiskReturn') }}</span>
-                                <span class="experiment-analytics-sub">{{ $t('indicatorIde.analyticsRiskReturnHint') }}</span>
-                              </div>
-                              <div ref="experimentScatterChart" class="experiment-analytics-chart"></div>
-                            </div>
-                            <div class="experiment-analytics-card">
-                              <div class="experiment-analytics-head">
-                                <a-icon type="radar-chart" />
-                                <span class="experiment-analytics-title">{{ $t('indicatorIde.analyticsRadar') }}</span>
-                                <span class="experiment-analytics-sub">{{ $t('indicatorIde.analyticsRadarHint') }}</span>
-                              </div>
-                              <div ref="experimentRadarChart" class="experiment-analytics-chart"></div>
-                            </div>
-                          </div>
-                        </div>
 
-                        <!-- Selected candidate detail -->
-                        <div v-if="experimentSelectedCandidate" class="experiment-detail-card">
-                          <div class="experiment-detail-header">
-                            <div>
-                              <div class="experiment-section-title">{{ experimentSelectedCandidate.name }}</div>
-                              <div class="experiment-detail-source">{{ formatExperimentSource(experimentSelectedCandidate.source) }}</div>
-                              <div v-if="experimentSelectedCandidate.reasoning" class="experiment-reasoning">{{ experimentSelectedCandidate.reasoning }}</div>
+                          <!-- Top candidates -->
+                          <div class="experiment-candidate-grid">
+                            <div
+                              v-for="candidate in experimentCandidateCards"
+                              :key="candidate.name"
+                              class="experiment-candidate-card"
+                              :class="{ active: experimentSelectedCandidate && experimentSelectedCandidate.name === candidate.name }"
+                              @click="selectExperimentCandidate(candidate)"
+                            >
+                              <div class="experiment-candidate-header">
+                                <div>
+                                  <div class="experiment-candidate-name">{{ candidate.name }}</div>
+                                  <div class="experiment-candidate-source">{{ formatExperimentSource(candidate.source) }}</div>
+                                </div>
+                                <a-tag :color="experimentGradeColor((candidate.score || {}).grade)">
+                                  {{ ((candidate.score || {}).grade || 'C') }}
+                                </a-tag>
+                              </div>
+                              <div class="experiment-candidate-score">{{ (((candidate.score || {}).overallScore || 0)).toFixed(1) }}</div>
+                              <div class="experiment-candidate-stats">
+                                <span>{{ fmtPct((candidate.result || {}).totalReturn) }}</span>
+                                <span>{{ (((candidate.result || {}).sharpeRatio || 0)).toFixed(2) }}</span>
+                              </div>
+                              <div
+                                v-if="candidate.oosScore"
+                                class="experiment-candidate-oos"
+                                :class="{ 'is-overfit': candidate.oosOverfit }">
+                                <span>OOS {{ ((candidate.oosScore.overallScore || 0)).toFixed(1) }}</span>
+                                <span v-if="candidate.oosDegradation != null">-{{ ((candidate.oosDegradation || 0) * 100).toFixed(1) }}%</span>
+                              </div>
                             </div>
-                            <div class="experiment-detail-actions">
-                              <a-button size="small" @click="applyExperimentCandidate(experimentSelectedCandidate)">
-                                <a-icon type="check" /> {{ $t('indicatorIde.applyThisCandidate') }}
-                              </a-button>
-                              <a-button size="small" type="primary" @click="runBacktestWithExperimentCandidate(experimentSelectedCandidate)">
-                                <a-icon type="thunderbolt" /> {{ $t('indicatorIde.backtestThisCandidate') }}
+                          </div>
+                          <div v-if="experimentHasAnalytics" class="experiment-lab">
+                            <div class="experiment-lab-head">
+                              <div>
+                                <div class="experiment-section-title">
+                                  <a-icon type="fund" style="margin-right: 6px;" />
+                                  {{ $t('indicatorIde.optimizationLab') }}
+                                </div>
+                                <div class="experiment-lab-subtitle">{{ $t('indicatorIde.optimizationLabHint') }}</div>
+                              </div>
+                              <a-tag color="blue">{{ $t('indicatorIde.analyticsDataSource') }}</a-tag>
+                            </div>
+                            <div class="experiment-audit-grid">
+                              <div v-for="card in experimentDataAuditCards" :key="card.key" class="experiment-audit-card">
+                                <a-icon :type="card.icon" />
+                                <div>
+                                  <span>{{ card.label }}</span>
+                                  <strong>{{ card.value }}</strong>
+                                  <small>{{ card.hint }}</small>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="experiment-analytics experiment-analytics--lab">
+                              <div class="experiment-analytics-card experiment-analytics-card--wide">
+                                <div class="experiment-analytics-head">
+                                  <a-icon type="line-chart" />
+                                  <span class="experiment-analytics-title">{{ $t('indicatorIde.analyticsConvergence') }}</span>
+                                  <span class="experiment-analytics-sub">{{ $t('indicatorIde.analyticsConvergenceHint') }}</span>
+                                </div>
+                                <div ref="experimentConvergenceChart" class="experiment-analytics-chart"></div>
+                              </div>
+                              <div class="experiment-analytics-card">
+                                <div class="experiment-analytics-head">
+                                  <a-icon type="cluster" />
+                                  <span class="experiment-analytics-title">{{ $t('indicatorIde.analyticsOosMatrix') }}</span>
+                                  <span class="experiment-analytics-sub">{{ $t('indicatorIde.analyticsOosMatrixHint') }}</span>
+                                </div>
+                                <div ref="experimentOosMatrixChart" class="experiment-analytics-chart"></div>
+                              </div>
+                              <div class="experiment-analytics-card">
+                                <div class="experiment-analytics-head">
+                                  <a-icon type="sliders" />
+                                  <span class="experiment-analytics-title">{{ $t('indicatorIde.analyticsParamSensitivity') }}</span>
+                                  <span class="experiment-analytics-sub">{{ $t('indicatorIde.analyticsParamSensitivityHint') }}</span>
+                                </div>
+                                <div ref="experimentParamSensitivityChart" class="experiment-analytics-chart"></div>
+                              </div>
+                              <div class="experiment-analytics-card">
+                                <div class="experiment-analytics-head">
+                                  <a-icon type="dot-chart" />
+                                  <span class="experiment-analytics-title">{{ $t('indicatorIde.analyticsRiskReturn') }}</span>
+                                  <span class="experiment-analytics-sub">{{ $t('indicatorIde.analyticsRiskReturnHint') }}</span>
+                                </div>
+                                <div ref="experimentScatterChart" class="experiment-analytics-chart"></div>
+                              </div>
+                              <div class="experiment-analytics-card">
+                                <div class="experiment-analytics-head">
+                                  <a-icon type="radar-chart" />
+                                  <span class="experiment-analytics-title">{{ $t('indicatorIde.analyticsRadar') }}</span>
+                                  <span class="experiment-analytics-sub">{{ $t('indicatorIde.analyticsRadarHint') }}</span>
+                                </div>
+                                <div ref="experimentRadarChart" class="experiment-analytics-chart"></div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <!-- Selected candidate detail -->
+                          <div v-if="experimentSelectedCandidate" class="experiment-detail-card">
+                            <div class="experiment-detail-header">
+                              <div>
+                                <div class="experiment-section-title">{{ experimentSelectedCandidate.name }}</div>
+                                <div class="experiment-detail-source">{{ formatExperimentSource(experimentSelectedCandidate.source) }}</div>
+                                <div v-if="experimentSelectedCandidate.reasoning" class="experiment-reasoning">{{ experimentSelectedCandidate.reasoning }}</div>
+                              </div>
+                              <div class="experiment-detail-actions">
+                                <a-button size="small" @click="applyExperimentCandidate(experimentSelectedCandidate)">
+                                  <a-icon type="check" /> {{ $t('indicatorIde.applyThisCandidate') }}
+                                </a-button>
+                                <a-button size="small" type="primary" @click="runBacktestWithExperimentCandidate(experimentSelectedCandidate)">
+                                  <a-icon type="thunderbolt" /> {{ $t('indicatorIde.backtestThisCandidate') }}
+                                </a-button>
+                              </div>
+                            </div>
+                            <div class="experiment-detail-metrics">
+                              <div v-for="item in experimentSelectedSummary" :key="item.label" class="experiment-detail-metric">
+                                <span>{{ item.label }}</span>
+                                <strong>{{ item.value }}</strong>
+                              </div>
+                            </div>
+                            <div v-if="experimentSelectedChangedEntries.length" class="experiment-detail-block">
+                              <div class="experiment-detail-block-title">{{ $t('indicatorIde.tuningChangesTitle') }}</div>
+                              <div class="experiment-detail-block-hint">{{ $t('indicatorIde.tuningChangesHint') }}</div>
+                              <div class="experiment-change-list">
+                                <div v-for="item in experimentSelectedChangedEntries" :key="item.key" class="experiment-change-item">
+                                  <span class="experiment-change-name">{{ item.label }}</span>
+                                  <span class="experiment-change-values">
+                                    <span class="experiment-change-before">{{ item.fromLabel }}</span>
+                                    <span class="experiment-change-arrow">-&gt;</span>
+                                    <span class="experiment-change-after">{{ item.toLabel }}</span>
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            <div v-else-if="experimentSelectedChangeEntries.length" class="experiment-detail-block">
+                              <div class="experiment-detail-block-title">{{ $t('indicatorIde.tuningChangesTitle') }}</div>
+                              <div class="experiment-detail-block-hint">{{ $t('indicatorIde.tuningChangesAlreadyApplied') }}</div>
+                            </div>
+                            <div v-if="experimentSelectedScoreComponents.length" class="experiment-detail-block">
+                              <div class="experiment-detail-block-title">{{ $t('indicatorIde.scoreBreakdown') }}</div>
+                              <div class="experiment-component-grid">
+                                <div v-for="item in experimentSelectedScoreComponents" :key="item.key" class="experiment-component-card">
+                                  <span>{{ item.label }}</span>
+                                  <strong>{{ item.value }}</strong>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <!-- Ranking table -->
+                          <div class="experiment-ranking-card">
+                            <div class="experiment-section-title">
+                              <a-icon type="ordered-list" style="margin-right: 6px;" />
+                              {{ $t('indicatorIde.strategyRanking') }}
+                            </div>
+                            <a-table
+                              :columns="experimentColumns"
+                              :dataSource="experimentAdjustedRankedStrategies"
+                              :pagination="{ pageSize: 5, size: 'small' }"
+                              size="small"
+                              rowKey="name"
+                              :scroll="{ x: 760 }"
+                              :customRow="experimentRankingRowProps"
+                              :rowClassName="experimentRankingRowClassName"
+                            >
+                              <template slot="experimentName" slot-scope="text, record">
+                                <div>
+                                  <div class="exp-table-name">{{ text }}</div>
+                                  <div class="exp-table-source">{{ formatExperimentSource(record.source) }}</div>
+                                </div>
+                              </template>
+                              <template slot="experimentScore" slot-scope="text, record">
+                                <span class="exp-table-score">{{ ((record.score || {}).overallScore || 0).toFixed(2) }}</span>
+                              </template>
+                              <template slot="experimentGrade" slot-scope="text, record">
+                                <a-tag :color="experimentGradeColor((record.score || {}).grade)">
+                                  {{ (record.score || {}).grade || 'C' }}
+                                </a-tag>
+                              </template>
+                              <template slot="experimentReturn" slot-scope="text, record">
+                                <span :style="{ color: (((record.result || {}).totalReturn || 0) >= 0) ? '#52c41a' : '#f5222d', fontWeight: 600 }">
+                                  {{ fmtPct((record.result || {}).totalReturn) }}
+                                </span>
+                              </template>
+                              <template slot="experimentDrawdown" slot-scope="text, record">
+                                <span>{{ fmtPct((record.result || {}).maxDrawdown) }}</span>
+                              </template>
+                              <template slot="experimentSharpe" slot-scope="text, record">
+                                <span>{{ (((record.result || {}).sharpeRatio || 0)).toFixed(2) }}</span>
+                              </template>
+                              <template slot="experimentTrades" slot-scope="text, record">
+                                <span>{{ (record.result || {}).totalTrades || 0 }}</span>
+                              </template>
+                            </a-table>
+                            <div class="experiment-ranking-actions">
+                              <a-button
+                                size="small"
+                                type="primary"
+                                :disabled="!experimentSelectedCandidateCanApply"
+                                @click.stop="applyExperimentCandidate(experimentSelectedCandidate)"
+                              >
+                                <a-icon type="check" />
+                                {{ $t('strategyCenter.backtest.applyTuneParams') }}
                               </a-button>
                             </div>
                           </div>
-                          <div class="experiment-detail-metrics">
-                            <div v-for="item in experimentSelectedSummary" :key="item.label" class="experiment-detail-metric">
-                              <span>{{ item.label }}</span>
-                              <strong>{{ item.value }}</strong>
+                          <div v-if="lastAppliedExperimentChanges.length" class="experiment-detail-card">
+                            <div class="experiment-section-title">
+                              <a-icon type="check-circle" style="margin-right: 6px;" />
+                              {{ $t('indicatorIde.lastAppliedParamsTitle') }}
+                              <span v-if="lastAppliedExperimentCandidateName" style="font-weight: 400; margin-left: 8px; font-size: 12px; opacity: 0.65;">
+                                {{ $t('indicatorIde.lastAppliedParamsFrom', { name: lastAppliedExperimentCandidateName }) }}
+                              </span>
                             </div>
-                          </div>
-                          <div v-if="experimentSelectedChangedEntries.length" class="experiment-detail-block">
-                            <div class="experiment-detail-block-title">{{ $t('indicatorIde.tuningChangesTitle') }}</div>
-                            <div class="experiment-detail-block-hint">{{ $t('indicatorIde.tuningChangesHint') }}</div>
-                            <div class="experiment-change-list">
-                              <div v-for="item in experimentSelectedChangedEntries" :key="item.key" class="experiment-change-item">
+                            <div class="experiment-change-list experiment-change-list--applied">
+                              <div v-for="item in lastAppliedExperimentChanges" :key="`applied-${item.key}`" class="experiment-change-item">
                                 <span class="experiment-change-name">{{ item.label }}</span>
                                 <span class="experiment-change-values">
                                   <span class="experiment-change-before">{{ item.fromLabel }}</span>
@@ -1300,85 +1363,7 @@
                               </div>
                             </div>
                           </div>
-                          <div v-else-if="experimentSelectedChangeEntries.length" class="experiment-detail-block">
-                            <div class="experiment-detail-block-title">{{ $t('indicatorIde.tuningChangesTitle') }}</div>
-                            <div class="experiment-detail-block-hint">{{ $t('indicatorIde.tuningChangesAlreadyApplied') }}</div>
-                          </div>
-                          <div v-if="experimentSelectedScoreComponents.length" class="experiment-detail-block">
-                            <div class="experiment-detail-block-title">{{ $t('indicatorIde.scoreBreakdown') }}</div>
-                            <div class="experiment-component-grid">
-                              <div v-for="item in experimentSelectedScoreComponents" :key="item.key" class="experiment-component-card">
-                                <span>{{ item.label }}</span>
-                                <strong>{{ item.value }}</strong>
-                              </div>
-                            </div>
-                          </div>
                         </div>
-
-                        <!-- Ranking table -->
-                        <div class="experiment-ranking-card">
-                          <div class="experiment-section-title">
-                            <a-icon type="ordered-list" style="margin-right: 6px;" />
-                            {{ $t('indicatorIde.strategyRanking') }}
-                          </div>
-                          <a-table
-                            :columns="experimentColumns"
-                            :dataSource="experimentRankedStrategies"
-                            :pagination="{ pageSize: 5, size: 'small' }"
-                            size="small"
-                            rowKey="name"
-                            :scroll="{ x: 760 }"
-                          >
-                            <template slot="experimentName" slot-scope="text, record">
-                              <div>
-                                <div class="exp-table-name">{{ text }}</div>
-                                <div class="exp-table-source">{{ formatExperimentSource(record.source) }}</div>
-                              </div>
-                            </template>
-                            <template slot="experimentScore" slot-scope="text, record">
-                              <span class="exp-table-score">{{ ((record.score || {}).overallScore || 0).toFixed(2) }}</span>
-                            </template>
-                            <template slot="experimentGrade" slot-scope="text, record">
-                              <a-tag :color="((record.score || {}).grade || 'C') === 'A' ? 'green' : ((record.score || {}).grade || 'C') === 'B' ? 'blue' : 'orange'">
-                                {{ (record.score || {}).grade || 'C' }}
-                              </a-tag>
-                            </template>
-                            <template slot="experimentReturn" slot-scope="text, record">
-                              <span :style="{ color: (((record.result || {}).totalReturn || 0) >= 0) ? '#52c41a' : '#f5222d', fontWeight: 600 }">
-                                {{ fmtPct((record.result || {}).totalReturn) }}
-                              </span>
-                            </template>
-                            <template slot="experimentDrawdown" slot-scope="text, record">
-                              <span>{{ fmtPct((record.result || {}).maxDrawdown) }}</span>
-                            </template>
-                            <template slot="experimentSharpe" slot-scope="text, record">
-                              <span>{{ (((record.result || {}).sharpeRatio || 0)).toFixed(2) }}</span>
-                            </template>
-                            <template slot="experimentTrades" slot-scope="text, record">
-                              <span>{{ (record.result || {}).totalTrades || 0 }}</span>
-                            </template>
-                          </a-table>
-                        </div>
-                        <div v-if="lastAppliedExperimentChanges.length" class="experiment-detail-card">
-                          <div class="experiment-section-title">
-                            <a-icon type="check-circle" style="margin-right: 6px;" />
-                            {{ $t('indicatorIde.lastAppliedParamsTitle') }}
-                            <span v-if="lastAppliedExperimentCandidateName" style="font-weight: 400; margin-left: 8px; font-size: 12px; opacity: 0.65;">
-                              {{ $t('indicatorIde.lastAppliedParamsFrom', { name: lastAppliedExperimentCandidateName }) }}
-                            </span>
-                          </div>
-                          <div class="experiment-change-list experiment-change-list--applied">
-                            <div v-for="item in lastAppliedExperimentChanges" :key="`applied-${item.key}`" class="experiment-change-item">
-                              <span class="experiment-change-name">{{ item.label }}</span>
-                              <span class="experiment-change-values">
-                                <span class="experiment-change-before">{{ item.fromLabel }}</span>
-                                <span class="experiment-change-arrow">-&gt;</span>
-                                <span class="experiment-change-after">{{ item.toLabel }}</span>
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
                       </div>
                     </section>
                   </div>
@@ -1448,12 +1433,52 @@
       :userId="userId"
       :indicatorId="historyIndicatorId"
       :strategyId="null"
-      :runType="''"
+      runType="indicator"
       :isMobile="false"
       :isDark="isDarkTheme"
       @cancel="showHistoryDrawer = false"
       @view="applyBacktestRunToIde"
     />
+    <a-drawer
+      :title="$t('indicatorIde.codeVersionHistory')"
+      :visible="showCodeVersionDrawer"
+      :width="560"
+      :get-container="ideModalGetContainer"
+      :wrap-class-name="isDarkTheme ? 'ide-drawer-wrap ide-drawer-wrap--dark' : 'ide-drawer-wrap'"
+      @close="showCodeVersionDrawer = false"
+    >
+      <div class="code-version-toolbar">
+        <span>{{ selectedIndicatorObj ? selectedIndicatorObj.name : '' }}</span>
+        <a-button size="small" icon="reload" :loading="codeVersionLoading" @click="loadCodeVersions">
+          {{ $t('dashboard.indicator.backtest.historyRefresh') }}
+        </a-button>
+      </div>
+      <a-spin :spinning="codeVersionLoading">
+        <a-empty v-if="!codeVersions.length" :description="$t('indicatorIde.codeVersionEmpty')" />
+        <div v-else class="code-version-list">
+          <div v-for="item in codeVersions" :key="item.id" class="code-version-item">
+            <div class="code-version-item__main">
+              <strong>{{ $t('indicatorIde.codeVersionNo', { version: item.version_no }) }}</strong>
+              <span>{{ formatCodeVersionTime(item.created_at) }}</span>
+              <small>{{ item.name || selectedIndicatorObj && selectedIndicatorObj.name || '' }}</small>
+            </div>
+            <div class="code-version-item__actions">
+              <a-button size="small" @click="previewCodeVersion(item)">{{ $t('indicatorIde.codeVersionPreview') }}</a-button>
+              <a-button size="small" type="primary" :loading="restoringCodeVersionId === item.id" @click="confirmRestoreCodeVersion(item)">
+                {{ $t('indicatorIde.codeVersionRestore') }}
+              </a-button>
+            </div>
+          </div>
+        </div>
+      </a-spin>
+      <div v-if="codeVersionPreview" class="code-version-preview">
+        <div class="code-version-preview__head">
+          <strong>{{ $t('indicatorIde.codeVersionPreviewTitle', { version: codeVersionPreview.version_no }) }}</strong>
+          <a-button size="small" icon="close" @click="codeVersionPreview = null">{{ $t('indicatorIde.close') }}</a-button>
+        </div>
+        <pre>{{ codeVersionPreview.code }}</pre>
+      </div>
+    </a-drawer>
     <a-modal
       :title="publishIndicator && publishIndicator.publish_to_community ? $t('dashboard.indicator.publish.editTitle') : $t('dashboard.indicator.publish.title')"
       :visible="showPublishModal"
@@ -1675,10 +1700,6 @@ export default {
       /** Sweep dimension keys the user has opted out of. Drives the
        *  "Tunable Dimensions" panel and shrinks parameterSpace at submit. */
       disabledSweepDims: [],
-      /**
-       *  fires because the parameter Cartesian product overflows the variant
-       *  budget. UI surfaces this as a non-blocking notice. */
-      lastSweepMethodAutoSwitch: null,
       experimentResult: null,
       experimentError: '',
       experimentSelectedCandidateName: '',
@@ -1697,6 +1718,7 @@ export default {
       qtPrice: 0,
 
       creatingIndicator: false,
+      savingIndicator: false,
       deletingIndicator: false,
       showPublishModal: false,
       showSaveAsModal: false,
@@ -1722,6 +1744,11 @@ export default {
 
       showHistoryDrawer: false,
       historyIndicatorId: null,
+      showCodeVersionDrawer: false,
+      codeVersionLoading: false,
+      codeVersions: [],
+      codeVersionPreview: null,
+      restoringCodeVersionId: null,
 
       ideAddMarketKeys: [],
 
@@ -1736,9 +1763,12 @@ export default {
       experimentChartsResizeHandler: null,
 
       // Last successful backtest chart context key.
-      _backtestRunContextKey: null,
+      backtestRunContextKey: null,
       // Cleanup key for deduplicating marker refreshes.
-      _backtestMarkerWatchKey: null
+      backtestMarkerWatchKey: null,
+      // Backtest executions should stay visible on the chart so users can
+      // compare indicator signals with actual fills and risk exits.
+      backtestMarkersVisible: true
     }
   },
   computed: {
@@ -1831,13 +1861,23 @@ export default {
     experimentRankedStrategies () {
       return (this.experimentResult && this.experimentResult.rankedStrategies) || []
     },
+    experimentAdjustedRankedStrategies () {
+      return this.experimentRankedStrategies
+        .map(item => this.withExperimentAdjustedScore(item))
+        .sort((a, b) => ((b.score || {}).overallScore || 0) - ((a.score || {}).overallScore || 0))
+        .map((item, idx) => ({ ...item, rank: idx + 1 }))
+    },
     experimentSelectedCandidate () {
-      const items = this.experimentRankedStrategies
+      const items = this.experimentAdjustedRankedStrategies
       if (!items.length) return null
       return items.find(item => item.name === this.experimentSelectedCandidateName) || items[0]
     },
+    experimentSelectedCandidateCanApply () {
+      const candidate = this.experimentSelectedCandidate
+      return !!(candidate && candidate.overrides && Object.keys(candidate.overrides).length)
+    },
     experimentBest () {
-      return (this.experimentResult && this.experimentResult.bestStrategyOutput) || null
+      return this.experimentAdjustedRankedStrategies[0] || (this.experimentResult && this.experimentResult.bestStrategyOutput) || null
     },
     experimentOosMeta () {
       return (this.experimentResult && this.experimentResult.oosValidation) || null
@@ -2000,18 +2040,8 @@ export default {
       }
       return prod
     },
-    /** Suggested optimiser for the current space. We only flip to DE when the
-     *  user picked grid AND the space is large enough that grid+shuffle would
-     *  miss most of the surface; random/de/tpe stay on whatever the user chose. */
-    experimentMethodAutoSuggest () {
-      const budget = 48
-      if (this.structuredTuneMethod !== 'grid') return null
-      const size = this.experimentCartesianSize
-      if (!Number.isFinite(size) || size <= budget * 10) return null
-      return { from: 'grid', to: 'de', size }
-    },
     experimentAnalyticsCandidates () {
-      const list = (this.experimentResult && this.experimentResult.rankedStrategies) || []
+      const list = this.experimentAdjustedRankedStrategies || []
       return list.filter(c => c && c.score && c.result)
     },
     experimentHasAnalytics () {
@@ -2119,7 +2149,7 @@ export default {
       const mode = (this.experimentResult && this.experimentResult.experiment && this.experimentResult.experiment.mode) || ''
       if (!familyLabels.length) {
         if (mode === 'structured') return this.$t('indicatorIde.structuredTuneResultHint')
-        return this.$t('indicatorIde.aiExperimentEmpty')
+        return this.$t('indicatorIde.aiTuneCta')
       }
       return this.$t('indicatorIde.experimentPromptHint', {
         regime: regimeLabel,
@@ -2135,7 +2165,8 @@ export default {
       return score ? (score.grade || 'C') : '--'
     },
     experimentBestSummary () {
-      const summary = (this.experimentBest && this.experimentBest.summary) || {}
+      const best = this.experimentBest || {}
+      const summary = best.summary || best.result || {}
       return {
         totalReturn: summary.totalReturn == null ? '--' : this.fmtPct(summary.totalReturn),
         maxDrawdown: summary.maxDrawdown == null ? '--' : this.fmtPct(summary.maxDrawdown),
@@ -2144,11 +2175,8 @@ export default {
       }
     },
     experimentBestOosSummary () {
-      // The backend only attaches oosSummary for top-K when OOS validation
-      // is enabled and the holdout window was actually backtested. Returning
-      // null lets the template show a "OOS not available" placeholder
-      // instead of pretending zeros are real metrics.
-      const summary = this.experimentBest && this.experimentBest.oosSummary
+      const best = this.experimentBest || {}
+      const summary = best.oosSummary
       if (!summary) return null
       return {
         totalReturn: summary.totalReturn == null ? '--' : this.fmtPct(summary.totalReturn),
@@ -2156,6 +2184,13 @@ export default {
         sharpeRatio: summary.sharpeRatio == null ? '--' : Number(summary.sharpeRatio || 0).toFixed(2),
         totalTrades: summary.totalTrades == null ? '--' : String(summary.totalTrades)
       }
+    },
+    experimentBestOosUnavailableText () {
+      const best = this.experimentBest || {}
+      if (best.oosError) {
+        return this.$t('indicatorIde.oosFailed', { error: best.oosError })
+      }
+      return this.$t('indicatorIde.oosNotAvailable')
     },
     experimentBestOverfit () {
       return !!(this.experimentBest && this.experimentBest.oosOverfit)
@@ -2236,7 +2271,7 @@ export default {
       return (this.experimentRegime && this.experimentRegime.segments) || []
     },
     experimentCandidateCards () {
-      return this.experimentRankedStrategies.slice(0, 8)
+      return this.experimentAdjustedRankedStrategies.slice(0, 8)
     },
     experimentColumns () {
       return [
@@ -2312,18 +2347,40 @@ export default {
         }
       ]
     },
+    tradePnlSummary () {
+      const trades = Array.isArray((this.result || {}).trades) ? this.result.trades : []
+      const pnls = trades
+        .map(trade => Number((trade || {}).profit))
+        .filter(value => Number.isFinite(value) && value !== 0)
+      if (!pnls.length) {
+        return null
+      }
+      const total = pnls.reduce((sum, value) => sum + value, 0)
+      return {
+        best: Math.max(...pnls),
+        worst: Math.min(...pnls),
+        average: total / pnls.length
+      }
+    },
     metricCards () {
       const r = this.result || {}
+      const pnl = this.tradePnlSummary
+      const pnlCls = value => value > 0 ? 'positive' : value < 0 ? 'negative' : ''
       return [
         { label: this.$t('indicatorIde.totalReturn'), value: this.fmtPct(r.totalReturn), cls: (r.totalReturn || 0) >= 0 ? 'positive' : 'negative' },
         { label: this.$t('indicatorIde.maxDrawdown'), value: this.fmtPct(r.maxDrawdown), cls: 'negative' },
-        ...(r.benchmarkReturn != null ? [
+        ...(r.benchmarkReturn != null
+? [
           { label: this.$t('indicatorIde.alphaVsSpot'), value: this.fmtPct(r.alphaReturn), cls: (r.alphaReturn || 0) >= 0 ? 'positive' : 'negative' }
-        ] : []),
+        ]
+: []),
         { label: this.$t('indicatorIde.sharpeRatio'), value: (r.sharpeRatio || 0).toFixed(2), cls: (r.sharpeRatio || 0) >= 1 ? 'positive' : '' },
         { label: this.$t('indicatorIde.winRate'), value: this.fmtPct(r.winRate), cls: (r.winRate || 0) >= 50 ? 'positive' : '' },
         { label: this.$t('indicatorIde.profitFactor'), value: (r.profitFactor || 0).toFixed(2), cls: (r.profitFactor || 0) >= 1.5 ? 'positive' : '' },
-        { label: this.$t('indicatorIde.tradeCount'), value: String(r.totalTrades || 0), cls: '' }
+        { label: this.$t('indicatorIde.tradeCount'), value: String(r.totalTrades || 0), cls: '' },
+        { label: this.$t('indicatorIde.bestTrade'), value: pnl ? this.fmtMoney(pnl.best) : '--', cls: pnl ? pnlCls(pnl.best) : '' },
+        { label: this.$t('indicatorIde.worstTrade'), value: pnl ? this.fmtMoney(pnl.worst) : '--', cls: pnl ? pnlCls(pnl.worst) : '' },
+        { label: this.$t('indicatorIde.avgTradePnl'), value: pnl ? this.fmtMoney(pnl.average) : '--', cls: pnl ? pnlCls(pnl.average) : '' }
       ]
     },
     chartIndicatorToggleDisabled () {
@@ -2350,7 +2407,6 @@ export default {
       const raw = (this.result && this.result.trades) || []
       const pairs = []
       let openTrade = null
-      let idx = 1
       for (let i = 0; i < raw.length; i++) {
         const t = raw[i]
         const ty = (t.type || '').toLowerCase()
@@ -2358,13 +2414,16 @@ export default {
           openTrade = t
         } else if (openTrade) {
           const direction = openTrade.type.includes('long') || openTrade.type === 'buy' ? 'long' : 'short'
+          const entryTs = this.tradeTimeValue(openTrade.time)
+          const exitTs = this.tradeTimeValue(t.time)
           pairs.push({
-            id: idx++,
             type: direction,
             closeType: t.type || '',
             closeReason: t.reason || t.close_reason || '',
             entryDate: formatBacktestTime(openTrade.time, { fallback: '' }),
             exitDate: formatBacktestTime(t.time, { fallback: '' }),
+            entryTs,
+            exitTs,
             entryPrice: openTrade.price,
             exitPrice: t.price,
             profit: t.profit || 0,
@@ -2374,17 +2433,19 @@ export default {
         }
       }
       return pairs
+        .sort((a, b) => (b.exitTs || b.entryTs || 0) - (a.exitTs || a.entryTs || 0))
+        .map((item, index) => ({ ...item, id: pairs.length - index }))
     },
     tradeColumns () {
       return [
         { title: '#', dataIndex: 'id', width: 50 },
         { title: this.$t('indicatorIde.type'), dataIndex: 'type', scopedSlots: { customRender: 'type' }, width: 80 },
         { title: this.$t('indicatorIde.exitTag'), dataIndex: 'closeType', scopedSlots: { customRender: 'exitTag' }, width: 108 },
-        { title: this.$t('indicatorIde.entry'), dataIndex: 'entryDate', width: 140 },
-        { title: this.$t('indicatorIde.exit'), dataIndex: 'exitDate', width: 140 },
+        { title: this.$t('indicatorIde.profit'), dataIndex: 'profit', scopedSlots: { customRender: 'profit' }, width: 120 },
         { title: this.$t('indicatorIde.entryPrice'), dataIndex: 'entryPrice', scopedSlots: { customRender: 'price' }, width: 100 },
         { title: this.$t('indicatorIde.exitPrice'), dataIndex: 'exitPrice', scopedSlots: { customRender: 'price' }, width: 100 },
-        { title: this.$t('indicatorIde.profit'), dataIndex: 'profit', scopedSlots: { customRender: 'profit' }, width: 120 },
+        { title: this.$t('indicatorIde.entry'), dataIndex: 'entryDate', width: 140 },
+        { title: this.$t('indicatorIde.exit'), dataIndex: 'exitDate', width: 140 },
         { title: this.$t('indicatorIde.balance'), dataIndex: 'balance', scopedSlots: { customRender: 'money' }, width: 130 }
       ]
     },
@@ -2408,8 +2469,10 @@ export default {
   },
   mounted () {
     this._fullscreenListener = () => this.onGlobalFullscreenChange()
+    this._saveShortcutListener = (event) => this.handleGlobalSaveShortcut(event)
     document.addEventListener('fullscreenchange', this._fullscreenListener)
     document.addEventListener('webkitfullscreenchange', this._fullscreenListener)
+    window.addEventListener('keydown', this._saveShortcutListener)
     this.$nextTick(() => {
       this.initCodeMirror()
       this.ensureChartReady()
@@ -2443,6 +2506,10 @@ export default {
       document.removeEventListener('fullscreenchange', this._fullscreenListener)
       document.removeEventListener('webkitfullscreenchange', this._fullscreenListener)
       this._fullscreenListener = null
+    }
+    if (this._saveShortcutListener) {
+      window.removeEventListener('keydown', this._saveShortcutListener)
+      this._saveShortcutListener = null
     }
     try {
       message.destroy()
@@ -2797,7 +2864,11 @@ export default {
         styleActiveLine: true,
         tabSize: 4,
         indentUnit: 4,
-        indentWithTabs: false
+        indentWithTabs: false,
+        extraKeys: {
+          'Ctrl-S': () => this.saveIndicatorFromShortcut(),
+          'Cmd-S': () => this.saveIndicatorFromShortcut()
+        }
       })
       this.cmInstance.setValue(this.currentCode)
       this.cmInstance.on('change', (cm) => {
@@ -2817,7 +2888,6 @@ export default {
       this.cmInstance.refresh()
     },
     onIndicatorChange (id) {
-      const nextId = (id != null && id !== '') ? Number(id) : null
       this.invalidateBacktestMarkersOnContextChange()
       const ind = this.indicators.find(i => Number(i.id) === Number(id))
       if (ind) {
@@ -3122,23 +3192,24 @@ export default {
     },
 
     shouldShowBacktestMarkersOnChart () {
+      if (!this.backtestMarkersVisible) return false
       if (!this.hasResult || !this.result || !Array.isArray(this.result.trades) || !this.result.trades.length) {
         return false
       }
-      if (!this._backtestRunContextKey) return false
-      return this.buildBacktestMarkerContextKey() === this._backtestRunContextKey
+      if (!this.backtestRunContextKey) return false
+      return this.buildBacktestMarkerContextKey() === this.backtestRunContextKey
     },
 
     stampBacktestMarkerContext () {
-      this._backtestRunContextKey = this.buildBacktestMarkerContextKey()
-      this._backtestMarkerWatchKey = this._backtestRunContextKey
+      this.backtestRunContextKey = this.buildBacktestMarkerContextKey()
+      this.backtestMarkerWatchKey = this.backtestRunContextKey
     },
 
     invalidateBacktestMarkersOnContextChange () {
       const key = this.buildBacktestMarkerContextKey()
-      if (key === this._backtestMarkerWatchKey) return
-      this._backtestMarkerWatchKey = key
-      this._backtestRunContextKey = null
+      if (key === this.backtestMarkerWatchKey) return
+      this.backtestMarkerWatchKey = key
+      this.backtestRunContextKey = null
       this.clearBacktestSignalOverlays({ silent: true })
     },
 
@@ -3154,21 +3225,51 @@ export default {
         this.renderBacktestSignals()
       }
     },
+    handleGlobalSaveShortcut (event) {
+      if (!event || (!event.ctrlKey && !event.metaKey) || String(event.key || '').toLowerCase() !== 's') return
+      if (this.$route && this.$route.path === '/strategy-ide' && this.$route.query && this.$route.query.tab === 'script') return
+      event.preventDefault()
+      this.saveIndicatorFromShortcut()
+    },
+    saveIndicatorFromShortcut () {
+      if (!this.selectedIndicatorId || !this.userId) return
+      if (this.selectedIndicatorIsPurchased) {
+        this.$message.warning(this.$t('indicatorIde.saveBlockedPurchased'))
+        return
+      }
+      if (!this.codeDirty) {
+        this.$message.info(this.$t('indicatorIde.noChangesToSave'))
+        return
+      }
+      this.saveIndicator()
+    },
 
     async saveIndicator () {
       if (!this.selectedIndicatorId || !this.userId) return
+      if (this.savingIndicator) return
+      const indicator = this.selectedIndicatorObj || {}
+      const code = this.cmInstance ? this.cmInstance.getValue() : this.currentCode
+      this.savingIndicator = true
       try {
         const res = await request({
           url: '/api/indicator/saveIndicator',
           method: 'post',
-          data: { id: this.selectedIndicatorId, code: this.currentCode, userid: this.userId }
+          data: {
+            id: this.selectedIndicatorId,
+            code,
+            name: indicator.name || '',
+            description: indicator.description || '',
+            userid: this.userId
+          }
         })
         if (res && res.code === 1) {
+          this.currentCode = code
           this.codeDirty = false
           this.$message.success(this.$t('indicatorIde.saved'))
           const ind = this.indicators.find(i => i.id === this.selectedIndicatorId)
-          if (ind) ind.code = this.currentCode
-          this.syncSelectedIndicatorToChart(this.currentCode)
+          if (ind) ind.code = code
+          this.syncSelectedIndicatorToChart(code)
+          if (this.showCodeVersionDrawer) this.loadCodeVersions()
         } else {
           const m = (res && res.msg) || ''
           if (m === 'indicator_purchased_readonly') {
@@ -3185,7 +3286,103 @@ export default {
         } else {
           this.$message.error((e && e.message) || this.$t('indicatorIde.saveFailed'))
         }
+      } finally {
+        this.savingIndicator = false
       }
+    },
+    openCodeVersionDrawer () {
+      if (!this.selectedIndicatorId) return
+      this.showCodeVersionDrawer = true
+      this.codeVersionPreview = null
+      this.loadCodeVersions()
+    },
+    async loadCodeVersions () {
+      if (!this.selectedIndicatorId) return
+      this.codeVersionLoading = true
+      try {
+        const res = await request({
+          url: '/api/indicator/versions',
+          method: 'get',
+          params: { indicatorId: this.selectedIndicatorId }
+        })
+        if (res && res.code === 1) {
+          this.codeVersions = Array.isArray(res.data) ? res.data : []
+        } else {
+          this.$message.error((res && res.msg) || this.$t('indicatorIde.codeVersionLoadFailed'))
+        }
+      } catch (e) {
+        this.$message.error((e && e.message) || this.$t('indicatorIde.codeVersionLoadFailed'))
+      } finally {
+        this.codeVersionLoading = false
+      }
+    },
+    async previewCodeVersion (item) {
+      if (!item || !item.id) return
+      try {
+        const res = await request({
+          url: `/api/indicator/versions/${item.id}`,
+          method: 'get'
+        })
+        if (res && res.code === 1) {
+          this.codeVersionPreview = res.data || null
+        } else {
+          this.$message.error((res && res.msg) || this.$t('indicatorIde.codeVersionLoadFailed'))
+        }
+      } catch (e) {
+        this.$message.error((e && e.message) || this.$t('indicatorIde.codeVersionLoadFailed'))
+      }
+    },
+    confirmRestoreCodeVersion (item) {
+      if (!item || !item.id) return
+      Modal.confirm({
+        title: this.$t('indicatorIde.codeVersionRestoreTitle'),
+        content: this.$t('indicatorIde.codeVersionRestoreContent', { version: item.version_no }),
+        okText: this.$t('indicatorIde.codeVersionRestore'),
+        cancelText: this.$t('dashboard.indicator.editor.cancel'),
+        getContainer: () => this.resolveIdeFullscreenMountNode() || document.body,
+        onOk: () => this.restoreCodeVersion(item)
+      })
+    },
+    async restoreCodeVersion (item) {
+      if (!item || !item.id) return
+      this.restoringCodeVersionId = item.id
+      try {
+        const res = await request({
+          url: '/api/indicator/versions/restore',
+          method: 'post',
+          data: { versionId: item.id }
+        })
+        if (res && res.code === 1 && res.data) {
+          const nextCode = res.data.code || ''
+          this.currentCode = nextCode
+          this.codeDirty = false
+          if (this.cmInstance) {
+            this.cmInstance.setValue(nextCode)
+            this.cmInstance.refresh()
+          }
+          const ind = this.indicators.find(i => Number(i.id) === Number(this.selectedIndicatorId))
+          if (ind) {
+            ind.code = nextCode
+            ind.name = res.data.name || ind.name
+            ind.description = res.data.description || ind.description
+          }
+          this.syncSelectedIndicatorToChart(nextCode)
+          this.syncTradeUiFromStrategyCode(nextCode, { silent: true })
+          this.$message.success(this.$t('indicatorIde.codeVersionRestored'))
+          await this.loadCodeVersions()
+        } else {
+          this.$message.error((res && res.msg) || this.$t('indicatorIde.codeVersionRestoreFailed'))
+        }
+      } catch (e) {
+        this.$message.error((e && e.message) || this.$t('indicatorIde.codeVersionRestoreFailed'))
+      } finally {
+        this.restoringCodeVersionId = null
+      }
+    },
+    formatCodeVersionTime (value) {
+      if (!value) return '--'
+      const m = moment(value)
+      return m.isValid() ? m.format('YYYY-MM-DD HH:mm:ss') : String(value)
     },
 
     handleDeleteIndicator () {
@@ -3530,7 +3727,7 @@ export default {
         tradeDirection: this.tradeDirection,
         strategyConfig: this.buildBacktestStrategyConfig(),
         strictMode: this.strictMode,
-        runType: 'indicator'
+        runType: 'strategy_indicator'
       }
     },
     buildExperimentPayload () {
@@ -3546,18 +3743,11 @@ export default {
     buildStructuredTunePayload () {
       const base = this.buildExperimentBase()
       if (!base) return null
-      // P3: grid search over a giant Cartesian space degenerates to "shuffle
-      // and pick 48" which only covers a tiny fraction of the surface. When
-      // the user picked grid but the space is large, auto-flip to DE so the
-      // limited budget is spent on smart search instead of blind sampling.
-      const auto = this.experimentMethodAutoSuggest
-      const method = auto ? auto.to : this.structuredTuneMethod
-      this.lastSweepMethodAutoSwitch = auto || null
       return {
         base,
         parameterSpace: this.experimentParameterSpace,
         evolution: {
-          method,
+          method: this.structuredTuneMethod,
           maxVariants: 48
         },
         includeBaseline: true
@@ -3624,9 +3814,9 @@ export default {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': token ? `Bearer ${token}` : '',
+          Authorization: token ? `Bearer ${token}` : '',
           'Access-Token': token,
-          'token': token,
+          token: token,
           'X-App-Lang': lang,
           'Accept-Language': lang,
           'Cache-Control': 'no-cache'
@@ -4067,6 +4257,17 @@ export default {
       if (!candidate) return
       this.experimentSelectedCandidateName = candidate.name || ''
     },
+    experimentRankingRowProps (record) {
+      return {
+        on: {
+          click: () => this.selectExperimentCandidate(record)
+        }
+      }
+    },
+    experimentRankingRowClassName (record) {
+      const selected = this.experimentSelectedCandidate && this.experimentSelectedCandidate.name
+      return selected && record && record.name === selected ? 'experiment-ranking-row is-selected' : 'experiment-ranking-row'
+    },
     async runBacktestWithExperimentCandidate (candidate, options = {}) {
       if (!candidate) return
       this.applyExperimentCandidate(candidate)
@@ -4315,6 +4516,76 @@ export default {
       }
       return map[String(method || '').toLowerCase()] || String(method || '--')
     },
+    clampExperimentScore (value) {
+      const n = Number(value)
+      if (!Number.isFinite(n)) return 0
+      return Math.max(0, Math.min(100, n))
+    },
+    experimentGradeFromScore (score) {
+      const s = Number(score || 0)
+      if (s >= 80) return 'A'
+      if (s >= 65) return 'B'
+      if (s >= 40) return 'C'
+      if (s >= 25) return 'D'
+      return 'E'
+    },
+    experimentGradeColor (grade) {
+      const g = String(grade || '').toUpperCase()
+      if (g === 'A') return 'green'
+      if (g === 'B') return 'cyan'
+      if (g === 'C') return 'blue'
+      if (g === 'D') return 'orange'
+      return 'red'
+    },
+    computeExperimentAdjustedScore (candidate) {
+      const score = (candidate && candidate.score) || {}
+      const result = (candidate && candidate.result) || {}
+      const oosScore = (candidate && candidate.oosScore) || null
+      const oosSummary = (candidate && candidate.oosSummary) || {}
+      const raw = this.clampExperimentScore(score.overallScore)
+      const oosRequired = !!(this.experimentOosMeta && this.experimentOosMeta.enabled)
+      if (oosRequired && !oosScore) {
+        return this.clampExperimentScore(raw - 35)
+      }
+      const sharpe = Number(result.sharpeRatio || 0)
+      const totalReturn = Number(result.totalReturn || 0)
+      const drawdown = Math.abs(Number(result.maxDrawdown || 0))
+      const oosReturn = Number(oosSummary.totalReturn == null ? totalReturn : oosSummary.totalReturn)
+      const oosOverall = oosScore ? this.clampExperimentScore(oosScore.overallScore) : raw
+      const degradation = Math.max(0, Number((candidate && candidate.oosDegradation) || 0))
+
+      const sharpeBonus = Math.max(-5, Math.min(8, sharpe * 3))
+      const returnBonus = Math.max(-6, Math.min(6, totalReturn / 5))
+      const drawdownBonus = Math.max(-8, Math.min(5, (18 - drawdown) / 3.5))
+      const oosQuality = (oosOverall - raw) * 0.12
+      const oosReturnPenalty = oosReturn < 0 ? Math.min(8, Math.abs(oosReturn) * 1.4) : -Math.min(4, oosReturn / 8)
+      const degradationPenalty = Math.min(28, degradation * 26)
+      const overfitPenalty = candidate && candidate.oosOverfit ? 5 : 0
+
+      return this.clampExperimentScore(
+        raw +
+        sharpeBonus +
+        returnBonus +
+        drawdownBonus +
+        oosQuality -
+        degradationPenalty -
+        oosReturnPenalty -
+        overfitPenalty
+      )
+    },
+    withExperimentAdjustedScore (candidate) {
+      if (!candidate) return candidate
+      const adjusted = this.computeExperimentAdjustedScore(candidate)
+      return {
+        ...candidate,
+        score: {
+          ...(candidate.score || {}),
+          rawOverallScore: Number(((candidate.score || {}).overallScore) || 0),
+          overallScore: adjusted,
+          grade: this.experimentGradeFromScore(adjusted)
+        }
+      }
+    },
     formatExperimentSource (source) {
       if (!source) return '--'
       const map = {
@@ -4377,6 +4648,7 @@ export default {
           if (response.data.runId) this.backtestRunId = response.data.runId
           this.result = response.data.result || response.data
           this.hasResult = true
+          this.backtestMarkersVisible = true
           this.stampBacktestMarkerContext()
           this.$nextTick(() => {
             setTimeout(() => {
@@ -4614,9 +4886,9 @@ export default {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': token ? `Bearer ${token}` : '',
+            Authorization: token ? `Bearer ${token}` : '',
             'Access-Token': token || '',
-            'Token': token || '',
+            Token: token || '',
             'X-App-Lang': lang,
             'Accept-Language': lang
           },
@@ -5084,7 +5356,8 @@ export default {
       const showBenchmark = benchmarkData.length > 1
       const isPositive = data.length > 1 && (data[data.length - 1].value || 0) >= (data[0].value || 0)
       const strategyLineColor = isPositive ? '#52c41a' : '#f5222d'
-      const benchmarkLineColor = '#1677ff'
+      const themeAccent = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim() || '#1677ff'
+      const benchmarkLineColor = themeAccent
       const strategyName = this.$t('indicatorIde.strategyEquity')
       const benchmarkName = this.$t('indicatorIde.spotBenchmark')
       this.eqChartInstance.setOption({
@@ -5142,7 +5415,8 @@ export default {
               ])
             }
           },
-          ...(showBenchmark ? [{
+          ...(showBenchmark
+? [{
             name: benchmarkName,
             type: 'line',
             data: data.map((_, idx) => {
@@ -5154,7 +5428,8 @@ export default {
             connectNulls: true,
             itemStyle: { color: benchmarkLineColor },
             lineStyle: { width: 2, color: benchmarkLineColor, type: 'dashed' }
-          }] : [])
+          }]
+: [])
         ]
       })
       this._onResize = () => { if (this.eqChartInstance) this.eqChartInstance.resize() }
@@ -5219,6 +5494,13 @@ export default {
         this.renderExperimentParamSensitivity()
         this.renderExperimentScatter()
         this.renderExperimentRadar()
+        window.setTimeout(() => {
+          if (this.experimentConvergenceInstance) this.experimentConvergenceInstance.resize()
+          if (this.experimentOosMatrixInstance) this.experimentOosMatrixInstance.resize()
+          if (this.experimentParamSensitivityInstance) this.experimentParamSensitivityInstance.resize()
+          if (this.experimentScatterInstance) this.experimentScatterInstance.resize()
+          if (this.experimentRadarInstance) this.experimentRadarInstance.resize()
+        }, 80)
         if (!this.experimentChartsResizeHandler) {
           this.experimentChartsResizeHandler = () => {
             if (this.experimentConvergenceInstance) this.experimentConvergenceInstance.resize()
@@ -5234,6 +5516,7 @@ export default {
     setExperimentEmptyChart (instance, text) {
       if (!instance) return
       const dk = this.isDarkTheme
+      instance.clear()
       instance.setOption({
         backgroundColor: 'transparent',
         title: {
@@ -5295,12 +5578,12 @@ export default {
             return `<div style="min-width:180px;">
               <div style="font-weight:600;margin-bottom:4px;">#${row.index} ${row.name || ''}</div>
               <div>${this.$t('indicatorIde.score')}: <b>${Number(row.score || 0).toFixed(2)}</b></div>
-              <div>${this.$t('indicatorIde.analyticsBestSoFar')}: <b style="color:#1890ff;">${Number(row.bestScore || 0).toFixed(2)}</b></div>
+              <div>${this.$t('indicatorIde.analyticsBestSoFar')}: <b style="color:var(--primary-color, #1890ff);">${Number(row.bestScore || 0).toFixed(2)}</b></div>
               <div>${this.$t('indicatorIde.totalReturn')}: <b>${this.fmtPct(row.totalReturn)}</b></div>
             </div>`
           }
         },
-        grid: { left: 44, right: 30, top: 24, bottom: 40, containLabel: true },
+        grid: { left: 34, right: 14, top: 12, bottom: 26, containLabel: true },
         xAxis: {
           type: 'category',
           data: rows.map(r => String(r.index)),
@@ -5399,7 +5682,7 @@ export default {
             </div>`
           }
         },
-        grid: { left: 48, right: 36, top: 28, bottom: 46, containLabel: true },
+        grid: { left: 36, right: 18, top: 12, bottom: 30, containLabel: true },
         xAxis: {
           type: 'value',
           name: 'IS',
@@ -5452,6 +5735,11 @@ export default {
       const plottedRows = rows.slice().reverse()
       const labels = plottedRows.map(r => this.humanizeExperimentKey(r.key))
       const effects = plottedRows.map(r => Number(r.effect || 0))
+      if (!effects.some(v => Math.abs(v) > 0.0001)) {
+        this.setExperimentEmptyChart(this.experimentParamSensitivityInstance, this.$t('indicatorIde.analyticsNoParamSensitivity'))
+        return
+      }
+      const themeAccent = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim() || '#1677ff'
       this.experimentParamSensitivityInstance.setOption({
         backgroundColor: 'transparent',
         tooltip: {
@@ -5479,7 +5767,7 @@ export default {
             </div>`
           }
         },
-        grid: { left: 116, right: 44, top: 24, bottom: 34, containLabel: true },
+        grid: { left: 92, right: 22, top: 12, bottom: 24, containLabel: true },
         xAxis: {
           type: 'value',
           axisLabel: { color: dk ? 'rgba(255,255,255,0.45)' : '#999', fontSize: 10 },
@@ -5498,7 +5786,7 @@ export default {
           barMaxWidth: 16,
           itemStyle: {
             color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [
-              { offset: 0, color: '#1890ff' },
+              { offset: 0, color: themeAccent },
               { offset: 1, color: '#13c2c2' }
             ]),
             borderRadius: [0, 6, 6, 0]
@@ -5526,8 +5814,14 @@ export default {
       this.experimentScatterInstance = echarts.init(dom)
       const dk = this.isDarkTheme
       const list = this.experimentAnalyticsCandidates
+      if (!list.length) {
+        this.setExperimentEmptyChart(this.experimentScatterInstance, this.$t('indicatorIde.analyticsNoScatter'))
+        return
+      }
       const bestName = (this.experimentBest && this.experimentBest.name) || ''
       const selectedName = (this.experimentSelectedCandidate && this.experimentSelectedCandidate.name) || ''
+      const themeAccent = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim() || '#1677ff'
+      const themeRing = getComputedStyle(document.documentElement).getPropertyValue('--primary-color-ring').trim() || 'rgba(24, 144, 255, 0.35)'
       const points = list.map((c, idx) => {
         const r = c.result || {}
         const s = c.score || {}
@@ -5540,8 +5834,8 @@ export default {
           value: [dd, ret, score],
           name: c.name,
           itemStyle: {
-            color: isBest ? '#f5a623' : (isSel ? '#58a6ff' : (dk ? 'rgba(82, 196, 26, 0.7)' : 'rgba(82, 196, 26, 0.85)')),
-            borderColor: isBest ? '#ffd591' : (isSel ? '#bae7ff' : 'transparent'),
+            color: isBest ? '#f5a623' : (isSel ? themeAccent : (dk ? 'rgba(82, 196, 26, 0.7)' : 'rgba(82, 196, 26, 0.85)')),
+            borderColor: isBest ? '#ffd591' : (isSel ? themeRing : 'transparent'),
             borderWidth: (isBest || isSel) ? 2 : 0,
             shadowBlur: isBest ? 12 : 0,
             shadowColor: 'rgba(245,166,35,0.45)'
@@ -5576,11 +5870,11 @@ export default {
               <div>${this.$t('indicatorIde.totalReturn')}: <b style="color:${m.ret >= 0 ? '#52c41a' : '#f5222d'};">${m.ret.toFixed(2)}%</b></div>
               <div>${this.$t('indicatorIde.maxDrawdown')}: <b style="color:#f5222d;">${m.dd.toFixed(2)}%</b></div>
               <div>${this.$t('indicatorIde.sharpeRatio')}: <b>${m.sharpe.toFixed(2)}</b></div>
-              <div>${this.$t('indicatorIde.score')}: <b style="color:#1890ff;">${m.score.toFixed(1)}</b></div>
+              <div>${this.$t('indicatorIde.score')}: <b style="color:var(--primary-color, #1890ff);">${m.score.toFixed(1)}</b></div>
             </div>`
           }
         },
-        grid: { left: 58, right: 44, top: 28, bottom: 48, containLabel: true },
+        grid: { left: 44, right: 18, top: 14, bottom: 36, containLabel: true },
         xAxis: {
           type: 'value',
           name: this.$t('indicatorIde.maxDrawdown') + ' (%)',
@@ -5642,16 +5936,10 @@ export default {
       const dk = this.isDarkTheme
       const comps = this.experimentBestComponents
       if (!comps || !comps.length) {
-        this.experimentRadarInstance.setOption({
-          title: {
-            text: this.$t('indicatorIde.analyticsNoRadar'),
-            left: 'center',
-            top: 'middle',
-            textStyle: { color: dk ? 'rgba(255,255,255,0.45)' : '#999', fontSize: 12, fontWeight: 'normal' }
-          }
-        })
+        this.setExperimentEmptyChart(this.experimentRadarInstance, this.$t('indicatorIde.analyticsNoRadar'))
         return
       }
+      const themeAccent = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim() || '#1677ff'
       const indicator = comps.map(c => ({ name: c.label, max: 100 }))
       const bestVals = comps.map(c => Math.max(0, Math.min(100, Number(c.value) || 0)))
       const list = this.experimentAnalyticsCandidates
@@ -5687,8 +5975,8 @@ export default {
         },
         radar: {
           indicator,
-          radius: '56%',
-          center: ['50%', '45%'],
+          radius: '66%',
+          center: ['50%', '48%'],
           splitNumber: 4,
           axisName: {
             color: dk ? 'rgba(255,255,255,0.7)' : '#555',
@@ -5722,8 +6010,8 @@ export default {
             {
               name: this.$t('indicatorIde.analyticsRadarAvg'),
               value: avgVals,
-              lineStyle: { color: '#1890ff', width: 1.5, type: 'dashed' },
-              itemStyle: { color: '#1890ff' },
+              lineStyle: { color: themeAccent, width: 1.5, type: 'dashed' },
+              itemStyle: { color: themeAccent },
               areaStyle: { color: 'rgba(24,144,255,0.12)' }
             }
           ]
@@ -5967,14 +6255,14 @@ export default {
         other: '#78909C'
       }
       const shortLabelByAction = {
-        openLong: 'L',
-        addLong: '+L',
+        openLong: 'OL',
+        addLong: '+OL',
         closeLong: 'XL',
         closeLongStop: 'SL',
         closeLongProfit: 'TP',
         closeLongTrailing: 'TR',
-        openShort: 'S',
-        addShort: '+S',
+        openShort: 'OS',
+        addShort: '+OS',
         closeShort: 'XS',
         closeShortStop: 'SL',
         closeShortProfit: 'TP',
@@ -6048,6 +6336,14 @@ export default {
     fmtMoney2 (v) {
       if (v == null || isNaN(v)) return '0.00'
       return Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    },
+    tradeTimeValue (value) {
+      if (value == null || value === '') return 0
+      if (value instanceof Date) return value.getTime()
+      if (typeof value === 'number') return value
+      const normalized = String(value).includes('T') ? String(value) : String(value).replace(' ', 'T')
+      const parsed = new Date(normalized).getTime()
+      return Number.isFinite(parsed) ? parsed : 0
     },
     fmtElapsed (s) {
       return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`
@@ -6311,8 +6607,8 @@ export default {
 }
 .ide-tf-seg {
   ::v-deep .ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled) {
-    background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
-    border-color: #096dd9 !important;
+    background: linear-gradient(135deg, var(--primary-color, #1890ff) 0%, var(--primary-color-active, #096dd9) 100%);
+    border-color: var(--primary-color-active, #096dd9) !important;
     color: #fff !important;
     box-shadow: 0 1px 4px rgba(24, 144, 255, 0.35);
     z-index: 1;
@@ -6444,11 +6740,11 @@ export default {
   gap: 8px;
   font-size: 14px;
   font-weight: 600;
-  color: #1890ff;
+  color: var(--primary-color, #1890ff);
 }
 .code-ai-overlay-dots {
   display: flex; gap: 4px;
-  .dot { width: 6px; height: 6px; border-radius: 50%; background: #1890ff; animation: ide-dot-bounce 1.4s ease-in-out infinite; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--primary-color, #1890ff); animation: ide-dot-bounce 1.4s ease-in-out infinite; }
   .dot1 { animation-delay: 0s; }
   .dot2 { animation-delay: 0.2s; }
   .dot3 { animation-delay: 0.4s; }
@@ -6491,14 +6787,15 @@ export default {
   align-items: center;
   gap: 8px;
   min-width: 0;
-  flex: 1;
+  flex: 0 0 auto;
   overflow: hidden;
 }
 .panel-title__trailing {
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 0;
 }
 .panel-title-chevron {
   font-size: 11px;
@@ -6508,10 +6805,20 @@ export default {
 .panel-title-actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+.panel-title-icon-actions {
+  display: flex;
+  align-items: center;
   gap: 4px;
-  flex-shrink: 0;
+  min-width: 0;
+  flex-wrap: nowrap;
   ::v-deep .ant-btn-sm {
     width: 26px;
+    min-width: 26px;
     height: 26px;
     padding: 0;
     display: inline-flex;
@@ -6523,6 +6830,95 @@ export default {
     &:hover { border-color: @primary-color; color: @primary-color; }
     &[disabled] { opacity: 0.35; }
   }
+}
+.panel-title-actions ::v-deep .ide-save-button {
+  flex: 0 0 auto;
+  min-width: 54px;
+  height: 26px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.code-version-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: #64748b;
+  span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+.code-version-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.code-version-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fff;
+}
+.code-version-item__main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  strong { color: #0f172a; }
+  span, small {
+    color: #64748b;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+.code-version-item__actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.code-version-preview {
+  margin-top: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #0f172a;
+}
+.code-version-preview__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e5e7eb;
+  strong { color: #0f172a; }
+}
+.code-version-preview pre {
+  max-height: 360px;
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  color: #e2e8f0;
+  font-size: 12px;
+  line-height: 1.55;
+  font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+  white-space: pre;
 }
 .ide-guide-bar {
   display: flex;
@@ -6544,7 +6940,7 @@ export default {
   padding: 1px 8px;
   font-size: 11px;
   font-weight: 500;
-  color: #1890ff;
+  color: var(--primary-color, #1890ff);
   background: rgba(24, 144, 255, 0.06);
   border: 1px solid rgba(24, 144, 255, 0.2);
   border-radius: 10px;
@@ -6553,8 +6949,8 @@ export default {
   white-space: nowrap;
   &:hover {
     color: #fff;
-    background: #1890ff;
-    border-color: #1890ff;
+    background: var(--primary-color, #1890ff);
+    border-color: var(--primary-color, #1890ff);
   }
 }
 
@@ -6640,7 +7036,7 @@ export default {
 .code-quality-list li { margin-bottom: 4px; }
 .quality-hint--error { color: #cf1322; }
 .quality-hint--warn { color: #d46b08; }
-.quality-hint--info { color: #096dd9; }
+.quality-hint--info { color: var(--primary-color-active, #096dd9); }
 
 .ai-debug-card {
   margin: 10px 10px 0;
@@ -6673,7 +7069,7 @@ export default {
   width: 26px; height: 26px;
   display: flex; align-items: center; justify-content: center;
   border-radius: 7px; flex-shrink: 0; font-size: 13px;
-  background: rgba(24, 144, 255, 0.1); color: #1890ff;
+  background: rgba(24, 144, 255, 0.1); color: var(--primary-color, #1890ff);
 }
 .ai-debug-card--success .ai-debug-card__badge { background: rgba(82, 196, 26, 0.1); color: #389e0d; }
 .ai-debug-card--warning .ai-debug-card__badge { background: rgba(250, 140, 22, 0.1); color: #d46b08; }
@@ -6683,7 +7079,7 @@ export default {
 }
 .ai-debug-card__tag {
   font-size: 10px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
-  color: #1890ff; white-space: nowrap;
+  color: var(--primary-color, #1890ff); white-space: nowrap;
 }
 .ai-debug-card--success .ai-debug-card__tag { color: #389e0d; }
 .ai-debug-card--warning .ai-debug-card__tag { color: #d46b08; }
@@ -6704,11 +7100,11 @@ export default {
 .ai-debug-chip {
   display: inline-flex; align-items: center; gap: 3px;
   padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;
-  background: rgba(24, 144, 255, 0.08); color: #1890ff;
+  background: rgba(24, 144, 255, 0.08); color: var(--primary-color, #1890ff);
 }
 .ai-debug-chip--success { background: rgba(82, 196, 26, 0.08); color: #389e0d; }
 .ai-debug-chip--warning { background: rgba(250, 140, 22, 0.08); color: #d46b08; }
-.ai-debug-chip--info { background: rgba(24, 144, 255, 0.08); color: #1890ff; }
+.ai-debug-chip--info { background: rgba(24, 144, 255, 0.08); color: var(--primary-color, #1890ff); }
 
 .ai-debug-card__body {
   padding: 8px 10px 0; line-height: 1.6; color: #595959;
@@ -6892,7 +7288,7 @@ export default {
     }
     &[value="both"],
     &:nth-child(3) {
-      background: linear-gradient(135deg, #1890ff, #40a9ff) !important;
+      background: linear-gradient(135deg, var(--primary-color, #1890ff), var(--primary-color-hover, #40a9ff)) !important;
     }
   }
 }
@@ -6922,10 +7318,10 @@ export default {
 .strategy-directives-doc-link {
   display: inline-block;
   margin-top: 4px;
-  color: #1890ff;
+  color: var(--primary-color, #1890ff);
   font-size: 11.5px;
   cursor: pointer;
-  &:hover { color: #40a9ff; text-decoration: underline; }
+  &:hover { color: var(--primary-color-hover, #40a9ff); text-decoration: underline; }
 }
 .strategy-directives-header {
   display: flex;
@@ -6935,13 +7331,13 @@ export default {
 }
 .strategy-directives-jump {
   font-size: 11px;
-  color: #1890ff;
+  color: var(--primary-color, #1890ff);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 3px;
   > .anticon { margin-right: 2px; }
-  &:hover { color: #40a9ff; }
+  &:hover { color: var(--primary-color-hover, #40a9ff); }
 }
 .strategy-directives-empty {
   font-size: 11px;
@@ -7000,7 +7396,7 @@ export default {
   }
   ::v-deep .ant-btn-primary.ant-btn-sm {
     border-color: transparent;
-    background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+    background: linear-gradient(135deg, var(--primary-color, #1890ff) 0%, var(--primary-color-active, #096dd9) 100%);
     box-shadow: 0 2px 6px rgba(24, 144, 255, 0.28);
   }
 }
@@ -7204,15 +7600,15 @@ body.realdark .backtest-panel-toolbar {
         color: #64748b !important;
         transition: color 0.15s, background 0.15s, box-shadow 0.15s;
         &:hover {
-          color: @primary-color !important;
+          color: var(--primary-color, #1890ff) !important;
           background: #f8fafc !important;
         }
       }
       ::v-deep .ant-tabs-tab-active {
-        color: @primary-color !important;
-        background: linear-gradient(180deg, #ffffff 0%, #f0f7ff 100%) !important;
-        border-color: #bae0ff !important;
-        box-shadow: 0 -2px 10px rgba(24, 144, 255, 0.12);
+        color: var(--primary-color, #1890ff) !important;
+        background: linear-gradient(180deg, #ffffff 0%, color-mix(in srgb, var(--primary-color, #1890ff) 7%, #ffffff) 100%) !important;
+        border-color: color-mix(in srgb, var(--primary-color, #1890ff) 35%, #e2e8f0) !important;
+        box-shadow: 0 -2px 10px var(--primary-color-ring, rgba(24, 144, 255, 0.12));
         position: relative;
         z-index: 1;
       }
@@ -7510,10 +7906,12 @@ body.realdark .backtest-panel-toolbar {
   padding: 10px 16px;
   cursor: pointer;
   user-select: none;
-  background: linear-gradient(135deg, rgba(24, 144, 255, 0.08) 0%, rgba(15, 23, 42, 0.02) 100%);
-  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  background: linear-gradient(135deg, var(--primary-color-soft, rgba(24, 144, 255, 0.08)) 0%, color-mix(in srgb, var(--primary-color, @primary-color) 4%, #fff) 100%);
+  border-bottom: 1px solid var(--primary-color-ring, rgba(15, 23, 42, 0.08));
   transition: background 0.15s;
-  &:hover { background: linear-gradient(135deg, rgba(24, 144, 255, 0.11) 0%, rgba(15, 23, 42, 0.03) 100%); }
+  &:hover {
+    background: linear-gradient(135deg, var(--primary-color-soft-strong, rgba(24, 144, 255, 0.12)) 0%, color-mix(in srgb, var(--primary-color, @primary-color) 6%, #fff) 100%);
+  }
 }
 .workbench-panel-header {
   cursor: default;
@@ -7526,7 +7924,11 @@ body.realdark .backtest-panel-toolbar {
   font-size: 13px;
   font-weight: 700;
   color: #1e293b;
-  ::v-deep .anticon { color: @primary-color; font-size: 15px; }
+  .anticon,
+  ::v-deep .anticon {
+    color: var(--primary-color, @primary-color);
+    font-size: 15px;
+  }
 }
 .workbench-panel-meta {
   min-width: 0;
@@ -7555,7 +7957,7 @@ body.realdark .backtest-panel-toolbar {
     padding: 4px;
     border-radius: 6px;
     transition: color 0.15s, background 0.15s;
-    &:hover { color: @primary-color; background: rgba(24, 144, 255, 0.08); }
+    &:hover { color: var(--primary-color, #1890ff); background: var(--primary-color-soft, rgba(24, 144, 255, 0.08)); }
   }
 }
 .result-tabs {
@@ -7591,7 +7993,7 @@ body.realdark .backtest-panel-toolbar {
   }
   ::v-deep .ant-tabs-tab-active {
     background: #fff !important;
-    color: @primary-color !important;
+    color: var(--primary-color, #1890ff) !important;
   }
   ::v-deep .ant-tabs-content {
     flex: 0 0 auto;
@@ -7610,7 +8012,7 @@ body.realdark .backtest-panel-toolbar {
 
 .result-running {
   display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 180px; gap: 10px;
-  .running-time { font-size: 24px; font-weight: 300; color: @primary-color; font-variant-numeric: tabular-nums; }
+  .running-time { font-size: 24px; font-weight: 300; color: var(--primary-color, #1890ff); font-variant-numeric: tabular-nums; }
   .running-tip { font-size: 12px; color: #8c8c8c; }
 }
 .result-empty {
@@ -7634,8 +8036,8 @@ body.realdark .backtest-panel-toolbar {
     transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
     &:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(24, 144, 255, 0.1);
-      border-color: rgba(24, 144, 255, 0.22);
+      box-shadow: 0 6px 16px var(--primary-color-soft, rgba(24, 144, 255, 0.1));
+      border-color: var(--primary-color-ring, rgba(24, 144, 255, 0.22));
     }
     .metric-label { font-size: 10px; color: #64748b; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.35px; font-weight: 600; }
     .metric-value { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; color: #0f172a; line-height: 1.2; }
@@ -7696,7 +8098,7 @@ body.realdark .backtest-panel-toolbar {
 .backtest-overview-kicker {
   font-size: 11px;
   font-weight: 700;
-  color: @primary-color;
+  color: var(--primary-color, #1890ff);
   margin-bottom: 4px;
 }
 .backtest-overview-title {
@@ -7869,6 +8271,16 @@ body.realdark .backtest-panel-toolbar {
   border-radius: 8px;
   border: 1px solid rgba(15, 23, 42, 0.08);
   background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  overflow: hidden;
+}
+.trades-table ::v-deep .ant-table-content,
+.trades-table ::v-deep .ant-table-scroll,
+.trades-table ::v-deep .ant-table-body {
+  overflow-x: auto !important;
+}
+.trades-table ::v-deep .ant-table-thead > tr > th,
+.trades-table ::v-deep .ant-table-tbody > tr > td {
+  white-space: nowrap;
 }
 .diagnostics-section {
   padding: 12px;
@@ -7965,7 +8377,7 @@ body.realdark .backtest-panel-toolbar {
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  background: linear-gradient(135deg, #1890ff, #722ed1);
+  background: linear-gradient(135deg, var(--primary-color, #1890ff), #722ed1);
   color: #fff;
   font-size: 16px;
   flex-shrink: 0;
@@ -8056,7 +8468,7 @@ body.realdark .backtest-panel-toolbar {
   justify-content: center;
   border-radius: 6px;
   background: #f0f5ff;
-  color: #1890ff;
+  color: var(--primary-color, #1890ff);
   font-size: 16px;
   flex-shrink: 0;
   border: 1px solid #d6e4ff;
@@ -8093,7 +8505,7 @@ body.realdark .backtest-panel-toolbar {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: @primary-color;
+  background: var(--primary-color, #1890ff);
   color: #fff;
   font-size: 12px;
   font-weight: 700;
@@ -8124,7 +8536,7 @@ body.realdark .backtest-panel-toolbar {
   transition: border-color 0.15s ease;
   overflow: hidden;
   &:hover {
-    border-color: #1890ff;
+    border-color: var(--primary-color, #1890ff);
   }
 }
 .ide-tuning-method-card--ai {
@@ -8235,9 +8647,9 @@ body.realdark .backtest-panel-toolbar {
     transition: color 0.15s ease;
   }
   &:hover:not(:disabled) {
-    color: #1890ff;
-    border-color: #1890ff;
-    i { color: #1890ff; }
+    color: var(--primary-color, #1890ff);
+    border-color: var(--primary-color, #1890ff);
+    i { color: var(--primary-color, #1890ff); }
   }
   &:disabled {
     cursor: not-allowed;
@@ -8245,8 +8657,8 @@ body.realdark .backtest-panel-toolbar {
   }
   &.active {
     color: #fff;
-    border-color: #1890ff;
-    background: #1890ff;
+    border-color: var(--primary-color, #1890ff);
+    background: var(--primary-color, #1890ff);
     i { color: #fff; }
   }
 }
@@ -8265,9 +8677,9 @@ body.realdark .backtest-panel-toolbar {
   flex-basis: 100%;
 }
 .ide-tune-pill--ai:not(.active) {
-  border-color: rgba(24, 144, 255, 0.35);
-  color: #1677ff;
-  background: rgba(24, 144, 255, 0.04);
+  border-color: var(--primary-color-ring, rgba(24, 144, 255, 0.35));
+  color: var(--primary-color, #1890ff);
+  background: var(--primary-color-soft, rgba(24, 144, 255, 0.04));
 }
 .ide-tune-dimensions {
   margin-top: 10px;
@@ -8294,7 +8706,7 @@ body.realdark .backtest-panel-toolbar {
   font-weight: 600;
   color: #334155;
   i {
-    color: #1890ff;
+    color: var(--primary-color, #1890ff);
     font-size: 13px;
   }
 }
@@ -8330,7 +8742,7 @@ body.realdark .backtest-panel-toolbar {
   color: #d46b08;
 }
 .ide-tune-dim-stat--budget .ide-tune-dim-stat-num {
-  color: #1890ff;
+  color: var(--primary-color, #1890ff);
 }
 .ide-tune-dimensions-warning {
   display: flex;
@@ -8375,7 +8787,7 @@ body.realdark .backtest-panel-toolbar {
   font-size: 11px;
   line-height: 1.4;
   &:hover {
-    background: rgba(24, 144, 255, 0.06);
+    background: var(--primary-color-soft, rgba(24, 144, 255, 0.06));
   }
   &.is-disabled {
     opacity: 0.42;
@@ -8409,8 +8821,8 @@ body.realdark .backtest-panel-toolbar {
 }
 .ide-tune-dim-badge--risk,
 .ide-tune-dim-badge--leverage {
-  background: rgba(24, 144, 255, 0.1);
-  color: #1d4ed8;
+  background: var(--primary-color-soft, rgba(24, 144, 255, 0.1));
+  color: var(--primary-color-active, #1d4ed8);
 }
 .ide-tune-dim-badge--position {
   background: rgba(82, 196, 26, 0.12);
@@ -8511,7 +8923,7 @@ body.realdark .backtest-panel-toolbar {
   line-height: 1.5;
   color: #595959;
   i {
-    color: #1890ff;
+    color: var(--primary-color, #1890ff);
     font-size: 13px;
     flex-shrink: 0;
   }
@@ -8532,7 +8944,7 @@ body.realdark .backtest-panel-toolbar {
 .experiment-candidate-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 @media (max-width: 1280px) {
   .experiment-candidate-grid {
@@ -8559,8 +8971,8 @@ body.realdark .backtest-panel-toolbar {
   gap: 10px;
 }
 .experiment-stage-card.is-done {
-  border-color: rgba(24, 144, 255, 0.28);
-  background: rgba(24, 144, 255, 0.05);
+  border-color: var(--primary-color-ring, rgba(24, 144, 255, 0.28));
+  background: var(--primary-color-soft, rgba(24, 144, 255, 0.05));
 }
 .experiment-stage-index {
   width: 28px;
@@ -8570,7 +8982,7 @@ body.realdark .backtest-panel-toolbar {
   align-items: center;
   justify-content: center;
   background: #e6f4ff;
-  color: #1890ff;
+  color: var(--primary-color, #1890ff);
   font-size: 12px;
   font-weight: 700;
 }
@@ -8578,17 +8990,6 @@ body.realdark .backtest-panel-toolbar {
   font-size: 12px;
   font-weight: 600;
   color: #333;
-}
-.experiment-action-bar {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  ::v-deep .ant-btn {
-    border-radius: 6px;
-  }
-}
-.experiment-action-bar--split {
-  flex-wrap: wrap;
 }
 .structured-tune-row {
   width: 100%;
@@ -8670,7 +9071,7 @@ body.realdark .backtest-panel-toolbar {
   font-size: 30px;
   line-height: 1.1;
   font-weight: 700;
-  color: @primary-color;
+  color: var(--primary-color, #1890ff);
 }
 .experiment-grade {
   margin-top: 4px;
@@ -8728,7 +9129,7 @@ body.realdark .backtest-panel-toolbar {
   height: 10px;
   margin-top: 6px;
   border-radius: 999px;
-  background: #1890ff;
+  background: var(--primary-color, #1890ff);
   flex-shrink: 0;
 }
 .experiment-segment-content {
@@ -8754,23 +9155,26 @@ body.realdark .backtest-panel-toolbar {
 .experiment-best-summary {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 12px;
+  gap: 8px;
+  margin-top: 10px;
 }
 .experiment-best-metric {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 10px 12px;
+  gap: 3px;
+  min-width: 0;
+  padding: 8px 8px;
   background: #fff;
   border: 1px solid #f0f0f0;
   border-radius: 8px;
   span {
-    font-size: 11px;
+    font-size: 10px;
+    line-height: 1.25;
     color: #8c8c8c;
   }
   strong {
-    font-size: 15px;
+    font-size: 14px;
+    line-height: 1.25;
     color: #262626;
     font-variant-numeric: tabular-nums;
   }
@@ -8783,10 +9187,22 @@ body.realdark .backtest-panel-toolbar {
   }
 }
 .experiment-best-actions {
-  margin-top: 12px;
+  margin-top: 14px;
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  justify-content: center;
+  ::v-deep .ant-btn {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    height: 36px;
+    font-weight: 600;
+  }
+}
+@media (max-width: 720px) {
+  .experiment-best-actions ::v-deep .ant-btn {
+    width: 100%;
+    min-width: 0;
+  }
 }
 .experiment-best-card.is-overfit {
   border-color: #ff7875;
@@ -8795,7 +9211,7 @@ body.realdark .backtest-panel-toolbar {
 .experiment-best-dual {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
   margin-top: 12px;
 }
 @media (max-width: 960px) {
@@ -8807,7 +9223,8 @@ body.realdark .backtest-panel-toolbar {
   background: #fafafa;
   border: 1px solid #ececec;
   border-radius: 10px;
-  padding: 10px 12px;
+  min-width: 0;
+  padding: 9px 10px;
 }
 .experiment-best-panel.panel-overfit {
   background: #fff1f0;
@@ -8822,11 +9239,11 @@ body.realdark .backtest-panel-toolbar {
 .experiment-best-panel-header {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 .experiment-best-panel-title {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: #595959;
 }
@@ -8841,7 +9258,7 @@ body.realdark .backtest-panel-toolbar {
 }
 .experiment-best-degrade {
   margin-left: auto;
-  font-size: 12px;
+  font-size: 11px;
   color: #cf1322;
   font-variant-numeric: tabular-nums;
 }
@@ -8852,7 +9269,8 @@ body.realdark .backtest-panel-toolbar {
   font-style: italic;
 }
 .experiment-candidate-card {
-  padding: 12px;
+  min-height: 150px;
+  padding: 9px 10px;
   cursor: pointer;
   transition: all 0.15s;
   &:hover {
@@ -8860,53 +9278,55 @@ body.realdark .backtest-panel-toolbar {
     transform: translateY(-1px);
   }
   &.active {
-    border-color: #1890ff;
-    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.08);
-    background: #f4faff;
+    border-color: var(--primary-color, #1890ff);
+    box-shadow: 0 0 0 2px var(--primary-color-soft, rgba(24, 144, 255, 0.08));
+    background: var(--primary-color-soft, #f4faff);
   }
 }
 .experiment-candidate-header {
   display: flex;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
 }
 .experiment-candidate-name {
-  font-size: 13px;
+  font-size: 12px;
+  line-height: 1.25;
   font-weight: 700;
   color: #1f1f1f;
 }
 .experiment-candidate-source,
 .experiment-detail-source {
-  margin-top: 3px;
-  font-size: 11px;
+  margin-top: 2px;
+  font-size: 10px;
   color: #8c8c8c;
 }
 .experiment-candidate-score {
-  margin-top: 10px;
-  font-size: 24px;
+  margin-top: 8px;
+  font-size: 22px;
+  line-height: 1;
   font-weight: 700;
-  color: @primary-color;
+  color: var(--primary-color, @primary-color);
 }
 .experiment-candidate-stats {
-  margin-top: 10px;
+  margin-top: 9px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  font-size: 11px;
+  gap: 3px;
+  font-size: 10px;
   color: #595959;
 }
 .experiment-candidate-oos {
   margin-top: 8px;
-  padding: 6px 8px;
+  padding: 5px 7px;
   border-radius: 8px;
-  background: linear-gradient(135deg, rgba(82, 196, 26, 0.08) 0%, rgba(24, 144, 255, 0.06) 100%);
+  background: rgba(82, 196, 26, 0.06);
   border: 1px solid rgba(82, 196, 26, 0.18);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  font-size: 11px;
-  line-height: 1.4;
+  gap: 6px;
+  font-size: 10px;
+  line-height: 1.35;
   color: #2f6f1d;
   font-variant-numeric: tabular-nums;
   > span {
@@ -8914,8 +9334,8 @@ body.realdark .backtest-panel-toolbar {
     align-items: center;
   }
   &.is-overfit {
-    background: linear-gradient(135deg, rgba(245, 34, 45, 0.08) 0%, rgba(250, 140, 22, 0.06) 100%);
-    border-color: rgba(245, 34, 45, 0.22);
+    background: rgba(245, 34, 45, 0.06);
+    border-color: rgba(245, 34, 45, 0.18);
     color: #c0392b;
   }
 }
@@ -8923,9 +9343,9 @@ body.realdark .backtest-panel-toolbar {
 .experiment-lab {
   margin-top: 12px;
   padding: 14px;
-  border: 1px solid #e6f4ff;
+  border: 1px solid var(--primary-color-ring, rgba(24, 144, 255, 0.18));
   border-radius: 12px;
-  background: linear-gradient(180deg, #fbfdff 0%, #f7fbff 100%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--primary-color, @primary-color) 5%, #fff) 0%, color-mix(in srgb, var(--primary-color, @primary-color) 2%, #fff) 100%);
 }
 .experiment-lab-head {
   display: flex;
@@ -8956,7 +9376,7 @@ body.realdark .backtest-panel-toolbar {
   background: #fff;
   i {
     margin-top: 2px;
-    color: #1890ff;
+    color: var(--primary-color, #1890ff);
   }
   div {
     min-width: 0;
@@ -9021,7 +9441,7 @@ body.realdark .backtest-panel-toolbar {
   box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
   display: flex;
   flex-direction: column;
-  min-height: 280px;
+  min-height: 268px;
   overflow: visible;
 }
 .experiment-analytics-head {
@@ -9031,7 +9451,7 @@ body.realdark .backtest-panel-toolbar {
   margin-bottom: 4px;
   min-width: 0;
   i {
-    color: #1890ff;
+    color: var(--primary-color, #1890ff);
     font-size: 14px;
     flex: 0 0 auto;
   }
@@ -9056,7 +9476,7 @@ body.realdark .backtest-panel-toolbar {
 .experiment-analytics-chart {
   flex: 1;
   width: 100%;
-  min-height: 260px;
+  min-height: 238px;
 }
 .experiment-detail-header {
   display: flex;
@@ -9149,7 +9569,7 @@ body.realdark .backtest-panel-toolbar {
   color: #8c8c8c;
 }
 .experiment-change-arrow {
-  color: #1890ff;
+  color: var(--primary-color, #1890ff);
   font-weight: 700;
 }
 .experiment-change-after {
@@ -9158,7 +9578,22 @@ body.realdark .backtest-panel-toolbar {
 }
 .exp-table-name { font-weight: 600; }
 .exp-table-source { font-size: 11px; color: #8c8c8c; }
-.exp-table-score { font-weight: 700; color: #1890ff; }
+.exp-table-score { font-weight: 700; color: var(--primary-color, #1890ff); }
+.experiment-ranking-actions {
+  display: flex;
+  justify-content: flex-start;
+  padding-top: 10px;
+  border-top: 1px solid #f0f0f0;
+}
+.experiment-ranking-card ::v-deep .experiment-ranking-row {
+  cursor: pointer;
+}
+.experiment-ranking-card ::v-deep .experiment-ranking-row:hover > td {
+  background: var(--primary-color-soft, rgba(24, 144, 255, 0.06)) !important;
+}
+.experiment-ranking-card ::v-deep .experiment-ranking-row.is-selected > td {
+  background: var(--primary-color-soft-strong, rgba(24, 144, 255, 0.12)) !important;
+}
 
 .experiment-progress-bar {
   padding: 16px;
@@ -9173,7 +9608,7 @@ body.realdark .backtest-panel-toolbar {
   margin-bottom: 10px;
   font-size: 13px;
   font-weight: 600;
-  .running-time { margin-left: auto; color: #1890ff; font-variant-numeric: tabular-nums; }
+  .running-time { margin-left: auto; color: var(--primary-color, #1890ff); font-variant-numeric: tabular-nums; }
 }
 .experiment-live-hint {
   font-size: 12px;
@@ -9196,7 +9631,7 @@ body.realdark .backtest-panel-toolbar {
   font-weight: 600;
   background: #f0f0f0;
   color: #595959;
-  &.best { background: #e6f7ff; color: #1890ff; }
+  &.best { background: #e6f7ff; color: var(--primary-color, #1890ff); }
 }
 .experiment-round-row {
   display: flex;
@@ -9220,7 +9655,7 @@ body.realdark .backtest-panel-toolbar {
   height: 32px;
   border-radius: 999px;
   background: rgba(24, 144, 255, 0.08);
-  color: #1890ff;
+  color: var(--primary-color, #1890ff);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -9228,7 +9663,7 @@ body.realdark .backtest-panel-toolbar {
   font-size: 12px;
   flex-shrink: 0;
 }
-.experiment-round-score { font-size: 18px; font-weight: 700; color: #1890ff; }
+.experiment-round-score { font-size: 18px; font-weight: 700; color: var(--primary-color, #1890ff); }
 .experiment-round-meta { font-size: 11px; color: #8c8c8c; }
 .experiment-reasoning {
   margin-top: 6px;
@@ -9236,18 +9671,6 @@ body.realdark .backtest-panel-toolbar {
   line-height: 1.5;
   color: #595959;
   font-style: italic;
-}
-.experiment-candidate-reasoning {
-  margin-top: 6px;
-  font-size: 11px;
-  line-height: 1.4;
-  color: #8c8c8c;
-  font-style: italic;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
 }
 .publish-form {
   .publish-hint {
@@ -9279,7 +9702,7 @@ body.realdark .backtest-panel-toolbar {
   vertical-align: middle;
 }
 ::v-deep .wl-mkt-crypto { background: #fa8c16; }
-::v-deep .wl-mkt-usstock { background: #1890ff; }
+::v-deep .wl-mkt-usstock { background: var(--primary-color, #1890ff); }
 ::v-deep .wl-mkt-cnstock { background: #eb2f96; }
 ::v-deep .wl-mkt-hkstock { background: #f5222d; }
 ::v-deep .wl-mkt-forex { background: #52c41a; }
@@ -9295,7 +9718,7 @@ body.realdark .backtest-panel-toolbar {
     background: linear-gradient(180deg, #252525 0%, #1c1c1c 100%);
     border-top-color: #363636;
     &:hover {
-      color: #58a6ff;
+      color: var(--primary-color, #1890ff);
       background: linear-gradient(180deg, #2a2a2a 0%, #222 100%);
     }
   }
@@ -9305,15 +9728,15 @@ body.realdark .backtest-panel-toolbar {
     color: rgba(255, 255, 255, 0.5);
     box-shadow: 2px 0 14px rgba(0, 0, 0, 0.5);
     &:hover {
-      background: linear-gradient(180deg, rgba(23, 125, 220, 0.14) 0%, rgba(23, 125, 220, 0.06) 100%);
-      color: #58a6ff;
+      background: linear-gradient(180deg, var(--primary-color-soft-strong, rgba(23, 125, 220, 0.14)) 0%, var(--primary-color-soft, rgba(23, 125, 220, 0.06)) 100%);
+      color: var(--primary-color, #1890ff);
     }
     &:focus {
-      box-shadow: inset 0 0 0 2px rgba(88, 166, 255, 0.45);
+      box-shadow: inset 0 0 0 2px var(--primary-color-ring, rgba(88, 166, 255, 0.45));
     }
   }
   .ide-code-rail__icon {
-    color: #58a6ff;
+    color: var(--primary-color, #1890ff);
   }
   .ide-workspace-tabs.ide-workspace-tabs--pill {
     ::v-deep .ant-tabs-bar {
@@ -9326,15 +9749,15 @@ body.realdark .backtest-panel-toolbar {
       background: #1f1f1f !important;
       color: rgba(255, 255, 255, 0.45) !important;
       &:hover {
-        color: #58a6ff !important;
+        color: var(--primary-color, #1890ff) !important;
         background: #262626 !important;
       }
     }
     ::v-deep .ant-tabs-tab-active {
-      color: #58a6ff !important;
-      background: linear-gradient(180deg, #252525 0%, rgba(23, 125, 220, 0.12) 100%) !important;
-      border-color: #177ddc !important;
-      box-shadow: 0 -2px 14px rgba(23, 125, 220, 0.22);
+      color: var(--primary-color, #1890ff) !important;
+      background: linear-gradient(180deg, #252525 0%, var(--primary-color-soft, rgba(23, 125, 220, 0.12)) 100%) !important;
+      border-color: var(--primary-color, #1890ff) !important;
+      box-shadow: 0 -2px 14px var(--primary-color-ring, rgba(23, 125, 220, 0.22));
     }
     ::v-deep .ant-tabs-card-content {
       background: #141414;
@@ -9344,6 +9767,25 @@ body.realdark .backtest-panel-toolbar {
   }
   .panel-title-chevron {
     color: rgba(255, 255, 255, 0.38);
+  }
+  .code-version-toolbar {
+    color: rgba(255, 255, 255, 0.58);
+  }
+  .code-version-item {
+    background: #1f1f1f;
+    border-color: #303030;
+  }
+  .code-version-item__main {
+    strong { color: rgba(255, 255, 255, 0.88); }
+    span, small { color: rgba(255, 255, 255, 0.52); }
+  }
+  .code-version-preview {
+    border-color: #303030;
+  }
+  .code-version-preview__head {
+    background: #1f1f1f;
+    border-color: #303030;
+    strong { color: rgba(255, 255, 255, 0.88); }
   }
   .chart-panel-icon-btn {
     background: #262626;
@@ -9391,8 +9833,8 @@ body.realdark .backtest-panel-toolbar {
     color: rgba(255, 255, 255, 0.85);
     box-shadow: none;
     &:hover {
-      border-color: #177ddc;
-      color: #58a6ff;
+      border-color: var(--primary-color, #1890ff);
+      color: var(--primary-color, #1890ff);
     }
   }
   .ide-quick-right {
@@ -9407,7 +9849,7 @@ body.realdark .backtest-panel-toolbar {
     color: rgba(255, 255, 255, 0.92);
   }
   .ide-quick-panel-head-icon {
-    color: #58a6ff;
+    color: var(--primary-color, #1890ff);
   }
   .ide-quick-panel-close {
     color: rgba(255, 255, 255, 0.45) !important;
@@ -9425,16 +9867,16 @@ body.realdark .backtest-panel-toolbar {
     border-color: #303030;
   }
   .ide-tuning-launch-icon {
-    background: rgba(24, 144, 255, 0.12);
-    color: #58a6ff;
-    border-color: rgba(24, 144, 255, 0.25);
+    background: var(--primary-color-soft, rgba(24, 144, 255, 0.12));
+    color: var(--primary-color, #1890ff);
+    border-color: var(--primary-color-ring, rgba(24, 144, 255, 0.25));
   }
   .ide-tuning-launch-title { color: rgba(255, 255, 255, 0.88); }
   .ide-tuning-launch-subtitle { color: rgba(255, 255, 255, 0.45); }
   .ide-tuning-method-card {
     background: #1f1f1f;
     border-color: #303030;
-    &:hover { border-color: #1890ff; }
+    &:hover { border-color: var(--primary-color, #1890ff); }
   }
   .ide-tuning-method-card--ai {
     /* Inherit base dark card style. */
@@ -9452,8 +9894,8 @@ body.realdark .backtest-panel-toolbar {
   .ide-tuning-method-name { color: rgba(255, 255, 255, 0.85); }
   .ide-tuning-method-desc { color: rgba(255, 255, 255, 0.45); }
   .ai-optimize-card-inner {
-    background: linear-gradient(135deg, rgba(23, 125, 220, 0.1) 0%, rgba(114, 46, 209, 0.06) 100%);
-    border-color: rgba(88, 166, 255, 0.2);
+    background: linear-gradient(135deg, var(--primary-color-soft, rgba(24, 144, 255, 0.1)) 0%, rgba(114, 46, 209, 0.06) 100%);
+    border-color: var(--primary-color-ring, rgba(24, 144, 255, 0.2));
   }
   .ai-optimize-card-title { color: rgba(255, 255, 255, 0.88); }
   .ai-optimize-card-desc { color: rgba(255, 255, 255, 0.45); }
@@ -9461,8 +9903,8 @@ body.realdark .backtest-panel-toolbar {
   .ai-gen-panel { border-top-color: #303030; }
   .ai-gen-header { color: rgba(255,255,255,0.85); &:hover { background: rgba(255,255,255,0.04); } }
   .code-ai-overlay { background: rgba(20,20,20,0.82); }
-  .code-ai-overlay-inner { color: #58a6ff; }
-  .code-ai-overlay-dots .dot { background: #58a6ff; }
+  .code-ai-overlay-inner { color: var(--primary-color, #1890ff); }
+  .code-ai-overlay-dots .dot { background: var(--primary-color, #1890ff); }
   .code-ai-overlay-tip { color: rgba(255,255,255,0.45); }
   .params-scroll { &::-webkit-scrollbar-thumb { background: #434343; } }
   .param-section { border-bottom-color: #303030; }
@@ -9478,7 +9920,7 @@ body.realdark .backtest-panel-toolbar {
   }
   .result-tabs ::v-deep .ant-tabs-tab-active {
     background: #1a1a1a !important;
-    color: #58a6ff !important;
+    color: var(--primary-color, #1890ff) !important;
     border-color: #303030 !important;
   }
   .result-tabs ::v-deep .ant-tabs-content {
@@ -9537,17 +9979,23 @@ body.realdark .backtest-panel-toolbar {
   }
   .params-card-header,
   .workbench-panel-header {
-    background: linear-gradient(135deg, rgba(23, 125, 220, 0.12) 0%, rgba(23, 125, 220, 0.04) 100%);
+    background: linear-gradient(135deg, var(--primary-color-soft, rgba(24, 144, 255, 0.12)) 0%, color-mix(in srgb, var(--primary-color, #1890ff) 4%, transparent) 100%);
     border-bottom-color: #303030;
     &:hover {
-      background: linear-gradient(135deg, rgba(23, 125, 220, 0.16) 0%, rgba(23, 125, 220, 0.06) 100%);
+      background: linear-gradient(135deg, color-mix(in srgb, var(--primary-color, #1890ff) 16%, transparent) 0%, color-mix(in srgb, var(--primary-color, #1890ff) 6%, transparent) 100%);
     }
   }
   .workbench-panel-header:hover {
-    background: linear-gradient(135deg, rgba(23, 125, 220, 0.12) 0%, rgba(23, 125, 220, 0.04) 100%);
+    background: linear-gradient(135deg, var(--primary-color-soft, rgba(24, 144, 255, 0.12)) 0%, color-mix(in srgb, var(--primary-color, #1890ff) 4%, transparent) 100%);
   }
   .params-card-title,
-  .workbench-panel-title { color: rgba(255,255,255,0.88); }
+  .workbench-panel-title {
+    color: rgba(255,255,255,0.88);
+    .anticon,
+    ::v-deep .anticon {
+      color: var(--primary-color, #1890ff);
+    }
+  }
   .workbench-panel-meta { color: rgba(255, 255, 255, 0.45); }
   .workbench-panel-body { background: #1a1a1a; }
   .param-section {
@@ -9578,7 +10026,7 @@ body.realdark .backtest-panel-toolbar {
   }
   .strategy-directives-empty { color: rgba(255, 255, 255, 0.45); }
   .strategy-directive-row {
-    &:hover { background: rgba(88, 166, 255, 0.12); }
+    &:hover { background: var(--primary-color-soft, rgba(24, 144, 255, 0.12)); }
     &.is-set { color: rgba(255, 255, 255, 0.88); }
   }
   .strategy-directive-label { color: rgba(255, 255, 255, 0.55); }
@@ -9587,11 +10035,14 @@ body.realdark .backtest-panel-toolbar {
     &.is-empty { color: rgba(255, 255, 255, 0.35); }
   }
   .strategy-directives-jump,
-  .strategy-directives-doc-link { color: #58a6ff; &:hover { color: #79b8ff; } }
+  .strategy-directives-doc-link {
+    color: var(--primary-color, #1890ff);
+    &:hover { color: var(--primary-color-hover, #40a9ff); }
+  }
   .strategy-directives-alert {
     &.ant-alert-info {
-      background: rgba(23, 125, 220, 0.16) !important;
-      border-color: rgba(88, 166, 255, 0.45) !important;
+      background: var(--primary-color-soft, rgba(24, 144, 255, 0.16)) !important;
+      border-color: var(--primary-color-ring, rgba(24, 144, 255, 0.45)) !important;
     }
   }
   .strategy-directives-alert ::v-deep .ant-alert-message {
@@ -9604,7 +10055,7 @@ body.realdark .backtest-panel-toolbar {
     }
   }
   .strategy-directives-alert ::v-deep .ant-alert-icon {
-    color: #58a6ff !important;
+    color: var(--primary-color, #1890ff) !important;
   }
   .strategy-directives-alert ::v-deep .ant-alert-close-icon .anticon-close {
     color: rgba(255, 255, 255, 0.55) !important;
@@ -9614,9 +10065,9 @@ body.realdark .backtest-panel-toolbar {
     border-color: rgba(250, 140, 22, 0.28);
     background: linear-gradient(165deg, rgba(250, 140, 22, 0.08) 0%, #1f1f1f 100%);
     &--on {
-      border-color: rgba(88, 166, 255, 0.35);
-      background: linear-gradient(165deg, rgba(23, 125, 220, 0.12) 0%, #1f1f1f 100%);
-      box-shadow: inset 0 0 0 1px rgba(88, 166, 255, 0.08);
+      border-color: var(--primary-color-ring, rgba(24, 144, 255, 0.35));
+      background: linear-gradient(165deg, var(--primary-color-soft, rgba(24, 144, 255, 0.12)) 0%, #1f1f1f 100%);
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary-color, #1890ff) 8%, transparent);
     }
   }
   .strict-mode-card__title { color: rgba(255, 255, 255, 0.88); }
@@ -9637,13 +10088,13 @@ body.realdark .backtest-panel-toolbar {
     > .anticon { color: rgba(255, 255, 255, 0.3); }
   }
   .ide-guide-link {
-    color: #58a6ff;
-    background: rgba(88, 166, 255, 0.1);
-    border-color: rgba(88, 166, 255, 0.25);
+    color: var(--primary-color, #1890ff);
+    background: var(--primary-color-soft, rgba(24, 144, 255, 0.1));
+    border-color: var(--primary-color-ring, rgba(24, 144, 255, 0.25));
     &:hover {
       color: #fff;
-      background: #177ddc;
-      border-color: #177ddc;
+      background: var(--primary-color-active, #177ddc);
+      border-color: var(--primary-color-active, #177ddc);
     }
   }
   .ai-helper-tip, .publish-form .publish-hint { color: rgba(255,255,255,0.45); }
@@ -9655,15 +10106,15 @@ body.realdark .backtest-panel-toolbar {
   }
   .ai-debug-card--success { border-color: rgba(82, 196, 26, 0.25); }
   .ai-debug-card--warning { border-color: rgba(250, 140, 22, 0.3); }
-  .ai-debug-card__header { background: linear-gradient(135deg, rgba(24, 144, 255, 0.08) 0%, transparent 100%); border-bottom-color: #303030; }
+  .ai-debug-card__header { background: linear-gradient(135deg, color-mix(in srgb, var(--primary-color, #1890ff) 8%, transparent) 0%, transparent 100%); border-bottom-color: #303030; }
   .ai-debug-card--success .ai-debug-card__header { background: linear-gradient(135deg, rgba(82, 196, 26, 0.08) 0%, transparent 100%); }
   .ai-debug-card--warning .ai-debug-card__header { background: linear-gradient(135deg, rgba(250, 140, 22, 0.08) 0%, transparent 100%); }
-  .ai-debug-card__badge { background: rgba(24, 144, 255, 0.15); }
+  .ai-debug-card__badge { background: color-mix(in srgb, var(--primary-color, #1890ff) 15%, transparent); }
   .ai-debug-card--success .ai-debug-card__badge { background: rgba(82, 196, 26, 0.15); }
   .ai-debug-card--warning .ai-debug-card__badge { background: rgba(250, 140, 22, 0.15); }
   .ai-debug-card__title { color: rgba(255,255,255,0.9); }
   .ai-debug-card__dismiss { color: rgba(255,255,255,0.3); &:hover { color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.06); } }
-  .ai-debug-chip { background: rgba(24, 144, 255, 0.12); }
+  .ai-debug-chip { background: var(--primary-color-soft, rgba(24, 144, 255, 0.12)); }
   .ai-debug-chip--success { background: rgba(82, 196, 26, 0.12); }
   .ai-debug-chip--warning { background: rgba(250, 140, 22, 0.12); }
   .ai-debug-card__body, .ai-debug-card__item { color: rgba(255,255,255,0.65); }
@@ -9672,7 +10123,7 @@ body.realdark .backtest-panel-toolbar {
   .quality-hint--error { color: #ff7875; }
   .quality-hint--warn { color: #ffc069; }
   .quality-hint--info { color: #69c0ff; }
-  .result-running { .running-time { color: #177ddc; } .running-tip { color: rgba(255,255,255,0.45); } }
+  .result-running { .running-time { color: var(--primary-color-active, #177ddc); } .running-tip { color: rgba(255,255,255,0.45); } }
   .result-empty { p { color: rgba(255,255,255,0.45); } }
   .result-data {
     .metric-card {
@@ -9680,8 +10131,8 @@ body.realdark .backtest-panel-toolbar {
       border-color: #363636;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
       &:hover {
-        box-shadow: 0 6px 18px rgba(23, 125, 220, 0.18);
-        border-color: rgba(88, 166, 255, 0.35);
+        box-shadow: 0 6px 18px var(--primary-color-ring, rgba(24, 144, 255, 0.18));
+        border-color: var(--primary-color-ring, rgba(24, 144, 255, 0.35));
       }
       .metric-label { color: rgba(255, 255, 255, 0.5); }
       .metric-value { color: rgba(255, 255, 255, 0.9); }
@@ -9712,17 +10163,16 @@ body.realdark .backtest-panel-toolbar {
   .experiment-detail-block-hint,
   .experiment-change-before { color: rgba(255,255,255,0.45); }
   .experiment-segment-title span { color: rgba(255,255,255,0.45); }
-  .experiment-stage-card.is-done { background: rgba(23, 125, 220, 0.12); border-color: rgba(23, 125, 220, 0.3); }
-  .experiment-stage-index { background: rgba(23, 125, 220, 0.16); color: #58a6ff; }
-  .experiment-action-bar ::v-deep .ant-btn-default,
+  .experiment-stage-card.is-done { background: var(--primary-color-soft, rgba(23, 125, 220, 0.12)); border-color: var(--primary-color-ring, rgba(23, 125, 220, 0.3)); }
+  .experiment-stage-index { background: var(--primary-color-soft-strong, rgba(23, 125, 220, 0.16)); color: var(--primary-color, #1890ff); }
   .experiment-detail-actions ::v-deep .ant-btn-default,
   .experiment-best-actions ::v-deep .ant-btn-default {
     background: #181818;
     border-color: #434343;
     color: rgba(255,255,255,0.72);
     &:hover {
-      border-color: #177ddc;
-      color: #177ddc;
+      border-color: var(--primary-color-active, #177ddc);
+      color: var(--primary-color-active, #177ddc);
     }
   }
   .experiment-best-metric {
@@ -9763,18 +10213,18 @@ body.realdark .backtest-panel-toolbar {
     color: rgba(255,255,255,0.88);
   }
   .experiment-change-arrow {
-    color: #58a6ff;
+    color: var(--primary-color, #1890ff);
   }
   .experiment-candidate-card.active {
-    border-color: #177ddc;
-    box-shadow: 0 0 0 2px rgba(23, 125, 220, 0.14);
-    background: rgba(23, 125, 220, 0.08);
+    border-color: var(--primary-color, #1890ff);
+    box-shadow: 0 0 0 2px var(--primary-color-ring, rgba(23, 125, 220, 0.14));
+    background: var(--primary-color-soft, rgba(23, 125, 220, 0.08));
   }
-  .experiment-candidate-card:hover { border-color: rgba(23, 125, 220, 0.45); background: rgba(23, 125, 220, 0.04); }
-  .experiment-candidate-score { color: #58a6ff; }
+  .experiment-candidate-card:hover { border-color: var(--primary-color-ring, rgba(23, 125, 220, 0.45)); background: var(--primary-color-soft, rgba(23, 125, 220, 0.04)); }
+  .experiment-candidate-score { color: var(--primary-color, #1890ff); }
   .experiment-candidate-stats { color: rgba(255,255,255,0.65); }
   .experiment-candidate-oos {
-    background: linear-gradient(135deg, rgba(82, 196, 26, 0.14) 0%, rgba(23, 125, 220, 0.1) 100%);
+    background: linear-gradient(135deg, rgba(82, 196, 26, 0.14) 0%, var(--primary-color-soft, rgba(24, 144, 255, 0.1)) 100%);
     border-color: rgba(82, 196, 26, 0.3);
     color: #95de64;
     &.is-overfit {
@@ -9794,7 +10244,7 @@ body.realdark .backtest-panel-toolbar {
   .experiment-audit-card {
     background: #1f1f1f;
     border-color: #303030;
-    i { color: #58a6ff; }
+    i { color: var(--primary-color, #1890ff); }
     span,
     small { color: rgba(255, 255, 255, 0.48); }
     strong { color: rgba(255, 255, 255, 0.88); }
@@ -9804,7 +10254,7 @@ body.realdark .backtest-panel-toolbar {
     border-color: #303030;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.32);
   }
-  .experiment-analytics-head i { color: #58a6ff; }
+  .experiment-analytics-head i { color: var(--primary-color, #1890ff); }
   .experiment-analytics-title { color: rgba(255, 255, 255, 0.88); }
   .experiment-analytics-sub { color: rgba(255, 255, 255, 0.45); }
 
@@ -9818,7 +10268,7 @@ body.realdark .backtest-panel-toolbar {
   }
   .ide-tune-ai-feature {
     color: rgba(255, 255, 255, 0.75);
-    i { color: #58a6ff; }
+    i { color: var(--primary-color, #1890ff); }
   }
   .ide-tune-method-meta--ai {
     /* Inherit the base meta style. */
@@ -9832,22 +10282,22 @@ body.realdark .backtest-panel-toolbar {
     color: rgba(255, 255, 255, 0.7);
     i { color: rgba(255, 255, 255, 0.4); }
     &:hover:not(:disabled) {
-      color: #58a6ff;
-      border-color: #58a6ff;
-      i { color: #58a6ff; }
+      color: var(--primary-color, #1890ff);
+      border-color: var(--primary-color, #1890ff);
+      i { color: var(--primary-color, #1890ff); }
     }
     &.active {
       color: #fff;
-      background: #1890ff;
-      border-color: #1890ff;
+      background: var(--primary-color, #1890ff);
+      border-color: var(--primary-color, #1890ff);
       i { color: #fff; }
     }
   }
   .ide-tune-pill--ai:not(.active) {
-    background: rgba(88, 166, 255, 0.08);
-    border-color: rgba(88, 166, 255, 0.32);
-    color: #58a6ff;
-    i { color: #58a6ff; }
+    background: var(--primary-color-soft, rgba(88, 166, 255, 0.08));
+    border-color: var(--primary-color-ring, rgba(88, 166, 255, 0.32));
+    color: var(--primary-color, #1890ff);
+    i { color: var(--primary-color, #1890ff); }
   }
   .ide-tune-method-meta {
     border-top-color: rgba(255, 255, 255, 0.08);
@@ -9861,7 +10311,7 @@ body.realdark .backtest-panel-toolbar {
   }
   .ide-tune-dimensions-summary-label {
     color: rgba(255, 255, 255, 0.85);
-    i { color: #58a6ff; }
+    i { color: var(--primary-color, #1890ff); }
   }
   .ide-tune-dim-stat { color: rgba(255, 255, 255, 0.6); }
   .ide-tune-dim-stat-cap { color: rgba(255, 255, 255, 0.4); }
@@ -9869,7 +10319,7 @@ body.realdark .backtest-panel-toolbar {
   .ide-tune-dim-stat-sep,
   .ide-tune-dim-stat-total { color: rgba(255, 255, 255, 0.55); }
   .ide-tune-dim-stat--cartesian .ide-tune-dim-stat-num { color: #ffa940; }
-  .ide-tune-dim-stat--budget .ide-tune-dim-stat-num { color: #58a6ff; }
+  .ide-tune-dim-stat--budget .ide-tune-dim-stat-num { color: var(--primary-color, #1890ff); }
   .ide-tune-dimensions-warning {
     background: linear-gradient(90deg, rgba(250, 173, 20, 0.14), rgba(250, 173, 20, 0.05));
     border-color: rgba(250, 173, 20, 0.35);
@@ -9878,15 +10328,15 @@ body.realdark .backtest-panel-toolbar {
   }
   .ide-tune-dimensions-empty { color: rgba(255, 255, 255, 0.4); }
   .ide-tune-dim-row {
-    &:hover { background: rgba(88, 166, 255, 0.08); }
+    &:hover { background: var(--primary-color-soft, rgba(88, 166, 255, 0.08)); }
   }
   .ide-tune-dim-label { color: rgba(255, 255, 255, 0.92); }
   .ide-tune-dim-count { color: rgba(255, 255, 255, 0.55); }
   .ide-tune-dim-values { color: rgba(255, 255, 255, 0.5); }
   .ide-tune-dim-badge--risk,
   .ide-tune-dim-badge--leverage {
-    background: rgba(88, 166, 255, 0.14);
-    color: #79b8ff;
+    background: var(--primary-color-soft-strong, rgba(88, 166, 255, 0.14));
+    color: var(--primary-color, #1890ff);
   }
   .ide-tune-dim-badge--position {
     background: rgba(82, 196, 26, 0.16);
@@ -9912,28 +10362,90 @@ body.realdark .backtest-panel-toolbar {
     .metric-label { color: rgba(255,255,255,0.45); }
     .metric-value { color: rgba(255,255,255,0.88); }
   }
-  .experiment-score { color: #58a6ff; }
+  .experiment-score { color: var(--primary-color, #1890ff); }
   .experiment-best-summary .experiment-best-metric {
     border: 1px solid #303030;
   }
   .experiment-overview-grid {
     .experiment-feature-card { border-color: #303030; }
   }
-  .experiment-segment-dot { background: #58a6ff; }
+  .experiment-segment-dot { background: var(--primary-color, #1890ff); }
   .exp-table-source { color: rgba(255,255,255,0.35); }
-  .exp-table-score { color: #58a6ff; }
+  .exp-table-score { color: var(--primary-color, #1890ff); }
   .exp-table-name { color: rgba(255,255,255,0.88); }
+  .experiment-ranking-actions { border-top-color: #303030; }
+  .experiment-ranking-card ::v-deep .ant-table-wrapper,
+  .experiment-ranking-card ::v-deep .ant-table,
+  .experiment-ranking-card ::v-deep .ant-table-content,
+  .experiment-ranking-card ::v-deep .ant-table-scroll,
+  .experiment-ranking-card ::v-deep .ant-table-body,
+  .experiment-ranking-card ::v-deep .ant-table table {
+    background: #1f1f1f !important;
+    border-color: #303030 !important;
+  }
+  .experiment-ranking-card ::v-deep .ant-table-content,
+  .experiment-ranking-card ::v-deep .ant-table-scroll {
+    border: 1px solid #303030 !important;
+  }
+  .experiment-ranking-card ::v-deep .ant-table-thead > tr > th,
+  .experiment-ranking-card ::v-deep .ant-table-tbody > tr > td {
+    border-color: #303030 !important;
+    border-right-color: #303030 !important;
+    border-bottom-color: #303030 !important;
+  }
+  .experiment-ranking-card ::v-deep .ant-table-thead > tr > th:first-child,
+  .experiment-ranking-card ::v-deep .ant-table-tbody > tr > td:first-child {
+    border-left-color: #303030 !important;
+  }
+  .experiment-ranking-card ::v-deep .ant-table-thead > tr:first-child > th {
+    border-top-color: #303030 !important;
+  }
+  .experiment-ranking-card ::v-deep .experiment-ranking-row:hover > td {
+    background: var(--primary-color-soft, rgba(24, 144, 255, 0.08)) !important;
+  }
+  .experiment-ranking-card ::v-deep .experiment-ranking-row.is-selected > td {
+    background: var(--primary-color-soft-strong, rgba(24, 144, 255, 0.16)) !important;
+  }
   .experiment-progress-bar { background: #1f1f1f; border-color: #303030; color: rgba(255,255,255,0.85); }
-  .experiment-progress-header { color: rgba(255,255,255,0.85); .running-time { color: #58a6ff; } }
+  .experiment-progress-header {
+    color: rgba(255,255,255,0.85);
+    .running-time { color: var(--primary-color, #1890ff); }
+    ::v-deep .ant-spin-dot-item { background-color: var(--primary-color, #1890ff); }
+  }
   .experiment-live-hint { color: rgba(255,255,255,0.45); }
-  .experiment-round-badge { background: #303030; color: rgba(255,255,255,0.65); &.best { background: rgba(23, 125, 220, 0.15); color: #58a6ff; } }
-  .experiment-round-card { background: #1f1f1f; border-color: #303030; &.best { border-color: rgba(23, 125, 220, 0.35); background: rgba(23, 125, 220, 0.06); } }
-  .experiment-round-num { background: rgba(23, 125, 220, 0.15); color: #58a6ff; }
-  .experiment-round-score { color: #58a6ff; }
+  .experiment-round-badge { background: #303030; color: rgba(255,255,255,0.65); &.best { background: var(--primary-color-soft-strong, rgba(23, 125, 220, 0.15)); color: var(--primary-color, #1890ff); } }
+  .experiment-round-card { background: #1f1f1f; border-color: #303030; &.best { border-color: var(--primary-color-ring, rgba(23, 125, 220, 0.35)); background: var(--primary-color-soft, rgba(23, 125, 220, 0.06)); } }
+  .experiment-round-num { background: var(--primary-color-soft-strong, rgba(23, 125, 220, 0.15)); color: var(--primary-color, #1890ff); }
+  .experiment-round-score { color: var(--primary-color, #1890ff); }
   .experiment-round-meta { color: rgba(255,255,255,0.35); }
   .experiment-reasoning { color: rgba(255,255,255,0.45); }
-  .experiment-candidate-reasoning { color: rgba(255,255,255,0.35); }
   .eq-title, .trades-title { color: rgba(255,255,255,0.85); .trades-count { color: rgba(255,255,255,0.45); } }
+  .trades-table ::v-deep .ant-table-wrapper,
+  .trades-table ::v-deep .ant-table,
+  .trades-table ::v-deep .ant-table-content,
+  .trades-table ::v-deep .ant-table-scroll,
+  .trades-table ::v-deep .ant-table-body,
+  .trades-table ::v-deep .ant-table table {
+    background: #1f1f1f !important;
+    border-color: #303030 !important;
+  }
+  .trades-table ::v-deep .ant-table-content,
+  .trades-table ::v-deep .ant-table-scroll {
+    border: 1px solid #303030 !important;
+  }
+  .trades-table ::v-deep .ant-table-thead > tr > th,
+  .trades-table ::v-deep .ant-table-tbody > tr > td {
+    border-color: #303030 !important;
+    border-right-color: #303030 !important;
+    border-bottom-color: #303030 !important;
+  }
+  .trades-table ::v-deep .ant-table-thead > tr > th:first-child,
+  .trades-table ::v-deep .ant-table-tbody > tr > td:first-child {
+    border-left-color: #303030 !important;
+  }
+  .trades-table ::v-deep .ant-table-thead > tr:first-child > th {
+    border-top-color: #303030 !important;
+  }
   .backtest-marker-legend {
     border-color: #303030;
     background: rgba(31, 31, 31, 0.85);
@@ -9945,8 +10457,8 @@ body.realdark .backtest-panel-toolbar {
     border-color: #434343;
     color: rgba(255, 255, 255, 0.65);
     &:hover:not([disabled]) {
-      border-color: #177ddc;
-      color: #177ddc;
+      border-color: var(--primary-color-active, #177ddc);
+      color: var(--primary-color-active, #177ddc);
     }
   }
   .code-editor-area {
@@ -9962,27 +10474,27 @@ body.realdark .backtest-panel-toolbar {
 
   ::v-deep .ant-tabs-bar { border-bottom-color: #303030; }
   ::v-deep .ant-tabs-tab { color: rgba(255,255,255,0.55); &:hover { color: rgba(255,255,255,0.85); } }
-  ::v-deep .ant-tabs-tab-active { color: #177ddc !important; }
-  ::v-deep .ant-tabs-ink-bar { background: #177ddc; }
+  ::v-deep .ant-tabs-tab-active { color: var(--primary-color-active, #177ddc) !important; }
+  ::v-deep .ant-tabs-ink-bar { background: var(--primary-color-active, #177ddc); }
   ::v-deep .ant-select .ant-select-selection {
     background: #1f1f1f; border-color: #434343; color: rgba(255,255,255,0.85);
     .ant-select-arrow { color: rgba(255,255,255,0.45); }
-    &:hover { border-color: #177ddc; }
+    &:hover { border-color: var(--primary-color-active, #177ddc); }
   }
   ::v-deep .ant-select-selection__placeholder { color: rgba(255,255,255,0.35); }
-  ::v-deep .ant-input, ::v-deep .ant-input-number { background: #1f1f1f; border-color: #434343; color: rgba(255,255,255,0.85); &:focus, &:hover { border-color: #177ddc; } }
+  ::v-deep .ant-input, ::v-deep .ant-input-number { background: #1f1f1f; border-color: #434343; color: rgba(255,255,255,0.85); &:focus, &:hover { border-color: var(--primary-color-active, #177ddc); } }
   ::v-deep .ant-input-number-handler-wrap { background: #1f1f1f; border-left-color: #434343; }
-  ::v-deep .ant-input-number-handler { color: rgba(255,255,255,0.45); &:hover { color: #177ddc; } }
+  ::v-deep .ant-input-number-handler { color: rgba(255,255,255,0.45); &:hover { color: var(--primary-color-active, #177ddc); } }
   ::v-deep .ant-calendar-picker-input { background: #1f1f1f; border-color: #434343; color: rgba(255,255,255,0.85); }
   ::v-deep .ant-calendar-picker-icon { color: rgba(255,255,255,0.45); }
   ::v-deep .ant-radio-button-wrapper {
     background: #1f1f1f; border-color: #434343; color: rgba(255,255,255,0.65);
-    &:hover { color: #177ddc; }
-    &.ant-radio-button-wrapper-checked { background: #177ddc; border-color: #177ddc; color: #fff; }
+    &:hover { color: var(--primary-color-active, #177ddc); }
+    &.ant-radio-button-wrapper-checked { background: var(--primary-color-active, #177ddc); border-color: var(--primary-color-active, #177ddc); color: #fff; }
   }
   ::v-deep .ant-checkbox-wrapper { color: rgba(255,255,255,0.85); }
   ::v-deep .ant-checkbox-inner { background: #1f1f1f; border-color: #434343; }
-  ::v-deep .ant-btn-default { background: #1f1f1f; border-color: #434343; color: rgba(255,255,255,0.65); &:hover { border-color: #177ddc; color: #177ddc; } }
+  ::v-deep .ant-btn-default { background: #1f1f1f; border-color: #434343; color: rgba(255,255,255,0.65); &:hover { border-color: var(--primary-color-active, #177ddc); color: var(--primary-color-active, #177ddc); } }
   ::v-deep .ant-table {
     background: transparent; color: rgba(255,255,255,0.85);
     .ant-table-thead > tr > th { background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.65); border-bottom-color: #303030; }
@@ -9990,8 +10502,23 @@ body.realdark .backtest-panel-toolbar {
     .ant-table-tbody > tr:hover > td { background: rgba(255,255,255,0.04); }
     .ant-table-placeholder { background: transparent; color: rgba(255,255,255,0.35); }
   }
+  ::v-deep .ant-table-bordered {
+    .ant-table-content,
+    .ant-table-body,
+    .ant-table-fixed-left table,
+    .ant-table-fixed-right table {
+      border-color: #303030;
+    }
+    .ant-table-thead > tr > th,
+    .ant-table-tbody > tr > td {
+      border-right-color: #303030;
+    }
+    .ant-table-tbody > tr > td {
+      border-bottom-color: #303030;
+    }
+  }
   ::v-deep .ant-pagination {
-    .ant-pagination-item { background: #1f1f1f; border-color: #434343; a { color: rgba(255,255,255,0.65); } &.ant-pagination-item-active { border-color: #177ddc; a { color: #177ddc; } } }
+    .ant-pagination-item { background: #1f1f1f; border-color: #434343; a { color: rgba(255,255,255,0.65); } &.ant-pagination-item-active { border-color: var(--primary-color-active, #177ddc); a { color: var(--primary-color-active, #177ddc); } } }
     .ant-pagination-prev, .ant-pagination-next { .ant-pagination-item-link { background: #1f1f1f; border-color: #434343; color: rgba(255,255,255,0.45); } }
   }
   ::v-deep .ant-empty-description { color: rgba(255,255,255,0.35); }
@@ -10000,8 +10527,8 @@ body.realdark .backtest-panel-toolbar {
 
 <style lang="less">
 body.dark .indicator-ide .strategy-directives-alert.ant-alert-info {
-  background: rgba(23, 125, 220, 0.16) !important;
-  border-color: rgba(88, 166, 255, 0.45) !important;
+  background: var(--primary-color-soft-strong, rgba(23, 125, 220, 0.16)) !important;
+  border-color: var(--primary-color-ring, rgba(88, 166, 255, 0.45)) !important;
 }
 body.dark .indicator-ide .strategy-directives-alert .ant-alert-message {
   color: rgba(255, 255, 255, 0.92) !important;
@@ -10011,7 +10538,7 @@ body.dark .indicator-ide .strategy-directives-alert .ant-alert-description div {
   color: rgba(255, 255, 255, 0.72) !important;
 }
 body.dark .indicator-ide .strategy-directives-alert .ant-alert-icon {
-  color: #58a6ff !important;
+  color: var(--primary-color, #1890ff) !important;
 }
 body.dark .indicator-ide .strategy-directives-alert .ant-alert-close-icon .anticon-close {
   color: rgba(255, 255, 255, 0.55) !important;
@@ -10029,8 +10556,23 @@ body.dark .indicator-ide .result-tabs .ant-tabs-tab {
   color: rgba(255, 255, 255, 0.55) !important;
 }
 body.dark .indicator-ide .result-tabs .ant-tabs-tab-active {
-  color: #58a6ff !important;
+  color: var(--primary-color, #1890ff) !important;
   background: #1a1a1a !important;
+}
+body.dark .ide-drawer-wrap .ant-drawer-content,
+body.dark .ide-drawer-wrap--dark .ant-drawer-content {
+  background: #141414;
+}
+body.dark .ide-drawer-wrap .ant-drawer-header,
+body.dark .ide-drawer-wrap--dark .ant-drawer-header {
+  background: #1f1f1f;
+  border-bottom-color: #303030;
+}
+body.dark .ide-drawer-wrap .ant-drawer-title,
+body.dark .ide-drawer-wrap--dark .ant-drawer-title,
+body.dark .ide-drawer-wrap .ant-drawer-close,
+body.dark .ide-drawer-wrap--dark .ant-drawer-close {
+  color: rgba(255, 255, 255, 0.88);
 }
 
 /* ===== Watchlist dropdown ===== */
@@ -10054,7 +10596,7 @@ body.dark .indicator-ide .result-tabs .ant-tabs-tab-active {
     letter-spacing: 0.3px;
   }
   .wl-mkt-crypto { background: #fa8c16; }
-  .wl-mkt-usstock { background: #1890ff; }
+  .wl-mkt-usstock { background: var(--primary-color, #1890ff); }
   .wl-mkt-cnstock { background: #eb2f96; }
   .wl-mkt-hkstock { background: #f5222d; }
   .wl-mkt-forex { background: #52c41a; }
@@ -10074,7 +10616,7 @@ body.dark .indicator-ide .result-tabs .ant-tabs-tab-active {
   }
   .ant-select-dropdown-menu-item-selected {
     background: #e6f7ff;
-    .wl-opt-symbol { color: #1890ff; }
+    .wl-opt-symbol { color: var(--primary-color, #1890ff); }
   }
   .ant-select-dropdown-menu-item-active:not(.ant-select-dropdown-menu-item-selected) {
     background: #f5f5f5;
@@ -10131,7 +10673,7 @@ body.dark .indicator-ide .result-tabs .ant-tabs-tab-active {
   text-overflow: ellipsis;
   white-space: nowrap;
   &.active {
-    color: #1890ff;
+    color: var(--primary-color, #1890ff);
     font-weight: 600;
   }
 }
@@ -10160,7 +10702,7 @@ body.dark .indicator-ide .result-tabs .ant-tabs-tab-active {
   .ide-indicator-name {
     color: rgba(255, 255, 255, 0.85);
     &.active {
-      color: #58a6ff;
+      color: var(--primary-color, #1890ff);
     }
   }
 }
@@ -10173,8 +10715,8 @@ body.dark .indicator-ide .result-tabs .ant-tabs-tab-active {
   .wl-opt-symbol { color: rgba(255,255,255,0.88); }
   .wl-opt-name { color: rgba(255,255,255,0.45); }
   .ant-select-dropdown-menu-item-selected {
-    background: rgba(23, 125, 220, 0.2);
-    .wl-opt-symbol { color: #177ddc; }
+    background: var(--primary-color-soft, rgba(24, 144, 255, 0.2));
+    .wl-opt-symbol { color: var(--primary-color-active, #177ddc); }
   }
   .ant-select-dropdown-menu-item-active:not(.ant-select-dropdown-menu-item-selected) {
     background: rgba(255,255,255,0.06);
@@ -10190,25 +10732,25 @@ body.dark .indicator-ide .result-tabs .ant-tabs-tab-active {
   .ant-modal-footer { background: #1f1f1f; border-top-color: #303030; }
   .ant-tabs-bar { border-bottom-color: #303030; }
   .ant-tabs-tab { color: rgba(255,255,255,0.55); &:hover { color: rgba(255,255,255,0.85); } }
-  .ant-tabs-tab-active { color: #177ddc !important; }
-  .ant-input-search .ant-input { background: #1f1f1f; border-color: #434343; color: rgba(255,255,255,0.88); &:hover, &:focus { border-color: #177ddc; } }
+  .ant-tabs-tab-active { color: var(--primary-color-active, #177ddc) !important; }
+  .ant-input-search .ant-input { background: #1f1f1f; border-color: #434343; color: rgba(255,255,255,0.88); &:hover, &:focus { border-color: var(--primary-color-active, #177ddc); } }
   .ant-input-search-icon { color: rgba(255,255,255,0.45); }
   .ant-list-item { color: rgba(255,255,255,0.85); border-bottom-color: #303030; }
   .ant-list-item:hover { background: rgba(255,255,255,0.04); }
-  .ant-input, .ant-input-number { background: #1f1f1f; border-color: #434343; color: rgba(255,255,255,0.85); &:focus, &:hover { border-color: #177ddc; } }
+  .ant-input, .ant-input-number { background: #1f1f1f; border-color: #434343; color: rgba(255,255,255,0.85); &:focus, &:hover { border-color: var(--primary-color-active, #177ddc); } }
   .ant-input-number-handler-wrap { background: #1f1f1f; border-left-color: #434343; }
-  .ant-input-number-handler { color: rgba(255,255,255,0.45); &:hover { color: #177ddc; } }
+  .ant-input-number-handler { color: rgba(255,255,255,0.45); &:hover { color: var(--primary-color-active, #177ddc); } }
   .ant-radio-wrapper { color: rgba(255,255,255,0.85); }
   .ant-radio-inner { background: #1f1f1f; border-color: #434343; }
-  .ant-radio-checked .ant-radio-inner { border-color: #177ddc; &::after { background-color: #177ddc; } }
+  .ant-radio-checked .ant-radio-inner { border-color: var(--primary-color-active, #177ddc); &::after { background-color: var(--primary-color-active, #177ddc); } }
   .ant-select-selection { background: #1f1f1f; border-color: #434343; color: rgba(255,255,255,0.85); }
   .ant-switch { background-color: rgba(255,255,255,0.2); }
-  .ant-switch-checked { background-color: #177ddc; }
-  .ant-alert-info { background: rgba(23, 125, 220, 0.1); border-color: rgba(23, 125, 220, 0.3); }
+  .ant-switch-checked { background-color: var(--primary-color-active, #177ddc); }
+  .ant-alert-info { background: var(--primary-color-soft, rgba(24, 144, 255, 0.1)); border-color: var(--primary-color-ring, rgba(24, 144, 255, 0.3)); }
   .ant-alert-message { color: rgba(255,255,255,0.85); }
-  .ant-alert-info .ant-alert-icon { color: #177ddc; }
-  .ant-btn-default { background: #1f1f1f; border-color: #434343; color: rgba(255,255,255,0.65); &:hover { border-color: #177ddc; color: #177ddc; } }
-  .ant-btn-primary { background: #177ddc; border-color: #177ddc; }
+  .ant-alert-info .ant-alert-icon { color: var(--primary-color-active, #177ddc); }
+  .ant-btn-default { background: #1f1f1f; border-color: #434343; color: rgba(255,255,255,0.65); &:hover { border-color: var(--primary-color-active, #177ddc); color: var(--primary-color-active, #177ddc); } }
+  .ant-btn-primary { background: var(--primary-color-active, #177ddc); border-color: var(--primary-color-active, #177ddc); }
   .ant-btn-danger.ant-btn-background-ghost { border-color: #d32029; color: #d32029; &:hover { border-color: #ff4d4f; color: #ff4d4f; } }
   .field-label { color: rgba(255,255,255,0.58); }
   .publish-hint { color: rgba(255,255,255,0.45); }

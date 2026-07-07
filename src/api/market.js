@@ -1,4 +1,4 @@
-import request from '@/utils/request'
+import request, { AI_CHAT_TIMEOUT } from '@/utils/request'
 
 const marketApi = {
   // Watchlist
@@ -67,7 +67,8 @@ export function chatMessage (parameter) {
   return request({
     url: marketApi.ChatMessage,
     method: 'post',
-    data: parameter
+    data: parameter,
+    timeout: AI_CHAT_TIMEOUT
   })
 }
 

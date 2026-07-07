@@ -522,6 +522,199 @@ export default {
     .text-muted {
       color: rgba(255, 255, 255, 0.35);
     }
+
+    ::v-deep .ant-alert {
+      background: color-mix(in srgb, var(--primary-color, #1890ff) 8%, transparent);
+      border-color: color-mix(in srgb, var(--primary-color, #1890ff) 22%, transparent);
+      color: rgba(255, 255, 255, 0.78);
+
+      .ant-alert-message,
+      .ant-alert-description {
+        color: rgba(255, 255, 255, 0.86);
+      }
+    }
+
+    ::v-deep .ant-tabs-bar {
+      border-bottom-color: rgba(255, 255, 255, 0.1);
+    }
+
+    ::v-deep .ant-tabs-tab {
+      color: rgba(255, 255, 255, 0.62);
+
+      &:hover {
+        color: var(--primary-color-hover, #40a9ff);
+      }
+    }
+
+    ::v-deep .ant-tabs-tab-active {
+      color: var(--primary-color-hover, #40a9ff);
+      background: color-mix(in srgb, var(--primary-color, #1890ff) 12%, transparent);
+    }
+
+    ::v-deep .ant-btn:not(.ant-btn-primary):not(.ant-btn-link) {
+      background: #1f1f1f;
+      border-color: rgba(255, 255, 255, 0.16);
+      color: rgba(255, 255, 255, 0.86);
+
+      &:hover,
+      &:focus {
+        border-color: var(--primary-color-hover, #40a9ff);
+        color: var(--primary-color-hover, #40a9ff);
+      }
+    }
+
+    ::v-deep .ant-table {
+      color: rgba(255, 255, 255, 0.82);
+    }
+
+    ::v-deep .ant-table-thead > tr > th {
+      background: #101010;
+      border-bottom-color: rgba(255, 255, 255, 0.12);
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    ::v-deep .ant-table-tbody > tr > td {
+      background: #161616;
+      border-bottom-color: rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.78);
+    }
+
+    ::v-deep .ant-table-tbody > tr:hover:not(.ant-table-expanded-row) > td {
+      background: #1f2630;
+    }
+
+    ::v-deep .ant-table-tbody > tr.token-row-revoked > td {
+      background: rgba(255, 77, 79, 0.08) !important;
+      color: rgba(255, 255, 255, 0.62);
+    }
+
+    ::v-deep .ant-table-tbody > tr.token-row-revoked:hover:not(.ant-table-expanded-row) > td {
+      background: rgba(255, 77, 79, 0.13) !important;
+    }
+
+    ::v-deep .ant-table-placeholder {
+      background: #161616;
+      border-color: rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.45);
+    }
+
+    ::v-deep .ant-pagination-item,
+    ::v-deep .ant-pagination-prev .ant-pagination-item-link,
+    ::v-deep .ant-pagination-next .ant-pagination-item-link {
+      background: #141414;
+      border-color: rgba(255, 255, 255, 0.16);
+      color: rgba(255, 255, 255, 0.72);
+    }
+
+    ::v-deep .ant-pagination-item a {
+      color: rgba(255, 255, 255, 0.72);
+    }
+
+    ::v-deep .ant-pagination-item-active {
+      border-color: var(--primary-color, #1890ff);
+      background: color-mix(in srgb, var(--primary-color, #1890ff) 16%, transparent);
+
+      a {
+        color: #fff;
+      }
+    }
+  }
+}
+</style>
+
+<style lang="less">
+.profile-agent-tokens-modal.theme-dark {
+  .ant-modal-content,
+  .ant-modal-header,
+  .ant-modal-body,
+  .ant-modal-footer {
+    background: #1c1c1c;
+    color: rgba(255, 255, 255, 0.82);
+  }
+
+  .ant-modal-header {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .ant-modal-footer {
+    border-top-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .ant-modal-title,
+  .ant-form-item-label > label,
+  .ant-checkbox-wrapper {
+    color: rgba(255, 255, 255, 0.86);
+  }
+
+  .ant-modal-close,
+  .ant-modal-close-x {
+    color: rgba(255, 255, 255, 0.55);
+  }
+
+  .ant-modal-close:hover,
+  .ant-modal-close:focus {
+    color: rgba(255, 255, 255, 0.86);
+  }
+
+  .ant-input,
+  .ant-input-number,
+  .ant-input-number-input,
+  .ant-select-selection {
+    background: #141414 !important;
+    border-color: rgba(255, 255, 255, 0.16) !important;
+    color: rgba(255, 255, 255, 0.86) !important;
+  }
+
+  .ant-input::placeholder,
+  .ant-input-number-input::placeholder {
+    color: rgba(255, 255, 255, 0.35);
+  }
+
+  .ant-input-number-handler-wrap {
+    background: #1f1f1f;
+    border-left-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .ant-input-number-handler {
+    border-color: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.55);
+  }
+
+  .hint,
+  .ant-form-extra {
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  .hint.danger {
+    color: #ff7875;
+  }
+
+  .ant-checkbox-inner {
+    background: #141414;
+    border-color: rgba(255, 255, 255, 0.32);
+  }
+
+  .ant-checkbox-checked .ant-checkbox-inner {
+    background: var(--primary-color, #1890ff);
+    border-color: var(--primary-color, #1890ff);
+  }
+
+  .ant-switch {
+    background: rgba(255, 255, 255, 0.25);
+  }
+
+  .ant-switch-checked {
+    background: var(--primary-color, #1890ff);
+  }
+
+  .ant-alert {
+    background: rgba(255, 77, 79, 0.08);
+    border-color: rgba(255, 77, 79, 0.26);
+  }
+
+  .ant-alert-message,
+  .ant-alert-description {
+    color: rgba(255, 255, 255, 0.86);
   }
 }
 </style>

@@ -74,15 +74,7 @@ export default {
           { key: 'account', label: this.$t('brokerAccounts.kpi.account'), value: String(i.account || i.AccountCode || '--') }
         ]
       }
-      // mt5
-      return [
-        { key: 'balance', label: this.$t('brokerAccounts.kpi.balance'), value: money(i.balance, ccy) },
-        { key: 'equity', label: this.$t('brokerAccounts.kpi.equity'), value: money(i.equity, ccy) },
-        { key: 'margin', label: this.$t('brokerAccounts.kpi.margin'), value: money(i.margin, ccy) },
-        { key: 'free', label: this.$t('brokerAccounts.kpi.freeMargin'), value: money(i.margin_free, ccy), tone: 'accent' },
-        { key: 'leverage', label: this.$t('brokerAccounts.kpi.leverage'), value: i.leverage ? `1:${i.leverage}` : '--' },
-        { key: 'profit', label: this.$t('brokerAccounts.kpi.openPnl'), value: money(i.profit, ccy), tone: num(i.profit) >= 0 ? 'positive' : 'negative' }
-      ]
+      return []
     }
   },
   mounted () {
@@ -134,7 +126,7 @@ export default {
 }
 .metric-card.positive .metric-value { color: #389e0d; }
 .metric-card.negative .metric-value { color: #cf1322; }
-.metric-card.accent .metric-value { color: #1890ff; }
+.metric-card.accent .metric-value { color: var(--primary-color, #1890ff); }
 .metric-sub { margin-top: 4px; font-size: 11px; color: #8c8c8c; }
 .account-grid.theme-dark {
   .metric-card {
@@ -142,8 +134,8 @@ export default {
     border-color: #30363d;
 
     &.accent {
-      background: linear-gradient(165deg, rgba(24, 144, 255, 0.14) 0%, #171b20 100%);
-      border-color: rgba(88, 166, 255, 0.45);
+      background: linear-gradient(165deg, color-mix(in srgb, var(--primary-color, #1890ff) 14%, transparent) 0%, #171b20 100%);
+      border-color: color-mix(in srgb, var(--primary-color, #1890ff) 45%, transparent);
     }
 
     &.positive {

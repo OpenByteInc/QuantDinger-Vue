@@ -1,2 +1,4 @@
 allowBuilds:
+  ant-design-vue: set this to true or false
+  core-js: set this to true or false
   esbuild: false

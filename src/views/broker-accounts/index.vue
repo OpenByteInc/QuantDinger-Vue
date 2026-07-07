@@ -2,7 +2,10 @@
   <div class="broker-accounts" :class="{ 'theme-dark': isDarkTheme }">
     <div class="ba-header">
       <div class="ba-header-text">
-        <div class="ba-title">{{ $t('brokerAccounts.title') }}</div>
+        <div class="ba-title">
+          <a-icon type="bank" />
+          <span>{{ $t('brokerAccounts.title') }}</span>
+        </div>
         <div class="ba-subtitle">{{ $t('brokerAccounts.subtitle') }}</div>
       </div>
       <div class="ba-header-actions">
@@ -34,7 +37,7 @@
       <a-tab-pane v-for="b in availableBrokers" :key="b.id">
         <template #tab>
           <span class="ba-tab-label">
-            <a-icon :type="b.icon" :style="{ color: b.color }" />
+            <a-icon :type="b.icon" />
             <span>{{ $t('brokerAccounts.' + b.id + '.name') }}</span>
             <a-badge
               v-if="connectionMap[b.id] && connectionMap[b.id].connected"
@@ -97,7 +100,7 @@ export default {
   },
   async mounted () {
     // IMPORTANT: resolve the desktop-broker policy BEFORE firing any
-    // /api/{ibkr,mt5}/status requests. On SaaS deployments those endpoints
+    // /api/ibkr/status requests. On SaaS deployments those endpoints
     // intentionally return a long bilingual rejection message which used to
     // surface as a misleading toast/console error during the initial load.
     await this.loadDesktopPolicy()
@@ -143,8 +146,8 @@ export default {
       }
     },
     async loadOne (id) {
-      // SaaS / cloud deployments disable IBKR + MT5 (no local TWS / MT5
-      // terminal reachable). Skip the network call entirely so users don't
+      // SaaS / cloud deployments disable IBKR (no local TWS/Gateway
+      // reachable). Skip the network call entirely so users don't
       // see the bilingual rejection payload in DevTools or as an error toast.
       if (this.isBrokerBlocked(id)) {
         this.$set(this.connectionMap, id, { connected: false, blocked: true })
@@ -249,17 +252,29 @@ export default {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
+}
+.ba-header-text {
+  max-width: 720px;
 }
 .ba-title {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
-  color: #1f1f1f;
+  color: #1e3a5f;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  .anticon {
+    font-size: 28px;
+    color: var(--primary-color, #1890ff);
+  }
 }
 .ba-subtitle {
-  margin-top: 4px;
-  font-size: 13px;
-  color: #8c8c8c;
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #64748b;
 }
 .broker-accounts.theme-dark {
   .ba-title { color: rgba(255, 255, 255, 0.92); }
@@ -299,6 +314,36 @@ export default {
   border-radius: 12px;
   padding: 12px 16px 18px;
   box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+
+  ::v-deep .ant-tabs-card-bar .ant-tabs-tab {
+    color: #475569 !important;
+    background: #f8fafc !important;
+    border-color: #e5e7eb !important;
+  }
+
+  ::v-deep .ant-tabs-card-bar .ant-tabs-tab:hover {
+    color: var(--primary-color-active, #0958d9) !important;
+    border-color: color-mix(in srgb, var(--primary-color, #1677ff) 34%, #e5e7eb) !important;
+    background: color-mix(in srgb, var(--primary-color, #1677ff) 5%, #ffffff) !important;
+  }
+
+  ::v-deep .ant-tabs-tab-active {
+    border-color: color-mix(in srgb, var(--primary-color, #1677ff) 36%, transparent) !important;
+    background: #ffffff !important;
+    color: var(--primary-color-active, #0958d9) !important;
+  }
+
+  ::v-deep .ant-tabs-tab-active .ba-tab-label,
+  ::v-deep .ant-tabs-tab-active .ba-tab-label span,
+  ::v-deep .ant-tabs-tab-active .ba-tab-label .anticon {
+    color: var(--primary-color-active, #0958d9);
+  }
+
+  ::v-deep .ba-tab-label,
+  ::v-deep .ba-tab-label span,
+  ::v-deep .ba-tab-label .anticon {
+    color: inherit;
+  }
 }
 .broker-accounts.theme-dark .ba-tabs {
   background: #181818;
@@ -313,21 +358,22 @@ export default {
     color: rgba(255, 255, 255, 0.68);
   }
 
-  ::v-deep .ant-tabs-tab {
+  ::v-deep .ant-tabs-card-bar .ant-tabs-tab {
     background: #111214 !important;
     border-color: #303030 !important;
     color: rgba(255, 255, 255, 0.58) !important;
   }
 
-  ::v-deep .ant-tabs-tab:hover {
+  ::v-deep .ant-tabs-card-bar .ant-tabs-tab:hover {
     background: #171b20 !important;
-    color: rgba(255, 255, 255, 0.82) !important;
+    border-color: color-mix(in srgb, var(--primary-color, #1890ff) 36%, #303030) !important;
+    color: var(--primary-color, #1890ff) !important;
   }
 
-  ::v-deep .ant-tabs-tab-active {
-    background: #1c2634 !important;
-    border-color: rgba(88, 166, 255, 0.55) !important;
-    color: #58a6ff !important;
+  ::v-deep .ant-tabs-card-bar .ant-tabs-tab-active {
+    background: #16181b !important;
+    border-color: color-mix(in srgb, var(--primary-color, #1890ff) 55%, transparent) !important;
+    color: var(--primary-color, #1890ff) !important;
   }
 
   ::v-deep .ant-tabs-tab-disabled {
@@ -336,7 +382,8 @@ export default {
   }
 
   ::v-deep .ba-tab-label,
-  ::v-deep .ba-tab-label span {
+  ::v-deep .ba-tab-label span,
+  ::v-deep .ba-tab-label .anticon {
     color: inherit;
   }
 

@@ -214,7 +214,7 @@ export default {
       .edit-label {
         font-size: 14px;
         font-weight: 500;
-        color: #1890ff;
+        color: var(--primary-color, #1890ff);
       }
     }
 

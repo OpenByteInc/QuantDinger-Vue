@@ -314,7 +314,7 @@ export default {
 
   margin-bottom: 8px;
 
-  color: #1677ff;
+  color: var(--primary-color, #1677ff);
 
   font-weight: 600;
 
@@ -389,5 +389,4 @@ export default {
 }
 
 </style>
-
 

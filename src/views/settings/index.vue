@@ -1030,6 +1030,7 @@ export default {
         app: 'appstore',
         ai: 'robot',
         trading: 'stock',
+        market_modules: 'appstore',
         data_source: 'database',
         search: 'search',
         agent: 'experiment',
@@ -1292,7 +1293,7 @@ export default {
 
       .anticon {
         font-size: 28px;
-        color: @primary-color;
+        color: var(--primary-color, #1890ff);
       }
     }
 
@@ -1370,16 +1371,16 @@ export default {
         }
 
         &:hover {
-          background: rgba(24, 144, 255, 0.06);
-          color: @primary-color;
-          .anticon { color: @primary-color; }
+          background: color-mix(in srgb, var(--primary-color, #1890ff) 6%, transparent);
+          color: var(--primary-color, #1890ff);
+          .anticon { color: var(--primary-color, #1890ff); }
         }
 
         &.ant-menu-item-selected {
-          background: linear-gradient(135deg, rgba(24, 144, 255, 0.10), rgba(19, 194, 194, 0.08));
-          color: @primary-color;
+          background: linear-gradient(135deg, color-mix(in srgb, var(--primary-color, #1890ff) 10%, transparent), rgba(19, 194, 194, 0.08));
+          color: var(--primary-color, #1890ff);
           font-weight: 600;
-          .anticon { color: @primary-color; }
+          .anticon { color: var(--primary-color, #1890ff); }
 
           &::after { display: none; }
         }
@@ -1409,7 +1410,7 @@ export default {
 
       .detail-icon {
         font-size: 20px;
-        color: @primary-color;
+        color: var(--primary-color, #1890ff);
       }
 
       .detail-title {
@@ -1426,8 +1427,8 @@ export default {
       gap: 4px;
       margin-bottom: 4px;
       padding: 2px 8px;
-      background: rgba(24, 144, 255, 0.08);
-      color: @primary-color;
+      background: color-mix(in srgb, var(--primary-color, #1890ff) 8%, transparent);
+      color: var(--primary-color, #1890ff);
       border-radius: 4px;
       font-size: 11px;
       font-weight: 500;
@@ -1492,11 +1493,11 @@ export default {
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      color: #1890ff;
+      color: var(--primary-color, #1890ff);
       text-decoration: none;
 
       &:hover {
-        color: #096dd9;
+        color: var(--primary-color-active, #096dd9);
         text-decoration: underline;
       }
     }
@@ -1520,7 +1521,7 @@ export default {
       .balance-title {
         font-size: 15px;
         font-weight: 600;
-        color: #1890ff;
+        color: var(--primary-color, #1890ff);
       }
     }
 
@@ -1619,27 +1620,27 @@ export default {
           transition: color 0.2s;
 
           &:hover {
-            color: @primary-color;
+            color: var(--primary-color, #1890ff);
           }
         }
 
         .api-link {
           font-size: 12px;
           font-weight: 400;
-          color: @primary-color;
+          color: var(--primary-color, #1890ff);
           text-decoration: none;
           display: inline-flex;
           align-items: center;
           gap: 4px;
           padding: 2px 8px;
-          background: rgba(24, 144, 255, 0.08);
+          background: color-mix(in srgb, var(--primary-color, #1890ff) 8%, transparent);
           border-radius: 4px;
           transition: all 0.2s;
           margin-left: 4px;
 
           &:hover {
-            background: rgba(24, 144, 255, 0.15);
-            color: darken(@primary-color, 10%);
+            background: color-mix(in srgb, var(--primary-color, #1890ff) 15%, transparent);
+            color: var(--primary-color-active, #096dd9);
           }
 
           .anticon {
@@ -1826,15 +1827,15 @@ export default {
         .anticon { color: #8b949e; }
 
         &:hover {
-          background: rgba(88, 166, 255, 0.12);
-          color: #58a6ff;
-          .anticon { color: #58a6ff; }
+          background: color-mix(in srgb, var(--primary-color, #1890ff) 12%, transparent);
+          color: var(--primary-color, #1890ff);
+          .anticon { color: var(--primary-color, #1890ff); }
         }
 
         &.ant-menu-item-selected {
-          background: linear-gradient(135deg, rgba(88, 166, 255, 0.18), rgba(19, 194, 194, 0.10));
-          color: #58a6ff;
-          .anticon { color: #58a6ff; }
+          background: linear-gradient(135deg, color-mix(in srgb, var(--primary-color, #1890ff) 18%, transparent), rgba(19, 194, 194, 0.10));
+          color: var(--primary-color, #1890ff);
+          .anticon { color: var(--primary-color, #1890ff); }
         }
       }
     }
@@ -1846,13 +1847,13 @@ export default {
       .detail-header {
         border-bottom-color: rgba(255, 255, 255, 0.08);
 
-        .detail-icon { color: #58a6ff; }
+        .detail-icon { color: var(--primary-color, #1890ff); }
         .detail-title { color: #e0e6ed; }
       }
 
       .search-result-group-tag {
-        background: rgba(88, 166, 255, 0.18);
-        color: #58a6ff;
+        background: color-mix(in srgb, var(--primary-color, #1890ff) 18%, transparent);
+        color: var(--primary-color, #1890ff);
       }
 
       .settings-subsection-heading {
@@ -1913,16 +1914,16 @@ export default {
             color: #6e7681;
 
             &:hover {
-              color: #58a6ff;
+              color: var(--primary-color, #1890ff);
             }
           }
 
           .api-link {
-            background: rgba(24, 144, 255, 0.15);
-            color: #58a6ff;
+            background: color-mix(in srgb, var(--primary-color, #1890ff) 15%, transparent);
+            color: var(--primary-color, #1890ff);
 
             &:hover {
-              background: rgba(24, 144, 255, 0.25);
+              background: color-mix(in srgb, var(--primary-color, #1890ff) 25%, transparent);
             }
           }
         }
@@ -1938,7 +1939,7 @@ export default {
 
         &:hover,
         &:focus {
-          border-color: @primary-color;
+          border-color: var(--primary-color, #1890ff);
         }
       }
 
@@ -1963,7 +1964,7 @@ export default {
       ::v-deep .ant-input-clear-icon:hover,
       ::v-deep .ant-input-number-handler:hover .ant-input-number-handler-up-inner,
       ::v-deep .ant-input-number-handler:hover .ant-input-number-handler-down-inner {
-        color: #58a6ff;
+        color: var(--primary-color, #1890ff);
       }
 
       .field-default {
@@ -1975,7 +1976,7 @@ export default {
         border-color: rgba(255, 255, 255, 0.08);
 
         &:hover {
-          border-color: rgba(88, 166, 255, 0.45);
+          border-color: color-mix(in srgb, var(--primary-color, #1890ff) 45%, transparent);
           background: #1f2630;
         }
       }
@@ -1990,9 +1991,9 @@ export default {
       }
 
       .market-data-source {
-        border-color: rgba(88, 166, 255, 0.25);
-        color: #79c0ff;
-        background: rgba(88, 166, 255, 0.1);
+        border-color: color-mix(in srgb, var(--primary-color, #1890ff) 25%, transparent);
+        color: var(--primary-color-hover, #79c0ff);
+        background: color-mix(in srgb, var(--primary-color, #1890ff) 10%, transparent);
 
         small {
           color: #8b949e;

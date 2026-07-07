@@ -949,7 +949,7 @@ export default {
           border-radius: 6px;
           &:hover {
             background: rgba(24, 144, 255, 0.08);
-            color: #1890ff;
+            color: var(--primary-color, #1890ff);
           }
         }
       }
@@ -1057,7 +1057,7 @@ export default {
         background: rgba(24, 144, 255, 0.04);
       }
       &.selected {
-        border-color: #1890ff;
+        border-color: var(--primary-color, #1890ff);
         background: rgba(24, 144, 255, 0.06);
         box-shadow: 0 0 0 3px rgba(24, 144, 255, 0.1);
       }
@@ -1065,7 +1065,7 @@ export default {
         border-color: rgba(38, 161, 123, 0.4);
       }
       &.selected.recommended {
-        border-color: #1890ff;
+        border-color: var(--primary-color, #1890ff);
       }
       .chain-row {
         display: flex;
@@ -1095,7 +1095,7 @@ export default {
         gap: 8px;
         font-size: 12px;
         color: rgba(0,0,0,0.55);
-        .picked-icon { color: #1890ff; font-size: 14px; }
+        .picked-icon { color: var(--primary-color, #1890ff); font-size: 14px; }
       }
     }
     .empty-chains { padding: 6px 0; }
@@ -1115,7 +1115,7 @@ body.realdark .usdt-chain-picker-wrap {
     background: rgba(255,255,255,0.04);
     border-color: rgba(255,255,255,0.12);
     &:hover { background: rgba(24,144,255,0.08); border-color: rgba(64,169,255,0.55); }
-    &.selected { background: rgba(24,144,255,0.14); border-color: #40a9ff; }
+    &.selected { background: rgba(24,144,255,0.14); border-color: var(--primary-color-hover, #40a9ff); }
     .chain-name .chain-label { color: rgba(255,255,255,0.9); }
     .chain-fee .fee-label { color: rgba(255,255,255,0.45); }
     .chain-fee .fee-value { color: rgba(255,255,255,0.9); }
@@ -1190,7 +1190,7 @@ body.realdark .usdt-checkout {
         .copy-btn {
           background: rgba(255,255,255,0.08);
           color: rgba(255,255,255,0.6);
-          &:hover { background: rgba(24, 144, 255, 0.15); color: #40a9ff; }
+          &:hover { background: rgba(24, 144, 255, 0.15); color: var(--primary-color-hover, #40a9ff); }
         }
       }
       .warn-strip {

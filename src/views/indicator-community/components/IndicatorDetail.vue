@@ -62,21 +62,8 @@
           </div>
 
           <!--
-            Performance panel.
-
-            Layout, top to bottom:
-              1. Headline KPIs (8 cells, 2x4 grid): composite score,
-                 backtest total return / sharpe / max drawdown / profit
-                 factor / win rate, plus live strategy count and live
-                 trade count. Each cell has a small "BT" or "Live" tag
-                 so users can't accidentally read a backtest number as
-                 a live-trading number.
-              2. Applicable range tags (symbols + timeframes) so users
-                 immediately see "this thing has only ever been
-                 backtested on BTC 4h, not Forex daily".
-              3. Best-backtest equity curve panel (echarts), with the
-                 run's symbol/timeframe/return/drawdown printed beneath
-                 the chart title so the chart isn't context-less.
+            Performance panel. Headline KPIs are kept visually quiet; source
+            context lives in the chart meta and applicable range rows.
           -->
           <div class="section" v-if="performance && !isBotPreset">
             <h3>{{ $t('community.performance') }}</h3>
@@ -97,7 +84,6 @@
               <div class="perf-item">
                 <div class="perf-label">
                   {{ $t('community.totalReturn') }}
-                  <a-tag class="src-tag src-tag--bt">{{ $t('community.sourceBacktest') }}</a-tag>
                 </div>
                 <div class="perf-value" :class="toneClass(performance.total_return)">
                   {{ formatPercent(performance.total_return) }}
@@ -106,7 +92,6 @@
               <div class="perf-item">
                 <div class="perf-label">
                   {{ $t('community.sharpe') }}
-                  <a-tag class="src-tag src-tag--bt">{{ $t('community.sourceBacktest') }}</a-tag>
                 </div>
                 <div class="perf-value" :class="toneClass(performance.sharpe, 1)">
                   {{ formatNumber(performance.sharpe, 2) }}
@@ -115,7 +100,6 @@
               <div class="perf-item">
                 <div class="perf-label">
                   {{ $t('community.maxDrawdown') }}
-                  <a-tag class="src-tag src-tag--bt">{{ $t('community.sourceBacktest') }}</a-tag>
                 </div>
                 <div class="perf-value negative">
                   {{ formatPercent(performance.max_drawdown) }}
@@ -124,7 +108,6 @@
               <div class="perf-item">
                 <div class="perf-label">
                   {{ $t('community.profitFactor') }}
-                  <a-tag class="src-tag src-tag--bt">{{ $t('community.sourceBacktest') }}</a-tag>
                 </div>
                 <div class="perf-value" :class="toneClass(performance.profit_factor - 1)">
                   {{ formatNumber(performance.profit_factor, 2) }}
@@ -133,8 +116,6 @@
               <div class="perf-item">
                 <div class="perf-label">
                   {{ $t('community.winRate') }}
-                  <a-tag v-if="performance.live_trade_count > 0" class="src-tag src-tag--live">{{ $t('community.sourceLive') }}</a-tag>
-                  <a-tag v-else class="src-tag src-tag--bt">{{ $t('community.sourceBacktest') }}</a-tag>
                 </div>
                 <div class="perf-value" :class="performance.win_rate >= 50 ? 'positive' : 'negative'">
                   {{ formatNumber(performance.win_rate, 2) }}%
@@ -143,14 +124,12 @@
               <div class="perf-item">
                 <div class="perf-label">
                   {{ $t('community.liveStrategies') }}
-                  <a-tag class="src-tag src-tag--live">{{ $t('community.sourceLive') }}</a-tag>
                 </div>
                 <div class="perf-value">{{ performance.live_strategy_count || 0 }}</div>
               </div>
               <div class="perf-item">
                 <div class="perf-label">
                   {{ $t('community.liveTrades') }}
-                  <a-tag class="src-tag src-tag--live">{{ $t('community.sourceLive') }}</a-tag>
                 </div>
                 <div class="perf-value">{{ performance.live_trade_count || 0 }}</div>
               </div>
@@ -185,11 +164,29 @@
                 <div v-if="performance.best_run_meta" class="equity-card__meta">
                   <a-tag class="tag-symbol">{{ performance.best_run_meta.symbol }}</a-tag>
                   <a-tag class="tag-tf">{{ performance.best_run_meta.timeframe }}</a-tag>
-                  <span class="equity-card__meta-sep">·</span>
+                  <a-tag
+                    v-if="performance.best_run_meta.market_type"
+                    :class="performance.best_run_meta.market_type === 'swap' ? 'tag-market tag-market--swap' : 'tag-market tag-market--spot'"
+                  >
+                    {{ formatMarketType(performance.best_run_meta.market_type) }}
+                  </a-tag>
+                  <a-tag
+                    v-if="performance.best_run_meta.leverage"
+                    class="tag-leverage"
+                  >
+                    {{ formatLeverage(performance.best_run_meta.leverage) }}
+                  </a-tag>
+                  <a-tag
+                    v-if="performance.best_run_meta.duration_days"
+                    class="tag-duration"
+                  >
+                    {{ formatBacktestDuration(performance.best_run_meta.duration_days) }}
+                  </a-tag>
+                  <span class="equity-card__meta-sep">/</span>
                   <span :class="toneClass(performance.best_run_meta.total_return)">
                     {{ formatPercent(performance.best_run_meta.total_return) }}
                   </span>
-                  <span class="equity-card__meta-sep">·</span>
+                  <span class="equity-card__meta-sep">/</span>
                   <span class="negative">
                     {{ $t('community.maxDrawdown') }}
                     {{ formatPercent(performance.best_run_meta.max_drawdown) }}
@@ -268,23 +265,24 @@
               {{ $t('community.myIndicator') }}
             </a-button>
             <template v-else-if="detail.is_purchased">
-              <a-tooltip :title="$t('community.syncCodeTooltip')" placement="top">
-                <a-badge :dot="!!detail.has_update" :offset="[-4, 4]">
+              <a-tooltip :title="syncActionTooltip" placement="top">
+                <a-badge :dot="!!detail.has_update && !localCopyMissing" :offset="[-4, 4]">
                   <a-button
+                    :type="localCopyMissing ? 'primary' : 'default'"
                     :loading="syncing"
                     @click="handleSyncCode"
                   >
-                    <a-icon type="sync" />
-                    {{ syncing ? $t('community.syncingCode') : $t('community.syncCode') }}
+                    <a-icon :type="localCopyMissing ? 'cloud-download' : 'sync'" />
+                    {{ syncing ? syncActionLoadingLabel : syncActionLabel }}
                     <a-tag
-                      v-if="detail.has_update && !syncing"
+                      v-if="detail.has_update && !syncing && !localCopyMissing"
                       color="orange"
                       class="update-tag"
                     >{{ $t('community.hasUpdate') }}</a-tag>
                   </a-button>
                 </a-badge>
               </a-tooltip>
-              <a-button type="primary" @click="goToUse">
+              <a-button v-if="!localCopyMissing" type="primary" @click="goToUse">
                 <a-icon :type="isBotPreset ? 'robot' : (isScriptTemplate ? 'code-sandbox' : 'code')" />
                 {{ useNowLabel }}
               </a-button>
@@ -347,7 +345,7 @@ export default {
       // Equity-curve echarts instance. Lazy-loaded on first render
       // (see ``renderEquityChart``) so we don't pull echarts into the
       // initial bundle if the user never opens the indicator detail.
-      // NB: vue/no-reserved-keys forbids leading underscores in data —
+      // NB: vue/no-reserved-keys forbids leading underscores in data;
       // these are private-by-convention only; ``equityChart`` (no Inst
       // suffix) would collide with the template ref name.
       equityChartInst: null,
@@ -369,7 +367,7 @@ export default {
       const base = 'qd-indicator-detail-modal-wrap'
       return this.isDarkTheme ? `${base} ${base}--dark` : base
     },
-    /** True only when the buyer paid >0 credits — we don't want to
+    /** True only when the buyer paid >0 credits; we don't want to
      * show "your purchase price: 0" on free indicators (would look
      * like a bug). The free badge in the price-info block already
      * conveys "this is free". */
@@ -382,6 +380,18 @@ export default {
     },
     isBotPreset () {
       return (this.detail && this.detail.asset_type) === 'bot_preset'
+    },
+    localCopyMissing () {
+      return !!(this.detail && this.detail.is_purchased && this.detail.local_copy_missing)
+    },
+    syncActionLabel () {
+      return this.localCopyMissing ? this.$t('community.restoreCopy') : this.$t('community.syncCode')
+    },
+    syncActionLoadingLabel () {
+      return this.localCopyMissing ? this.$t('community.restoringCopy') : this.$t('community.syncingCode')
+    },
+    syncActionTooltip () {
+      return this.localCopyMissing ? this.$t('community.restoreCopyTooltip') : this.$t('community.syncCodeTooltip')
     },
     useNowLabel () {
       if (this.isScriptTemplate) {
@@ -485,7 +495,7 @@ export default {
           this.performance = res.data
           // Equity curve has to render *after* the DOM cell exists, and
           // echarts is dynamically imported to keep the indicator-market
-          // entry chunk small. We don't await the import here — fire and
+          // entry chunk small. We don't await the import here; fire and
           // forget; if the user closes the modal before it finishes,
           // ``disposeEquityChart`` is a no-op on a missing instance.
           this.$nextTick(() => {
@@ -510,7 +520,7 @@ export default {
         // backend schema can evolve without breaking this view.
         const xs = points.map((p, i) => {
           if (typeof p === 'object' && p !== null) {
-            return p.date || p.timestamp || String(i)
+            return p.time || p.date || p.timestamp || String(i)
           }
           return String(i)
         })
@@ -560,7 +570,7 @@ export default {
             smooth: true,
             showSymbol: false,
             data: ys,
-            lineStyle: { width: 2, color: '#1890ff' },
+            lineStyle: { width: 2, color: 'var(--primary-color, #1890ff)' },
             areaStyle: {
               color: {
                 type: 'linear',
@@ -707,14 +717,32 @@ export default {
           this.loadDetail()
           this.$emit('purchased')
         } else {
-          const msgKey = `community.${res.msg}`
-          this.$message.error(this.$te(msgKey) ? this.$t(msgKey) : res.msg)
+          this.$message.error(this.formatPurchaseError(res))
         }
       } catch (e) {
-        this.$message.error(this.$t('community.purchaseFailed'))
+        this.$message.error(this.formatPurchaseError(e))
       } finally {
         this.purchasing = false
       }
+    },
+
+    formatPurchaseError (source) {
+      const envelope = (source && source.response && source.response.data) || source || {}
+      const code = envelope.msg || envelope.message || envelope.error || ''
+      const details = envelope.data || {}
+      if (code === 'insufficient_credits') {
+        const required = Number(details.required || 0)
+        const current = Number(details.current || 0)
+        const shortage = Math.max(required - current, 0)
+        return this.$t('community.insufficientCreditsDetail', {
+          required: this.formatPrice(required),
+          current: this.formatPrice(current),
+          shortage: this.formatPrice(shortage)
+        })
+      }
+      const msgKey = code ? `community.${code}` : ''
+      if (msgKey && this.$te(msgKey)) return this.$t(msgKey)
+      return (source && source.backendMessage) || code || this.$t('community.purchaseFailed')
     },
 
     goToUse () {
@@ -750,9 +778,9 @@ export default {
     handleSyncCode () {
       if (this.syncing) return
       this.$confirm({
-        title: this.$t('community.syncCodeConfirmTitle'),
-        content: this.$t('community.syncCodeConfirmContent'),
-        okText: this.$t('community.syncCode'),
+        title: this.localCopyMissing ? this.$t('community.restoreCopyConfirmTitle') : this.$t('community.syncCodeConfirmTitle'),
+        content: this.localCopyMissing ? this.$t('community.restoreCopyConfirmContent') : this.$t('community.syncCodeConfirmContent'),
+        okText: this.localCopyMissing ? this.$t('community.restoreCopy') : this.$t('community.syncCode'),
         cancelText: this.$t('community.cancelEdit'),
         onOk: () => this.doSyncCode()
       })
@@ -769,6 +797,8 @@ export default {
           // Backend returns `already_latest` when nothing had to be copied.
           if (res.msg === 'already_latest') {
             this.$message.info(this.$t('community.already_latest'))
+          } else if (res.msg === 'restored') {
+            this.$message.success(this.$t('community.restoreCopySuccess'))
           } else {
             this.$message.success(this.$t('community.syncCodeSuccess'))
           }
@@ -780,7 +810,7 @@ export default {
           this.$message.error(this.$te(msgKey) ? this.$t(msgKey) : (res.msg || this.$t('community.syncCodeFailed')))
         }
       } catch (e) {
-        // request interceptor may surface backend msg directly — fall back to a generic one
+          // request interceptor may surface backend msg directly; fall back to a generic one
         const backendMsg = e && e.response && e.response.data && e.response.data.msg
         const msgKey = backendMsg ? `community.${backendMsg}` : ''
         if (msgKey && this.$te(msgKey)) {
@@ -821,8 +851,24 @@ export default {
       if (isNaN(v)) return '—'
       return v.toFixed(0)
     },
+    formatMarketType (val) {
+      const type = String(val || '').toLowerCase()
+      if (type === 'spot') return this.$t('trading-assistant.form.marketTypeSpot')
+      if (type === 'swap') return this.$t('trading-assistant.form.marketTypeFutures')
+      return type || '—'
+    },
+    formatLeverage (val) {
+      const v = parseFloat(val)
+      if (isNaN(v) || v <= 0) return '1x'
+      return `${Number.isInteger(v) ? v.toFixed(0) : v.toFixed(2)}x`
+    },
+    formatBacktestDuration (val) {
+      const days = parseInt(val, 10)
+      if (!days || days <= 0) return ''
+      return this.$t('community.backtestDurationDays', { days })
+    },
     // Generic tone class. ``positiveThreshold`` lets callers say "Sharpe
-    // is only good if ≥ 1" without re-implementing the rule.
+    // is only good if >= 1" without re-implementing the rule.
     toneClass (val, positiveThreshold = 0) {
       const v = parseFloat(val)
       if (isNaN(v)) return ''
@@ -990,7 +1036,7 @@ export default {
             padding: 0 4px;
             border: none;
 
-            &--bt { background: rgba(24, 144, 255, 0.08); color: #1890ff; }
+            &--bt { background: rgba(24, 144, 255, 0.08); color: var(--primary-color, #1890ff); }
             &--live { background: rgba(82, 196, 26, 0.08); color: #389e0d; }
           }
         }
@@ -1040,7 +1086,7 @@ export default {
           font-size: 11px;
           border: none;
         }
-        .tag-symbol { background: rgba(24, 144, 255, 0.08); color: #1890ff; }
+        .tag-symbol { background: rgba(24, 144, 255, 0.08); color: var(--primary-color, #1890ff); }
         .tag-tf { background: rgba(82, 196, 26, 0.08); color: #389e0d; }
       }
       &__empty {
@@ -1080,8 +1126,12 @@ export default {
           font-size: 11px;
           border: none;
         }
-        .tag-symbol { background: rgba(24, 144, 255, 0.08); color: #1890ff; }
+        .tag-symbol { background: rgba(24, 144, 255, 0.08); color: var(--primary-color, #1890ff); }
         .tag-tf { background: rgba(82, 196, 26, 0.08); color: #389e0d; }
+        .tag-market--spot { background: rgba(19, 194, 194, 0.1); color: #08979c; }
+        .tag-market--swap { background: rgba(114, 46, 209, 0.1); color: #722ed1; }
+        .tag-leverage { background: rgba(250, 140, 22, 0.12); color: #d46b08; }
+        .tag-duration { background: rgba(47, 84, 235, 0.1); color: #2f54eb; }
         .positive { color: #52c41a; font-weight: 600; }
         .negative { color: #f5222d; font-weight: 600; }
       }
@@ -1178,7 +1228,7 @@ export default {
   }
 }
 
-// Dark theme — scoped overrides beat the light-theme rules above because
+// Dark theme: scoped overrides beat the light-theme rules above because
 // `.is-dark` adds an extra class on the same [data-v] subtree.
 .detail-container.is-dark {
   .detail-body {
@@ -1410,6 +1460,10 @@ export default {
       &__meta {
         .tag-symbol { background: rgba(24, 144, 255, 0.16); color: #69c0ff; }
         .tag-tf { background: rgba(82, 196, 26, 0.16); color: #95de64; }
+        .tag-market--spot { background: rgba(19, 194, 194, 0.18); color: #5cdbd3; }
+        .tag-market--swap { background: rgba(114, 46, 209, 0.22); color: #b37feb; }
+        .tag-leverage { background: rgba(250, 140, 22, 0.18); color: #ffc069; }
+        .tag-duration { background: rgba(47, 84, 235, 0.2); color: #85a5ff; }
         .positive { color: #95de64; }
         .negative { color: #ff7875; }
       }
@@ -1422,7 +1476,7 @@ export default {
       border-color: rgba(24, 144, 255, 0.3);
 
       .ant-alert-icon {
-        color: #177ddc;
+        color: var(--primary-color-active, #177ddc);
       }
 
       .ant-alert-message {

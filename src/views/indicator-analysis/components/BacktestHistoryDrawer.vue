@@ -13,20 +13,6 @@
         <a-button type="primary" :loading="loading" icon="reload" size="small" @click="loadRuns">
           {{ $t('dashboard.indicator.backtest.historyRefresh') }}
         </a-button>
-        <a-button
-          type="primary"
-          ghost
-          size="small"
-          :disabled="selectedRowKeys.length === 0"
-          :loading="analyzing"
-          @click="handleAIAnalyze"
-        >
-          <a-icon type="bulb" />
-          {{ $t('dashboard.indicator.backtest.historyAISuggest') }}
-        </a-button>
-        <span v-if="selectedRowKeys.length" class="selected-tip">
-          {{ $t('dashboard.indicator.backtest.historySelectedCount', { count: selectedRowKeys.length }) }}
-        </span>
         <span class="row-click-hint">{{ $t('dashboard.indicator.backtest.historyRowClickHint') }}</span>
       </div>
       <div class="toolbar-right">
@@ -60,7 +46,6 @@
       rowKey="id"
       :scroll="{ x: 1090 }"
       :customRow="customRowProps"
-      :rowSelection="{ selectedRowKeys: selectedRowKeys, onChange: onRowSelectionChange }"
     >
       <template slot="symbol" slot-scope="text, record">
         <span style="font-weight: 600;">{{ record.symbol || '-' }}</span>
@@ -105,80 +90,15 @@
           {{ text === 'success' ? $t('dashboard.indicator.backtest.historyStatusSuccess') : text === 'failed' ? $t('dashboard.indicator.backtest.historyStatusFailed') : text }}
         </a-tag>
       </template>
-      <template slot="actions" slot-scope="text, record">
-        <span @click.stop>
-          <a-button
-            type="link"
-            size="small"
-            :loading="analyzingRunId === record.id"
-            @click="handleAIAnalyze(record)"
-          >
-            {{ $t('dashboard.indicator.backtest.historyAISuggestShort') }}
-          </a-button>
-        </span>
-      </template>
     </a-table>
 
     <a-empty v-if="!loading && runs.length === 0" :description="$t('dashboard.indicator.backtest.historyNoData')" />
 
-    <a-modal
-      :title="$t('dashboard.indicator.backtest.historyAISuggestTitle')"
-      :visible="showAIResult"
-      :footer="null"
-      :width="isMobile ? '100%' : 900"
-      :wrapClassName="aiModalWrapClass"
-      @cancel="showAIResult = false"
-    >
-      <div v-if="analyzing" style="padding: 24px 0; text-align: center;">
-        <a-spin size="large" />
-        <div style="margin-top: 12px; color: #999;">{{ $t('dashboard.indicator.backtest.historyAISuggestLoading') }}</div>
-      </div>
-      <div v-else class="ai-modal-content">
-        <div class="ai-meta-card">
-          <div class="ai-meta-top">
-            <div class="ai-meta-left">
-              <a-tag color="blue">{{ $t('dashboard.indicator.backtest.historyAISuggest') }}</a-tag>
-              <a-tag>{{ aiModeLabel }}</a-tag>
-              <a-tag v-if="lastAnalyzeRunIds.length">{{ $t('dashboard.indicator.backtest.historySelectedCount', { count: lastAnalyzeRunIds.length }) }}</a-tag>
-            </div>
-            <div class="ai-meta-actions">
-              <a-button size="small" @click="copyAIResult">
-                <a-icon type="copy" />
-                {{ $t('dashboard.indicator.backtest.historyAICopy') }}
-              </a-button>
-              <a-button size="small" type="primary" ghost :disabled="!lastAnalyzeRunIds.length" @click="handleAIAnalyze(null, lastAnalyzeRunIds)">
-                <a-icon type="redo" />
-                {{ $t('dashboard.indicator.backtest.historyAIRetry') }}
-              </a-button>
-            </div>
-          </div>
-          <div v-if="analyzeRunSummaries.length" class="ai-run-tags">
-            <a-tag v-for="item in analyzeRunSummaries" :key="item.id" color="purple">
-              #{{ item.id }} {{ item.symbol || '-' }} / {{ item.timeframe || '-' }}
-            </a-tag>
-          </div>
-          <a-alert
-            type="info"
-            show-icon
-            :message="$t('dashboard.indicator.backtest.historyAIHint')"
-            style="margin-top: 12px;"
-          />
-        </div>
-
-        <div v-if="aiResult" class="ai-markdown-card">
-          <div class="ai-markdown-content" v-html="renderedAIHtml" />
-        </div>
-
-        <div v-else class="ai-result-content">
-          {{ $t('dashboard.indicator.backtest.historyNoAIResult') }}
-        </div>
-      </div>
-    </a-modal>
   </a-drawer>
 </template>
 
 <script>
-import request, { ANALYSIS_TIMEOUT } from '@/utils/request'
+import request from '@/utils/request'
 import moment from 'moment'
 
 export default {
@@ -199,42 +119,20 @@ export default {
     return {
       loading: false,
       detailLoadingId: null,
-      analyzing: false,
-      showAIResult: false,
-      aiResult: '',
       filterSymbol: '',
       filterTimeframe: undefined,
       timeframes: ['1m', '5m', '15m', '30m', '1H', '4H', '1D', '1W'],
       runs: [],
       columns: [],
-      selectedRowKeys: [],
-      debounceTimer: null,
-      analyzingRunId: null,
-      lastAnalyzeRunIds: [],
-      aiMode: ''
+      debounceTimer: null
     }
   },
   computed: {
     isStrategyHistory () {
       return !!this.strategyId || String(this.runType || '').indexOf('strategy_') === 0
     },
-    aiModeLabel () {
-      if (this.aiMode === 'llm') return this.$t('dashboard.indicator.backtest.historyAIModeLLM')
-      if (this.aiMode === 'heuristic' || this.aiMode === 'heuristic_fallback') return this.$t('dashboard.indicator.backtest.historyAIModeRule')
-      return this.$t('dashboard.indicator.backtest.historyAIModeUnknown')
-    },
-    analyzeRunSummaries () {
-      const idSet = new Set((this.lastAnalyzeRunIds || []).map(id => Number(id)))
-      return (this.runs || []).filter(item => idSet.has(Number(item.id))).slice(0, 8)
-    },
-    renderedAIHtml () {
-      return this.markdownToHtml(this.aiResult || '')
-    },
     drawerWrapClass () {
       return this.isDark ? 'backtest-history-drawer-wrap backtest-history-drawer-wrap--dark' : 'backtest-history-drawer-wrap'
-    },
-    aiModalWrapClass () {
-      return this.isDark ? 'backtest-history-ai-modal backtest-history-ai-modal--dark' : 'backtest-history-ai-modal'
     }
   },
   watch: {
@@ -243,11 +141,6 @@ export default {
         this.initColumns()
         this.filterSymbol = ''
         this.filterTimeframe = undefined
-        this.selectedRowKeys = []
-        this.aiResult = ''
-        this.aiMode = ''
-        this.lastAnalyzeRunIds = []
-        this.showAIResult = false
         this.loadRuns()
       }
     }
@@ -260,7 +153,7 @@ export default {
           click: (e) => {
             const el = e && e.target
             if (!el || !el.closest) return
-            if (el.closest('button, a, .ant-checkbox-wrapper, .ant-table-selection-column')) return
+            if (el.closest('button, a')) return
             if (this.detailLoadingId) return
             this.onRowClick(record)
           }
@@ -270,9 +163,6 @@ export default {
     onRowClick (record) {
       if (!record || !record.id) return
       this.viewRun(record)
-    },
-    onRowSelectionChange (keys) {
-      this.selectedRowKeys = keys || []
     },
     debouncedLoad () {
       clearTimeout(this.debounceTimer)
@@ -327,8 +217,7 @@ export default {
         { title: this.$t('dashboard.indicator.backtest.leverage'), dataIndex: 'leverage', key: 'leverage', width: 60 },
         { title: this.$t('dashboard.indicator.backtest.totalReturn') || 'Return', dataIndex: 'total_return', key: 'total_return', width: 100, scopedSlots: { customRender: 'returnPct' } },
         { title: this.$t('dashboard.indicator.backtest.historyStatus'), dataIndex: 'status', key: 'status', width: 80, scopedSlots: { customRender: 'status' } },
-        { title: this.$t('dashboard.indicator.backtest.historyCreatedAt'), dataIndex: 'created_at', key: 'created_at', width: 180, scopedSlots: { customRender: 'createdAt' } },
-        { title: '', key: 'actions', width: 120, scopedSlots: { customRender: 'actions' } }
+        { title: this.$t('dashboard.indicator.backtest.historyCreatedAt'), dataIndex: 'created_at', key: 'created_at', width: 180, scopedSlots: { customRender: 'createdAt' } }
       ]
       this.columns = columns
     },
@@ -358,15 +247,6 @@ export default {
       }
       const localMoment = moment(raw)
       return localMoment.isValid() ? localMoment : null
-    },
-    async copyAIResult () {
-      if (!this.aiResult) return
-      try {
-        await navigator.clipboard.writeText(this.aiResult)
-        this.$message.success(this.$t('dashboard.indicator.backtest.historyAICopySuccess'))
-      } catch (e) {
-        this.$message.warning(this.$t('dashboard.indicator.backtest.historyAICopyFailed'))
-      }
     },
     escapeHtml (str) {
       return String(str || '')
@@ -505,7 +385,7 @@ export default {
         }
         if (this.indicatorId) params.indicatorId = this.indicatorId
         if (this.strategyId) params.strategyId = this.strategyId
-        if (this.runType) params.runType = this.runType
+        params.runType = this.runType || (this.isStrategyHistory ? '' : 'indicator')
         if (this.filterSymbol) params.symbol = this.filterSymbol
         if (this.filterTimeframe) params.timeframe = this.filterTimeframe
         const res = await request({
@@ -537,40 +417,6 @@ export default {
       } finally {
         this.detailLoadingId = null
       }
-    },
-    async handleAIAnalyze (record = null, forcedRunIds = null) {
-      const runIds = forcedRunIds || (record && record.id ? [record.id] : this.selectedRowKeys)
-      if (!this.userId) return
-      if (!runIds || !runIds.length) {
-        this.$message.warning(this.$t('dashboard.indicator.backtest.historyAISelectPrompt'))
-        return
-      }
-      this.analyzing = true
-      this.analyzingRunId = record && record.id ? record.id : null
-      this.lastAnalyzeRunIds = [...runIds]
-      this.showAIResult = true
-      this.aiResult = ''
-      this.aiMode = ''
-      try {
-        const lang = (this.$i18n && this.$i18n.locale) ? this.$i18n.locale : 'zh-CN'
-        const res = await request({
-          url: '/api/indicator/backtest/aiAnalyze',
-          method: 'post',
-          timeout: ANALYSIS_TIMEOUT,
-          data: { userid: this.userId, runIds, lang }
-        })
-        if (res && res.code === 1 && res.data && res.data.analysis) {
-          this.aiResult = res.data.analysis
-          this.aiMode = res.data.mode || ''
-        } else {
-          this.aiResult = res.msg || this.$t('dashboard.indicator.backtest.historyNoAIResult')
-        }
-      } catch (e) {
-        this.aiResult = (e && e.message) || this.$t('dashboard.indicator.backtest.historyAIFailed')
-      } finally {
-        this.analyzing = false
-        this.analyzingRunId = null
-      }
     }
   }
 }
@@ -591,10 +437,6 @@ export default {
     flex-wrap: wrap;
   }
 }
-.selected-tip {
-  font-size: 12px;
-  color: #8c8c8c;
-}
 .row-click-hint {
   font-size: 12px;
   color: #8c8c8c;
@@ -604,113 +446,6 @@ export default {
 }
 ::v-deep .ant-table-tbody > tr.backtest-history-row--clickable:hover > td {
   background: #fafafa;
-}
-.ai-modal-content {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.ai-meta-card {
-  border: 1px solid #f0f0f0;
-  border-radius: 10px;
-  padding: 14px;
-  background: #fafafa;
-}
-.ai-meta-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.ai-meta-left, .ai-meta-actions, .ai-run-tags {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.ai-markdown-card {
-  border: 1px solid #f0f0f0;
-  border-radius: 12px;
-  padding: 18px 20px;
-  background: linear-gradient(180deg, #ffffff 0%, #fcfcfc 100%);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
-}
-.ai-markdown-content {
-  color: #262626;
-  font-size: 14px;
-  line-height: 1.8;
-  ::v-deep h1,
-  ::v-deep h2,
-  ::v-deep h3 {
-    margin: 0 0 12px;
-    font-weight: 700;
-    color: #1f1f1f;
-    line-height: 1.5;
-  }
-  ::v-deep h1 { font-size: 20px; }
-  ::v-deep h2 { font-size: 17px; }
-  ::v-deep h3 {
-    font-size: 15px;
-    padding-left: 10px;
-    border-left: 3px solid #1890ff;
-  }
-  ::v-deep p {
-    margin: 0 0 12px;
-    color: #434343;
-  }
-  ::v-deep ul,
-  ::v-deep ol {
-    margin: 0 0 14px 20px;
-    padding: 0;
-  }
-  ::v-deep li {
-    margin-bottom: 8px;
-    color: #434343;
-  }
-  ::v-deep strong {
-    color: #262626;
-    font-weight: 700;
-  }
-  ::v-deep em {
-    color: #595959;
-  }
-  ::v-deep code {
-    padding: 2px 6px;
-    border-radius: 6px;
-    background: #f5f5f5;
-    color: #cf1322;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 12px;
-  }
-  ::v-deep pre {
-    overflow: auto;
-    margin: 0 0 14px;
-    padding: 14px;
-    border-radius: 10px;
-    background: #141414;
-    color: #f0f0f0;
-  }
-  ::v-deep pre code {
-    padding: 0;
-    background: transparent;
-    color: inherit;
-  }
-  ::v-deep blockquote {
-    margin: 0 0 14px;
-    padding: 10px 14px;
-    border-left: 4px solid #91d5ff;
-    border-radius: 0 8px 8px 0;
-    background: #f0f7ff;
-    color: #595959;
-  }
-}
-.ai-result-content {
-  white-space: pre-wrap;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 13px;
-  line-height: 1.7;
-  padding: 8px 0;
 }
 </style>
 
@@ -750,7 +485,7 @@ export default {
 
     .ant-btn-primary.ant-btn-background-ghost {
       color: #69c0ff;
-      border-color: #177ddc;
+      border-color: var(--primary-color-active, #177ddc);
 
       &:hover:not(:disabled),
       &:focus:not(:disabled) {
@@ -830,71 +565,6 @@ export default {
   .ant-alert-warning .ant-alert-message,
   .ant-alert-warning .ant-alert-description {
     color: rgba(255, 255, 255, 0.82);
-  }
-}
-
-.backtest-history-ai-modal--dark {
-  .ant-modal-content,
-  .ant-modal-header,
-  .ant-modal-body,
-  .ant-modal-footer {
-    background: #1f1f1f;
-  }
-
-  .ant-modal-header {
-    border-bottom-color: #303030;
-  }
-
-  .ant-modal-title,
-  .ai-markdown-content,
-  .ai-result-content {
-    color: rgba(255, 255, 255, 0.88);
-  }
-
-  .ant-modal-close {
-    color: rgba(255, 255, 255, 0.55);
-  }
-
-  .ai-meta-card {
-    background: linear-gradient(180deg, rgba(23, 125, 220, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
-    border-color: rgba(23, 125, 220, 0.22);
-  }
-
-  .ai-markdown-card {
-    background: linear-gradient(180deg, #171717 0%, #141414 100%);
-    border-color: #2f3540;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-  }
-
-  .ai-markdown-content {
-    color: rgba(255, 255, 255, 0.82);
-  }
-
-  .ai-markdown-content h1,
-  .ai-markdown-content h2,
-  .ai-markdown-content h3,
-  .ai-markdown-content strong {
-    color: rgba(255, 255, 255, 0.92);
-  }
-
-  .ai-markdown-content p,
-  .ai-markdown-content li {
-    color: rgba(255, 255, 255, 0.72);
-  }
-
-  .ai-markdown-content em {
-    color: rgba(255, 255, 255, 0.6);
-  }
-
-  .ai-markdown-content code {
-    background: rgba(255, 255, 255, 0.08);
-    color: #ff9c6e;
-  }
-
-  .ai-markdown-content blockquote {
-    background: rgba(23, 125, 220, 0.08);
-    border-left-color: rgba(23, 125, 220, 0.45);
-    color: rgba(255, 255, 255, 0.68);
   }
 }
 </style>

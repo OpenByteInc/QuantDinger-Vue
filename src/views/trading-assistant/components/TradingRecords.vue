@@ -715,7 +715,7 @@ export default {
       }
 
       &.ant-pagination-item-active {
-        background: linear-gradient(135deg, @primary-color 0%, #40a9ff 100%);
+        background: linear-gradient(135deg, @primary-color 0%, var(--primary-color-hover, #40a9ff) 100%);
         border-color: @primary-color;
 
         a {
@@ -789,7 +789,7 @@ export default {
       }
       &[color="blue"] {
         background: rgba(24, 144, 255, 0.22) !important;
-        color: #40a9ff !important;
+        color: var(--primary-color-hover, #40a9ff) !important;
         border-color: rgba(24, 144, 255, 0.45) !important;
       }
       &[color="volcano"] {
@@ -987,10 +987,10 @@ body.realdark .trading-records[data-v-8a68b65a] .ant-pagination-item {
   }
 
   &:hover {
-    border-color: #1890ff !important;
+    border-color: var(--primary-color, #1890ff) !important;
 
     a {
-      color: #1890ff !important;
+      color: var(--primary-color, #1890ff) !important;
     }
   }
 }
@@ -998,8 +998,8 @@ body.realdark .trading-records[data-v-8a68b65a] .ant-pagination-item {
 .theme-dark .trading-records[data-v-8a68b65a] .ant-pagination-item-active,
 body.dark .trading-records[data-v-8a68b65a] .ant-pagination-item-active,
 body.realdark .trading-records[data-v-8a68b65a] .ant-pagination-item-active {
-  background: #1890ff !important;
-  border-color: #1890ff !important;
+  background: var(--primary-color, #1890ff) !important;
+  border-color: var(--primary-color, #1890ff) !important;
 
   a {
     color: #fff !important;
@@ -1023,8 +1023,8 @@ body.dark .trading-records[data-v-8a68b65a] .ant-pagination-prev:hover .ant-pagi
 body.dark .trading-records[data-v-8a68b65a] .ant-pagination-next:hover .ant-pagination-item-link,
 body.realdark .trading-records[data-v-8a68b65a] .ant-pagination-prev:hover .ant-pagination-item-link,
 body.realdark .trading-records[data-v-8a68b65a] .ant-pagination-next:hover .ant-pagination-item-link {
-  border-color: #1890ff !important;
-  color: #1890ff !important;
+  border-color: var(--primary-color, #1890ff) !important;
+  color: var(--primary-color, #1890ff) !important;
 }
 
 .theme-dark .trading-records[data-v] .ant-pagination-item,
@@ -1038,10 +1038,10 @@ body.realdark .trading-records[data-v] .ant-pagination-item {
   }
 
   &:hover {
-    border-color: #1890ff !important;
+    border-color: var(--primary-color, #1890ff) !important;
 
     a {
-      color: #1890ff !important;
+      color: var(--primary-color, #1890ff) !important;
     }
   }
 }
@@ -1049,8 +1049,8 @@ body.realdark .trading-records[data-v] .ant-pagination-item {
 .theme-dark .trading-records[data-v] .ant-pagination-item-active,
 body.dark .trading-records[data-v] .ant-pagination-item-active,
 body.realdark .trading-records[data-v] .ant-pagination-item-active {
-  background: #1890ff !important;
-  border-color: #1890ff !important;
+  background: var(--primary-color, #1890ff) !important;
+  border-color: var(--primary-color, #1890ff) !important;
 
   a {
     color: #fff !important;
@@ -1074,8 +1074,8 @@ body.dark .trading-records[data-v] .ant-pagination-prev:hover .ant-pagination-it
 body.dark .trading-records[data-v] .ant-pagination-next:hover .ant-pagination-item-link,
 body.realdark .trading-records[data-v] .ant-pagination-prev:hover .ant-pagination-item-link,
 body.realdark .trading-records[data-v] .ant-pagination-next:hover .ant-pagination-item-link {
-  border-color: #1890ff !important;
-  color: #1890ff !important;
+  border-color: var(--primary-color, #1890ff) !important;
+  color: var(--primary-color, #1890ff) !important;
 }
 
 .theme-dark .trading-records[data-v-8a68b65a] .ant-table-body,
@@ -1218,17 +1218,17 @@ body.realdark .trading-records[data-v] .ant-table-wrapper {
       }
 
       &:hover {
-        border-color: #1890ff !important;
+        border-color: var(--primary-color, #1890ff) !important;
 
         a {
-          color: #1890ff !important;
+          color: var(--primary-color, #1890ff) !important;
         }
       }
     }
 
     .ant-pagination-item-active {
-      background: #1890ff !important;
-      border-color: #1890ff !important;
+      background: var(--primary-color, #1890ff) !important;
+      border-color: var(--primary-color, #1890ff) !important;
 
       a {
         color: #fff !important;
@@ -1244,8 +1244,8 @@ body.realdark .trading-records[data-v] .ant-table-wrapper {
       }
 
       &:hover .ant-pagination-item-link {
-        border-color: #1890ff !important;
-        color: #1890ff !important;
+        border-color: var(--primary-color, #1890ff) !important;
+        color: var(--primary-color, #1890ff) !important;
       }
     }
 
@@ -1338,17 +1338,17 @@ body.realdark .trading-records {
       }
 
       &:hover {
-        border-color: #1890ff !important;
+        border-color: var(--primary-color, #1890ff) !important;
 
         a {
-          color: #1890ff !important;
+          color: var(--primary-color, #1890ff) !important;
         }
       }
     }
 
     .ant-pagination-item-active {
-      background: #1890ff !important;
-      border-color: #1890ff !important;
+      background: var(--primary-color, #1890ff) !important;
+      border-color: var(--primary-color, #1890ff) !important;
 
       a {
         color: #fff !important;
@@ -1364,8 +1364,8 @@ body.realdark .trading-records {
       }
 
       &:hover .ant-pagination-item-link {
-        border-color: #1890ff !important;
-        color: #1890ff !important;
+        border-color: var(--primary-color, #1890ff) !important;
+        color: var(--primary-color, #1890ff) !important;
       }
     }
 
@@ -1447,7 +1447,7 @@ body.realdark .trading-records * {
     }
     &[color="blue"] {
       background: rgba(24, 144, 255, 0.22) !important;
-      color: #40a9ff !important;
+      color: var(--primary-color-hover, #40a9ff) !important;
       border: 1px solid rgba(24, 144, 255, 0.45) !important;
     }
     &[color="volcano"] {
@@ -1486,17 +1486,17 @@ body.realdark .trading-records * {
       }
 
       &:hover {
-        border-color: #1890ff !important;
+        border-color: var(--primary-color, #1890ff) !important;
 
         a {
-          color: #1890ff !important;
+          color: var(--primary-color, #1890ff) !important;
         }
       }
     }
 
     .ant-pagination-item-active {
-      background: #1890ff !important;
-      border-color: #1890ff !important;
+      background: var(--primary-color, #1890ff) !important;
+      border-color: var(--primary-color, #1890ff) !important;
 
       a {
         color: #fff !important;
@@ -1512,8 +1512,8 @@ body.realdark .trading-records * {
       }
 
       &:hover .ant-pagination-item-link {
-        border-color: #1890ff !important;
-        color: #1890ff !important;
+        border-color: var(--primary-color, #1890ff) !important;
+        color: var(--primary-color, #1890ff) !important;
       }
     }
 

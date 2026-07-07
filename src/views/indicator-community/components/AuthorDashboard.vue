@@ -434,7 +434,7 @@ export default {
 
 .ad-name {
   font-weight: 500;
-  color: #1890ff;
+  color: var(--primary-color, #1890ff);
   cursor: pointer;
 }
 
@@ -495,7 +495,7 @@ export default {
   gap: 6px;
   padding: 8px 12px;
   background: rgba(24, 144, 255, 0.08);
-  border-left: 3px solid #1890ff;
+  border-left: 3px solid var(--primary-color, #1890ff);
   border-radius: 4px;
   margin-bottom: 12px;
   font-size: 13px;
@@ -530,16 +530,16 @@ export default {
   }
   ::v-deep .ant-tabs-nav .ant-tabs-tab:hover,
   ::v-deep .ant-tabs.ant-tabs-card .ant-tabs-card-bar .ant-tabs-tab:hover {
-    color: #40a9ff !important;
+    color: var(--primary-color-hover, #40a9ff) !important;
   }
   ::v-deep .ant-tabs-nav .ant-tabs-tab-active,
   ::v-deep .ant-tabs.ant-tabs-card .ant-tabs-card-bar .ant-tabs-tab-active,
   ::v-deep .ant-tabs-tab.ant-tabs-tab-active {
     background: #2a2a2a !important;
     border-color: rgba(255, 255, 255, 0.18) !important;
-    color: #40a9ff !important;
+    color: var(--primary-color-hover, #40a9ff) !important;
   }
-  ::v-deep .ant-tabs-nav .ant-tabs-ink-bar { background-color: #40a9ff !important; }
+  ::v-deep .ant-tabs-nav .ant-tabs-ink-bar { background-color: var(--primary-color-hover, #40a9ff) !important; }
 
   ::v-deep .ant-table { background: #1f1f1f !important; color: rgba(255, 255, 255, 0.85) !important; }
   ::v-deep .ant-table-thead > tr > th { background: #262626 !important; color: rgba(255, 255, 255, 0.85) !important; border-bottom-color: rgba(255, 255, 255, 0.1) !important; }
@@ -552,10 +552,10 @@ export default {
     border-color: rgba(255, 255, 255, 0.15) !important;
     color: rgba(255, 255, 255, 0.85) !important;
   }
-  ::v-deep .ant-pagination-item-active { border-color: #40a9ff !important; }
-  ::v-deep .ant-pagination-item-active a { color: #40a9ff !important; }
+  ::v-deep .ant-pagination-item-active { border-color: var(--primary-color-hover, #40a9ff) !important; }
+  ::v-deep .ant-pagination-item-active a { color: var(--primary-color-hover, #40a9ff) !important; }
 
   .ad-filter-banner { background: rgba(24, 144, 255, 0.15); color: rgba(255, 255, 255, 0.85); }
-  .ad-name { color: #40a9ff; }
+  .ad-name { color: var(--primary-color-hover, #40a9ff); }
 }
 </style>

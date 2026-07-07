@@ -194,7 +194,7 @@ body.realdark {
     a { color: rgba(255, 255, 255, 0.85) !important; }
   }
   .ant-pagination-item-active {
-    border-color: #1890ff !important;
+    border-color: var(--primary-color, #1890ff) !important;
   }
   .ant-pagination-prev .ant-pagination-item-link,
   .ant-pagination-next .ant-pagination-item-link {
@@ -226,15 +226,15 @@ body.realdark {
   .ant-input-number-handler:hover .ant-input-number-handler-down-inner,
   .ant-select-arrow:hover,
   .ant-select-clear:hover {
-    color: #58a6ff !important;
+    color: var(--primary-color-hover, #58a6ff) !important;
   }
   .ant-btn-default {
     background: #1c1c1c !important;
     border-color: #2a2a2a !important;
     color: rgba(255, 255, 255, 0.85) !important;
     &:hover {
-      border-color: #1890ff !important;
-      color: #1890ff !important;
+      border-color: var(--primary-color, #1890ff) !important;
+      color: var(--primary-color, #1890ff) !important;
     }
   }
   .ant-page-header {
@@ -256,7 +256,7 @@ body.realdark {
     &:hover { color: #d4d4d4 !important; }
   }
   .ant-tabs-tab-active {
-    color: #1890ff !important;
+    color: var(--primary-color, #1890ff) !important;
   }
   .ant-tabs-tab-disabled {
     color: rgba(255, 255, 255, 0.25) !important;
@@ -302,7 +302,7 @@ body.realdark {
       color: rgba(255, 255, 255, 0.85) !important;
       &:hover { background: #252525 !important; }
       &-active { background: #252525 !important; }
-      &-selected { background: rgba(24, 144, 255, 0.1) !important; color: #1890ff !important; }
+      &-selected { background: var(--primary-color-soft, rgba(24, 144, 255, 0.1)) !important; color: var(--primary-color, #1890ff) !important; }
     }
   }
 }

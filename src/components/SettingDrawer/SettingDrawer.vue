@@ -196,7 +196,7 @@ export default {
       return this.settings.theme || this.navTheme || 'light'
     },
     currentPrimaryColor () {
-      return this.settings.primaryColor || this.primaryColor || '#1890FF'
+      return this.settings.primaryColor || this.primaryColor || 'var(--primary-color, #1890ff)'
     },
     currentFixedHeader () {
       return this.settings.fixedHeader !== undefined ? this.settings.fixedHeader : (this.fixedHeader || false)

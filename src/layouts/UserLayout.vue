@@ -35,9 +35,9 @@
                 :href="brandConfig.legal.privacy_policy_url"
                 target="_blank"
                 rel="noopener noreferrer"
-                style="color: #1890ff; cursor: pointer;"
+                style="color: var(--primary-color, #1890ff); cursor: pointer;"
               >{{ $t('user.login.privacy.view') }}</a>
-              <a v-else @click="toggleRisk" style="color: #1890ff; cursor: pointer;">
+              <a v-else @click="toggleRisk" style="color: var(--primary-color, #1890ff); cursor: pointer;">
                 {{ showRisk ? $t('user.login.privacy.collapse') : $t('user.login.privacy.view') }}
               </a>
               <div v-if="showRisk && !(brandConfig.legal && brandConfig.legal.privacy_policy_url)" style="margin-top: 10px; font-size: 12px; color: rgba(0,0,0,0.65); line-height: 1.6; text-align: left;">

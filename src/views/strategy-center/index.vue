@@ -18,7 +18,7 @@
       </div>
       <div class="sc-header-actions">
         <a-button type="primary" class="sc-action-btn sc-action-btn--primary" @click="go('/strategy-ide')">
-          <a-icon type="code" /> {{ isZh ? '打开策略 IDE' : 'Open Strategy IDE' }}
+          <a-icon type="code" /> {{ $t('strategyCenter.header.openIde') }}
         </a-button>
         <a-button class="sc-action-btn" @click="go('/trading-bot')">
           <a-icon type="robot" /> {{ $t('strategyCenter.header.createBot') }}
@@ -34,7 +34,17 @@
         <div class="sc-mini-stat-body">
           <span class="sc-mini-stat-num">{{ item.value }}</span>
           <span class="sc-mini-stat-label">{{ item.label }}</span>
+          <span v-if="item.meta" class="sc-mini-stat-meta">{{ item.meta }}</span>
         </div>
+        <button
+          v-if="item.createPath"
+          type="button"
+          class="sc-mini-stat-create"
+          @click.stop="go(item.createPath)"
+        >
+          <a-icon type="plus-circle" />
+          <span>{{ $t('strategyCenter.stats.createLive') }}</span>
+        </button>
         <a-icon v-if="item.path" type="right" class="sc-mini-stat-arrow" />
       </div>
     </div>
@@ -48,7 +58,7 @@
 <script>
 import { mapState } from 'vuex'
 import request from '@/utils/request'
-import { getStrategyList } from '@/api/strategy'
+import { getScriptSourceList, getStrategyList } from '@/api/strategy'
 import DashboardOverview from '@/views/dashboard/index.vue'
 
 export default {
@@ -57,7 +67,16 @@ export default {
   data () {
     return {
       loadingStats: false,
-      stats: { indicator: 0, signal: 0, script: 0, bot: 0, running: 0 }
+      stats: {
+        indicator: 0,
+        strategySource: 0,
+        signal: 0,
+        signalRunning: 0,
+        script: 0,
+        scriptRunning: 0,
+        bot: 0,
+        botRunning: 0
+      }
     }
   },
   computed: {
@@ -69,11 +88,35 @@ export default {
     },
     miniStatItems () {
       return [
-        { key: 'running', icon: 'thunderbolt', value: this.stats.running, label: this.$t('strategyCenter.stats.running'), path: '/strategy-live?tab=strategy&status=running' },
-        { key: 'signal', icon: 'deployment-unit', value: this.stats.signal, label: this.$t('strategyCenter.stats.indicatorStrategy'), path: '/strategy-live?tab=strategy' },
-        { key: 'script', icon: 'code-sandbox', value: this.stats.script, label: this.$t('strategyCenter.stats.script'), path: '/strategy-script?tab=strategy' },
-        { key: 'bot', icon: 'robot', value: this.stats.bot, label: this.$t('strategyCenter.stats.bot'), path: '/trading-bot' },
-        { key: 'indicator', icon: 'line-chart', value: this.stats.indicator, label: this.$t('strategyCenter.stats.ownIndicators'), path: '/strategy-ide' }
+        {
+          key: 'signal',
+          icon: 'deployment-unit',
+          value: this.stats.signal,
+          label: this.$t('strategyCenter.stats.indicatorStrategy'),
+          meta: this.runningTotalText(this.stats.signalRunning, this.stats.signal),
+          path: '/strategy-live?tab=strategy',
+          createPath: '/strategy-live?mode=create'
+        },
+        {
+          key: 'script',
+          icon: 'code-sandbox',
+          value: this.stats.script,
+          label: this.$t('strategyCenter.stats.script'),
+          meta: this.runningTotalText(this.stats.scriptRunning, this.stats.script),
+          path: '/strategy-script?tab=strategy',
+          createPath: '/strategy-script?mode=create'
+        },
+        {
+          key: 'bot',
+          icon: 'robot',
+          value: this.stats.bot,
+          label: this.$t('strategyCenter.stats.bot'),
+          meta: this.runningTotalText(this.stats.botRunning, this.stats.bot),
+          path: '/trading-bot',
+          createPath: '/trading-bot'
+        },
+        { key: 'indicator', icon: 'line-chart', value: this.stats.indicator, label: this.$t('strategyCenter.stats.ownIndicators'), path: '/strategy-ide' },
+        { key: 'strategySource', icon: 'code', value: this.stats.strategySource, label: this.$t('strategyCenter.stats.ownStrategies'), path: '/strategy-ide?tab=script' }
       ]
     },
     isZh () {
@@ -118,26 +161,44 @@ export default {
     isRunningStrategy (s) {
       return String((s && s.status) || '').trim().toLowerCase() === 'running'
     },
+    runningTotalText (running, total) {
+      return this.$t('strategyCenter.stats.runningTotal', { running, total })
+    },
     parseStrategyList (res) {
       if (!res || res.code !== 1 || !res.data) return []
       if (Array.isArray(res.data)) return res.data
       if (Array.isArray(res.data.strategies)) return res.data.strategies
       return []
     },
+    parseScriptSourceList (res) {
+      if (!res || res.code !== 1 || !res.data) return []
+      if (Array.isArray(res.data)) return res.data
+      if (Array.isArray(res.data.sources)) return res.data.sources
+      if (Array.isArray(res.data.strategies)) return res.data.strategies
+      if (Array.isArray(res.data.items)) return res.data.items
+      return []
+    },
     async loadStats () {
       this.loadingStats = true
       try {
-        const [strRes, indRes] = await Promise.all([
+        const [strRes, indRes, scriptSourceRes] = await Promise.all([
           getStrategyList(),
-          request({ url: '/api/indicator/getIndicators', method: 'get' }).catch(() => ({ code: 0, data: [] }))
+          request({ url: '/api/indicator/getIndicators', method: 'get' }).catch(() => ({ code: 0, data: [] })),
+          getScriptSourceList().catch(() => ({ code: 0, data: [] }))
         ])
         const list = this.parseStrategyList(strRes)
-        this.stats.signal = list.filter(s => this.strategyModeBucket(s) === 'signal').length
-        this.stats.script = list.filter(s => this.strategyModeBucket(s) === 'script').length
-        this.stats.bot = list.filter(s => this.strategyModeBucket(s) === 'bot').length
-        this.stats.running = list.filter(s => this.isRunningStrategy(s)).length
+        const signal = list.filter(s => this.strategyModeBucket(s) === 'signal')
+        const script = list.filter(s => this.strategyModeBucket(s) === 'script')
+        const bot = list.filter(s => this.strategyModeBucket(s) === 'bot')
+        this.stats.signal = signal.length
+        this.stats.signalRunning = signal.filter(this.isRunningStrategy).length
+        this.stats.script = script.length
+        this.stats.scriptRunning = script.filter(this.isRunningStrategy).length
+        this.stats.bot = bot.length
+        this.stats.botRunning = bot.filter(this.isRunningStrategy).length
         const inds = (indRes.code === 1 && Array.isArray(indRes.data)) ? indRes.data : []
         this.stats.indicator = inds.filter(i => Number(i.is_buy || 0) !== 1).length
+        this.stats.strategySource = this.parseScriptSourceList(scriptSourceRes).length
       } finally {
         this.loadingStats = false
       }
@@ -147,7 +208,7 @@ export default {
 </script>
 
 <style lang="less" scoped>
-@sc-blue: #1677ff;
+@sc-blue: var(--primary-color, #1677ff);
 @sc-purple: #722ed1;
 @sc-teal: #13c2c2;
 @sc-radius: 14px;
@@ -177,17 +238,17 @@ export default {
   font-size: 12px;
   font-weight: 600;
   color: @sc-blue;
-  background: rgba(22, 119, 255, 0.1);
-  border: 1px solid rgba(22, 119, 255, 0.18);
+  background: var(--primary-color-soft, rgba(22, 119, 255, 0.1));
+  border: 1px solid color-mix(in srgb, var(--primary-color, #1677ff) 18%, transparent);
   margin-bottom: 10px;
   cursor: pointer;
   transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
 
   &:hover,
   &:focus-visible {
-    background: rgba(22, 119, 255, 0.16);
-    border-color: rgba(22, 119, 255, 0.38);
-    box-shadow: 0 6px 18px rgba(22, 119, 255, 0.12);
+    background: var(--primary-color-soft-strong, rgba(22, 119, 255, 0.16));
+    border-color: color-mix(in srgb, var(--primary-color, #1677ff) 38%, transparent);
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--primary-color, #1677ff) 12%, transparent);
     outline: none;
   }
 }
@@ -222,7 +283,7 @@ export default {
   box-shadow: @sc-shadow;
 
   &--primary {
-    background: linear-gradient(135deg, #1677ff 0%, #4096ff 100%);
+    background: linear-gradient(135deg, var(--primary-color, #1677ff) 0%, var(--primary-color-hover, #4096ff) 100%);
     border: none;
   }
 }
@@ -242,10 +303,11 @@ export default {
 }
 
 .sc-mini-stat {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 16px;
+  padding: 18px 42px 16px 16px;
   background: #fff;
   border-radius: @sc-radius;
   border: 1px solid rgba(226, 232, 240, 0.9);
@@ -256,7 +318,7 @@ export default {
   &:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 28px rgba(15, 23, 42, 0.08);
-    border-color: rgba(22, 119, 255, 0.25);
+    border-color: color-mix(in srgb, var(--primary-color, #1677ff) 25%, transparent);
   }
 }
 
@@ -275,6 +337,7 @@ export default {
   &--script { background: rgba(114, 46, 209, 0.12); color: @sc-purple; }
   &--bot { background: rgba(19, 194, 194, 0.12); color: @sc-teal; }
   &--indicator { background: rgba(250, 173, 20, 0.12); color: #fa8c16; }
+  &--strategySource { background: rgba(47, 84, 235, 0.12); color: #2f54eb; }
 }
 
 .sc-mini-stat-body {
@@ -297,7 +360,49 @@ export default {
   margin-top: 2px;
 }
 
+.sc-mini-stat-meta {
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 1.3;
+  color: #64748b;
+}
+
+.sc-mini-stat-create {
+  position: absolute;
+  top: 10px;
+  right: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: calc(100% - 92px);
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--primary-color, #1677ff) 16%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary-color, #1677ff) 6%, transparent);
+  color: @sc-blue;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+
+  span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &:hover {
+    border-color: color-mix(in srgb, var(--primary-color, #1677ff) 34%, transparent);
+    background: var(--primary-color-soft, rgba(22, 119, 255, 0.1));
+    color: var(--primary-color-active, #0958d9);
+  }
+}
+
 .sc-mini-stat-arrow {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
   color: #cbd5e1;
   font-size: 12px;
 }
@@ -325,5 +430,17 @@ export default {
   }
   .sc-mini-stat-num { color: rgba(255, 255, 255, 0.92); }
   .sc-mini-stat-label { color: rgba(255, 255, 255, 0.45); }
+  .sc-mini-stat-meta { color: rgba(255, 255, 255, 0.55); }
+  .sc-mini-stat-create {
+    border-color: color-mix(in srgb, var(--primary-color, #1890ff) 24%, transparent);
+    background: color-mix(in srgb, var(--primary-color, #1890ff) 8%, transparent);
+    color: var(--primary-color, #1890ff);
+
+    &:hover {
+      border-color: color-mix(in srgb, var(--primary-color, #1890ff) 42%, transparent);
+      background: color-mix(in srgb, var(--primary-color, #1890ff) 14%, transparent);
+      color: var(--primary-color-hover, #91caff);
+    }
+  }
 }
 </style>

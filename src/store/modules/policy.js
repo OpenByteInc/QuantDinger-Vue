@@ -19,7 +19,6 @@ const DEFAULT_POLICY = {
     huobi: { Crypto: ['spot'] },
     bingx: { Crypto: ['spot'] },
     ibkr: { USStock: ['spot'] },
-    mt5: { Forex: ['spot'] },
     alpaca: { USStock: ['spot'], Crypto: ['spot'] }
   },
   long_only_brokers: ['alpaca', 'ibkr'],

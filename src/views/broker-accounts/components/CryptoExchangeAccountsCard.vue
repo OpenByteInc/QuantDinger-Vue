@@ -55,7 +55,7 @@
             </div>
           </div>
           <div class="crypto-item-footer">
-            <a-button size="small" type="primary" ghost @click="openSnapshotModal(item)">
+            <a-button size="small" class="crypto-view-account-btn" @click="openSnapshotModal(item)">
               <a-icon type="fund" /> {{ $t('trading-assistant.positions.viewAccountPositions') }}
             </a-button>
             <a-button size="small" @click="openRenameModal(item)">
@@ -189,13 +189,8 @@ import { getAccountSnapshot } from '@/api/strategy'
 import ExchangeAccountModal from '@/components/ExchangeAccountModal/ExchangeAccountModal.vue'
 import ExchangeSignupModal from '@/components/ExchangeSignupModal/ExchangeSignupModal.vue'
 import RenameCredentialModal from '@/components/RenameCredentialModal/RenameCredentialModal.vue'
-import { getExchangeDisplayName } from '@/utils/exchangeCredential'
+import { CRYPTO_EXCHANGE_IDS, getExchangeDisplayName } from '@/utils/exchangeCredential'
 import moment from 'moment'
-
-const CRYPTO_EXCHANGE_IDS = new Set([
-  'binance', 'okx', 'bitget', 'bybit', 'coinbaseexchange',
-  'kraken', 'kucoin', 'gate', 'bitfinex', 'htx'
-])
 
 const DISPLAY_NAMES = {
   binance: 'Binance',
@@ -321,7 +316,7 @@ export default {
       return name.charAt(0).toUpperCase()
     },
     iconBg (id) {
-      return ICON_COLORS[id] || '#1890ff'
+      return ICON_COLORS[id] || 'var(--primary-color, #1890ff)'
     },
     formatTime (raw) {
       if (raw === null || raw === undefined || raw === '') return ''
@@ -487,7 +482,7 @@ export default {
   align-items: center;
   gap: 8px;
 }
-.crypto-card-title-icon { color: #1890ff; font-size: 18px; }
+.crypto-card-title-icon { color: var(--primary-color, #1890ff); font-size: 18px; }
 .crypto-card-subtitle {
   margin-top: 4px;
   font-size: 12px;
@@ -505,6 +500,17 @@ export default {
   flex-shrink: 0;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+.crypto-open-account-btn {
+  border-color: #d9d9d9;
+  color: #3f4a5a;
+  background: #fff;
+}
+.crypto-open-account-btn:hover,
+.crypto-open-account-btn:focus {
+  border-color: var(--primary-color, #1890ff);
+  color: var(--primary-color-active, #096dd9);
+  background: color-mix(in srgb, var(--primary-color, #1890ff) 8%, #ffffff);
 }
 .crypto-empty {
   text-align: center;
@@ -596,6 +602,42 @@ export default {
 .crypto-card.theme-dark .crypto-item-footer {
   border-top-color: #303030;
 }
+.crypto-view-account-btn {
+  border-color: var(--primary-color, #1677ff);
+  background: color-mix(in srgb, var(--primary-color, #1677ff) 10%, #ffffff);
+  color: var(--primary-color-active, #0958d9);
+  font-weight: 600;
+}
+.crypto-view-account-btn:hover,
+.crypto-view-account-btn:focus {
+  border-color: var(--primary-color-active, #0958d9);
+  background: var(--primary-color, #1677ff);
+  color: #fff;
+}
+.crypto-card.theme-dark {
+  .crypto-open-account-btn {
+    border-color: #3a3a3a;
+    color: rgba(255, 255, 255, 0.78);
+    background: #262626;
+  }
+  .crypto-open-account-btn:hover,
+  .crypto-open-account-btn:focus {
+    border-color: var(--primary-color, #1890ff);
+    color: var(--primary-color, #1890ff);
+    background: color-mix(in srgb, var(--primary-color, #1890ff) 12%, transparent);
+  }
+  .crypto-view-account-btn {
+    border-color: color-mix(in srgb, var(--primary-color, #1890ff) 55%, transparent);
+    background: color-mix(in srgb, var(--primary-color, #1890ff) 16%, transparent);
+    color: var(--primary-color-hover, #9ecbff);
+  }
+  .crypto-view-account-btn:hover,
+  .crypto-view-account-btn:focus {
+    border-color: var(--primary-color, #1890ff);
+    background: var(--primary-color-active, #1f6feb);
+    color: #fff;
+  }
+}
 .snapshot-modal-hint { margin-bottom: 10px; }
 .snapshot-error-alert { margin-bottom: 10px; }
 .snapshot-error-list {
@@ -675,11 +717,11 @@ export default {
   }
 
   .ant-tabs-nav .ant-tabs-tab-active {
-    color: #40a9ff;
+    color: var(--primary-color-hover, #40a9ff);
   }
 
   .ant-tabs-ink-bar {
-    background: #1890ff;
+    background: var(--primary-color, #1890ff);
   }
 
   .ant-table,

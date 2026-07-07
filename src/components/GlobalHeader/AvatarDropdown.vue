@@ -336,7 +336,7 @@ body.realdark .qd-account-menu.ant-menu,
     &.ant-dropdown-menu-item-selected,
     &.ant-menu-item-selected {
       background-color: #262626;
-      color: #1890ff;
+      color: var(--primary-color, #1890ff);
     }
 
     .anticon {

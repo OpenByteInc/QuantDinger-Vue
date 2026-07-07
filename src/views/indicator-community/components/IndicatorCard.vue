@@ -492,7 +492,7 @@ export default {
         padding: 0 6px;
         border: none;
       }
-      .tag-symbol { background: rgba(24, 144, 255, 0.08); color: #1890ff; }
+      .tag-symbol { background: rgba(24, 144, 255, 0.08); color: var(--primary-color, #1890ff); }
       .tag-tf { background: rgba(82, 196, 26, 0.08); color: #389e0d; }
       .tag-extra {
         background: rgba(0, 0, 0, 0.04);

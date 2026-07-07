@@ -266,7 +266,12 @@
               </template>
             </a-list-item-meta>
             <template #actions>
-              <a-button type="link" size="small" @click="goToUse(item)">
+              <a-button
+                type="link"
+                size="small"
+                :loading="!!restoringPurchaseIds[item.purchase_id]"
+                @click="goToUse(item)"
+              >
                 {{ usePurchaseActionLabel(item) }}
               </a-button>
             </template>
@@ -342,6 +347,7 @@ export default {
       selectedIndicatorId: null,
       showMyPurchases: false,
       purchasesLoading: false,
+      restoringPurchaseIds: {},
       myPurchases: [],
       activeTab: 'market',
       reviewFilter: 'pending',
@@ -483,6 +489,9 @@ export default {
     },
 
     usePurchaseActionLabel (item) {
+      if (item && item.local_copy_missing) {
+        return this.$t('community.restoreCopy')
+      }
       const assetType = item && item.indicator && item.indicator.asset_type
       if (assetType === 'script_template') {
         return this.$t('community.useScriptStrategy')
@@ -493,7 +502,11 @@ export default {
       return this.$t('community.useNow')
     },
 
-    goToUse (item) {
+    async goToUse (item) {
+      if (item && item.local_copy_missing) {
+        const restored = await this.restorePurchaseCopy(item)
+        if (!restored) return
+      }
       this.showMyPurchases = false
       const indicator = item && item.indicator
       const assetType = (indicator && indicator.asset_type) || 'indicator'
@@ -522,6 +535,47 @@ export default {
         return
       }
       this.$router.push('/indicator-ide')
+    },
+
+    async restorePurchaseCopy (item) {
+      const indicatorId = item && item.indicator && item.indicator.id
+      if (!indicatorId) return false
+      this.$set(this.restoringPurchaseIds, item.purchase_id, true)
+      try {
+        const res = await request({
+          url: `/api/community/indicators/${indicatorId}/sync`,
+          method: 'post'
+        })
+        if (res && res.code === 1) {
+          const data = res.data || {}
+          this.$message.success(this.$t(res.msg === 'restored' ? 'community.restoreCopySuccess' : 'community.syncCodeSuccess'))
+          item.local_copy_missing = false
+          item.local_copy_exists = true
+          item.restore_available = false
+          if (data.script_source_id) {
+            item.script_source_id = data.script_source_id
+            item.purchased_script_source_id = data.script_source_id
+          }
+          if (data.strategy_id) {
+            item.purchased_strategy_id = data.strategy_id
+          }
+          if (data.local_copy_id) {
+            item.local_copy_id = data.local_copy_id
+          }
+          await this.loadMyPurchases()
+          return true
+        }
+        const msgKey = `community.${res && res.msg}`
+        this.$message.error(this.$te(msgKey) ? this.$t(msgKey) : this.$t('community.restoreCopyFailed'))
+        return false
+      } catch (e) {
+        const backendMsg = e && e.response && e.response.data && e.response.data.msg
+        const msgKey = backendMsg ? `community.${backendMsg}` : ''
+        this.$message.error(msgKey && this.$te(msgKey) ? this.$t(msgKey) : this.$t('community.restoreCopyFailed'))
+        return false
+      } finally {
+        this.$delete(this.restoringPurchaseIds, item.purchase_id)
+      }
     },
 
     formatDate (dateStr) {
@@ -734,7 +788,7 @@ export default {
 
         .anticon {
           margin-right: 8px;
-          color: #1890ff;
+          color: var(--primary-color, #1890ff);
         }
       }
 
@@ -898,7 +952,7 @@ export default {
     ::v-deep .ant-tabs-nav .ant-tabs-tab {
       color: rgba(255, 255, 255, 0.65);
       &.ant-tabs-tab-active {
-        color: #40a9ff;
+        color: var(--primary-color, #1890ff);
       }
     }
   }
@@ -1003,12 +1057,12 @@ export default {
       color: rgba(255, 255, 255, 0.65);
 
       &:hover {
-        color: #40a9ff;
+        color: var(--primary-color, #1890ff);
       }
 
       &.ant-radio-button-wrapper-checked {
-        background: #177ddc;
-        border-color: #177ddc;
+        background: var(--primary-color, #1890ff);
+        border-color: var(--primary-color, #1890ff);
         color: #fff;
       }
     }
@@ -1027,7 +1081,7 @@ export default {
   }
 
   ::v-deep .ant-btn-link {
-    color: #40a9ff;
+    color: var(--primary-color, #1890ff);
   }
 
   ::v-deep .ant-pagination {
@@ -1040,8 +1094,8 @@ export default {
       }
 
       &.ant-pagination-item-active {
-        background: #177ddc;
-        border-color: #177ddc;
+        background: var(--primary-color, #1890ff);
+        border-color: var(--primary-color, #1890ff);
 
         a {
           color: #fff;
@@ -1090,7 +1144,7 @@ export default {
     }
 
     .ant-list-item-meta-title a {
-      color: #40a9ff;
+      color: var(--primary-color, #1890ff);
     }
 
     .ant-list-item-meta-description {
@@ -1221,10 +1275,10 @@ export default {
     }
 
     .purchase-item-title {
-      color: #69c0ff;
+      color: var(--primary-color, #69c0ff);
 
       &:hover {
-        color: #40a9ff;
+        color: var(--primary-color-hover, #40a9ff);
       }
     }
 
@@ -1255,10 +1309,10 @@ export default {
     }
 
     .ant-btn-link {
-      color: #69c0ff;
+      color: var(--primary-color, #69c0ff);
 
       &:hover {
-        color: #40a9ff;
+        color: var(--primary-color-hover, #40a9ff);
       }
     }
   }

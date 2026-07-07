@@ -23,7 +23,7 @@
       <a-step :title="$t('trading-bot.wizard.step4')" />
     </a-steps>
 
-    <div class="wizard-content">
+    <div ref="wizardContent" class="wizard-content">
       <div v-show="currentStep === 0" class="step-panel">
         <a-form-model
           ref="baseForm"
@@ -32,14 +32,14 @@
           :label-col="{ span: 6 }"
           :wrapper-col="{ span: 16 }"
         >
-          <a-form-model-item :label="$t('trading-bot.wizard.botName')" prop="botName">
+          <a-form-model-item ref="fieldBotName" :label="$t('trading-bot.wizard.botName')" prop="botName">
             <a-input
               v-model="baseForm.botName"
               :placeholder="$t('trading-bot.wizard.botNamePh')"
             />
           </a-form-model-item>
 
-          <a-form-model-item :label="$t('trading-bot.wizard.marketCategory')" prop="marketCategory">
+          <a-form-model-item ref="fieldMarketCategory" :label="$t('trading-bot.wizard.marketCategory')" prop="marketCategory">
             <a-radio-group v-model="baseForm.marketCategory" @change="handleMarketCategoryChange">
               <a-tooltip
                 v-for="opt in marketCategoryOptions"
@@ -66,7 +66,47 @@
             </div>
           </a-form-model-item>
 
-          <a-form-model-item :label="$t('trading-bot.wizard.savedCredential')" prop="credentialId">
+          <a-form-model-item :label="$t('trading-bot.wizard.marketType')">
+            <template v-if="shouldShowMarketTypeSelector">
+              <a-radio-group v-model="baseForm.marketType" :disabled="!swapAvailableForCurrentSelection && !spotAvailableForCurrentSelection">
+              <a-radio value="swap" :disabled="!swapAvailableForCurrentSelection">{{ $t('trading-bot.wizard.futures') }}</a-radio>
+              <a-radio value="spot" :disabled="!spotAvailableForCurrentSelection">{{ $t('trading-bot.wizard.spot') }}</a-radio>
+              </a-radio-group>
+            </template>
+            <template v-else>
+              <a-tag color="cyan">{{ $t('trading-bot.wizard.spot') }}</a-tag>
+            </template>
+            <div v-if="marketTypeHint" class="form-hint" style="margin-top: 6px; color: #8c8c8c;">
+              {{ marketTypeHint }}
+            </div>
+          </a-form-model-item>
+
+          <a-form-model-item
+            v-if="baseForm.marketType === 'swap'"
+            :label="$t('trading-bot.wizard.leverage')"
+          >
+            <a-input-number
+              v-model="baseForm.leverage"
+              :min="1"
+              :max="125"
+              :step="1"
+              style="width: 100%"
+            />
+          </a-form-model-item>
+
+          <a-form-model-item ref="fieldInitialCapital" class="capital-form-item" :label="capitalLabel" prop="initialCapital">
+            <a-input-number
+              v-model="baseForm.initialCapital"
+              :min="10"
+              :max="1000000"
+              :step="100"
+              style="width: 100%"
+              placeholder="USDT"
+            />
+            <div v-if="botType === 'martingale'" class="form-hint">{{ martingaleBudgetHint }}</div>
+          </a-form-model-item>
+
+          <a-form-model-item ref="fieldCredentialId" :label="$t('trading-bot.wizard.savedCredential')" prop="credentialId">
             <a-select
               v-model="baseForm.credentialId"
               :placeholder="$t('trading-bot.wizard.selectCredential')"
@@ -91,7 +131,7 @@
             </div>
           </a-form-model-item>
 
-          <a-form-model-item :label="$t('trading-bot.wizard.symbol')" prop="symbol">
+          <a-form-model-item ref="fieldSymbol" :label="$t('trading-bot.wizard.symbol')" prop="symbol">
             <a-select
               v-model="selectedSymbolKey"
               :placeholder="watchlistPlaceholder"
@@ -150,45 +190,6 @@
               <a-select-option value="4h">4 {{ $t('trading-bot.timeframe.hour') }}</a-select-option>
               <a-select-option value="1d">1 {{ $t('trading-bot.timeframe.day') }}</a-select-option>
             </a-select>
-          </a-form-model-item>
-
-          <a-form-model-item :label="$t('trading-bot.wizard.marketType')">
-            <template v-if="shouldShowMarketTypeSelector">
-              <a-radio-group v-model="baseForm.marketType" :disabled="!swapAvailableForCurrentSelection && !spotAvailableForCurrentSelection">
-              <a-radio value="swap" :disabled="!swapAvailableForCurrentSelection">{{ $t('trading-bot.wizard.futures') }}</a-radio>
-              <a-radio value="spot" :disabled="!spotAvailableForCurrentSelection">{{ $t('trading-bot.wizard.spot') }}</a-radio>
-              </a-radio-group>
-            </template>
-            <template v-else>
-              <a-tag color="cyan">{{ $t('trading-bot.wizard.spot') }}</a-tag>
-            </template>
-            <div v-if="marketTypeHint" class="form-hint" style="margin-top: 6px; color: #8c8c8c;">
-              {{ marketTypeHint }}
-            </div>
-          </a-form-model-item>
-
-          <a-form-model-item
-            v-if="baseForm.marketType === 'swap'"
-            :label="$t('trading-bot.wizard.leverage')"
-          >
-            <a-input-number
-              v-model="baseForm.leverage"
-              :min="1"
-              :max="125"
-              :step="1"
-              style="width: 100%"
-            />
-          </a-form-model-item>
-
-          <a-form-model-item :label="capitalLabel" prop="initialCapital">
-            <a-input-number
-              v-model="baseForm.initialCapital"
-              :min="10"
-              :step="100"
-              style="width: 100%"
-              placeholder="USDT"
-            />
-            <div v-if="botType === 'martingale'" class="form-hint">{{ martingaleBudgetHint }}</div>
           </a-form-model-item>
 
         </a-form-model>
@@ -380,6 +381,7 @@
       <a-button
         v-if="currentStep < 3"
         type="primary"
+        :loading="validatingNext"
         @click="nextStep"
       >
         {{ $t('trading-bot.wizard.next') }} <a-icon type="right" />
@@ -510,6 +512,7 @@ export default {
     return {
       currentStep: 0,
       creating: false,
+      validatingNext: false,
       loadingCredentials: false,
       // Raw list returned from the API (every credential the user has).
       // We keep this around so switching market_category can re-filter
@@ -533,7 +536,7 @@ export default {
         marketCategory: [{ required: true, message: this.$t('trading-bot.wizard.marketCategory'), trigger: 'change' }],
         credentialId: [{ required: true, message: this.$t('trading-bot.wizard.credentialReq'), trigger: 'change' }],
         symbol: [{ required: true, message: this.$t('trading-bot.wizard.symbolReq'), trigger: 'change' }],
-        initialCapital: [{ required: true, type: 'number', min: 10, message: this.$t('trading-bot.wizard.capitalReq'), trigger: 'change' }]
+        initialCapital: [{ required: true, type: 'number', min: 10, max: 1000000, message: this.$t('trading-bot.wizard.capitalReq'), trigger: 'change' }]
       },
       strategyParams: {},
       riskForm: {
@@ -1174,7 +1177,7 @@ export default {
       if (val === '__add__') return true
       const q = String(input || '').trim().toLowerCase()
       if (!q) return true
-      const row = this.cryptoWatchlist.find(w => w.symbol === option.componentOptions.propsData.value)
+      const row = this.marketWatchlist.find(w => w.symbol === option.componentOptions.propsData.value)
       const haystack = (val + ' ' + ((row && row.name) || '')).toLowerCase()
       return haystack.includes(q)
     },
@@ -1342,24 +1345,128 @@ export default {
         this.baseForm.marketType = 'swap'
       }
     },
+    syncBaseStepFieldsBeforeValidate () {
+      if (!this.baseForm.symbol && this.selectedSymbolKey && this.selectedSymbolKey !== '__add__') {
+        this.baseForm.symbol = this.selectedSymbolKey
+      }
+    },
+    extractValidationIssue (fields) {
+      if (!fields || typeof fields !== 'object') return null
+      for (const key of Object.keys(fields)) {
+        const item = fields[key]
+        const errors = Array.isArray(item) ? item : (item && item.errors)
+        if (Array.isArray(errors) && errors.length > 0) {
+          const first = errors[0]
+          if (typeof first === 'string') return { field: key, message: first }
+          if (first && first.message) return { field: key, message: first.message }
+        }
+      }
+      return null
+    },
+    extractValidationMessage (fields) {
+      const issue = this.extractValidationIssue(fields)
+      return issue ? issue.message : ''
+    },
+    getBaseStepValidationIssue () {
+      if (!String(this.baseForm.botName || '').trim()) {
+        return { field: 'botName', message: this.$t('trading-bot.wizard.botNameReq') }
+      }
+      if (!this.isBotTypeSupportedOnCurrentMarket) {
+        return {
+          field: 'marketCategory',
+          message: this.$t('trading-bot.wizard.botTypeNotSupportedOnMarket', { market: this.currentMarketLabel })
+        }
+      }
+      if (!this.baseForm.credentialId) {
+        return { field: 'credentialId', message: this.$t('trading-bot.wizard.credentialReq') }
+      }
+      if (!String(this.baseForm.symbol || '').trim()) {
+        return { field: 'symbol', message: this.$t('trading-bot.wizard.symbolReq') }
+      }
+      if (!this.isStockMarketCategory && this.baseForm.marketType === 'swap' && !this.swapAvailableForCurrentSelection) {
+        return {
+          field: 'marketType',
+          message: this.marketTypeHint || this.$t('trading-bot.wizard.futuresUnsupported')
+        }
+      }
+      const capital = Number(this.baseForm.initialCapital)
+      if (!Number.isFinite(capital) || capital < 10 || capital > 1000000) {
+        return { field: 'initialCapital', message: this.$t('trading-bot.wizard.capitalReq') }
+      }
+      return null
+    },
+    getBaseStepValidationMessage () {
+      const issue = this.getBaseStepValidationIssue()
+      return issue && issue.message ? issue.message : issue
+    },
+    validateFormModel (formRef) {
+      return new Promise(resolve => {
+        if (!formRef || typeof formRef.validate !== 'function') {
+          resolve({ valid: true, fields: null })
+          return
+        }
+        formRef.validate((valid, fields) => {
+          resolve({ valid: !!valid, fields })
+        })
+      })
+    },
+    async validateBaseStepWithMessage () {
+      this.syncBaseStepFieldsBeforeValidate()
+      const manualMessage = this.getBaseStepValidationMessage()
+      const result = await this.validateFormModel(this.$refs.baseForm)
+      if (!result.valid || manualMessage) {
+        return {
+          valid: false,
+          message: this.extractValidationMessage(result.fields) || manualMessage || this.$t('trading-bot.wizard.basicConfigIncomplete')
+        }
+      }
+      return { valid: true, message: '' }
+    },
+    scrollBaseFieldIntoView (field) {
+      const refMap = {
+        botName: 'fieldBotName',
+        marketCategory: 'fieldMarketCategory',
+        credentialId: 'fieldCredentialId',
+        symbol: 'fieldSymbol',
+        initialCapital: 'fieldInitialCapital'
+      }
+      const refName = refMap[field]
+      if (!refName) return
+      this.$nextTick(() => {
+        const target = this.$refs[refName]
+        const el = target && (target.$el || target)
+        if (el && typeof el.scrollIntoView === 'function') {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+      })
+    },
     async nextStep () {
-      if (this.currentStep === 0) {
-        try {
-          await new Promise((resolve, reject) => {
-            this.$refs.baseForm.validate(valid => valid ? resolve() : reject(new Error()))
-          })
-        } catch {
-          return
+      if (this.validatingNext) return
+      this.validatingNext = true
+      try {
+        if (this.currentStep === 0) {
+          const result = await this.validateBaseStepWithMessage()
+          if (!result.valid) {
+            this.$message.warning(result.message)
+            const issue = this.getBaseStepValidationIssue()
+            this.scrollBaseFieldIntoView(issue && issue.field)
+            return
+          }
         }
-      }
-      if (this.currentStep === 1 && this.$refs.strategyConfig) {
-        try {
-          await this.$refs.strategyConfig.validate()
-        } catch {
-          return
+        if (this.currentStep === 1 && this.$refs.strategyConfig) {
+          try {
+            await this.$refs.strategyConfig.validate()
+          } catch (e) {
+            this.$message.warning((e && e.message && e.message !== 'validation failed')
+              ? e.message
+              : this.$t('trading-bot.wizard.strategyParamsIncomplete'))
+            return
+          }
         }
+        this.currentStep++
+      } finally {
+        this.validatingNext = false
       }
-      this.currentStep++
     },
     prevStep () {
       if (this.currentStep > 0) this.currentStep--
@@ -1388,10 +1495,14 @@ export default {
       }
     },
     async buildPayload () {
+      const initialCapital = Number(this.baseForm.initialCapital)
+      if (!Number.isFinite(initialCapital) || initialCapital < 10 || initialCapital > 1000000) {
+        throw new Error(this.$t('trading-bot.wizard.capitalReq'))
+      }
       const strategyParams = this.normalizeStrategyParams(this.strategyParams)
       const scriptParams = { ...strategyParams }
-      if (this.baseForm.initialCapital > 0) {
-        scriptParams._initialCapital = this.baseForm.initialCapital
+      if (initialCapital > 0) {
+        scriptParams._initialCapital = initialCapital
       }
       const effectiveTimeframe = this.needsTimeframe
         ? this.baseForm.timeframe
@@ -1438,7 +1549,7 @@ export default {
           market_type: marketType,
           leverage: leverage,
           trade_direction: tradeDirection,
-          initial_capital: this.baseForm.initialCapital,
+          initial_capital: initialCapital,
           stop_loss_pct: this.botType === 'martingale' ? 0 : this.riskForm.stopLossPct,
           take_profit_pct: this.botType === 'martingale' ? 0 : this.riskForm.takeProfitPct,
           max_position: this.botType === 'martingale' ? 0 : this.riskForm.maxPosition,
@@ -1579,6 +1690,7 @@ export default {
   flex: 1;
   overflow-y: auto;
   min-height: 300px;
+  scroll-padding: 24px 0;
 }
 
 .step-panel {
@@ -1594,14 +1706,22 @@ export default {
   color: #595959;
   margin-bottom: 20px;
 
-  .anticon { color: #1890ff; margin-right: 6px; }
+  .anticon { color: var(--primary-color, #1890ff); margin-right: 6px; }
 }
 
 .form-hint {
   font-size: 12px;
   color: #8c8c8c;
 
-  a { color: #1890ff; font-size: 12px; }
+  a { color: var(--primary-color, #1890ff); font-size: 12px; }
+}
+
+.capital-form-item {
+  margin: 4px 0 18px;
+  padding: 10px 12px 8px;
+  border: 1px solid rgba(19, 194, 194, 0.24);
+  border-radius: 8px;
+  background: rgba(19, 194, 194, 0.06);
 }
 
 .confirm-section {
@@ -1642,7 +1762,7 @@ export default {
 }
 
 .bot-symbol-opt-add .anticon {
-  color: #1890ff;
+  color: var(--primary-color, #1890ff);
   margin-right: 6px;
 }
 
@@ -1650,7 +1770,7 @@ export default {
   margin-left: 8px;
   cursor: pointer;
   font-size: 12px;
-  color: #1890ff;
+  color: var(--primary-color, #1890ff);
 
   .anticon { margin-right: 4px; }
 }
@@ -1662,7 +1782,7 @@ export default {
   border-radius: 6px;
   padding: 8px 12px;
 
-  .anticon { color: #1890ff; margin-right: 6px; }
+  .anticon { color: var(--primary-color, #1890ff); margin-right: 6px; }
 }
 
 .bot-add-symbol-empty {

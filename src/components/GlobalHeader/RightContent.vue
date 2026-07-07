@@ -127,7 +127,7 @@ body.realdark,
       color: rgba(255, 255, 255, 0.85) !important;
 
       &:hover {
-        color: #1890ff !important;
+        color: var(--primary-color, #1890ff) !important;
         background: rgba(255, 255, 255, 0.08) !important;
       }
     }
@@ -143,7 +143,7 @@ body.realdark,
       color: rgba(255, 255, 255, 0.85) !important;
 
       &:hover {
-        color: #1890ff !important;
+        color: var(--primary-color, #1890ff) !important;
         background: rgba(255, 255, 255, 0.08) !important;
       }
 
