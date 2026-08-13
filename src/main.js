@@ -1,3 +1,8 @@
+// QuantDinger Error Monitor — must load first to catch all downstream errors.
+// Batch-reports to /api/v2/errors (POST). Covers window.onerror,
+// unhandledrejection, resource load failures, trade/strategy crashes.
+import './core/error_monitor.js'
+
 import Vue from 'vue'
 import 'ant-design-vue/dist/antd.css'
 import App from './App.vue'
