@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /user/
+Disallow: /billing
+Disallow: /profile
+Disallow: /settings
+Disallow: /__view/
+Disallow: /__assets/
+
+Sitemap: https://quant.kai.com/sitemap.xml

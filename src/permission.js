@@ -21,7 +21,7 @@ NProgress.configure({
   showSpinner: false
 }) // NProgress Configuration
 
-const allowList = ['login'] // no redirect allowList
+const allowList = ['login', 'UserAgreement', 'PrivacyPolicy'] // no redirect allowList
 const loginRoutePath = '/user/login'
 const defaultRoutePath = '/ai-asset-analysis'
 

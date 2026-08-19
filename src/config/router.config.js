@@ -178,6 +178,24 @@ export const constantRouterMap = [
   },
 
   {
+    path: '/legal',
+    component: () => import('@/layouts/BlankLayout'),
+    hidden: true,
+    redirect: '/legal/user-agreement',
+    children: [
+      {
+        path: 'user-agreement',
+        name: 'UserAgreement',
+        component: () => import('@/views/legal/UserAgreement')
+      },
+      {
+        path: 'privacy-policy',
+        name: 'PrivacyPolicy',
+        component: () => import('@/views/legal/PrivacyPolicy')
+      }
+    ]
+  },
+  {
     path: '/404',
     meta: { title: 'menu.exception.not-find' },
     component: () => import(/* webpackChunkName: "fail" */ '@/views/exception/404')
