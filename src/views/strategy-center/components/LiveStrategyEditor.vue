@@ -244,11 +244,10 @@ import { mapState } from 'vuex'
 import { listExchangeCredentials } from '@/api/credentials'
 import { getNotificationSettings } from '@/api/user'
 import { formatExchangeCredentialLabel, getExchangeDisplayName } from '@/utils/exchangeCredential'
+import { supportsLiveExecutionMode, credentialMatchesLiveStrategy } from '@/utils/liveTradingEligibility'
 import { extractScriptParamsFromCode } from '@/views/strategy-ide/components/scriptTemplateCatalog'
 
 const DEFAULT_CHANNELS = ['browser', 'email']
-const CRYPTO_EXCHANGES = ['binance', 'bitget', 'bybit', 'okx', 'gate', 'htx']
-const LIVE_CRYPTO_EXCHANGES = new Set(CRYPTO_EXCHANGES)
 const DIRECTION_MODE_ALIASES = {
   long: 'long_only',
   longonly: 'long_only',
@@ -368,8 +367,7 @@ export default {
       return value.toLocaleString(undefined, { maximumFractionDigits: 2 })
     },
     supportsLive () {
-      if (this.isPortfolioStrategy) return this.marketCategory === 'USStock'
-      return ['Crypto', 'USStock'].includes(this.marketCategory)
+      return supportsLiveExecutionMode(this.strategyManifest)
     },
     requiresDirectionMode () {
       if (this.marketCategory !== 'Crypto') return false
@@ -418,13 +416,9 @@ export default {
       }))
     },
     compatibleCredentials () {
-      return this.credentials.filter(credential => {
-        const exchange = String(credential.exchange_id || '').toLowerCase()
-        if (this.isPortfolioStrategy) return exchange === 'alpaca'
-        if (this.marketCategory === 'Crypto') return LIVE_CRYPTO_EXCHANGES.has(exchange)
-        if (this.marketCategory === 'USStock') return ['alpaca', 'ibkr'].includes(exchange)
-        return false
-      })
+      return this.credentials.filter(credential =>
+        credentialMatchesLiveStrategy(this.strategyManifest, credential.exchange_id)
+      )
     },
     selectedCredentialExchange () {
       const credential = this.credentials.find(item => String(item.id) === String(this.model.credentialId))
