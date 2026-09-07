@@ -155,5 +155,11 @@ test('strategy AI generation failures surface and localize the nested validation
   assert.equal(strategyV2Messages['zh-CN']['strategyV2.aiBidirectionalOrderLegsRequired'], '多空双向策略必须同时实现多头腿和空头腿的下单逻辑。')
   assert.equal(strategyV2Messages['zh-CN']['strategyV2.aiProtectionImplementationRequired'], '用户要求的止损或止盈尚未通过可执行保护规则实现。')
   assert.equal(strategyV2Messages['zh-CN']['strategyV2.aiSupertrendNativeRequired'], '生成的 Supertrend 策略必须使用平台标准 Supertrend 指标。')
+  assert.equal(strategyV2Messages['zh-CN']['strategyV2.aiRequestedFactorMissing'], '生成策略没有使用用户要求的全部技术指标。')
   assert.equal(strategyV2Messages['zh-CN']['strategyV2.aiBehaviorOpenLegMissing'], '运行时冒烟测试未能触发用户要求的全部入场方向。')
+  for (const locale of Object.keys(strategyV2Messages)) {
+    assert.ok(strategyV2Messages[locale]['strategyV2.aiRequestedFactorMissing'])
+    assert.ok(strategyV2Messages[locale]['strategyV2.aiFactorParameterUnsupported'])
+    assert.ok(strategyV2Messages[locale]['strategyV2.aiFactorParameterInvalid'])
+  }
 })
