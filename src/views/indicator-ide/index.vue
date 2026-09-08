@@ -2634,6 +2634,7 @@ export default {
             code,
             name: nextName,
             description: indicator.description || '',
+            allowEmptyDraft: true,
             userid: this.userId
           }
         })
@@ -3341,36 +3342,6 @@ export default {
         this.qtSymbol = newSymbol
       }
     },
-    buildNewIndicatorStarterCode () {
-      const label = moment().format('YYYY-MM-DD HH:mm')
-      return (
-        `my_indicator_name = "New Indicator ${label}"\n` +
-        'my_indicator_description = "Chart-only indicator. Convert it to Strategy API V2 before backtesting or live trading."\n\n' +
-        '# @param fast_period int 10 Fast EMA period\n' +
-        '# @param slow_period int 30 Slow EMA period\n\n' +
-        'df = df.copy()\n' +
-        'fast_period = int(params.get(\'fast_period\', 10))\n' +
-        'slow_period = int(params.get(\'slow_period\', 30))\n\n' +
-        'ema_fast = df[\'close\'].ewm(span=fast_period, adjust=False).mean()\n' +
-        'ema_slow = df[\'close\'].ewm(span=slow_period, adjust=False).mean()\n\n' +
-        'golden = (ema_fast > ema_slow) & (ema_fast.shift(1) <= ema_slow.shift(1))\n' +
-        'death = (ema_fast < ema_slow) & (ema_fast.shift(1) >= ema_slow.shift(1))\n' +
-        'buy_marks = [df[\'low\'].iloc[i] * 0.995 if bool(golden.fillna(False).iloc[i]) else None for i in range(len(df))]\n' +
-        'sell_marks = [df[\'high\'].iloc[i] * 1.005 if bool(death.fillna(False).iloc[i]) else None for i in range(len(df))]\n\n' +
-        'output = {\n' +
-        '  \'name\': my_indicator_name,\n' +
-        '  \'plots\': [\n' +
-        '    {\'name\': \'EMA Fast\', \'data\': ema_fast.fillna(0).tolist(), \'color\': \'#52c41a\', \'overlay\': True},\n' +
-        '    {\'name\': \'EMA Slow\', \'data\': ema_slow.fillna(0).tolist(), \'color\': \'#1890ff\', \'overlay\': True}\n' +
-        '  ],\n' +
-        '  \'signals\': [\n' +
-        '    {\'type\': \'buy\', \'text\': \'Golden\', \'data\': buy_marks, \'color\': \'#52c41a\'},\n' +
-        '    {\'type\': \'sell\', \'text\': \'Death\', \'data\': sell_marks, \'color\': \'#ff4d4f\'}\n' +
-        '  ],\n' +
-        '  \'layers\': []\n' +
-        '}\n'
-      )
-    },
     async handleCreateIndicator () {
       if (!this.userId) {
         this.$message.error(this.$t('dashboard.indicator.error.pleaseLogin'))
@@ -3391,7 +3362,7 @@ export default {
       }
     },
     async _createIndicatorInIde () {
-      const code = this.buildNewIndicatorStarterCode()
+      const code = ''
       this.creatingIndicator = true
       try {
         const res = await request({
@@ -3400,7 +3371,8 @@ export default {
           data: {
             userid: this.userId,
             id: 0,
-            code
+            code,
+            allowEmptyDraft: true
           }
         })
         if (res && res.code === 1) {

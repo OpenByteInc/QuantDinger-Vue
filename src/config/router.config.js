@@ -156,6 +156,13 @@ export const asyncRouterMap = [
  */
 export const constantRouterMap = [
   {
+    path: '/report/share/:token',
+    name: 'PublicProfessionalReport',
+    hidden: true,
+    meta: { title: 'fastAnalysis.sharedReportPageTitle', public: true },
+    component: () => import('@/views/public-report')
+  },
+  {
     path: '/strategy-runtime',
     hidden: true,
     redirect: to => ({

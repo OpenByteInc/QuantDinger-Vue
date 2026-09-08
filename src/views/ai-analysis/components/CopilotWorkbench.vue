@@ -1,6 +1,10 @@
 <template>
   <div class="copilot-workbench">
-    <aside class="left-rail">
+    <div v-if="mobileSessionsOpen" class="mobile-rail-backdrop" @click="mobileSessionsOpen = false"></div>
+    <aside class="left-rail" :class="{ 'mobile-open': mobileSessionsOpen }">
+      <button type="button" class="mobile-rail-close" :aria-label="text.sessions" @click="mobileSessionsOpen = false">
+        <a-icon type="close" />
+      </button>
       <section class="rail-panel sessions-panel">
         <div class="panel-head">
           <span><a-icon type="history" /> {{ text.sessions }}</span>
@@ -60,6 +64,10 @@
 
     <main class="chat-panel">
       <header class="chat-hero">
+        <button type="button" class="mobile-sessions-trigger" @click="mobileSessionsOpen = true">
+          <a-icon type="history" />
+          <span>{{ text.sessions }}</span>
+        </button>
         <div class="hero-main">
           <div class="hero-copy">
             <span class="eyebrow">{{ text.title }}</span>
@@ -684,7 +692,8 @@ import {
   deleteSavedPrompt,
   trackCopilotEvent,
   getCopilotEventSummary,
-  exportChatReportPdf
+  exportChatReportPdf,
+  createChatReportShare
 } from '@/api/market'
 import { aiGenerateStrategy } from '@/api/strategy'
 import { getEconomicCalendar } from '@/api/global-market'
@@ -729,6 +738,7 @@ export default {
       messages: [],
       sessions: [],
       sessionId: null,
+      mobileSessionsOpen: false,
       sending: false,
       lastSendSignature: '',
       lastSendAt: 0,
@@ -1594,6 +1604,7 @@ export default {
     async loadHistory (sessionId) {
       this.resetComposerDraft()
       this.sessionId = sessionId
+      this.mobileSessionsOpen = false
       try {
         const res = await getChatHistory({ session_id: sessionId })
         const rawMessages = Array.isArray(res.data) ? res.data : ((res.data && res.data.messages) || [])
@@ -1666,6 +1677,7 @@ export default {
       this.resetComposerDraft()
       this.sessionId = null
       this.messages = []
+      this.mobileSessionsOpen = false
       this.sessionMemory = { summary: {}, recent_requests: [], version: 0 }
       this.draftReferencedReportId = null
     },
@@ -2352,6 +2364,10 @@ export default {
         this.exportReportPdf(action.payload && action.payload.reportId)
         return
       }
+      if (action && action.type === 'share_report') {
+        this.shareReport(action.payload && action.payload.reportId)
+        return
+      }
       if (action && action.type === 'ask_about_report') {
         this.askAboutReport(action.payload && action.payload.reportId)
         return
@@ -2448,6 +2464,9 @@ export default {
       const type = String((action && action.type) || '')
       if (type === 'export_report_pdf') {
         return this.i18nText('aiAssetAnalysis.copilot.exportPdf', 'Export PDF')
+      }
+      if (type === 'share_report') {
+        return this.i18nText('aiAssetAnalysis.copilot.shareReport', 'Share report')
       }
       if (type === 'ask_about_report') {
         return this.i18nText('aiAssetAnalysis.copilot.askFollowup', 'Ask follow-up')
@@ -3123,7 +3142,7 @@ export default {
       } catch (e) {
         const fallback = this.i18nText('aiAssetAnalysis.copilot.analysisFailed', 'Analysis failed')
         assistantMsg.reportLoading = false
-        assistantMsg.reportError = (e && e.response && e.response.data && e.response.data.msg) || (e && e.message) || fallback
+        assistantMsg.reportError = this.professionalAnalysisError(e, fallback)
         assistantMsg.reportErrorTone = this.isInProgressError(e) ? 'warning' : 'error'
         assistantMsg.meta = fallback
       } finally {
@@ -3168,6 +3187,18 @@ export default {
       const data = e && e.response && e.response.data
       const msg = String((data && data.msg) || (e && e.message) || '')
       return msg.toLowerCase().includes('in progress') || msg.includes('进行中') || msg.includes('处理中')
+    },
+    professionalAnalysisError (e, fallback) {
+      const data = e && e.response && e.response.data
+      const raw = String((data && (data.error || data.msg)) || (e && e.message) || '').trim()
+      const normalized = raw.toLowerCase()
+      if (normalized.includes('professional_report_v1') && normalized.includes('generation failed')) {
+        return this.$t('fastAnalysis.professionalGenerationFailed')
+      }
+      if (normalized.includes('professional_report_v1') && (normalized.includes('invalid') || normalized.includes('missing'))) {
+        return this.$t('fastAnalysis.professionalResponseInvalid')
+      }
+      return raw || fallback
     },
     reportId (msg) {
       return String((msg && (msg.id || msg.localId)) || '')
@@ -3259,6 +3290,13 @@ export default {
       const id = this.reportId(msg)
       return [
         {
+          key: `share-report-${id}`,
+          type: 'share_report',
+          icon: 'share-alt',
+          label: this.i18nText('aiAssetAnalysis.copilot.shareReport', 'Share report'),
+          payload: { reportId: id }
+        },
+        {
           key: `export-report-${id}`,
           type: 'export_report_pdf',
           icon: 'download',
@@ -3273,6 +3311,48 @@ export default {
           payload: { reportId: id }
         }
       ]
+    },
+    reportMessageByReportId (reportId) {
+      const id = String(reportId || '')
+      return (this.messages || []).find(item => this.reportId(item) === id) ||
+        (this.messages || []).find(item => item && item.report && Array.isArray(item.actions) &&
+          item.actions.some(action => String(action && action.payload && action.payload.reportId) === id))
+    },
+    async copyTextToClipboard (value) {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(value)
+        return
+      }
+      const textarea = document.createElement('textarea')
+      textarea.value = value
+      textarea.style.position = 'fixed'
+      textarea.style.opacity = '0'
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
+    },
+    async shareReport (reportId) {
+      const msg = this.reportMessageByReportId(reportId)
+      if (!msg || !msg.report) {
+        this.$message.warning(this.i18nText('aiAssetAnalysis.copilot.noReportData', 'No report data to share'))
+        return
+      }
+      try {
+        if (!msg.id) await this.persistCopilotMessage(msg, 'fast_analysis_report')
+        if (!msg.id) throw new Error(this.i18nText('aiAssetAnalysis.copilot.shareSaveFailed', 'Save the report before sharing'))
+        const res = await createChatReportShare({
+          message_id: msg.id,
+          language: (this.$i18n && this.$i18n.locale) || 'en-US'
+        })
+        const path = res && res.data && res.data.path
+        if (!path) throw new Error((res && res.msg) || this.i18nText('aiAssetAnalysis.copilot.shareFailed', 'Unable to create share link'))
+        const url = `${window.location.origin}${window.location.pathname}#${path}`
+        await this.copyTextToClipboard(url)
+        this.$message.success(this.i18nText('aiAssetAnalysis.copilot.shareCopied', 'Share link copied'))
+      } catch (e) {
+        this.$message.error((e && (e.backendMessage || e.message)) || this.i18nText('aiAssetAnalysis.copilot.shareFailed', 'Unable to create share link'))
+      }
     },
     async retryProfessionalAnalysis (msg) {
       const target = msg && msg.reportTarget
@@ -3298,9 +3378,7 @@ export default {
     async exportReportPdf (reportId) {
       if (!reportId) return
       const id = String(reportId)
-      const msg = (this.messages || []).find(item => this.reportId(item) === id) ||
-        (this.messages || []).find(item => item && item.report && Array.isArray(item.actions) &&
-          item.actions.some(action => String(action && action.payload && action.payload.reportId) === id))
+      const msg = this.reportMessageByReportId(id)
       if (!msg || !msg.report) {
         this.$message.warning(this.i18nText('aiAssetAnalysis.copilot.noReportData', 'No report data to export'))
         return
@@ -8444,6 +8522,88 @@ body.realdark .followup-suggestions,
 
   .memory-editor-row {
     grid-template-columns: 1fr;
+  }
+}
+
+.mobile-sessions-trigger,
+.mobile-rail-close,
+.mobile-rail-backdrop {
+  display: none;
+}
+
+@media (max-width: 960px) {
+  .mobile-sessions-trigger {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    gap: 6px;
+    min-height: 32px;
+    margin: 0 0 10px;
+    padding: 5px 10px;
+    border: 1px solid var(--qd-accent-border);
+    border-radius: 8px;
+    background: var(--qd-accent-soft);
+    color: var(--qd-text);
+    cursor: pointer;
+  }
+
+  .mobile-rail-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1003;
+    display: block;
+    background: rgba(0, 0, 0, 0.56);
+  }
+
+  .copilot-workbench > .left-rail.mobile-open {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 1004;
+    display: flex !important;
+    width: 88vw;
+    max-width: 340px;
+    padding: 46px 10px 10px;
+    overflow-y: auto;
+    background: var(--qd-bg);
+    box-shadow: 18px 0 44px rgba(0, 0, 0, 0.24);
+  }
+
+  .mobile-rail-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 1;
+    display: inline-grid;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    place-items: center;
+    border: 1px solid var(--qd-border);
+    border-radius: 8px;
+    background: var(--qd-panel);
+    color: var(--qd-text);
+    cursor: pointer;
+  }
+
+  .copilot-workbench > .left-rail.mobile-open .sessions-panel {
+    min-height: 300px;
+  }
+}
+
+@media (max-width: 640px) {
+  .copilot-workbench .messages {
+    padding: 12px 8px 18px;
+  }
+
+  .copilot-workbench .message.report-message .avatar {
+    display: none;
+  }
+
+  .copilot-workbench .message.report-message.assistant .bubble,
+  .copilot-workbench .message.report-message .copilot-report-card {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
   }
 }
 </style>

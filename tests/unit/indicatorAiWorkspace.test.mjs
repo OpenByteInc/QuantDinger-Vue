@@ -31,10 +31,20 @@ test('new indicators immediately bind a fresh AI workspace without a manual rese
   assert.match(viewSource, /onIndicatorChange \(id\)[\s\S]*?this\.loadAiWorkspace\(id\)/)
 })
 
+test('new indicators open as an empty draft instead of injecting starter code', () => {
+  const createBlock = viewSource.slice(
+    viewSource.indexOf('async _createIndicatorInIde ()'),
+    viewSource.indexOf('async handlePublishIndicator', viewSource.indexOf('async _createIndicatorInIde ()'))
+  )
+  assert.match(createBlock, /const code = ''/)
+  assert.match(createBlock, /allowEmptyDraft: true/)
+  assert.doesNotMatch(viewSource, /buildNewIndicatorStarterCode/)
+})
+
 test('hidden purchased indicators cannot open or call AI collaboration', () => {
-  assert.match(viewSource, /:disabled="selectedIndicatorCodeHidden"[\s\S]*?indicatorIde\.aiHiddenSourceUnavailable/)
+  assert.match(viewSource, /v-if="!selectedIndicatorId \|\| selectedIndicatorCodeHidden"[\s\S]*?indicatorIde\.aiHiddenSourceUnavailable/)
   assert.match(viewSource, /v-if="!selectedIndicatorId \|\| selectedIndicatorCodeHidden"/)
-  assert.match(viewSource, /if \(this\.selectedIndicatorCodeHidden\) \{[\s\S]*?indicatorIde\.aiHiddenSourceUnavailable[\s\S]*?return/)
+  assert.match(viewSource, /handleAIGenerate \(\)[\s\S]*?if \(this\.selectedIndicatorCodeHidden\) \{[\s\S]*?indicatorIde\.saveBlockedHiddenCode[\s\S]*?return/)
   assert.match(viewSource, /selectedIndicatorCodeHidden \(hidden\) \{[\s\S]*?this\.resetAiWorkspaceState\(\)/)
 })
 

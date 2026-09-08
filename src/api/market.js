@@ -9,6 +9,7 @@ const marketApi = {
   // AI chat (optional)
   ChatMessage: '/api/ai/chat/message',
   ExportChatReportPdf: '/api/ai/chat/report/pdf',
+  ShareChatReport: '/api/ai/chat/report/share',
   GetChatHistory: '/api/ai/chat/history',
   GetChatSessions: '/api/ai/chat/sessions',
   DeleteChatSession: '/api/ai/chat/sessions',
@@ -82,6 +83,21 @@ export function exportChatReportPdf (parameter) {
     data: parameter,
     responseType: 'blob',
     timeout: 120000
+  })
+}
+
+export function createChatReportShare (parameter) {
+  return request({
+    url: marketApi.ShareChatReport,
+    method: 'post',
+    data: parameter
+  })
+}
+
+export function getSharedChatReport (token) {
+  return request({
+    url: `${marketApi.ShareChatReport}/${encodeURIComponent(token)}`,
+    method: 'get'
   })
 }
 

@@ -44,6 +44,8 @@ test('new requests explicitly negotiate the professional response contract', () 
   assert.match(workbench, /professionalArtifact \(value\)/)
   assert.match(workbench, /value\.report \|\| value\.professional_report \|\| value/)
   assert.doesNotMatch(workbench, /msg\.report\.trading_plan|msg\.report\.market_data/)
+  assert.match(workbench, /professionalAnalysisError \(e, fallback\)/)
+  assert.match(workbench, /fastAnalysis\.professionalGenerationFailed/)
 })
 
 test('hold reports do not present risk reward as actionable', () => {
@@ -92,6 +94,7 @@ test('professional report localizes backend metric paths, enum values and genera
   const overrides = read('src/locales/professional-report-overrides.js')
 
   assert.match(report, /metricPartLabel \(value\)/)
+  assert.match(report, /providerLabel \(value\)/)
   assert.match(report, /scalarEvidenceValue \(value\)/)
   assert.match(report, /evidenceUnit \(value, currency, metric\)/)
   assert.match(report, /isNumeric \? this\.evidenceUnit/)
@@ -102,7 +105,13 @@ test('professional report localizes backend metric paths, enum values and genera
   for (const key of [
     'evidenceReferences', 'metricPart.signal_line', 'metricPart.operating_margin',
     'evidenceValueEnum.bearish_alignment', 'evidenceValueEnum.heuristic_estimate',
-    'evidenceValueEnum.previous_20_bars', 'unit.count'
+    'evidenceValueEnum.previous_20_bars',
+    'evidenceValueEnum.form4_filing_activity_not_trade_direction',
+    'metricPart.put_call_open_interest_ratio', 'provider.sec_edgar',
+    'provider.gate_public', 'provider.ticker', 'provider.quantdinger',
+    'provider.yfinance_yfinance_statements', 'provider.market_provider',
+    'provider.coingecko', 'metricPart.open_interest_change_24h',
+    'metricPart.long_short_ratio', 'unit.count', 'unit.ratio'
   ]) {
     assert.ok(overrides.includes(`fastAnalysis.${key}`), `missing translation: fastAnalysis.${key}`)
   }
@@ -120,6 +129,41 @@ test('professional evidence table inherits report theme colors in dark mode', ()
   assert.match(report, /\.evidence-collapse \/deep\/ \.ant-collapse-header[\s\S]*?color: var\(--report-text\)/)
   assert.match(report, /\.evidence-collapse \/deep\/ \.ant-collapse-content[\s\S]*?background: var\(--report-bg\)/)
   assert.match(report, /\.evidence-row strong, \.evidence-row > span \{ color: var\(--report-text\)/)
+  assert.match(report, /\.theme-dark \/deep\/ \.ant-progress-circle \.ant-progress-text[\s\S]*?color: var\(--report-text\) !important/)
+})
+
+test('professional reports support anonymous read-only snapshot links', () => {
+  const workbench = read('src/views/ai-analysis/components/CopilotWorkbench.vue')
+  const marketApi = read('src/api/market.js')
+  const routes = read('src/config/router.config.js')
+  const permission = read('src/permission.js')
+  const publicPage = read('src/views/public-report/index.vue')
+
+  assert.match(workbench, /type: 'share_report'/)
+  assert.match(workbench, /createChatReportShare\(\{[\s\S]*?message_id: msg\.id/)
+  assert.match(workbench, /navigator\.clipboard/)
+  assert.match(marketApi, /ShareChatReport: '\/api\/ai\/chat\/report\/share'/)
+  assert.match(routes, /path: '\/report\/share\/:token'/)
+  assert.match(permission, /'PublicProfessionalReport'/)
+  assert.match(publicPage, /<ProfessionalAnalysisReport :result="sharedResult"/)
+  assert.match(publicPage, /getSharedChatReport\(this\.\$route\.params\.token\)/)
+})
+
+test('dimension evidence is prioritized so macro and market-specific sources remain visible', () => {
+  const report = read('src/views/ai-analysis/components/ProfessionalAnalysisReport.vue')
+
+  assert.match(report, /this\.dimensions\.flatMap\(item => item\.evidence_refs \|\| \[\]\)/)
+  assert.match(report, /\.slice\(0, 120\)/)
+})
+
+test('mobile users can reopen historical professional reports', () => {
+  const workbench = read('src/views/ai-analysis/components/CopilotWorkbench.vue')
+
+  assert.match(workbench, /mobileSessionsOpen/)
+  assert.match(workbench, /class="mobile-sessions-trigger"/)
+  assert.match(workbench, /left-rail" :class="\{ 'mobile-open': mobileSessionsOpen \}"/)
+  assert.match(workbench, /\.copilot-workbench > \.left-rail\.mobile-open[\s\S]*?display: flex !important/)
+  assert.match(workbench, /async loadHistory \(sessionId\)[\s\S]*?this\.mobileSessionsOpen = false/)
 })
 
 test('MACD alignment states remain localized', () => {

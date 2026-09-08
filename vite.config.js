@@ -103,6 +103,15 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const enableMock = env.VITE_ENABLE_MOCK === 'true'
   const appVersion = resolveAppVersion(env)
+  const apiProxy = {
+    '/api': {
+      target: process.env.VITE_DEV_PROXY_TARGET || env.VITE_DEV_PROXY_TARGET || 'http://127.0.0.1:5000',
+      ws: true,
+      changeOrigin: true,
+      timeout: 600000,
+      proxyTimeout: 600000
+    }
+  }
 
   return {
     base: './',
@@ -159,15 +168,11 @@ export default defineConfig(({ mode }) => {
     ],
     server: {
       port: 8000,
-      proxy: {
-        '/api': {
-          target: env.VITE_DEV_PROXY_TARGET || 'http://127.0.0.1:5000',
-          ws: true,
-          changeOrigin: true,
-          timeout: 600000,
-          proxyTimeout: 600000
-        }
-      }
+      proxy: apiProxy
+    },
+    preview: {
+      port: 8001,
+      proxy: apiProxy
     },
     worker: {
       format: 'es'

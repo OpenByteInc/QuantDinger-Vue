@@ -9,7 +9,7 @@
     "build": "vite build",
     "build:preview": "vite build --mode preview",
     "preview": "vite preview --port 8001",
-    "test:unit": "node --test tests/unit/brokerOrderStatus.test.mjs tests/unit/strategyRuntime.test.mjs tests/unit/tradeReview.test.mjs tests/unit/exchangeWs.test.mjs tests/unit/indicatorPlotGrouping.test.mjs tests/unit/fastAnalysisPresentation.test.mjs tests/unit/navigationPersistence.test.mjs tests/unit/marketPricePrecision.test.mjs tests/unit/dropdownRefresh.test.mjs tests/unit/copilotResearchPrompts.test.mjs tests/unit/copilotWatchlistPresets.test.mjs tests/unit/i18nExperience.test.mjs tests/unit/adminOrdersPayments.test.mjs tests/unit/strategyMarketplace.test.mjs tests/unit/liveStrategyCurrentContract.test.mjs tests/unit/liveTradingEligibility.test.mjs tests/unit/strategyBlankDraft.test.mjs",
+    "test:unit": "node --test tests/unit/brokerOrderStatus.test.mjs tests/unit/strategyRuntime.test.mjs tests/unit/tradeReview.test.mjs tests/unit/exchangeWs.test.mjs tests/unit/indicatorPlotGrouping.test.mjs tests/unit/fastAnalysisPresentation.test.mjs tests/unit/navigationPersistence.test.mjs tests/unit/marketPricePrecision.test.mjs tests/unit/dropdownRefresh.test.mjs tests/unit/copilotResearchPrompts.test.mjs tests/unit/copilotWatchlistPresets.test.mjs tests/unit/i18nExperience.test.mjs tests/unit/adminOrdersPayments.test.mjs tests/unit/strategyMarketplace.test.mjs tests/unit/liveStrategyCurrentContract.test.mjs tests/unit/liveTradingEligibility.test.mjs tests/unit/indicatorAiWorkspace.test.mjs tests/unit/strategyBlankDraft.test.mjs",
     "i18n:generate": "node scripts/generate-core-locales.mjs",
     "encoding:audit": "node scripts/encoding-audit.mjs",
     "i18n:extract": "node scripts/generate-copilot-callsite-overrides.mjs",

@@ -143,8 +143,8 @@
               <div><strong>{{ capabilityLabel(item.metric) }}</strong><small>{{ item.evidence_id }}</small></div>
               <span>{{ evidenceValue(item) }}</span>
               <span>
-                <a v-if="safeUrl(item.source_url)" :href="safeUrl(item.source_url)" target="_blank" rel="noopener noreferrer">{{ item.source }}</a>
-                <template v-else>{{ item.source }}</template>
+                <a v-if="safeUrl(item.source_url)" :href="safeUrl(item.source_url)" target="_blank" rel="noopener noreferrer">{{ providerLabel(item.source) }}</a>
+                <template v-else>{{ providerLabel(item.source) }}</template>
               </span>
               <span>{{ formatTimestamp(item.as_of) }}</span>
             </div>
@@ -258,10 +258,13 @@ export default {
     evidenceRows () {
       const rows = this.report?.evidence_snapshot?.observations
       if (!Array.isArray(rows)) return []
-      const referenced = new Set(this.claims.flatMap(claim => claim.evidence_refs || []))
+      const referenced = new Set([
+        ...this.claims.flatMap(claim => claim.evidence_refs || []),
+        ...this.dimensions.flatMap(item => item.evidence_refs || [])
+      ])
       return [...rows]
         .sort((a, b) => Number(referenced.has(b.evidence_id)) - Number(referenced.has(a.evidence_id)))
-        .slice(0, 60)
+        .slice(0, 120)
     },
     quoteCurrency () {
       return this.instrument.quote_currency || 'USD'
@@ -382,6 +385,13 @@ export default {
       if (/^(?:ma|ema|sma|rsi|macd|s|r)\d+$/i.test(raw)) return raw.toUpperCase()
       return raw.replace(/_/g, ' ')
     },
+    providerLabel (value) {
+      const raw = String(value || '').trim()
+      if (!raw) return '--'
+      const key = `fastAnalysis.provider.${this.normalizeMetricToken(raw)}`
+      const translated = this.$t(key)
+      return translated === key ? raw.replace(/_/g, ' ') : translated
+    },
     scenarioLabel (value) {
       return this.$t(`fastAnalysis.scenario.${String(value || 'base')}`)
     },
@@ -478,6 +488,9 @@ export default {
   --report-text: #17243a;
   --report-muted: #718096;
   display: grid;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
   gap: 14px;
   padding: 18px;
   border: 1px solid var(--report-border);
@@ -485,6 +498,12 @@ export default {
   background: var(--report-bg);
   color: var(--report-text);
 }
+
+.professional-report *,
+.professional-report *::before,
+.professional-report *::after { box-sizing: border-box; }
+
+.professional-report > * { min-width: 0; max-width: 100%; }
 
 .report-header {
   display: flex;
@@ -519,7 +538,7 @@ export default {
 .quality-grid > div, .risk-grid > div { display: grid; gap: 4px; padding: 10px; border-radius: 8px; background: var(--report-bg); span { color: var(--report-muted); font-size: 12px; } strong { color: var(--report-text); } }
 
 .dimension-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.dimension-card, .scenario-grid article, .claim-list article { padding: 13px; border: 1px solid var(--report-border); border-radius: 9px; background: var(--report-bg); }
+.dimension-card, .scenario-grid article, .claim-list article { min-width: 0; padding: 13px; border: 1px solid var(--report-border); border-radius: 9px; background: var(--report-bg); overflow-wrap: anywhere; }
 .dimension-card header { display: flex; align-items: center; justify-content: space-between; }
 .scenario-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .scenario-grid article { display: grid; gap: 5px; border-top-width: 3px; }
@@ -567,6 +586,9 @@ export default {
   --report-text: #e5e7eb;
   --report-muted: #9ca3af;
 }
+.theme-dark /deep/ .ant-progress-circle .ant-progress-text {
+  color: var(--report-text) !important;
+}
 
 @media (max-width: 900px) {
   .quality-grid, .risk-grid, .dimension-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -578,6 +600,6 @@ export default {
   .report-header { display: grid; }
   .decision-panel { text-align: left; }
   .quality-panel { grid-template-columns: 1fr; }
-  .quality-grid, .risk-grid, .dimension-grid { grid-template-columns: 1fr; }
+  .quality-grid, .risk-grid, .dimension-grid, .scenario-grid { grid-template-columns: minmax(0, 1fr); }
 }
 </style>
