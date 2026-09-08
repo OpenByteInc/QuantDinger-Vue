@@ -104,6 +104,26 @@
           </div>
           <p class="section-hint">{{ mode === 'factor' ? $t('strategyV2.factorResearch.runtimeHint') : $t('strategyV2.runtimeHint') }}</p>
           <a-form layout="vertical">
+            <div class="range-presets" data-testid="backtest-range-presets">
+              <span class="range-presets__label">{{ $t('backtest-center.quickRange.label') }}</span>
+              <div class="range-presets__buttons">
+                <a-tooltip v-for="preset in rangePresetOptions" :key="preset.key" :title="preset.tooltip">
+                  <span class="range-preset-wrap">
+                    <a-button
+                      size="small"
+                      :type="preset.active ? 'primary' : 'default'"
+                      :disabled="preset.disabled"
+                      :aria-pressed="preset.active ? 'true' : 'false'"
+                      :data-testid="`backtest-range-${preset.key}`"
+                      @click="applyRangePreset(preset)"
+                    >
+                      {{ preset.label }}
+                    </a-button>
+                  </span>
+                </a-tooltip>
+              </div>
+            </div>
+
             <div class="form-grid">
               <a-form-item :label="$t('backtest-center.startDate')">
                 <a-date-picker v-model="form.startDate" :disabled-date="disabledStartDate" class="full-width" />
@@ -474,6 +494,25 @@ export default {
     selectedRangeDays () {
       if (!this.form.startDate || !this.form.endDate) return null
       return this.form.endDate.clone().startOf('day').diff(this.form.startDate.clone().startOf('day'), 'days')
+    },
+    rangePresetOptions () {
+      const endDate = this.rangePresetEndDate()
+      const presets = [
+        { key: '1m', amount: 1, unit: 'month' },
+        { key: '6m', amount: 6, unit: 'month' },
+        { key: '1y', amount: 1, unit: 'year' },
+        { key: '2y', amount: 2, unit: 'year' }
+      ]
+      const options = presets.map(preset => this.decorateRangePreset(preset, endDate))
+      if (this.backtestRangeLimitDays !== null && !options.some(item => item.rangeDays === this.backtestRangeLimitDays)) {
+        options.push(this.decorateRangePreset({
+          key: 'max',
+          amount: this.backtestRangeLimitDays,
+          unit: 'day',
+          dynamic: true
+        }, endDate))
+      }
+      return options
     },
     estimatedBacktestBars () {
       if (!this.backtestRangePolicy || this.selectedRangeDays === null || this.selectedRangeDays < 0) return 0
@@ -903,6 +942,46 @@ export default {
       if (this.backtestRangeLimitDays === null) return false
       return current.isAfter(startDate.clone().add(this.backtestRangeLimitDays, 'days'), 'day')
     },
+    rangePresetEndDate () {
+      const latestCompleteDate = moment().subtract(1, 'day').startOf('day')
+      if (!this.form.endDate) return latestCompleteDate
+      const selectedEndDate = this.form.endDate.clone().startOf('day')
+      return selectedEndDate.isAfter(latestCompleteDate, 'day') ? latestCompleteDate : selectedEndDate
+    },
+    decorateRangePreset (preset, endDate) {
+      const startDate = endDate.clone().subtract(preset.amount, preset.unit).startOf('day')
+      const rangeDays = endDate.diff(startDate, 'days')
+      const disabled = this.backtestRangeLimitDays !== null && rangeDays > this.backtestRangeLimitDays
+      const active = Boolean(
+        this.form.startDate && this.form.endDate &&
+        this.form.startDate.clone().startOf('day').isSame(startDate, 'day') &&
+        this.form.endDate.clone().startOf('day').isSame(endDate, 'day')
+      )
+      const label = preset.dynamic
+        ? this.$t('backtest-center.quickRange.max', { days: preset.amount })
+        : this.$t(`backtest-center.quickRange.${preset.key}`)
+      return {
+        ...preset,
+        startDate,
+        endDate: endDate.clone(),
+        rangeDays,
+        disabled,
+        active,
+        label,
+        tooltip: disabled
+          ? this.$t('backtest-center.quickRange.unavailable', {
+            range: label,
+            timeframe: this.manifestFrequency,
+            maxDays: this.backtestRangeLimitDays
+          })
+          : ''
+      }
+    },
+    applyRangePreset (preset) {
+      if (!preset || preset.disabled) return
+      this.form.startDate = preset.startDate.clone()
+      this.form.endDate = preset.endDate.clone()
+    },
     applyBacktestRangePolicy () {
       if (this.backtestRangeLimitDays === null || !this.form.startDate || !this.form.endDate) return
       if (this.selectedRangeDays <= this.backtestRangeLimitDays && this.selectedRangeDays >= 0) return
@@ -1182,6 +1261,12 @@ export default {
 .manifest-grid strong { color: #23344d; overflow-wrap: anywhere; }
 .section-hint { margin: 7px 0 10px; font-size: 12px; }
 .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 12px; }
+.range-presets { display: flex; align-items: center; gap: 9px; margin: -2px 0 12px; }
+.range-presets__label { flex: none; color: #7c8ca1; font-size: 11px; }
+.range-presets__buttons { display: flex; min-width: 0; flex-wrap: wrap; gap: 6px; }
+.range-preset-wrap { display: inline-flex; }
+.range-preset-wrap /deep/ .ant-btn-sm { min-width: 52px; height: 26px; padding: 0 10px; border-radius: 999px; font-size: 11px; }
+.range-preset-wrap /deep/ .ant-btn-primary { border-color: var(--primary-color, #52c41a); background: var(--primary-color, #52c41a); box-shadow: 0 3px 10px color-mix(in srgb, var(--primary-color, #52c41a) 24%, transparent); }
 .range-limit-alert { margin: 0 0 14px; }
 .switch-row { display: flex; align-items: center; gap: 8px; min-height: 32px; color: #7c8ca1; font-size: 11px; }
 .params-section { margin: 2px 0 14px; padding-top: 12px; border-top: 1px solid #eef2f6; }
@@ -1265,6 +1350,10 @@ export default {
 .theme-dark .hero-stat strong, .theme-dark .manifest-grid strong, .theme-dark .metric-card strong, .theme-dark .assumption-strip strong, .theme-dark .run-card__top strong { color: #e5e7eb; }
 .theme-dark .manifest-card { border-color: color-mix(in srgb, var(--primary-color, #52c41a) 22%, rgba(255, 255, 255, .1)); background: color-mix(in srgb, var(--primary-color, #52c41a) 5%, #0d0d0d); }
 .theme-dark .manifest-title { color: var(--primary-color, #52c41a); }
+.theme-dark .range-presets__label { color: rgba(255, 255, 255, 0.48); }
+.theme-dark .range-preset-wrap /deep/ .ant-btn:not(.ant-btn-primary) { border-color: rgba(255, 255, 255, 0.14); background: #1a1a1a; color: rgba(255, 255, 255, 0.72); }
+.theme-dark .range-preset-wrap /deep/ .ant-btn:not(.ant-btn-primary):hover { border-color: var(--primary-color, #52c41a); color: var(--primary-color, #52c41a); }
+.theme-dark .range-preset-wrap /deep/ .ant-btn[disabled] { border-color: rgba(255, 255, 255, 0.08); background: #141414; color: rgba(255, 255, 255, 0.25); }
 .theme-dark .chart-card { border-color: rgba(255, 255, 255, 0.1); }
 .theme-dark .result-trustbar.is-success { border-color: #315d22; background: #13200f; color: #73d13d; }
 .theme-dark .result-trustbar.is-warning { border-color: #664d03; background: #211b08; color: #ffc53d; }
@@ -1283,7 +1372,7 @@ export default {
 .theme-dark /deep/ .ant-table-thead > tr > th { border-color: rgba(255, 255, 255, 0.1); background: #0d0d0d; color: rgba(255, 255, 255, 0.68); }
 .theme-dark /deep/ .ant-table-tbody > tr > td { border-color: rgba(255, 255, 255, 0.08); background: #111; color: rgba(255, 255, 255, 0.72); }
 @media (max-width: 1100px) { .workspace-grid { grid-template-columns: 1fr; } .config-panel { position: static; overflow: visible; max-height: none; } .config-scroll { overflow: visible; } .result-panel { min-height: 560px; } .result-empty { min-height: 480px; } }
-@media (max-width: 720px) { .backtest-page { padding: 12px; } .hero-card { align-items: flex-start; flex-direction: column; } .hero-actions { justify-content: flex-start; } .result-empty { padding: 34px 12px; }.empty-hero-card { padding: 30px 18px 26px; }.form-grid, .manifest-grid, .metrics-grid, .assumption-strip, .empty-preview-grid { grid-template-columns: 1fr; } }
+@media (max-width: 720px) { .backtest-page { padding: 12px; } .hero-card { align-items: flex-start; flex-direction: column; } .hero-actions { justify-content: flex-start; } .result-empty { padding: 34px 12px; }.empty-hero-card { padding: 30px 18px 26px; }.form-grid, .manifest-grid, .metrics-grid, .assumption-strip, .empty-preview-grid { grid-template-columns: 1fr; }.range-presets { align-items: flex-start; flex-direction: column; gap: 6px; }.range-presets__buttons { width: 100%; }.range-preset-wrap { flex: 1 1 auto; }.range-preset-wrap /deep/ .ant-btn { width: 100%; } }
 </style>
 
 <style lang="less">

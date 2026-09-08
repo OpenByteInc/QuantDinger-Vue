@@ -15,6 +15,10 @@ const klineChartPath = fileURLToPath(
   new URL('../../src/views/indicator-analysis/components/KlineChart.vue', import.meta.url)
 )
 const klineChartSource = fs.readFileSync(klineChartPath, 'utf8')
+const backtestRangeLocalePath = fileURLToPath(
+  new URL('../../src/locales/backtest-range-overrides.js', import.meta.url)
+)
+const backtestRangeLocaleSource = fs.readFileSync(backtestRangeLocalePath, 'utf8')
 
 test('backtest center compiles a source manifest before accepting runtime controls', () => {
   assert.match(source, /compileScriptSource\(\{ sourceId \}\)/)
@@ -165,4 +169,27 @@ test('backtests default to the latest completed date and reject today in the pic
   assert.match(source, /const latestCompleteDate = moment\(\)\.subtract\(1, 'day'\)\.startOf\('day'\)/)
   assert.match(source, /endDate: latestCompleteDate/)
   assert.match(source, /current\.isAfter\(moment\(\)\.subtract\(1, 'day'\), 'day'\)/)
+})
+
+test('backtest quick ranges use calendar periods and respect the compiled runtime limit', () => {
+  assert.ok(source.indexOf('data-testid="backtest-range-presets"') < source.indexOf('<div class="form-grid">'))
+  for (const key of ['1m', '6m', '1y', '2y']) {
+    assert.ok(source.includes(`key: '${key}'`), `missing backtest preset: ${key}`)
+  }
+  assert.match(source, /backtest-range-\$\{preset\.key\}/)
+  assert.match(source, /endDate\.clone\(\)\.subtract\(preset\.amount, preset\.unit\)/)
+  assert.match(source, /rangeDays > this\.backtestRangeLimitDays/)
+  assert.match(source, /item\.rangeDays === this\.backtestRangeLimitDays/)
+  assert.match(source, /key: 'max'[\s\S]*?amount: this\.backtestRangeLimitDays/)
+  assert.match(source, /applyRangePreset \(preset\)[\s\S]*?if \(!preset \|\| preset\.disabled\) return[\s\S]*?preset\.startDate\.clone\(\)/)
+})
+
+test('backtest quick ranges explain disabled options and remain readable in dark and narrow layouts', () => {
+  assert.match(source, /quickRange\.unavailable/)
+  assert.match(source, /preset\.disabled/)
+  assert.match(source, /\.theme-dark \.range-preset-wrap \/deep\/ \.ant-btn\[disabled\]/)
+  assert.match(source, /@media \(max-width: 720px\)[\s\S]*?\.range-presets \{ align-items: flex-start; flex-direction: column/)
+  for (const text of ['1个月', '6个月', '1年', '2年', '最大 {days} 天']) {
+    assert.ok(backtestRangeLocaleSource.includes(text), `missing reviewed quick-range translation: ${text}`)
+  }
 })

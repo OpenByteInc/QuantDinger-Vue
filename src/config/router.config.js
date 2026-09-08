@@ -88,7 +88,7 @@ export const asyncRouterMap = [
       {
         path: '/ai-analysis/:pageNo([1-9]\\d*)?',
         name: 'Analysis',
-        component: () => import('@/views/ai-analysis'),
+        redirect: '/ai-asset-analysis',
         hidden: true,
         meta: { title: 'menu.dashboard.analysis', keepAlive: false, icon: 'thunderbolt', permission: ['dashboard'] }
       },

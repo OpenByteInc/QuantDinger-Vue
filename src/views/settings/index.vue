@@ -42,13 +42,18 @@
             class="settings-menu"
             @click="onMenuClick"
           >
-            <a-menu-item
-              v-for="(group, groupKey) in sortedSchema"
-              :key="groupKey"
-            >
-              <a-icon :type="group.icon || getGroupIcon(groupKey)" />
-              <span>{{ getGroupTitle(groupKey, group.title) }}</span>
-            </a-menu-item>
+            <a-menu-item-group v-for="section in navSections" :key="section.key">
+              <template slot="title">
+                <span class="settings-nav-section-title">{{ section.title }}</span>
+              </template>
+              <a-menu-item
+                v-for="entry in section.groups"
+                :key="entry.key"
+              >
+                <a-icon :type="entry.group.icon || getGroupIcon(entry.key)" />
+                <span>{{ getGroupTitle(entry.key, entry.group.title) }}</span>
+              </a-menu-item>
+            </a-menu-item-group>
           </a-menu>
         </aside>
 
@@ -438,11 +443,21 @@
                       :key="entry.key"
                       :xs="24"
                       :sm="24"
-                      :md="entry.type === 'heading' ? 24 : (entry.item.key === 'LLM_PROVIDER' ? 24 : 12)"
-                      :lg="entry.type === 'heading' ? 24 : (entry.item.key === 'LLM_PROVIDER' ? 24 : 12)"
+                      :md="entry.type !== 'field' ? 24 : (entry.item.key === 'LLM_PROVIDER' ? 24 : 12)"
+                      :lg="entry.type !== 'field' ? 24 : (entry.item.key === 'LLM_PROVIDER' ? 24 : 12)"
                     >
                       <div v-if="entry.type === 'heading'" class="settings-subsection-heading">
-                        <span>{{ entry.title }}</span>
+                        <div class="settings-subsection-title-row">
+                          <span>{{ entry.title }}</span>
+                          <a-tag v-if="entry.badge" :color="entry.badgeColor || 'blue'">{{ entry.badge }}</a-tag>
+                        </div>
+                        <small>{{ entry.description }}</small>
+                      </div>
+                      <div v-else-if="entry.type === 'advanced-toggle'" class="advanced-settings-toggle">
+                        <a-button type="link" @click="toggleAdvanced(entry.scope)">
+                          <a-icon :type="entry.expanded ? 'up' : 'down'" />
+                          {{ entry.label }}
+                        </a-button>
                         <small>{{ entry.description }}</small>
                       </div>
                       <a-form-item v-else>
@@ -583,153 +598,173 @@
                 </section>
               </div>
 
-              <a-row v-else :gutter="24">
-                <a-col
-                  v-for="entry in currentDisplayEntries"
-                  :key="entry.key"
-                  :xs="24"
-                  :sm="24"
-                  :md="entry.type === 'heading' ? 24 : 12"
-                  :lg="entry.type === 'heading' ? 24 : 12"
-                >
-                  <div v-if="entry.type === 'heading'" class="settings-subsection-heading">
-                    <span>{{ entry.title }}</span>
-                    <small>{{ entry.description }}</small>
-                  </div>
-                  <a-form-item v-else>
-                    <template slot="label">
-                      <span class="form-label-with-tooltip">
-                        <span class="label-text">{{ getItemLabel(activeGroupKey, entry.item) }}</span>
-                        <a-tooltip v-if="entry.item.description" placement="top">
-                          <template slot="title">
-                            {{ getItemDescription(activeGroupKey, entry.item) }}
-                          </template>
-                          <a-icon type="question-circle" class="help-icon" />
-                        </a-tooltip>
-                        <a
-                          v-if="entry.item.link"
-                          :href="entry.item.link"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          class="api-link"
-                          @click.stop
-                        >
-                          <a-icon type="link" />
-                          {{ getLinkText(entry.item.link_text) }}
-                        </a>
-                      </span>
-                    </template>
-                    <template v-if="entry.item.type === 'text'">
-                      <a-input
-                        v-decorator="[entry.item.key, { initialValue: getFieldValue(activeGroupKey, entry.item.key) }]"
-                        :placeholder="entry.item.default ? `${$t('settings.default')}: ${entry.item.default}` : ''"
-                        :name="getSafeInputName(entry.item)"
-                        :autocomplete="getAutocomplete(entry.item)"
-                        data-lpignore="true"
-                        data-1p-ignore="true"
-                        data-bwignore="true"
-                        data-form-type="other"
-                        allowClear
-                      />
-                    </template>
-                    <template v-else-if="entry.item.type === 'password'">
-                      <div class="password-field">
+              <div v-else>
+                <a-alert
+                  v-if="activeGroupKey === 'data_source'"
+                  class="research-data-intro"
+                  type="success"
+                  show-icon
+                  :message="tOr('settings.research.zeroConfigTitle', 'The base report works without extra data API keys')"
+                  :description="tOr('settings.research.zeroConfigDesc', 'Built-in public sources cover the base workflow. Add providers only when needed.')"
+                />
+                <a-row :gutter="24">
+                  <a-col
+                    v-for="entry in currentDisplayEntries"
+                    :key="entry.key"
+                    :xs="24"
+                    :sm="24"
+                    :md="entry.type !== 'field' ? 24 : 12"
+                    :lg="entry.type !== 'field' ? 24 : 12"
+                  >
+                    <div v-if="entry.type === 'heading'" class="settings-subsection-heading">
+                      <div class="settings-subsection-title-row">
+                        <span>{{ entry.title }}</span>
+                        <a-tag v-if="entry.badge" :color="entry.badgeColor || 'blue'">{{ entry.badge }}</a-tag>
+                      </div>
+                      <small>{{ entry.description }}</small>
+                    </div>
+                    <div v-else-if="entry.type === 'advanced-toggle'" class="advanced-settings-toggle">
+                      <a-button type="link" @click="toggleAdvanced(entry.scope)">
+                        <a-icon :type="entry.expanded ? 'up' : 'down'" />
+                        {{ entry.label }}
+                      </a-button>
+                      <small>{{ entry.description }}</small>
+                    </div>
+                    <a-form-item v-else>
+                      <template slot="label">
+                        <span class="form-label-with-tooltip">
+                          <span class="label-text">{{ getItemLabel(activeGroupKey, entry.item) }}</span>
+                          <a-tooltip v-if="entry.item.description" placement="top">
+                            <template slot="title">
+                              {{ getItemDescription(activeGroupKey, entry.item) }}
+                            </template>
+                            <a-icon type="question-circle" class="help-icon" />
+                          </a-tooltip>
+                          <a
+                            v-if="entry.item.link"
+                            :href="entry.item.link"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="api-link"
+                            @click.stop
+                          >
+                            <a-icon type="link" />
+                            {{ getLinkText(entry.item.link_text) }}
+                          </a>
+                        </span>
+                      </template>
+                      <template v-if="entry.item.type === 'text'">
                         <a-input
                           v-decorator="[entry.item.key, { initialValue: getFieldValue(activeGroupKey, entry.item.key) }]"
-                          type="text"
-                          :class="{ 'secret-masked-input': !passwordVisible[entry.item.key] }"
-                          :placeholder="getSecretPlaceholder(activeGroupKey, entry.item)"
+                          :placeholder="entry.item.default ? `${$t('settings.default')}: ${entry.item.default}` : ''"
                           :name="getSafeInputName(entry.item)"
                           :autocomplete="getAutocomplete(entry.item)"
-                          spellcheck="false"
-                          autocapitalize="off"
                           data-lpignore="true"
                           data-1p-ignore="true"
                           data-bwignore="true"
                           data-form-type="other"
                           allowClear
-                        >
-                          <a-icon
-                            slot="suffix"
-                            :type="passwordVisible[entry.item.key] ? 'eye' : 'eye-invisible'"
-                            @click="togglePasswordVisible(entry.item.key)"
-                            style="cursor: pointer"
-                          />
-                        </a-input>
-                      </div>
-                    </template>
-                    <template v-else-if="entry.item.type === 'number'">
-                      <a-input-number
-                        v-decorator="[entry.item.key, { initialValue: getNumberValue(activeGroupKey, entry.item.key, entry.item.default) }]"
-                        :placeholder="entry.item.default ? `${$t('settings.default')}: ${entry.item.default}` : ''"
-                        style="width: 100%"
-                      />
-                    </template>
-                    <template v-else-if="entry.item.type === 'boolean'">
-                      <a-switch
-                        v-decorator="[entry.item.key, { valuePropName: 'checked', initialValue: getBoolValue(activeGroupKey, entry.item.key, entry.item.default) }]"
-                      />
-                    </template>
-                    <template v-else-if="entry.item.type === 'select'">
-                      <a-select
-                        v-decorator="[entry.item.key, { initialValue: getFieldValue(activeGroupKey, entry.item.key) || entry.item.default }]"
-                        :placeholder="entry.item.default ? `${$t('settings.default')}: ${entry.item.default}` : $t('settings.pleaseSelect')"
-                      >
-                        <a-select-option
-                          v-for="opt in getSelectOptions(entry.item)"
-                          :key="opt.value"
-                          :value="opt.value"
-                        >
-                          {{ opt.label }}
-                        </a-select-option>
-                      </a-select>
-                    </template>
-                    <template v-else-if="entry.item.type === 'market_multiselect'">
-                      <a-checkbox-group
-                        v-decorator="[entry.item.key, { initialValue: getCsvListValue(activeGroupKey, entry.item.key, entry.item.default) }]"
-                        class="market-module-grid"
-                      >
-                        <div
-                          v-for="market in getMarketModuleRows(entry.item)"
-                          :key="market.key"
-                          class="market-module-row"
-                        >
-                          <div class="market-module-main">
-                            <a-checkbox :value="market.key">
-                              <span class="market-module-label">{{ marketModuleLabel(market) }}</span>
-                            </a-checkbox>
-                            <a-tag :color="marketStatusColor(market.status)">
-                              {{ marketStatusText(market.status) }}
-                            </a-tag>
-                          </div>
-                          <div class="market-module-desc">{{ marketModuleDescription(market) }}</div>
-                          <div class="market-module-meta">
-                            <span>{{ market.symbol_hint }}</span>
-                            <span v-if="market.live_brokers && market.live_brokers.length">
-                              {{ marketLiveText(market) }}
-                            </span>
-                            <span v-else>{{ marketResearchOnlyText() }}</span>
-                          </div>
-                          <div v-if="market.data_sources && market.data_sources.length" class="market-data-source-list">
-                            <span
-                              v-for="source in market.data_sources"
-                              :key="source.key"
-                              class="market-data-source"
-                              :class="{ configured: source.configured, missing: !source.configured && (source.required || source.recommended) }"
-                            >
-                              {{ marketSourceLabel(source) }}
-                              <small>{{ sourceStatusText(source) }}</small>
-                            </span>
-                          </div>
+                        />
+                      </template>
+                      <template v-else-if="entry.item.type === 'password'">
+                        <div class="password-field">
+                          <a-input
+                            v-decorator="[entry.item.key, { initialValue: getFieldValue(activeGroupKey, entry.item.key) }]"
+                            type="text"
+                            :class="{ 'secret-masked-input': !passwordVisible[entry.item.key] }"
+                            :placeholder="getSecretPlaceholder(activeGroupKey, entry.item)"
+                            :name="getSafeInputName(entry.item)"
+                            :autocomplete="getAutocomplete(entry.item)"
+                            spellcheck="false"
+                            autocapitalize="off"
+                            data-lpignore="true"
+                            data-1p-ignore="true"
+                            data-bwignore="true"
+                            data-form-type="other"
+                            allowClear
+                          >
+                            <a-icon
+                              slot="suffix"
+                              :type="passwordVisible[entry.item.key] ? 'eye' : 'eye-invisible'"
+                              @click="togglePasswordVisible(entry.item.key)"
+                              style="cursor: pointer"
+                            />
+                          </a-input>
                         </div>
-                      </a-checkbox-group>
-                    </template>
-                    <div class="field-default" v-if="entry.item.default && entry.item.type !== 'boolean' && entry.item.type !== 'password'">
-                      {{ $t('settings.default') }}: {{ entry.item.default }}
-                    </div>
-                  </a-form-item>
-                </a-col>
-              </a-row>
+                      </template>
+                      <template v-else-if="entry.item.type === 'number'">
+                        <a-input-number
+                          v-decorator="[entry.item.key, { initialValue: getNumberValue(activeGroupKey, entry.item.key, entry.item.default) }]"
+                          :placeholder="entry.item.default ? `${$t('settings.default')}: ${entry.item.default}` : ''"
+                          style="width: 100%"
+                        />
+                      </template>
+                      <template v-else-if="entry.item.type === 'boolean'">
+                        <a-switch
+                          v-decorator="[entry.item.key, { valuePropName: 'checked', initialValue: getBoolValue(activeGroupKey, entry.item.key, entry.item.default) }]"
+                        />
+                      </template>
+                      <template v-else-if="entry.item.type === 'select'">
+                        <a-select
+                          v-decorator="[entry.item.key, { initialValue: getFieldValue(activeGroupKey, entry.item.key) || entry.item.default }]"
+                          :placeholder="entry.item.default ? `${$t('settings.default')}: ${entry.item.default}` : $t('settings.pleaseSelect')"
+                        >
+                          <a-select-option
+                            v-for="opt in getSelectOptions(entry.item)"
+                            :key="opt.value"
+                            :value="opt.value"
+                          >
+                            {{ opt.label }}
+                          </a-select-option>
+                        </a-select>
+                      </template>
+                      <template v-else-if="entry.item.type === 'market_multiselect'">
+                        <a-checkbox-group
+                          v-decorator="[entry.item.key, { initialValue: getCsvListValue(activeGroupKey, entry.item.key, entry.item.default) }]"
+                          class="market-module-grid"
+                        >
+                          <div
+                            v-for="market in getMarketModuleRows(entry.item)"
+                            :key="market.key"
+                            class="market-module-row"
+                          >
+                            <div class="market-module-main">
+                              <a-checkbox :value="market.key">
+                                <span class="market-module-label">{{ marketModuleLabel(market) }}</span>
+                              </a-checkbox>
+                              <a-tag :color="marketStatusColor(market.status)">
+                                {{ marketStatusText(market.status) }}
+                              </a-tag>
+                            </div>
+                            <div class="market-module-desc">{{ marketModuleDescription(market) }}</div>
+                            <div class="market-module-meta">
+                              <span>{{ market.symbol_hint }}</span>
+                              <span v-if="market.live_brokers && market.live_brokers.length">
+                                {{ marketLiveText(market) }}
+                              </span>
+                              <span v-else>{{ marketResearchOnlyText() }}</span>
+                            </div>
+                            <div v-if="market.data_sources && market.data_sources.length" class="market-data-source-list">
+                              <span
+                                v-for="source in market.data_sources"
+                                :key="source.key"
+                                class="market-data-source"
+                                :class="{ configured: source.configured, missing: !source.configured && (source.required || source.recommended) }"
+                              >
+                                {{ marketSourceLabel(source) }}
+                                <small>{{ sourceStatusText(source) }}</small>
+                              </span>
+                            </div>
+                          </div>
+                        </a-checkbox-group>
+                      </template>
+                      <div class="field-default" v-if="entry.item.default && entry.item.type !== 'boolean' && entry.item.type !== 'password'">
+                        {{ $t('settings.default') }}: {{ entry.item.default }}
+                      </div>
+                    </a-form-item>
+                  </a-col>
+                </a-row>
+              </div>
             </a-form>
 
             <!-- Brand group footer: commercial license notice. Shown only
@@ -813,6 +848,7 @@ export default {
       selectedLlmProvider: '',
       billingPlans: [],
       billingPlansSaving: false,
+      advancedExpanded: {},
       settingsInputNonce: Math.random().toString(36).slice(2, 10)
     }
   },
@@ -841,6 +877,51 @@ export default {
       }
       return sorted
     },
+    navSections () {
+      const definitions = [
+        {
+          key: 'core',
+          title: this.tOr('settings.nav.core', 'Core setup'),
+          keys: ['auth', 'ai', 'trading', 'market_modules']
+        },
+        {
+          key: 'research',
+          title: this.tOr('settings.nav.research', 'AI research'),
+          keys: ['data_source', 'search', 'agent', 'market_catalog']
+        },
+        {
+          key: 'operations',
+          title: this.tOr('settings.nav.operations', 'Operations'),
+          keys: ['email', 'sms', 'network', 'security']
+        },
+        {
+          key: 'organization',
+          title: this.tOr('settings.nav.organization', 'Organization'),
+          keys: ['billing', 'brand', 'contact', 'social', 'legal']
+        }
+      ]
+      const claimed = new Set()
+      const sections = definitions.map(section => {
+        const groups = section.keys
+          .filter(key => this.sortedSchema[key])
+          .map(key => {
+            claimed.add(key)
+            return { key, group: this.sortedSchema[key] }
+          })
+        return { ...section, groups }
+      }).filter(section => section.groups.length)
+      const remaining = Object.keys(this.sortedSchema)
+        .filter(key => !claimed.has(key))
+        .map(key => ({ key, group: this.sortedSchema[key] }))
+      if (remaining.length) {
+        sections.push({
+          key: 'other',
+          title: this.tOr('settings.nav.operations', 'Operations'),
+          groups: remaining
+        })
+      }
+      return sections
+    },
     // Currently selected group object (right-side detail content).
     currentGroup () {
       return this.sortedSchema[this.activeGroupKey] || null
@@ -849,7 +930,13 @@ export default {
       const items = this.currentGroup && Array.isArray(this.currentGroup.items)
         ? this.currentGroup.items
         : []
-      return this.buildSettingEntries(items)
+      if (this.activeGroupKey === 'data_source') {
+        return this.buildCategorizedEntries(items, this.dataSourceSectionDefinitions(), 'data_source')
+      }
+      if (this.activeGroupKey === 'search') {
+        return this.buildCategorizedEntries(items, this.searchSectionDefinitions(), 'search')
+      }
+      return this.buildSettingEntries(items, this.activeGroupKey)
     },
     // Flattened, filtered search hits. Match is case-insensitive against the
     // localized label, the localized description and the raw ENV key, so
@@ -1010,7 +1097,7 @@ export default {
         .filter(section => section.items.length > 0)
         .map(section => ({
           ...section,
-          entries: this.buildSettingEntries(section.items)
+          entries: this.buildSettingEntries(section.items, `ai:${section.key}`)
         }))
     }
   },
@@ -1304,7 +1391,122 @@ export default {
       }
       return hits
     },
-    buildSettingEntries (items) {
+    dataSourceSectionDefinitions () {
+      return [
+        {
+          key: 'preferences',
+          title: this.tOr('settings.research.section.preferences', 'Report behavior'),
+          description: this.tOr('settings.research.section.preferencesDesc', 'Report-level choices for data tier and risk budgeting.'),
+          badge: this.tOr('settings.option.PROFESSIONAL_REPORT_DATA_TIER.community', 'Free / low-cost (recommended)'),
+          badgeColor: 'green',
+          keys: [
+            'PROFESSIONAL_REPORT_DATA_TIER',
+            'PROFESSIONAL_REPORT_RISK_BUDGET_PCT'
+          ]
+        },
+        {
+          key: 'community',
+          title: this.tOr('settings.research.section.community', 'Free / simple setup'),
+          description: this.tOr('settings.research.section.communityDesc', 'Optional low-friction sources for US stocks, Hong Kong stocks, crypto, and macro data.'),
+          badge: 'US · HK · Crypto',
+          badgeColor: 'blue',
+          keys: [
+            'CCXT_DEFAULT_EXCHANGE',
+            'FINNHUB_API_KEY',
+            'FINNHUB_FREE_ONLY',
+            'TWELVE_DATA_API_KEY',
+            'FRED_API_KEY',
+            'BLS_API_KEY',
+            'BEA_API_KEY'
+          ]
+        },
+        {
+          key: 'professional',
+          title: this.tOr('settings.research.section.professional', 'Professional data'),
+          description: this.tOr('settings.research.section.professionalDesc', 'Configure only providers covered by your paid plan and data-use rights.'),
+          badge: this.tOr('settings.option.PROFESSIONAL_REPORT_DATA_TIER.professional', 'Professional'),
+          badgeColor: 'purple',
+          keys: [
+            'TRADING_ECONOMICS_CLIENT',
+            'TRADING_ECONOMICS_KEY',
+            'COINGLASS_API_KEY',
+            'CRYPTOQUANT_API_KEY'
+          ]
+        }
+      ]
+    },
+    searchSectionDefinitions () {
+      return [
+        {
+          key: 'primary',
+          title: this.tOr('settings.search.section.primary', 'Recommended search'),
+          description: this.tOr('settings.search.section.primaryDesc', 'Choose one primary provider. Keyless fallbacks remain available.'),
+          badge: this.tOr('settings.research.section.community', 'Free / simple setup'),
+          badgeColor: 'green',
+          keys: ['SEARCH_PROVIDER', 'TAVILY_API_KEYS', 'SEARCH_SEARXNG_BASE_URL']
+        },
+        {
+          key: 'optional',
+          title: this.tOr('settings.search.section.optional', 'Optional news providers'),
+          description: this.tOr('settings.search.section.optionalDesc', 'Add only the service you already use.'),
+          keys: [
+            'ALPHA_VANTAGE_API_KEY',
+            'SERPAPI_KEYS',
+            'SEARCH_GOOGLE_API_KEY',
+            'SEARCH_GOOGLE_CX',
+            'SEARCH_BING_API_KEY'
+          ]
+        }
+      ]
+    },
+    buildCategorizedEntries (items, definitions, scope) {
+      const byKey = new Map((items || []).map(item => [item.key, item]))
+      const claimed = new Set()
+      const entries = []
+      definitions.forEach(section => {
+        const sectionItems = section.keys.map(key => byKey.get(key)).filter(Boolean)
+        if (!sectionItems.length) return
+        sectionItems.forEach(item => claimed.add(item.key))
+        entries.push({
+          type: 'heading',
+          key: `${scope}-${section.key}-heading`,
+          title: section.title,
+          description: section.description,
+          badge: section.badge,
+          badgeColor: section.badgeColor
+        })
+        entries.push(...sectionItems.map(item => ({
+          type: 'field',
+          key: `${scope}-${section.key}-${item.key}`,
+          item
+        })))
+      })
+
+      const advancedItems = (items || []).filter(item => !claimed.has(item.key))
+      if (advancedItems.length) {
+        const advancedScope = `${scope}:advanced`
+        const expanded = this.isAdvancedExpanded(advancedScope)
+        entries.push({
+          type: 'advanced-toggle',
+          key: `${scope}-advanced-toggle`,
+          scope: advancedScope,
+          expanded,
+          label: expanded
+            ? this.tOr('settings.advanced.hide', 'Hide advanced settings')
+            : this.formatMessage('settings.advanced.show', 'Show advanced settings ({count})', { count: String(advancedItems.length) }),
+          description: this.tOr('settings.advanced.description', 'Endpoints, timeouts, and tuning controls normally do not need to be changed.')
+        })
+        if (expanded) {
+          entries.push(...advancedItems.map(item => ({
+            type: 'field',
+            key: `${scope}-advanced-${item.key}`,
+            item
+          })))
+        }
+      }
+      return entries
+    },
+    buildSettingEntries (items, scope = 'default') {
       const basicItems = (items || []).filter(item => !item.is_advanced)
       const advancedItems = (items || []).filter(item => item.is_advanced)
       const entries = basicItems.map(item => ({
@@ -1314,23 +1516,37 @@ export default {
       }))
 
       if (advancedItems.length > 0) {
+        const advancedScope = `${scope}:advanced`
+        const expanded = this.isAdvancedExpanded(advancedScope)
         entries.push({
-          type: 'heading',
-          key: 'advanced-heading',
-          title: this.tOr('settings.advanced.title', 'More settings'),
+          type: 'advanced-toggle',
+          key: `${scope}-advanced-toggle`,
+          scope: advancedScope,
+          expanded,
+          label: expanded
+            ? this.tOr('settings.advanced.hide', 'Hide advanced settings')
+            : this.formatMessage('settings.advanced.show', 'Show advanced settings ({count})', { count: String(advancedItems.length) }),
           description: this.tOr(
             'settings.advanced.description',
             'Optional integrations, endpoints, and tuning controls remain available here.'
           )
         })
-        entries.push(...advancedItems.map(item => ({
-          type: 'field',
-          key: `advanced-${item.key}`,
-          item
-        })))
+        if (expanded) {
+          entries.push(...advancedItems.map(item => ({
+            type: 'field',
+            key: `advanced-${item.key}`,
+            item
+          })))
+        }
       }
 
       return entries
+    },
+    isAdvancedExpanded (scope) {
+      return !!this.advancedExpanded[scope]
+    },
+    toggleAdvanced (scope) {
+      this.$set(this.advancedExpanded, scope, !this.advancedExpanded[scope])
     },
     onSelectFieldChange (item, value) {
       if (item && item.key === 'LLM_PROVIDER') {
@@ -1778,6 +1994,16 @@ export default {
       border: none;
       background: transparent;
 
+      ::v-deep .ant-menu-item-group-title {
+        padding: 14px 20px 4px;
+        color: #94a3b8;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        line-height: 1.4;
+        text-transform: uppercase;
+      }
+
       ::v-deep .ant-menu-item {
         margin: 4px 8px;
         border-radius: 8px;
@@ -1880,6 +2106,13 @@ export default {
       padding-top: 18px;
       border-top: 1px solid #f1f5f9;
 
+      .settings-subsection-title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
       span {
         display: block;
         color: #1e3a5f;
@@ -1893,6 +2126,33 @@ export default {
         color: #64748b;
         font-size: 12px;
         line-height: 1.6;
+      }
+    }
+
+    .research-data-intro {
+      margin-bottom: 18px;
+      border-radius: 8px;
+    }
+
+    .advanced-settings-toggle {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 10px 0 18px;
+      padding: 10px 12px;
+      border: 1px dashed #cbd5e1;
+      border-radius: 8px;
+      background: #f8fafc;
+
+      .ant-btn-link {
+        height: auto;
+        padding: 0;
+        font-weight: 600;
+      }
+
+      small {
+        color: #64748b;
+        line-height: 1.5;
       }
     }
   }
@@ -2275,6 +2535,10 @@ export default {
           .anticon { color: var(--primary-color, #1890ff); }
         }
       }
+
+      ::v-deep .ant-menu-item-group-title {
+        color: #6e7681;
+      }
     }
 
     .settings-detail {
@@ -2299,6 +2563,39 @@ export default {
         span {
           color: #e0e6ed;
         }
+
+        small {
+          color: #8b949e;
+        }
+
+        ::v-deep .ant-tag {
+          border-color: rgba(255, 255, 255, 0.16) !important;
+          color: #c9d1d9 !important;
+          background: #202020 !important;
+        }
+
+        ::v-deep .ant-tag-green {
+          border-color: rgba(82, 196, 26, 0.34) !important;
+          color: #7ee787 !important;
+          background: rgba(82, 196, 26, 0.12) !important;
+        }
+
+        ::v-deep .ant-tag-blue {
+          border-color: rgba(64, 169, 255, 0.34) !important;
+          color: #79c0ff !important;
+          background: rgba(64, 169, 255, 0.12) !important;
+        }
+
+        ::v-deep .ant-tag-purple {
+          border-color: rgba(179, 127, 235, 0.34) !important;
+          color: #d2a8ff !important;
+          background: rgba(179, 127, 235, 0.12) !important;
+        }
+      }
+
+      .advanced-settings-toggle {
+        border-color: rgba(255, 255, 255, 0.14);
+        background: #141414;
 
         small {
           color: #8b949e;
@@ -2334,6 +2631,20 @@ export default {
     ::v-deep .ant-alert-info .ant-alert-message,
     ::v-deep .ant-alert-info .ant-alert-description {
       color: rgba(255, 255, 255, 0.82) !important;
+    }
+
+    ::v-deep .research-data-intro.ant-alert-success {
+      border-color: rgba(82, 196, 26, 0.34) !important;
+      background: rgba(82, 196, 26, 0.09) !important;
+    }
+
+    ::v-deep .research-data-intro.ant-alert-success .ant-alert-icon,
+    ::v-deep .research-data-intro.ant-alert-success .ant-alert-message {
+      color: #7ee787 !important;
+    }
+
+    ::v-deep .research-data-intro.ant-alert-success .ant-alert-description {
+      color: #a9cdb8 !important;
     }
 
     .settings-form {
