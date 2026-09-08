@@ -22,15 +22,17 @@
     />
 
     <template v-else>
-      <header class="report-header" :class="decisionClass">
+      <header class="report-header" :class="[decisionClass, biasClass]">
         <div>
           <span class="report-kicker">{{ $t('fastAnalysis.professionalReportTitle') }}</span>
           <h2>{{ instrument.market }}:{{ instrument.canonical_symbol || instrument.symbol }}</h2>
           <p>{{ instrument.name || instrument.symbol }} · {{ report.data_tier === 'professional' ? $t('fastAnalysis.professionalTier') : $t('fastAnalysis.communityTier') }}</p>
         </div>
         <div class="decision-panel">
-          <strong>{{ decisionLabel }}</strong>
-          <span>{{ formatNumber(decisionProfile.confidence, 0) }}%</span>
+          <small class="decision-heading">{{ $t('fastAnalysis.marketBias') }}</small>
+          <strong>{{ marketBiasLabel }}</strong>
+          <span class="trade-action">{{ $t('fastAnalysis.tradeAction') }} · {{ tradeActionLabel }}</span>
+          <span class="confidence-value">{{ formatNumber(decisionProfile.confidence, 0) }}%</span>
           <small>{{ $t('fastAnalysis.modelStrength') }}</small>
         </div>
       </header>
@@ -101,13 +103,20 @@
       </section>
 
       <section v-if="riskPlan" class="report-section">
-        <div class="section-title"><a-icon type="safety-certificate" /> {{ $t('fastAnalysis.riskPlan') }}</div>
+        <div class="section-title"><a-icon type="safety-certificate" /> {{ isCandidateSetup ? $t('fastAnalysis.candidateSetup') : $t('fastAnalysis.riskPlan') }}</div>
+        <a-alert
+          v-if="isCandidateSetup"
+          class="candidate-notice"
+          type="info"
+          show-icon
+          :message="$t('fastAnalysis.candidateSetupDescription')"
+        />
         <div class="risk-grid">
-          <div><span>{{ $t('fastAnalysis.entryPrice') }}</span><strong>{{ formatMoney(riskPlan.entry_price) }}</strong></div>
-          <div><span>{{ $t('fastAnalysis.stopLoss') }}</span><strong>{{ formatMoney(riskPlan.stop_loss) }}</strong></div>
-          <div><span>{{ $t('fastAnalysis.takeProfit') }}</span><strong>{{ formatMoney(riskPlan.take_profit) }}</strong></div>
-          <div><span>{{ $t('fastAnalysis.grossRiskReward') }}</span><strong>{{ formatRiskReward(riskPlan.gross_risk_reward) }}</strong></div>
-          <div><span>{{ $t('fastAnalysis.netRiskReward') }}</span><strong>{{ formatRiskReward(riskPlan.net_risk_reward) }}</strong></div>
+          <div><span>{{ $t('fastAnalysis.entryPrice') }}</span><strong>{{ formatMoney(displayRiskPlan.entry_price) }}</strong></div>
+          <div><span>{{ $t('fastAnalysis.stopLoss') }}</span><strong>{{ formatMoney(displayRiskPlan.stop_loss) }}</strong></div>
+          <div><span>{{ $t('fastAnalysis.takeProfit') }}</span><strong>{{ formatMoney(displayRiskPlan.take_profit) }}</strong></div>
+          <div><span>{{ $t('fastAnalysis.grossRiskReward') }}</span><strong>{{ formatRiskReward(displayRiskPlan.gross_risk_reward) }}</strong></div>
+          <div><span>{{ $t('fastAnalysis.netRiskReward') }}</span><strong>{{ formatRiskReward(displayRiskPlan.net_risk_reward) }}</strong></div>
           <div><span>{{ $t('fastAnalysis.riskBudget') }}</span><strong>{{ formatPercent(riskPlan.risk_budget_pct) }}</strong></div>
           <div><span>{{ $t('fastAnalysis.recommendedPosition') }}</span><strong>{{ formatPercent(riskPlan.recommended_position_pct) }}</strong></div>
           <div><span>{{ $t('fastAnalysis.estimatedCost') }}</span><strong>{{ formatBps(riskPlan.estimated_roundtrip_cost_bps) }}</strong></div>
@@ -141,7 +150,7 @@
             </div>
             <div v-for="item in evidenceRows" :key="item.evidence_id" class="evidence-row">
               <div><strong>{{ capabilityLabel(item.metric) }}</strong><small>{{ item.evidence_id }}</small></div>
-              <span>{{ evidenceValue(item) }}</span>
+              <span class="evidence-observed" :title="evidenceExactValue(item)">{{ evidenceValue(item) }}</span>
               <span>
                 <a v-if="safeUrl(item.source_url)" :href="safeUrl(item.source_url)" target="_blank" rel="noopener noreferrer">{{ providerLabel(item.source) }}</a>
                 <template v-else>{{ providerLabel(item.source) }}</template>
@@ -163,7 +172,12 @@
 
 <script>
 import { mapState } from 'vuex'
-import { resolveDecisionLabelKey } from '@/utils/fastAnalysisPresentation'
+import {
+  evidenceProviderTokens,
+  formatEvidenceObservation,
+  resolveMarketBiasLabelKey,
+  resolveTradeActionLabelKey
+} from '@/utils/fastAnalysisPresentation'
 
 export default {
   name: 'ProfessionalAnalysisReport',
@@ -203,14 +217,29 @@ export default {
     decisionProfile () {
       return this.report?.decision_profile || {}
     },
-    decisionLabel () {
-      return this.$t(resolveDecisionLabelKey({
-        decision: this.decisionProfile.decision,
-        score: this.decisionProfile.score
-      }))
+    technicalDimensionScore () {
+      return Number(this.dimensions.find(item => item.key === 'technical')?.score)
+    },
+    marketBiasLabelKey () {
+      return resolveMarketBiasLabelKey({
+        marketBias: this.decisionProfile.market_bias,
+        biasScore: this.decisionProfile.market_bias_score,
+        technicalScore: this.technicalDimensionScore
+      })
+    },
+    marketBiasLabel () {
+      return this.$t(this.marketBiasLabelKey)
+    },
+    tradeActionLabel () {
+      return this.$t(resolveTradeActionLabelKey(this.decisionProfile.decision))
     },
     decisionClass () {
       return `decision-${String(this.decisionProfile.decision || 'HOLD').toLowerCase()}`
+    },
+    biasClass () {
+      if (this.marketBiasLabelKey.endsWith('Bullish')) return 'bias-bullish'
+      if (this.marketBiasLabelKey.endsWith('Bearish')) return 'bias-bearish'
+      return 'bias-neutral'
     },
     quality () {
       return this.report?.data_quality || {}
@@ -252,8 +281,17 @@ export default {
     riskPlan () {
       return this.report?.risk_plan || null
     },
+    displayRiskPlan () {
+      return this.riskPlan?.candidate_setup || this.riskPlan || {}
+    },
+    isCandidateSetup () {
+      return Boolean(this.riskPlan?.candidate_setup)
+    },
     riskWarnings () {
-      return Array.isArray(this.riskPlan?.warnings) ? this.riskPlan.warnings : []
+      return [...new Set([
+        ...(Array.isArray(this.riskPlan?.warnings) ? this.riskPlan.warnings : []),
+        ...(Array.isArray(this.riskPlan?.candidate_setup?.warnings) ? this.riskPlan.candidate_setup.warnings : [])
+      ])]
     },
     evidenceRows () {
       const rows = this.report?.evidence_snapshot?.observations
@@ -388,9 +426,13 @@ export default {
     providerLabel (value) {
       const raw = String(value || '').trim()
       if (!raw) return '--'
-      const key = `fastAnalysis.provider.${this.normalizeMetricToken(raw)}`
-      const translated = this.$t(key)
-      return translated === key ? raw.replace(/_/g, ' ') : translated
+      const tokens = evidenceProviderTokens(raw)
+      if (!tokens.length) return '--'
+      return tokens.map(token => {
+        const key = `fastAnalysis.provider.${token}`
+        const translated = this.$t(key)
+        return translated === key ? token.replace(/_/g, ' ') : translated
+      }).join(' + ')
     },
     scenarioLabel (value) {
       return this.$t(`fastAnalysis.scenario.${String(value || 'base')}`)
@@ -433,12 +475,21 @@ export default {
     },
     evidenceValue (item) {
       const rawValue = item?.value
-      if (rawValue && typeof rawValue === 'object') return this.structuredEvidenceValue(rawValue)
-      const value = this.scalarEvidenceValue(rawValue)
-      const isNumeric = typeof rawValue === 'number' || (typeof rawValue === 'string' && rawValue.trim() !== '' && Number.isFinite(Number(rawValue)))
-      const unit = isNumeric ? this.evidenceUnit(item?.unit, item?.currency, item?.metric) : ''
-      const currency = item?.currency && !unit.includes(item.currency) ? ` ${item.currency}` : ''
-      return `${value}${unit}${currency}`
+      if (rawValue && typeof rawValue === 'object') return this.structuredEvidenceValue(rawValue, item)
+      const formatted = formatEvidenceObservation(item, this.evidenceFormatOptions())
+      return formatted?.display || this.scalarEvidenceValue(rawValue)
+    },
+    evidenceExactValue (item) {
+      const formatted = formatEvidenceObservation(item, this.evidenceFormatOptions())
+      return formatted?.compacted ? formatted.exact : ''
+    },
+    evidenceFormatOptions () {
+      return {
+        locale: this.$i18n?.locale,
+        shareLabel: this.$t('fastAnalysis.unit.share'),
+        countLabel: this.$t('fastAnalysis.unit.count'),
+        bpsLabel: this.$t('fastAnalysis.unit.bps')
+      }
     },
     scalarEvidenceValue (value) {
       if (value === null || value === undefined || value === '') return '--'
@@ -449,24 +500,16 @@ export default {
       const translated = this.$t(key)
       return translated === key ? value : translated
     },
-    structuredEvidenceValue (value) {
+    structuredEvidenceValue (value, parentItem = {}) {
       if (!value || typeof value !== 'object') return this.scalarEvidenceValue(value)
       return Object.entries(value)
         .filter(([, fieldValue]) => fieldValue !== null && fieldValue !== undefined && fieldValue !== '')
-        .map(([field, fieldValue]) => `${this.metricPartLabel(field)} ${this.scalarEvidenceValue(fieldValue)}`)
+        .map(([field, fieldValue]) => `${this.metricPartLabel(field)} ${this.evidenceValue({
+          ...parentItem,
+          metric: `${parentItem.metric || ''}.${field}`,
+          value: fieldValue
+        })}`)
         .join(' · ') || '--'
-    },
-    evidenceUnit (value, currency, metric) {
-      const normalized = this.normalizeMetricToken(value)
-      if (/(^|\.)rsi(\.|$)/i.test(String(metric || ''))) return ''
-      if (!normalized || ['price', 'currency', 'ohlcv', 'mixed_earnings'].includes(normalized)) return ''
-      if (normalized === 'percent') return '%'
-      if (normalized === 'multiple') return '×'
-      if (normalized === 'usd') return currency === 'USD' ? '' : ' USD'
-      if (normalized === 'currency_per_share') return currency ? ` ${currency}/${this.$t('fastAnalysis.unit.share')}` : `/${this.$t('fastAnalysis.unit.share')}`
-      const key = `fastAnalysis.unit.${normalized}`
-      const translated = this.$t(key)
-      return translated === key ? ` ${value}` : ` ${translated}`
     },
     safeUrl (value) {
       try {
@@ -518,10 +561,14 @@ export default {
 }
 
 .report-kicker { color: #8fc5ff; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
-.decision-panel { display: grid; min-width: 130px; align-content: center; text-align: right; strong { font-size: 21px; } span { font-size: 26px; font-weight: 700; } small { color: rgba(255, 255, 255, 0.65); } }
-.decision-buy .decision-panel strong { color: #6ee7b7; }
-.decision-sell .decision-panel strong { color: #fca5a5; }
-.decision-hold .decision-panel strong { color: #fcd34d; }
+.decision-panel { display: grid; min-width: 160px; align-content: center; text-align: right; strong { font-size: 21px; color: #fcd34d; } small { color: rgba(255, 255, 255, 0.65); } }
+.decision-panel .decision-heading { font-size: 10px; letter-spacing: 0.06em; }
+.decision-panel .trade-action { margin-top: 3px; color: rgba(255, 255, 255, 0.82); font-size: 13px; font-weight: 600; }
+.decision-panel .confidence-value { margin-top: 5px; color: #fff; font-size: 26px; font-weight: 700; }
+.bias-bullish .decision-panel strong { color: #6ee7b7; }
+.bias-bearish .decision-panel strong { color: #fca5a5; }
+.bias-neutral .decision-panel strong { color: #fcd34d; }
+.candidate-notice { margin-bottom: 12px; }
 
 .report-state { display: grid; place-items: center; gap: 10px; min-height: 260px; color: var(--report-muted); .ant-progress { width: 80%; max-width: 380px; } }
 .state-icon { color: #f59e0b; font-size: 30px; }
@@ -575,6 +622,7 @@ export default {
 .evidence-row { color: var(--report-text); font-size: 12px; }
 .evidence-row > div { display: grid; gap: 3px; }
 .evidence-row strong, .evidence-row > span { color: var(--report-text); }
+.evidence-observed { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .evidence-row small { color: var(--report-muted); overflow-wrap: anywhere; }
 .evidence-row a { color: var(--primary-color, #60a5fa); }
 .report-footer { display: flex; flex-wrap: wrap; gap: 8px 18px; color: var(--report-muted); font-size: 11px; }

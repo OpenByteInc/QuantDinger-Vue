@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
-import { resolveDecisionLabelKey } from '../../src/utils/fastAnalysisPresentation.js'
+import {
+  evidenceProviderTokens,
+  formatEvidenceObservation,
+  resolveDecisionLabelKey,
+  resolveMarketBiasLabelKey,
+  resolveTradeActionLabelKey
+} from '../../src/utils/fastAnalysisPresentation.js'
 
 const read = path => readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8')
 
@@ -96,9 +102,8 @@ test('professional report localizes backend metric paths, enum values and genera
   assert.match(report, /metricPartLabel \(value\)/)
   assert.match(report, /providerLabel \(value\)/)
   assert.match(report, /scalarEvidenceValue \(value\)/)
-  assert.match(report, /evidenceUnit \(value, currency, metric\)/)
-  assert.match(report, /isNumeric \? this\.evidenceUnit/)
-  assert.match(report, /\(\^\|\\\.\)rsi/)
+  assert.match(report, /evidenceFormatOptions \(\)/)
+  assert.match(report, /formatEvidenceObservation\(item, this\.evidenceFormatOptions\(\)\)/)
   assert.match(report, /price and evidence confirm the upside thesis\./)
   assert.match(report, /fastAnalysis\.scenarioTrigger/)
 
@@ -115,6 +120,32 @@ test('professional report localizes backend metric paths, enum values and genera
   ]) {
     assert.ok(overrides.includes(`fastAnalysis.${key}`), `missing translation: fastAnalysis.${key}`)
   }
+})
+
+test('evidence observations use financial semantics instead of blindly appending currency', () => {
+  const options = { locale: 'en-US', shareLabel: 'share', countLabel: 'items', bpsLabel: 'bps' }
+
+  assert.deepEqual(formatEvidenceObservation({
+    metric: 'financial.latest_quarter.balance_sheet.total_assets',
+    value: 148524000000,
+    unit: 'USD',
+    currency: 'USD'
+  }, options), {
+    display: '148.52B USD',
+    exact: '148,524,000,000 USD',
+    compacted: true
+  })
+  assert.equal(formatEvidenceObservation({ metric: 'financial.derived.profit_margin', value: 29.25, unit: 'percent' }, options).display, '29.25%')
+  assert.equal(formatEvidenceObservation({ metric: 'crypto.funding_rate', value: 0.005, unit: 'percent' }, options).display, '0.005%')
+  assert.equal(formatEvidenceObservation({ metric: 'financial.market_cap', value: 148524000000, unit: 'USD', currency: 'USD' }, options).display, '148.52B USD')
+  assert.equal(formatEvidenceObservation({ metric: 'financial.eps', value: 21.995, unit: 'currency_per_share', currency: 'USD' }, options).display, '21.995 USD/share')
+  assert.equal(formatEvidenceObservation({ metric: 'quote.price', value: 438.4, unit: 'price', currency: 'HKD' }, options).display, '438.40 HKD')
+  assert.equal(formatEvidenceObservation({ metric: 'financial.pe_ratio', value: 14.95, unit: 'multiple' }, options).display, '14.95×')
+  assert.equal(formatEvidenceObservation({ metric: 'indicator.rsi.value', value: 43.191, unit: 'percent' }, options).display, '43.191')
+  assert.equal(formatEvidenceObservation({ metric: 'financial.inventory', value: 1250000000, unit: 'currency', currency: 'USD' }, options).display, '1.25B USD')
+  assert.equal(formatEvidenceObservation({ metric: 'crypto.open_interest', value: 1250000, unit: 'contracts' }, options).display, '1.25M contracts')
+  assert.equal(formatEvidenceObservation({ metric: 'financial.latest_date', value: '2026-06-30', unit: 'USD', currency: 'USD' }, options), null)
+  assert.deepEqual(evidenceProviderTokens('finnhub+yfinance+yfinance statements'), ['finnhub', 'yfinance_statements'])
 })
 
 test('compact professional report summary hides inline evidence ids', () => {
@@ -203,4 +234,26 @@ test('hold reports preserve mild directional bias instead of flattening to neutr
   assert.equal(resolveDecisionLabelKey({ decision: 'HOLD', bias: 'MILD_BEARISH' }), 'fastAnalysis.outlookMildBear')
   assert.equal(resolveDecisionLabelKey({ decision: 'HOLD', score: 3 }), 'fastAnalysis.outlookNeutral')
   assert.equal(resolveDecisionLabelKey({ decision: 'BUY', score: -30 }), 'fastAnalysis.outlookBull')
+})
+
+test('market bias and trade action are independent presentation concepts', () => {
+  assert.equal(resolveMarketBiasLabelKey({ marketBias: 'BULLISH' }), 'fastAnalysis.marketBiasBullish')
+  assert.equal(resolveMarketBiasLabelKey({ marketBias: 'BEARISH' }), 'fastAnalysis.marketBiasBearish')
+  assert.equal(resolveMarketBiasLabelKey({ technicalScore: 42 }), 'fastAnalysis.marketBiasBearish')
+  assert.equal(resolveMarketBiasLabelKey({ technicalScore: 54 }), 'fastAnalysis.marketBiasBullish')
+  assert.equal(resolveMarketBiasLabelKey({ technicalScore: 58 }), 'fastAnalysis.marketBiasBullish')
+  assert.equal(resolveTradeActionLabelKey('HOLD'), 'fastAnalysis.tradeActionHold')
+  assert.equal(resolveTradeActionLabelKey('SELL'), 'fastAnalysis.tradeActionSell')
+})
+
+test('professional report shows watch-only candidate levels without making HOLD actionable', () => {
+  const report = read('src/views/ai-analysis/components/ProfessionalAnalysisReport.vue')
+  const workbench = read('src/views/ai-analysis/components/CopilotWorkbench.vue')
+
+  assert.match(report, /decisionProfile\.market_bias/)
+  assert.match(report, /tradeActionLabel/)
+  assert.match(report, /riskPlan\?\.candidate_setup/)
+  assert.match(report, /candidateSetupDescription/)
+  assert.match(report, /recommended_position_pct/)
+  assert.match(workbench, /return `\$\{bias\} · \$\{action\}`/)
 })

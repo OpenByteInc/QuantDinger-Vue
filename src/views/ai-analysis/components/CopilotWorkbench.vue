@@ -703,7 +703,7 @@ import { fastAnalyze } from '@/api/fast-analysis'
 import storage from 'store'
 import { ACCESS_TOKEN } from '@/store/mutation-types'
 import { loadEnabledMarketOptions, firstMarketValue } from '@/utils/marketModules'
-import { resolveDecisionLabelKey } from '@/utils/fastAnalysisPresentation'
+import { resolveMarketBiasLabelKey, resolveTradeActionLabelKey } from '@/utils/fastAnalysisPresentation'
 import ProfessionalAnalysisReport from './ProfessionalAnalysisReport.vue'
 import {
   mergeWatchlistSuggestions,
@@ -2466,7 +2466,7 @@ export default {
         return this.i18nText('aiAssetAnalysis.copilot.exportPdf', 'Export PDF')
       }
       if (type === 'share_report') {
-        return this.i18nText('aiAssetAnalysis.copilot.shareReport', 'Share report')
+        return this.$t('aiAssetAnalysis.copilot.shareReport')
       }
       if (type === 'ask_about_report') {
         return this.i18nText('aiAssetAnalysis.copilot.askFollowup', 'Ask follow-up')
@@ -3233,15 +3233,29 @@ export default {
     reportDecision (msg) {
       const report = this.professionalArtifact(msg && msg.report) || {}
       const profile = report.decision_profile || {}
-      return this.$t(resolveDecisionLabelKey({
-        decision: profile.decision,
-        score: profile.score
+      const dimensions = Array.isArray(report.dimensions) ? report.dimensions : []
+      const technicalScore = Number((dimensions.find(item => item.key === 'technical') || {}).score)
+      const bias = this.$t(resolveMarketBiasLabelKey({
+        marketBias: profile.market_bias,
+        biasScore: profile.market_bias_score,
+        technicalScore
       }))
+      const action = this.$t(resolveTradeActionLabelKey(profile.decision))
+      return `${bias} · ${action}`
     },
     reportDecisionClass (msg) {
       const report = this.professionalArtifact(msg && msg.report) || {}
-      const decision = String((report.decision_profile && report.decision_profile.decision) || 'HOLD').toLowerCase()
-      return `decision-${decision}`
+      const profile = report.decision_profile || {}
+      const dimensions = Array.isArray(report.dimensions) ? report.dimensions : []
+      const technicalScore = Number((dimensions.find(item => item.key === 'technical') || {}).score)
+      const key = resolveMarketBiasLabelKey({
+        marketBias: profile.market_bias,
+        biasScore: profile.market_bias_score,
+        technicalScore
+      })
+      if (key.endsWith('Bullish')) return 'decision-buy'
+      if (key.endsWith('Bearish')) return 'decision-sell'
+      return 'decision-hold'
     },
     reportSummary (msg) {
       const report = this.professionalArtifact(msg && msg.report) || {}
@@ -3293,7 +3307,7 @@ export default {
           key: `share-report-${id}`,
           type: 'share_report',
           icon: 'share-alt',
-          label: this.i18nText('aiAssetAnalysis.copilot.shareReport', 'Share report'),
+          label: this.$t('aiAssetAnalysis.copilot.shareReport'),
           payload: { reportId: id }
         },
         {
@@ -3340,18 +3354,18 @@ export default {
       }
       try {
         if (!msg.id) await this.persistCopilotMessage(msg, 'fast_analysis_report')
-        if (!msg.id) throw new Error(this.i18nText('aiAssetAnalysis.copilot.shareSaveFailed', 'Save the report before sharing'))
+        if (!msg.id) throw new Error(this.$t('aiAssetAnalysis.copilot.shareSaveFailed'))
         const res = await createChatReportShare({
           message_id: msg.id,
           language: (this.$i18n && this.$i18n.locale) || 'en-US'
         })
         const path = res && res.data && res.data.path
-        if (!path) throw new Error((res && res.msg) || this.i18nText('aiAssetAnalysis.copilot.shareFailed', 'Unable to create share link'))
+        if (!path) throw new Error((res && res.msg) || this.$t('aiAssetAnalysis.copilot.shareFailed'))
         const url = `${window.location.origin}${window.location.pathname}#${path}`
         await this.copyTextToClipboard(url)
-        this.$message.success(this.i18nText('aiAssetAnalysis.copilot.shareCopied', 'Share link copied'))
+        this.$message.success(this.$t('aiAssetAnalysis.copilot.shareCopied'))
       } catch (e) {
-        this.$message.error((e && (e.backendMessage || e.message)) || this.i18nText('aiAssetAnalysis.copilot.shareFailed', 'Unable to create share link'))
+        this.$message.error((e && (e.backendMessage || e.message)) || this.$t('aiAssetAnalysis.copilot.shareFailed'))
       }
     },
     async retryProfessionalAnalysis (msg) {
