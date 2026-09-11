@@ -7,7 +7,13 @@
         type="warning"
         show-icon
         :message="reconciliationMessage"
-      />
+      >
+        <template slot="description">
+          <a-button type="link" size="small" @click="openOwnershipRepair">
+            {{ $t('strategyCenter.positionOwnership.resolveNow') }}
+          </a-button>
+        </template>
+      </a-alert>
       <div v-if="executionMode === 'live'" class="ownership-toolbar">
         <span>{{ $t('strategyCenter.positionOwnership.summary') }}</span>
         <a-button size="small" icon="safety-certificate" @click="openOwnershipRepair">
@@ -93,7 +99,7 @@
       v-model="ownershipVisible"
       :title="$t('strategyCenter.positionOwnership.title')"
       :footer="null"
-      :width="920"
+      :width="1120"
       destroy-on-close
     >
       <a-alert
@@ -103,6 +109,12 @@
         :message="$t('strategyCenter.positionOwnership.riskTitle')"
         :description="$t('strategyCenter.positionOwnership.riskDescription')"
       />
+      <a-alert
+        class="ownership-risk-alert"
+        type="info"
+        show-icon
+        :message="$t('strategyCenter.positionOwnership.toleranceHelp')"
+      />
       <a-table
         :columns="ownershipColumns"
         :data-source="ownershipRows"
@@ -110,7 +122,7 @@
         :pagination="false"
         row-key="rowKey"
         size="small"
-        :scroll="{ x: 860 }"
+        :scroll="{ x: 1080 }"
       >
         <template slot="ownershipSide" slot-scope="text, record">
           <a-tag :color="record.side === 'long' ? 'green' : 'red'">
@@ -119,6 +131,23 @@
         </template>
         <template slot="ownershipQty" slot-scope="text">
           {{ formatOwnershipQty(text) }}
+        </template>
+        <template slot="ownershipDifference" slot-scope="text, record">
+          <span :class="{ 'text-danger': Number(text) < -Number(record.tolerance || 0) }">
+            {{ formatOwnershipQty(text) }}
+          </span>
+          <div v-if="record.difference_quote != null">{{ $t('strategyCenter.positionOwnership.quoteDifference', { value: formatSignedMoney(record.difference_quote) }) }}</div>
+        </template>
+        <template slot="ownershipAllocations" slot-scope="text, record">
+          <a-popover v-if="record.allocations && record.allocations.length" :title="$t('strategyCenter.positionOwnership.relatedStrategies')">
+            <template slot="content">
+              <div v-for="allocation in record.allocations" :key="allocation.strategy_id">
+                {{ allocation.strategy_name }} #{{ allocation.strategy_id }} · {{ formatOwnershipQty(allocation.quantity) }}
+              </div>
+            </template>
+            <a>{{ formatOwnershipQty(text) }} <a-icon type="info-circle" /></a>
+          </a-popover>
+          <span v-else>{{ formatOwnershipQty(text) }}</span>
         </template>
         <template slot="ownershipStatus" slot-scope="text, record">
           <a-tag :color="record.status === 'ok' ? 'green' : 'orange'">
@@ -129,8 +158,24 @@
           {{ record.coexistence_mode === 'advanced' ? $t('strategyCenter.positionOwnership.advanced') : $t('strategyCenter.positionOwnership.strict') }}
         </template>
         <template slot="ownershipActions" slot-scope="text, record">
+          <span v-if="record.repair_kind === 'allocation_shortfall'">
+            <a-tooltip :title="$t('strategyCenter.positionOwnership.shortfallHelp')">
+              <a-tag color="red">{{ $t('strategyCenter.positionOwnership.shortfall') }}</a-tag>
+            </a-tooltip>
+          </span>
           <a-popconfirm
-            v-if="ownershipAdvancedAvailable && (record.coexistence_mode !== 'advanced' || Math.abs(Number(record.unknown_qty || 0)) > Number(record.tolerance || 0))"
+            v-else-if="record.repair_kind === 'reset_protection'"
+            :title="$t('strategyCenter.positionOwnership.resetProtectionConfirm')"
+            :ok-text="$t('common.confirm')"
+            :cancel-text="$t('common.cancel')"
+            @confirm="repairOwnership(record, 'reset_protection')"
+          >
+            <a-button type="link" size="small" :loading="ownershipRepairKey === record.rowKey">
+              {{ $t('strategyCenter.positionOwnership.resetProtection') }}
+            </a-button>
+          </a-popconfirm>
+          <a-popconfirm
+            v-else-if="ownershipAdvancedAvailable && Number(record.unknown_qty || 0) > Number(record.tolerance || 0)"
             :title="$t('strategyCenter.positionOwnership.protectConfirm')"
             :ok-text="$t('strategyCenter.positionOwnership.protectManual')"
             :cancel-text="$t('common.cancel')"
@@ -156,6 +201,14 @@
           </a-button>
         </template>
       </a-table>
+      <a-alert
+        v-if="ownershipRows.some(row => row.repair_kind === 'allocation_shortfall')"
+        class="ownership-risk-alert"
+        type="warning"
+        show-icon
+        :message="$t('strategyCenter.positionOwnership.shortfall')"
+        :description="$t('strategyCenter.positionOwnership.shortfallHelp')"
+      />
     </a-modal>
   </div>
 </template>
@@ -224,15 +277,13 @@ export default {
     },
     reconciliationMessage () {
       const status = String((this.reconciliation && this.reconciliation.status) || '')
-      const notes = (this.reconciliation && this.reconciliation.notes) || []
-      const detail = Array.isArray(notes) && notes.length ? ` (${notes.slice(0, 2).join('; ')})` : ''
       const messageKeys = {
         account_only: 'trading-assistant.positions.reconciliation.accountOnly',
         strategy_only: 'trading-assistant.positions.reconciliation.strategyOnly',
         mismatch: 'trading-assistant.positions.reconciliation.mismatch',
         error: 'trading-assistant.positions.reconciliation.error'
       }
-      return messageKeys[status] ? `${this.$t(messageKeys[status])}${detail}` : ''
+      return messageKeys[status] ? this.$t(messageKeys[status]) : ''
     },
     columns () {
       if (this.compact) {
@@ -357,9 +408,9 @@ export default {
         { title: this.$t('trading-assistant.table.symbol'), dataIndex: 'symbol', width: 118 },
         { title: this.$t('trading-assistant.table.side'), dataIndex: 'side', width: 76, scopedSlots: { customRender: 'ownershipSide' } },
         { title: this.$t('strategyCenter.positionOwnership.accountQty'), dataIndex: 'account_qty', width: 112, scopedSlots: quantitySlot },
-        { title: this.$t('strategyCenter.positionOwnership.strategyQty'), dataIndex: 'strategy_qty', width: 112, scopedSlots: quantitySlot },
+        { title: this.$t('strategyCenter.positionOwnership.relatedStrategies'), dataIndex: 'strategy_qty', width: 140, scopedSlots: { customRender: 'ownershipAllocations' } },
         { title: this.$t('strategyCenter.positionOwnership.protectedQty'), dataIndex: 'protected_qty', width: 112, scopedSlots: quantitySlot },
-        { title: this.$t('strategyCenter.positionOwnership.unknownQty'), dataIndex: 'unknown_qty', width: 112, scopedSlots: quantitySlot },
+        { title: this.$t('strategyCenter.positionOwnership.unknownQty'), dataIndex: 'unknown_qty', width: 150, scopedSlots: { customRender: 'ownershipDifference' } },
         { title: this.$t('strategyCenter.positionOwnership.mode'), dataIndex: 'coexistence_mode', width: 90, scopedSlots: { customRender: 'ownershipMode' } },
         { title: this.$t('strategyCenter.positionOwnership.status'), dataIndex: 'status', width: 90, scopedSlots: { customRender: 'ownershipStatus' } },
         { title: this.$t('common.actions'), key: 'actions', fixed: 'right', width: 190, scopedSlots: { customRender: 'ownershipActions' } }
@@ -397,7 +448,8 @@ export default {
       this.ownershipLoading = true
       try {
         const res = await getStrategyPositionOwnership(this.strategyId)
-        const data = res.code === 1 ? (res.data || {}) : {}
+        if (res.code !== 1) throw new Error(this.$t(res.msg || 'strategyCenter.positionOwnership.loadFailed'))
+        const data = res.data || {}
         const rows = data.items || []
         this.ownershipAdvancedAvailable = Boolean(data.advanced_coexistence_available)
         this.ownershipRows = rows.map(row => ({
@@ -407,7 +459,7 @@ export default {
       } catch (error) {
         this.ownershipAdvancedAvailable = false
         this.ownershipRows = []
-        this.$message.error(this.$t('strategyCenter.positionOwnership.loadFailed'))
+        this.$message.error((error && error.message) || this.$t('strategyCenter.positionOwnership.loadFailed'))
       } finally {
         this.ownershipLoading = false
       }
@@ -421,7 +473,7 @@ export default {
           side: record.side,
           action
         })
-        if (res.code !== 1) throw new Error(res.msg || 'repair failed')
+        if (res.code !== 1) throw new Error(res.msg ? this.$t(res.msg) : this.$t('strategyCenter.positionOwnership.repairFailed'))
         this.$message.success(this.$t('strategyCenter.positionOwnership.repairSuccess'))
         await Promise.all([this.loadOwnership(), this.loadPositions()])
       } catch (error) {
