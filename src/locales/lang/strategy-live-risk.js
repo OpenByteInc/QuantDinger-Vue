@@ -1,4 +1,12 @@
 const locale = {
+  'strategyCenter.positionOwnership.alpacaRiskDescription': 'Alpaca stocks and crypto support protected manual inventory. Register existing unallocated holdings as a protected baseline. Strategy exits are limited to their own inventory and cannot consume the baseline or other strategy allocations. Opposite entries are blocked while the account holds the other direction. This is ledger protection in a shared broker account; external trades and broker liquidation can still change holdings.',
+  'strategyCenter.positionOwnership.alpacaHelp': 'Protect existing holdings before allowing a strategy to share this symbol. Active orders must finish or be cancelled before ownership can be changed or another strategy order submitted. Shortfalls block new entries; exits remain capped by available strategy inventory. The crypto 10 USD tolerance does not apply to stocks.',
+  'strategyCenter.positionOwnership.alpacaQuoteDifference': 'Approximately {value} USD',
+  'positionOwnership.accountBusy': 'This account is submitting an order or updating ownership. Retry shortly.',
+  'positionOwnership.ordersPending': 'This symbol has pending orders. Wait for reconciliation or review and cancel those orders before retrying.',
+  'positionOwnership.oppositeInventory': 'The account holds the opposite direction. This entry would offset existing inventory and was blocked.',
+  'positionOwnership.driftBlocked': 'New entries are blocked by an ownership difference. Review position ownership and protect existing manual holdings or reconcile the shortfall.',
+  'positionOwnership.noStrategyInventory': 'No strategy-owned quantity is available to close without consuming protected inventory or other strategy allocations.',
   'strategyCenter.positionOwnership.resolveNow': 'Review and resolve position differences',
   'strategyCenter.positionOwnership.relatedStrategies': 'Related strategy allocations',
   'strategyCenter.positionOwnership.toleranceHelp': 'Crypto differences up to 10 USD are tolerated when a current price is available. Larger differences block new entries; available reduce-only exits remain enabled.',
@@ -120,6 +128,14 @@ const enUSFallback = locale
 
 const zhCN = {
   ...enUSFallback,
+  'strategyCenter.positionOwnership.alpacaRiskDescription': 'Alpaca 美股与加密货币支持用户仓位保护。可将原有未分配持仓登记为保护数量；策略平仓只使用自己的仓位，不占用用户保护数量及其他策略仓位。账户存在反方向持仓时，会拦截可能抵消该持仓的开仓。这是共享券商账户内的账本保护，外部手动交易和券商强平仍可能改变实际持仓。',
+  'strategyCenter.positionOwnership.alpacaHelp': '原有持仓请先点击“保护为用户仓位”，再让策略共用该标的。有未完成订单时，需要等待成交核对或处理订单后再修改归属、提交策略订单。持仓不足会限制新开仓，平仓仍以策略实际可用数量为上限；加密货币 10 美元容差不适用于股票。',
+  'strategyCenter.positionOwnership.alpacaQuoteDifference': '约 {value} 美元',
+  'positionOwnership.accountBusy': '账户正在提交订单或更新持仓归属，请稍后重试。',
+  'positionOwnership.ordersPending': '该标的还有待处理订单，请等待成交核对，或检查并取消这些订单后重试。',
+  'positionOwnership.oppositeInventory': '账户存在反方向持仓，本次开仓可能抵消已有仓位，已拦截。',
+  'positionOwnership.driftBlocked': '持仓归属存在差额，已限制新开仓。请在“持仓归属与修复”中保护原有用户持仓，或核对持仓缺口。',
+  'positionOwnership.noStrategyInventory': '当前没有可供本策略平仓的数量；平仓不能占用用户保护仓位或其他策略仓位。',
   'strategyCenter.positionOwnership.resolveNow': '查看差额与处理方式',
   'strategyCenter.positionOwnership.relatedStrategies': '关联策略合计',
   'strategyCenter.positionOwnership.toleranceHelp': '有当前价格时，加密货币 10U 内的差额自动容忍；超过容差会限制新开仓，按实际可用数量执行的减仓保护仍保留。',

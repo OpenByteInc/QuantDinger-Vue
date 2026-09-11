@@ -107,13 +107,13 @@
         type="warning"
         show-icon
         :message="$t('strategyCenter.positionOwnership.riskTitle')"
-        :description="$t('strategyCenter.positionOwnership.riskDescription')"
+        :description="$t(ownershipExchangeId === 'alpaca' ? 'strategyCenter.positionOwnership.alpacaRiskDescription' : 'strategyCenter.positionOwnership.riskDescription')"
       />
       <a-alert
         class="ownership-risk-alert"
         type="info"
         show-icon
-        :message="$t('strategyCenter.positionOwnership.toleranceHelp')"
+        :message="$t(ownershipExchangeId === 'alpaca' ? 'strategyCenter.positionOwnership.alpacaHelp' : 'strategyCenter.positionOwnership.toleranceHelp')"
       />
       <a-table
         :columns="ownershipColumns"
@@ -136,7 +136,7 @@
           <span :class="{ 'text-danger': Number(text) < -Number(record.tolerance || 0) }">
             {{ formatOwnershipQty(text) }}
           </span>
-          <div v-if="record.difference_quote != null">{{ $t('strategyCenter.positionOwnership.quoteDifference', { value: formatSignedMoney(record.difference_quote) }) }}</div>
+          <div v-if="record.difference_quote != null">{{ $t(ownershipExchangeId === 'alpaca' ? 'strategyCenter.positionOwnership.alpacaQuoteDifference' : 'strategyCenter.positionOwnership.quoteDifference', { value: formatSignedMoney(record.difference_quote) }) }}</div>
         </template>
         <template slot="ownershipAllocations" slot-scope="text, record">
           <a-popover v-if="record.allocations && record.allocations.length" :title="$t('strategyCenter.positionOwnership.relatedStrategies')">
@@ -265,6 +265,7 @@ export default {
       ownershipLoading: false,
       ownershipRepairKey: '',
       ownershipAdvancedAvailable: false,
+      ownershipExchangeId: '',
       ownershipRows: [],
       pollingTimer: null,
       positionPoller: null
@@ -452,12 +453,14 @@ export default {
         const data = res.data || {}
         const rows = data.items || []
         this.ownershipAdvancedAvailable = Boolean(data.advanced_coexistence_available)
+        this.ownershipExchangeId = String(data.exchange_id || '').toLowerCase()
         this.ownershipRows = rows.map(row => ({
           ...row,
           rowKey: `${row.symbol || ''}:${row.side || ''}`
         }))
       } catch (error) {
         this.ownershipAdvancedAvailable = false
+        this.ownershipExchangeId = ''
         this.ownershipRows = []
         this.$message.error((error && error.message) || this.$t('strategyCenter.positionOwnership.loadFailed'))
       } finally {
