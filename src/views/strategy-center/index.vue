@@ -47,6 +47,7 @@
 <script>
 import { mapState } from 'vuex'
 import { deleteStrategy, getStrategyList, startStrategy, stopStrategy } from '@/api/strategy'
+import { strategyStopFeedback } from '@/utils/strategyStopFeedback'
 import LiveOperationsTable from './components/LiveOperationsTable.vue'
 import LiveStrategyEditor from './components/LiveStrategyEditor.vue'
 
@@ -144,20 +145,16 @@ export default {
     async handleStop (strategy, options = {}) {
       if (!strategy || !strategy.id || this.controlLoadingId) return
       this.controlLoadingId = strategy.id
+      const closePositions = Boolean(options && options.closePositions)
       try {
-        const closePositions = Boolean(options && options.closePositions)
         const res = await stopStrategy(strategy.id, closePositions)
-        if (res && res.code === 1) {
-          this.$message.success(this.$t(closePositions
-            ? 'strategyCenter.console.stopAndCloseQueued'
-            : 'strategyCenter.console.pauseSuccess'))
-          await this.loadStrategies()
-        } else {
-          this.$message.error((res && res.msg) || this.$t('trading-assistant.messages.stopFailed'))
-        }
+        const feedback = strategyStopFeedback(res, key => this.$t(key), closePositions)
+        this.$message[feedback.level](feedback.message)
       } catch (error) {
-        this.$message.error(error.backendMessage || error.message || this.$t('trading-assistant.messages.stopFailed'))
+        const feedback = strategyStopFeedback(error.response && error.response.data, key => this.$t(key), closePositions)
+        this.$message[feedback.level](feedback.message)
       } finally {
+        await this.loadStrategies()
         this.controlLoadingId = null
       }
     },

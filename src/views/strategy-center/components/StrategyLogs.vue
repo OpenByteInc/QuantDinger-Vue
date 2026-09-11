@@ -68,7 +68,7 @@
             </span>
           </a-tooltip>
         </div>
-        <span v-else class="log-message">{{ log.message }}</span>
+        <span v-else class="log-message">{{ String(log.message || '').startsWith('strategyRuntime.') ? $t(log.message) : log.message }}</span>
       </div>
     </div>
   </div>
