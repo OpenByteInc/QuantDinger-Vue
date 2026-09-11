@@ -466,6 +466,7 @@ export default {
         } else {
           this.snapshotErrors = warnings
         }
+        this.snapshotErrors = this.snapshotErrors.map(message => this.$te(message) ? this.$t(message) : message)
         if (this.snapshotErrors.length) {
           if (!this.swapRows.length && !this.spotRows.length && !this.orderRows.length) {
             this.$message.error(this.snapshotErrors[0])
