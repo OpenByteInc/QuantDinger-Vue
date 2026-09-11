@@ -3579,7 +3579,7 @@ export default {
         attachments,
         context,
         language: this.$i18n ? this.$i18n.locale : 'zh-CN'
-      })
+      }).catch(() => null)
       const plan = res && res.data ? res.data : null
       return { plan, resolvedSymbol }
     },
@@ -3591,9 +3591,9 @@ export default {
         plan = classified.plan
         resolvedSymbol = classified.resolvedSymbol
       } catch (_) {
-        return false
+        return { handled: false, plan, resolvedSymbol }
       }
-      if (!plan || !plan.should_execute || plan.intent !== 'strategy_build') return false
+      if (!plan || !plan.should_execute || plan.intent !== 'strategy_build') return { handled: false, plan, resolvedSymbol }
       const target = this.agentTargetFromPlan(plan, contextLock || resolvedSymbol || this.context)
       if (!target || !target.symbol) {
         this.messages.push({
@@ -3606,7 +3606,7 @@ export default {
           meta: 'agent_intent:missing_symbol',
           created_at: new Date().toISOString()
         })
-        return true
+        return { handled: true, plan, resolvedSymbol }
       }
       this.context.market = target.market
       this.context.symbol = target.symbol
@@ -3628,7 +3628,7 @@ export default {
         await this.generateChartIndicatorDraft(prompt, target)
       }
       this.clearPendingAgentTask()
-      return true
+      return { handled: true, plan, resolvedSymbol }
     },
     async handlePendingStrategyAgentMessage (content, userMsg, contextLock = null) {
       const task = this.pendingAgentTask
@@ -4048,27 +4048,6 @@ export default {
         this.scrollToBottom()
         return
       }
-      if (await this.handleBackendAgentIntent(content, attachments, contextLock)) {
-        this.sending = false
-        this.scrollToBottom()
-        return
-      }
-      await this.loadAgentPreflight()
-      const blockers = this.agentPreflight && Array.isArray(this.agentPreflight.blockers) ? this.agentPreflight.blockers : []
-      if (blockers.length) {
-        const guide = this.buildPreflightGuide(this.pendingAgentTask)
-        this.messages.push({
-          localId: `local-${localId++}`,
-          role: 'assistant',
-          content: guide.content,
-          actions: guide.actions,
-          meta: guide.meta
-        })
-        await this.persistCopilotMessage(this.messages[this.messages.length - 1], 'preflight_guide')
-        this.sending = false
-        this.scrollToBottom()
-        return
-      }
       const assistantMsg = {
         localId: `local-${localId++}`,
         role: 'assistant',
@@ -4079,7 +4058,39 @@ export default {
       }
       this.messages.push(assistantMsg)
       this.scrollToBottom()
-      const resolvedSymbol = contextLock || await this.resolveMessageSymbol(content)
+      const preflight = this.loadAgentPreflight()
+      let routing
+      try {
+        routing = await this.handleBackendAgentIntent(content, attachments, contextLock)
+      } catch (error) {
+        this.replacePendingAssistant(assistantMsg, { role: 'assistant', content: error.message || this.text.chatUnavailable, isThinking: false })
+        this.sending = false
+        return
+      }
+      if (routing.handled) {
+        this.messages = this.messages.filter(item => item.localId !== assistantMsg.localId)
+        this.sending = false
+        this.scrollToBottom()
+        return
+      }
+      await preflight
+      const blockers = this.agentPreflight && Array.isArray(this.agentPreflight.blockers) ? this.agentPreflight.blockers : []
+      if (blockers.length) {
+        const guide = this.buildPreflightGuide(this.pendingAgentTask)
+        const guideMessage = this.replacePendingAssistant(assistantMsg, {
+          localId: `local-${localId++}`,
+          role: 'assistant',
+          content: guide.content,
+          actions: guide.actions,
+          meta: guide.meta,
+          isThinking: false
+        })
+        await this.persistCopilotMessage(guideMessage, 'preflight_guide')
+        this.sending = false
+        this.scrollToBottom()
+        return
+      }
+      const resolvedSymbol = contextLock || routing.resolvedSymbol
       if (resolvedSymbol) {
         const normalized = this.normalizeSymbolOption(resolvedSymbol)
         if (normalized) {
@@ -4090,6 +4101,7 @@ export default {
         }
       }
       const chatContext = this.buildChatContext(content, resolvedSymbol)
+      if (routing.plan) chatContext.agent_intent = routing.plan
       const preferJsonResponse = this.isMonitorIntent(content)
       if (!preferJsonResponse) {
         try {
@@ -4154,8 +4166,8 @@ export default {
         })
         await this.persistCopilotMessage(setupMsg, 'setup_guide')
       } finally {
-        await this.loadBilling()
         this.sending = false
+        this.loadBilling()
         this.scrollToBottom()
       }
     },
@@ -4369,7 +4381,7 @@ export default {
         }
         throw error
       } finally {
-        await this.loadBilling()
+        this.loadBilling()
       }
     },
     handleStreamEvent (rawEvent, assistantMsg) {

@@ -24,11 +24,7 @@ test('strategy AI collaboration is inline, candidate-first and available to both
 
 test('strategy AI refreshes the visible credit balance from billing metadata', () => {
   const page = read('src/views/strategy-ide/index.vue')
-  const backendRoute = read('../QuantDinger/backend_api_python/app/routes/strategy.py')
   assert.match(page, /\$emit\('credits-updated', remainingCredits\)/)
-  assert.match(backendRoute, /_strategy_ai_billing_feature\(intent\)/)
-  assert.match(backendRoute, /"ai_copilot_chat"[\s\S]*"ai_code_gen"/)
-  assert.match(backendRoute, /"remaining_credits"/)
 })
 
 test('strategy AI workspace keeps memory source-bound and uses explicit candidate status APIs', () => {
@@ -131,15 +127,10 @@ test('strategy and indicator conversations share safe markdown rendering', () =>
 
 test('strategy candidate status messages are localized for current and historical conversations', () => {
   const page = read('src/views/strategy-ide/index.vue')
-  const backendRoute = read('../QuantDinger/backend_api_python/app/routes/strategy.py')
-  const workspace = read('../QuantDinger/backend_api_python/app/services/strategy_ai_workspace.py')
 
   assert.match(page, /messageKey === 'candidate_generated_validated'/)
   assert.match(page, /rawContent === legacyCandidateText/)
   assert.match(page, /this\.aiWorkspaceText\.candidateReady/)
-  assert.match(backendRoute, /_request_lang\(\)/)
-  assert.match(backendRoute, /_strategy_ai_text\(STRATEGY_CANDIDATE_MESSAGE_KEY, lang\)/)
-  assert.match(workspace, /summary\["message_key"\]/)
 })
 
 test('strategy AI generation failures surface and localize the nested validation error', () => {

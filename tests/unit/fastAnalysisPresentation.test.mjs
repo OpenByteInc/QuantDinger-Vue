@@ -216,7 +216,7 @@ test('credit balance refreshes after billed AI actions and when the page becomes
   assert.match(header, /document\.addEventListener\('visibilitychange', this\.handleVisibilityChange\)/)
   assert.match(header, /window\.setInterval\(this\.refreshVisibleCredits, 60 \* 1000\)/)
   assert.match(workbench, /const credits = Number\(this\.billing\.credits\)[\s\S]*?\$emit\('credits-updated', credits\)/)
-  assert.ok((workbench.match(/await this\.loadBilling\(\)/g) || []).length >= 5)
+  assert.ok((workbench.match(/this\.loadBilling\(\)/g) || []).length >= 5)
 })
 
 test('strategy logs render typed market-data failures with actionable reasons', () => {
