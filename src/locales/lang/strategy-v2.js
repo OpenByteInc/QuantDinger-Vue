@@ -1,4 +1,7 @@
 const locale = {
+  'strategyV2.universeHistoryUnavailable': 'The requested start date predates the available universe history. Import verified historical membership or select a later start date. Details:',
+  'strategyV2.cancellationNeedsReconciliation': 'Cancellation requested, but an earlier submission has no confirmed broker order ID. Reconcile the broker order before retrying; this order still reserves a position slot.',
+  'strategyV2.fundamentalDataMissing': 'Required financial data is missing for the following stocks. Synchronize historical financial statements before retrying. Details:',
   'strategyV2.insufficientWarmupData': 'Historical data does not cover the required warmup. Choose a supported timeframe or a later start date.',
   'strategyV2.backtest.mode.portfolio': 'Portfolio Backtest',
   'strategyV2.backtest.mode.factor': 'Factor Research',
@@ -445,6 +448,9 @@ const locale = {
 const enUSFallback = locale
 
 const zhCN = {
+  'strategyV2.universeHistoryUnavailable': '回测开始日期早于股票池的历史覆盖范围。请导入真实历史成分股，或选择更晚的开始日期。详情：',
+  'strategyV2.cancellationNeedsReconciliation': '已请求撤单，但之前的发送尚未取得券商订单确认。请先核对券商订单再重试；该订单仍占用持仓名额。',
+  'strategyV2.fundamentalDataMissing': '以下股票缺少策略所需的财务数据。请先同步历史财报后重试。详情：',
   'strategyV2.backtest.entryMarker': '\u5f00\u4ed3',
   'strategyV2.backtest.exitMarker': '\u5e73\u4ed3',
   ...enUSFallback,
@@ -888,6 +894,9 @@ const zhCN = {
 }
 
 const zhTW = {
+  'strategyV2.universeHistoryUnavailable': '回測開始日期早於股票池的歷史覆蓋範圍。請匯入真實歷史成分股，或選擇較晚的開始日期。詳情：',
+  'strategyV2.cancellationNeedsReconciliation': '已請求撤單，但之前的發送尚未取得券商訂單確認。請先核對券商訂單再重試；該訂單仍占用持倉名額。',
+  'strategyV2.fundamentalDataMissing': '以下股票缺少策略所需的財務資料。請先同步歷史財報後重試。詳情：',
   ...zhCN,
   'strategyV2.insufficientWarmupData': '歷史資料不足以完成策略預熱，請選擇支援的週期或較晚的開始日期。',
   'strategyV2.generationInvalid': 'AI 產生的策略未通過驗證。',

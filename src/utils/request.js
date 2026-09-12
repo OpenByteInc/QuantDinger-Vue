@@ -147,6 +147,11 @@ function normalizeBusinessErrorMessage (message, error) {
   const insufficientCredits = normalizeInsufficientCreditsError(error)
   if (insufficientCredits) return insufficientCredits
   if (!message) return ''
+  const readiness = String(message).match(/^(strategyV2\.(?:insufficientWarmupData|fundamentalDataMissing|universeHistoryUnavailable))(?::(.*))?$/s)
+  if (readiness) {
+    const translated = tt(readiness[1], readiness[1])
+    return readiness[2] ? `${translated} ${readiness[2]}` : translated
+  }
   const liveConflict = message.match(/Live strategy conflict: another running strategy already uses the same API key\/exchange\/market\/symbol \(([^)]+)\)\. Please stop strategy (\d+)(?: \((.+)\))? first\./i)
   if (liveConflict) {
     const [, scope, strategyId, strategyName] = liveConflict
