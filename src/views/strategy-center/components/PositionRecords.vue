@@ -122,7 +122,7 @@
         :pagination="false"
         row-key="rowKey"
         size="small"
-        :scroll="{ x: 1080 }"
+        :scroll="{ x: 960 }"
       >
         <template slot="ownershipSide" slot-scope="text, record">
           <a-tag :color="record.side === 'long' ? 'green' : 'red'">
@@ -154,49 +154,13 @@
             {{ record.status === 'ok' ? $t('strategyCenter.positionOwnership.normal') : $t('strategyCenter.positionOwnership.blocked') }}
           </a-tag>
         </template>
-        <template slot="ownershipMode" slot-scope="text, record">
-          {{ record.coexistence_mode === 'advanced' ? $t('strategyCenter.positionOwnership.advanced') : $t('strategyCenter.positionOwnership.strict') }}
-        </template>
         <template slot="ownershipActions" slot-scope="text, record">
           <span v-if="record.repair_kind === 'allocation_shortfall'">
             <a-tooltip :title="$t('strategyCenter.positionOwnership.shortfallHelp')">
               <a-tag color="red">{{ $t('strategyCenter.positionOwnership.shortfall') }}</a-tag>
             </a-tooltip>
           </span>
-          <a-popconfirm
-            v-else-if="record.repair_kind === 'reset_protection'"
-            :title="$t('strategyCenter.positionOwnership.resetProtectionConfirm')"
-            :ok-text="$t('common.confirm')"
-            :cancel-text="$t('common.cancel')"
-            @confirm="repairOwnership(record, 'reset_protection')"
-          >
-            <a-button type="link" size="small" :loading="ownershipRepairKey === record.rowKey">
-              {{ $t('strategyCenter.positionOwnership.resetProtection') }}
-            </a-button>
-          </a-popconfirm>
-          <a-popconfirm
-            v-else-if="ownershipAdvancedAvailable && Number(record.unknown_qty || 0) > Number(record.tolerance || 0)"
-            :title="$t('strategyCenter.positionOwnership.protectConfirm')"
-            :ok-text="$t('strategyCenter.positionOwnership.protectManual')"
-            :cancel-text="$t('common.cancel')"
-            @confirm="repairOwnership(record, 'protect_manual')"
-          >
-            <a-button type="link" size="small" :loading="ownershipRepairKey === record.rowKey">
-              {{ $t('strategyCenter.positionOwnership.protectManual') }}
-            </a-button>
-          </a-popconfirm>
-          <a-popconfirm
-            v-else-if="record.coexistence_mode === 'advanced'"
-            :title="$t('strategyCenter.positionOwnership.strictConfirm')"
-            :ok-text="$t('strategyCenter.positionOwnership.useStrict')"
-            :cancel-text="$t('common.cancel')"
-            @confirm="repairOwnership(record, 'strict_mode')"
-          >
-            <a-button type="link" size="small" :loading="ownershipRepairKey === record.rowKey">
-              {{ $t('strategyCenter.positionOwnership.useStrict') }}
-            </a-button>
-          </a-popconfirm>
-          <a-button type="link" size="small" @click="repairOwnership(record, 'recheck')">
+          <a-button v-else type="link" size="small" @click="repairOwnership(record, 'recheck')">
             {{ $t('strategyCenter.positionOwnership.recheck') }}
           </a-button>
         </template>
@@ -264,7 +228,6 @@ export default {
       ownershipVisible: false,
       ownershipLoading: false,
       ownershipRepairKey: '',
-      ownershipAdvancedAvailable: false,
       ownershipExchangeId: '',
       ownershipRows: [],
       pollingTimer: null,
@@ -412,9 +375,8 @@ export default {
         { title: this.$t('strategyCenter.positionOwnership.relatedStrategies'), dataIndex: 'strategy_qty', width: 140, scopedSlots: { customRender: 'ownershipAllocations' } },
         { title: this.$t('strategyCenter.positionOwnership.protectedQty'), dataIndex: 'protected_qty', width: 112, scopedSlots: quantitySlot },
         { title: this.$t('strategyCenter.positionOwnership.unknownQty'), dataIndex: 'unknown_qty', width: 150, scopedSlots: { customRender: 'ownershipDifference' } },
-        { title: this.$t('strategyCenter.positionOwnership.mode'), dataIndex: 'coexistence_mode', width: 90, scopedSlots: { customRender: 'ownershipMode' } },
         { title: this.$t('strategyCenter.positionOwnership.status'), dataIndex: 'status', width: 90, scopedSlots: { customRender: 'ownershipStatus' } },
-        { title: this.$t('common.actions'), key: 'actions', fixed: 'right', width: 190, scopedSlots: { customRender: 'ownershipActions' } }
+        { title: this.$t('common.actions'), key: 'actions', fixed: 'right', width: 120, scopedSlots: { customRender: 'ownershipActions' } }
       ]
     },
     effectiveLeverage () {
@@ -452,14 +414,12 @@ export default {
         if (res.code !== 1) throw new Error(this.$t(res.msg || 'strategyCenter.positionOwnership.loadFailed'))
         const data = res.data || {}
         const rows = data.items || []
-        this.ownershipAdvancedAvailable = Boolean(data.advanced_coexistence_available)
         this.ownershipExchangeId = String(data.exchange_id || '').toLowerCase()
         this.ownershipRows = rows.map(row => ({
           ...row,
           rowKey: `${row.symbol || ''}:${row.side || ''}`
         }))
       } catch (error) {
-        this.ownershipAdvancedAvailable = false
         this.ownershipExchangeId = ''
         this.ownershipRows = []
         this.$message.error((error && error.message) || this.$t('strategyCenter.positionOwnership.loadFailed'))
