@@ -68,6 +68,7 @@
 
 <script>
 import { getStrategyTrades } from '@/api/strategy'
+import { formatTradeCommission } from '@/utils/tradeCommission'
 import { formatUserDateTime, formatBrowserLocalDateTime, getUserTimezoneFromStorage } from '@/utils/userTime'
 
 export default {
@@ -529,21 +530,7 @@ export default {
       return 'ta-pnl-zero'
     },
     formatCommission (value, record) {
-      const row = record && typeof record === 'object' ? record : null
-      if (row && row.commission_quote != null && row.commission_quote !== '') {
-        const quoteFee = parseFloat(row.commission_quote)
-        if (!isNaN(quoteFee)) {
-          if (Math.abs(quoteFee) < 1e-12) return '$0.00'
-          return `$${quoteFee.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`
-        }
-      }
-      if (value === null || value === undefined) return '--'
-      const numValue = parseFloat(value)
-      if (isNaN(numValue)) return '--'
-      if (Math.abs(numValue) < 1e-12) {
-        return '$0.00'
-      }
-      return `$${numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`
+      return formatTradeCommission(record || { commission: value }, key => this.$t(key))
     }
   }
 }

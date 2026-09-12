@@ -1,5 +1,6 @@
 const locale = {
-  'trading-assistant.table.instrument': 'Instrument'
+  'trading-assistant.table.instrument': 'Instrument',
+  'trading-assistant.fees.pending': 'Unconfirmed'
 }
 
 const enUSFallback = locale
@@ -16,10 +17,12 @@ export default {
   'vi-VN': enUSFallback,
   'zh-CN': {
     ...enUSFallback,
-    'trading-assistant.table.instrument': '交易标的'
+    'trading-assistant.table.instrument': '交易标的',
+    'trading-assistant.fees.pending': '待确认'
   },
   'zh-TW': {
     ...enUSFallback,
-    'trading-assistant.table.instrument': '交易標的'
+    'trading-assistant.table.instrument': '交易標的',
+    'trading-assistant.fees.pending': '待確認'
   }
 }
