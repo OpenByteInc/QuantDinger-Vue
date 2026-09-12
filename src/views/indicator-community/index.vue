@@ -137,6 +137,21 @@
     </div>
 
     <template v-if="activeTab === 'market'">
+      <div v-if="pagination.total > 0" ref="marketResultsStart" class="market-results-toolbar">
+        <div class="market-results-count">
+          <strong>{{ pagination.total }}</strong>
+          <span>{{ $t('community.items') }}</span>
+        </div>
+        <a-pagination
+          v-if="pagination.total > pagination.pageSize"
+          simple
+          :current="pagination.current"
+          :total="pagination.total"
+          :page-size="pagination.pageSize"
+          @change="handlePageChange"
+        />
+      </div>
+
       <a-spin :spinning="loading">
         <div v-if="indicators.length === 0 && !loading" class="empty-state empty-state--blank" />
         <div v-else class="indicator-grid">
@@ -828,9 +843,15 @@ export default {
       this.loadIndicators()
     },
 
-    handlePageChange (page) {
+    async handlePageChange (page) {
       this.pagination.current = Number(page || 1)
-      this.loadIndicators()
+      await this.loadIndicators()
+      this.$nextTick(() => {
+        const target = this.$refs.marketResultsStart
+        if (target && typeof target.scrollIntoView === 'function') {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+      })
     },
 
     openDetail (indicator) {
@@ -1346,8 +1367,33 @@ export default {
 
   .indicator-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 20px;
+  }
+
+  .market-results-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 44px;
+    margin-bottom: 14px;
+    padding: 6px 12px;
+    color: rgba(0, 0, 0, 0.55);
+    background: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 8px;
+    scroll-margin-top: 96px;
+  }
+
+  .market-results-count {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+
+    strong {
+      color: rgba(0, 0, 0, 0.85);
+      font-size: 16px;
+    }
   }
 
   .empty-state {
@@ -1682,8 +1728,18 @@ export default {
   }
 
   .empty-state,
-  .pagination-wrapper {
+  .pagination-wrapper,
+  .market-results-toolbar {
     background: #1f1f1f;
+  }
+
+  .market-results-toolbar {
+    color: rgba(255, 255, 255, 0.55);
+    border-color: #303030;
+
+    .market-results-count strong {
+      color: rgba(255, 255, 255, 0.85);
+    }
   }
 
   .market-risk-tip {
@@ -1889,6 +1945,16 @@ export default {
         width: 100%;
       }
     }
+
+    .indicator-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+}
+
+@media (min-width: 1201px) and (max-width: 1700px) {
+  .indicator-community-container .indicator-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
@@ -1929,9 +1995,15 @@ export default {
     }
 
     .indicator-grid {
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 12px;
     }
+  }
+}
+
+@media (max-width: 480px) {
+  .indicator-community-container .indicator-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 </style>
