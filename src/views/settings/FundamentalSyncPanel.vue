@@ -17,7 +17,7 @@
           <a-date-picker :get-calendar-container="popupContainer" v-model="asOf" :allow-clear="false" @change="selectionChanged" />
         </label>
         <label>{{ $t('fundamentalSync.mode') }}
-          <a-select :get-popup-container="popupContainer" v-model="mode" @change="selectionChanged">
+          <a-select :get-popup-container="popupContainer" v-model="mode" @change="modeChanged">
             <a-select-option value="history">{{ $t('fundamentalSync.history') }}</a-select-option>
             <a-select-option value="current">{{ $t('fundamentalSync.current') }}</a-select-option>
           </a-select>
@@ -92,12 +92,12 @@
         :scroll="{ x: 1000 }"
         size="small">
         <template slot="state" slot-scope="_, row">
-          <a-tag :color="stateColor(row)">{{ $t('fundamentalSync.' + rowState(row)) }}</a-tag>
+          <a-tag :class="['fundamental-state-tag', 'state-tag-' + rowState(row)]">{{ $t('fundamentalSync.' + rowState(row)) }}</a-tag>
           <small v-if="row.stale" class="stale-detail">{{ $t('fundamentalSync.ageDays', { count: row.age_days }) }}</small>
         </template>
         <template slot="missing" slot-scope="values">
           <span v-if="!values.length">—</span>
-          <template v-else><a-tag v-for="field in values" :key="field">{{ fieldLabel(field) }}</a-tag></template>
+          <template v-else><a-tag v-for="field in values" :key="field" class="fundamental-field-tag">{{ fieldLabel(field) }}</a-tag></template>
         </template>
         <template slot="availability" slot-scope="value">{{ value ? $t('fundamentalSync.availability.' + value) : '—' }}</template>
       </a-table>
@@ -115,15 +115,20 @@ const ALL_FUNDAMENTAL_FIELDS = [
   'pb_ratio', 'return_on_equity', 'revenue_growth', 'debt_to_equity'
 ]
 
+function defaultAsOf (mode) {
+  if (mode === 'current') return moment()
+  const value = moment().subtract(1, 'day')
+  while ([0, 6].includes(value.day())) value.subtract(1, 'day')
+  return value
+}
+
 export default {
   name: 'FundamentalSyncPanel',
   props: { dark: { type: Boolean, default: false }, universes: { type: Array, default: () => [] } },
   data () {
-    const asOf = moment().subtract(1, 'day')
-    while ([0, 6].includes(asOf.day())) asOf.subtract(1, 'day')
     return {
       universeId: null,
-      asOf,
+      asOf: defaultAsOf('history'),
       mode: 'history',
       fields: [...ALL_FUNDAMENTAL_FIELDS],
       forceFull: false,
@@ -193,13 +198,15 @@ export default {
       if (row.state) return row.state
       return row.ready ? 'ready' : row.stale ? 'stale' : row.period_end ? 'partial' : 'no_data'
     },
-    stateColor (row) {
-      return { ready: 'green', partial: 'orange', stale: 'red', no_data: 'default' }[this.rowState(row)]
-    },
     universeChanged () {
       const universe = this.supportedUniverses.find(item => item.id === this.universeId)
       this.mode = universe && universe.market === 'USStock' ? 'history' : 'current'
+      this.asOf = defaultAsOf(this.mode)
       this.forceFull = false
+      this.selectionChanged()
+    },
+    modeChanged () {
+      this.asOf = defaultAsOf(this.mode)
       this.selectionChanged()
     },
     selectionChanged () { this.result = null; this.loading = false; this.error = ''; this.requestVersion++; this.load() },
@@ -304,6 +311,12 @@ export default {
 .fundamental-state-summary .state-partial { background: #faad14; }
 .fundamental-state-summary .state-stale { background: #ff4d4f; }
 .stale-detail { display: block; margin-top: 4px; color: var(--sync-muted); white-space: nowrap; }
+.fundamental-state-tag, .fundamental-field-tag { margin: 2px 6px 2px 0; }
+.fundamental-state-tag { background: #f4f6f8; border-color: #d7dce2; color: #4e5b6b; }
+.fundamental-state-tag.state-tag-ready { background: #f0f8eb; border-color: #b7df9b; color: #39791f; }
+.fundamental-state-tag.state-tag-partial { background: #fff7e6; border-color: #ffd591; color: #ad6800; }
+.fundamental-state-tag.state-tag-stale { background: #fff1f0; border-color: #ffa39e; color: #a8071a; }
+.fundamental-field-tag { background: #f4f6f8; border-color: #d7dce2; color: #4e5b6b; }
 .fundamental-coverage /deep/ .ant-table-wrapper { margin-top: 18px; }
 .fundamental-panel /deep/ .ant-checkbox-wrapper, .fundamental-panel /deep/ .ant-progress-text { color: var(--sync-text); }
 .fundamental-panel /deep/ .ant-progress-inner { background: var(--sync-border); }
@@ -326,6 +339,10 @@ export default {
   /deep/ .ant-tag-red { background: #351b1f; border-color: #6b2a32; color: #ff9c9c; }
   /deep/ .ant-tag-green { background: #1d3020; border-color: #355d39; color: #95de64; }
   /deep/ .ant-tag-blue { background: #172c3d; border-color: #285171; color: #91caff; }
+  .fundamental-state-tag, .fundamental-field-tag { background: #25292d; border-color: #46505b; color: #d2d9e2; }
+  .fundamental-state-tag.state-tag-ready { background: #1d3020; border-color: #355d39; color: #95de64; }
+  .fundamental-state-tag.state-tag-partial { background: #322719; border-color: #634a24; color: #ffc069; }
+  .fundamental-state-tag.state-tag-stale { background: #351b1f; border-color: #6b2a32; color: #ff9c9c; }
   /deep/ .ant-checkbox-inner { border-color: #626c78; }
   /deep/ .ant-select-dropdown, /deep/ .ant-calendar, /deep/ .ant-calendar-input-wrap, /deep/ .ant-calendar-input, /deep/ .ant-calendar-panel, /deep/ .ant-calendar-year-panel, /deep/ .ant-calendar-month-panel, /deep/ .ant-calendar-decade-panel { background: var(--sync-surface); color: var(--sync-text); border-color: var(--sync-border); }
   /deep/ .ant-select-dropdown-menu-item, /deep/ .ant-calendar-date, /deep/ .ant-calendar-header a, /deep/ .ant-calendar-year-panel-year, /deep/ .ant-calendar-month-panel-month, /deep/ .ant-calendar-decade-panel-decade { color: var(--sync-text); }

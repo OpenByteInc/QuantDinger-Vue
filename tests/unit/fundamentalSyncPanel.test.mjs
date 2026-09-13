@@ -49,6 +49,19 @@ test('non-US universes use the supported snapshot mode', () => {
   state.supportedUniverses = [{ id: 2, market: 'HKStock' }]
   state.universeChanged()
   assert.equal(state.mode, 'current')
+  assert.equal(state.asOf.format('YYYY-MM-DD'), moment().format('YYYY-MM-DD'))
+})
+
+test('switching synchronization mode resets the coverage date safely', () => {
+  const state = harness(async () => ({ code: 1, data: {} }))
+  state.mode = 'current'
+  state.modeChanged()
+  assert.equal(state.asOf.format('YYYY-MM-DD'), moment().format('YYYY-MM-DD'))
+
+  state.mode = 'history'
+  state.modeChanged()
+  assert.ok(state.asOf.isBefore(moment(), 'day'))
+  assert.ok(![0, 6].includes(state.asOf.day()))
 })
 
 test('manual sync defaults to incremental and full refresh is explicit', async () => {
@@ -92,4 +105,11 @@ test('coverage states distinguish no data, partial data, and stale reports', () 
   assert.equal(state.rowState({ ready: false }), 'no_data')
   assert.equal(state.rowState({ ready: false, period_end: '2026-06-30' }), 'partial')
   assert.equal(state.rowState({ ready: false, stale: true, period_end: '2026-01-01' }), 'stale')
+})
+
+test('coverage status and field tags define readable dark-theme colors', () => {
+  const source = fs.readFileSync(new URL('../../src/views/settings/FundamentalSyncPanel.vue', import.meta.url), 'utf8')
+  assert.match(source, /state-tag-' \+ rowState\(row\)/)
+  assert.match(source, /class="fundamental-field-tag"/)
+  assert.match(source, /\.fundamental-dark[\s\S]*\.fundamental-state-tag, \.fundamental-field-tag \{ background: #25292d; border-color: #46505b; color: #d2d9e2; \}/)
 })
