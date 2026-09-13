@@ -66,3 +66,30 @@ test('manual sync defaults to incremental and full refresh is explicit', async (
   state.universeChanged()
   assert.equal(state.forceFull, false)
 })
+
+test('all supported fields are acceptance defaults', () => {
+  const state = harness(async () => ({ code: 1, data: {} }))
+  assert.equal(state.fields.length, 14)
+  assert.ok(state.fields.includes('market_cap'))
+  assert.ok(state.fields.includes('net_income_ttm'))
+  assert.ok(state.fields.includes('debt_to_equity'))
+})
+
+test('coverage requests preserve the selected synchronization mode', async () => {
+  let params
+  const state = harness(async (_id, values) => {
+    params = values
+    return { code: 1, data: {} }
+  })
+  state.universeId = 1
+  state.mode = 'history'
+  await state.load()
+  assert.equal(params.mode, 'history')
+})
+
+test('coverage states distinguish no data, partial data, and stale reports', () => {
+  const state = harness(async () => ({ code: 1, data: {} }))
+  assert.equal(state.rowState({ ready: false }), 'no_data')
+  assert.equal(state.rowState({ ready: false, period_end: '2026-06-30' }), 'partial')
+  assert.equal(state.rowState({ ready: false, stale: true, period_end: '2026-01-01' }), 'stale')
+})

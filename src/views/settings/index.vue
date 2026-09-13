@@ -358,7 +358,7 @@
                   </a-checkbox-group>
                 </a-spin>
               </a-spin>
-              <FundamentalSyncPanel :universes="systemUniverseRows" />
+              <FundamentalSyncPanel :universes="systemUniverseRows" :dark="isDarkTheme" />
             </div>
 
             <div v-if="activeGroupKey === 'ai' && currentLlmProvider === 'openrouter'" class="openrouter-balance-card">
