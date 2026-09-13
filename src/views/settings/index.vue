@@ -358,6 +358,7 @@
                   </a-checkbox-group>
                 </a-spin>
               </a-spin>
+              <FundamentalSyncPanel :universes="systemUniverseRows" />
             </div>
 
             <div v-if="activeGroupKey === 'ai' && currentLlmProvider === 'openrouter'" class="openrouter-balance-card">
@@ -816,9 +817,11 @@ import { getMarketModules } from '@/api/marketModules'
 import { getSystemUniverseOverview, syncSystemUniverses } from '@/api/universe'
 import { getAdminMembershipPlans, saveAdminMembershipPlans } from '@/api/billing'
 import { baseMixin } from '@/store/app-mixin'
+import FundamentalSyncPanel from './FundamentalSyncPanel.vue'
 
 export default {
   name: 'Settings',
+  components: { FundamentalSyncPanel },
   mixins: [baseMixin],
   data () {
     return {

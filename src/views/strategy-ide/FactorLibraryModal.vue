@@ -23,6 +23,7 @@
       :message="scopeNotice"
     />
 
+    <a-alert v-if="typeFilter === 'fundamental' || (selectedFactor && selectedFactor.factor_type === 'fundamental')" type="warning" show-icon :message="$t('fundamentalSync.factorNotice')" />
     <div class="factor-library-tools">
       <a-input
         v-model="search"
