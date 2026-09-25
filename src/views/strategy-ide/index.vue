@@ -57,25 +57,42 @@
                     <a-radio-button value="portfolio_strategy" @click="handleAssetTypeChange('portfolio_strategy')">{{ text.portfolioStrategy }}</a-radio-button>
                   </a-radio-group>
                 </div>
-                <a-select
-                  class="script-select"
-                  show-search
-                  allow-clear
-                  option-filter-prop="children"
-                  :value="selectedScriptId"
-                  :loading="loadingScripts"
-                  :placeholder="text.selectScriptPlaceholder"
-                  @change="handleScriptSelect"
-                  @dropdownVisibleChange="onScriptDropdownVisibleChange"
+                <a-dropdown
+                  :trigger="['click']"
+                  placement="bottomLeft"
+                  :visible="strategySourceDropdownVisible"
+                  :overlay-class-name="isDarkTheme ? 'strategy-source-dropdown strategy-source-dropdown--dark' : 'strategy-source-dropdown'"
+                  @visibleChange="onScriptDropdownVisibleChange"
                 >
-                  <a-select-option
-                    v-for="item in scriptOptions"
-                    :key="item.id"
-                    :value="item.id"
-                  >
-                    {{ item.optionLabel }}
-                  </a-select-option>
-                </a-select>
+                  <a-button class="script-select strategy-source-dropdown-trigger" :loading="loadingScripts">
+                    <span class="strategy-source-trigger-text">{{ selectedScriptLabel }}</span>
+                    <a-icon type="down" />
+                  </a-button>
+                  <div slot="overlay" class="strategy-source-overlay" @mousedown.stop @click.stop>
+                    <div class="strategy-source-overlay-hint">{{ $t('strategyIde.marketPicker.selectorHint') }}</div>
+                    <button type="button" class="strategy-source-market-entry" @click="openStrategyMarketPicker">
+                      <span><a-icon type="shop" /> {{ text.marketPickerOpen }}</span>
+                      <a-icon type="right" />
+                    </button>
+                    <a-spin v-if="loadingScripts" size="small" class="strategy-source-overlay-loading" />
+                    <div v-else-if="!scriptOptions.length" class="strategy-source-overlay-empty">
+                      {{ $t('strategyIde.marketPicker.noLocalStrategies') }}
+                    </div>
+                    <div v-else class="strategy-source-overlay-list">
+                      <button
+                        v-for="item in scriptOptions"
+                        :key="item.id"
+                        type="button"
+                        class="strategy-source-row"
+                        :class="{ active: String(selectedScriptId || '') === String(item.id) }"
+                        @click="selectStrategySource(item.id)"
+                      >
+                        <a-icon type="check" />
+                        <span>{{ item.optionLabel }}</span>
+                      </button>
+                    </div>
+                  </div>
+                </a-dropdown>
 
                 <a-tooltip :title="currentNewScriptLabel">
                   <a-button class="ide-icon-btn" @click="createNewDraft({ openTemplate: true })">
@@ -536,6 +553,16 @@
       @close="showUniverseLibrary = false"
     />
 
+    <indicator-market-picker
+      :visible="strategyMarketVisible"
+      :dark="isDarkTheme"
+      :get-container="strategyModalGetContainer"
+      asset-mode="strategy"
+      :initial-strategy-type="currentAssetType === 'portfolio_strategy' ? 'portfolio' : 'cta'"
+      @close="strategyMarketVisible = false"
+      @acquired="handleMarketStrategyAcquired"
+    />
+
     <a-drawer
       :visible="showRobotBuilder"
       :title="text.robotTemplates"
@@ -612,6 +639,7 @@ import StrategyEditor from './components/StrategyEditor.vue'
 import FactorLibraryModal from './FactorLibraryModal.vue'
 import UniverseLibraryModal from './UniverseLibraryModal.vue'
 import ExecutorStrategies from '@/views/executor-strategies'
+import IndicatorMarketPicker from '@/views/indicator-ide/components/IndicatorMarketPicker.vue'
 import { resolveIndicatorStrategyContext } from '@/utils/indicatorStrategyContext'
 import { renderSafeMarkdown } from '@/utils/safeMarkdown'
 import { getWatchlist, searchSymbols } from '@/api/market'
@@ -659,13 +687,15 @@ export default {
     StrategyEditor,
     FactorLibraryModal,
     UniverseLibraryModal,
-    ExecutorStrategies
+    ExecutorStrategies,
+    IndicatorMarketPicker
   },
   data () {
     return {
       scriptSources: [],
       loadingScripts: false,
       selectedScriptId: undefined,
+      strategySourceDropdownVisible: false,
       currentSourceId: null,
       currentSource: null,
       currentAssetType: 'script',
@@ -700,6 +730,7 @@ export default {
       showFactorLibrary: false,
       showUniverseLibrary: false,
       showRobotBuilder: false,
+      strategyMarketVisible: false,
       aiPanelExpanded: true,
       aiWorkspaceLoading: false,
       aiWorkspaceLoadToken: 0,
@@ -782,6 +813,10 @@ export default {
     scriptOptions () {
       return this.allScriptOptions.filter(item => item.asset_type === this.currentAssetType)
     },
+    selectedScriptLabel () {
+      const selected = this.scriptOptions.find(item => String(item.id) === String(this.selectedScriptId || ''))
+      return selected ? selected.optionLabel : this.text.selectScriptPlaceholder
+    },
     selectedUniverseId () {
       return Number(this.runConfig && (this.runConfig.universe_id || this.runConfig.universeId)) || undefined
     },
@@ -860,6 +895,7 @@ export default {
         'ctaStrategy',
         'portfolioStrategy',
         'newScript',
+        'marketPickerOpen',
         'refreshScripts',
         'saveScript',
         'saveAsNew',
@@ -1011,6 +1047,28 @@ export default {
     }
   },
   methods: {
+    strategyModalGetContainer () {
+      return document.body
+    },
+    openStrategyMarketPicker () {
+      this.strategySourceDropdownVisible = false
+      this.strategyMarketVisible = true
+    },
+    async handleMarketStrategyAcquired ({ item, result }) {
+      const payload = result || {}
+      const sourceId = payload.script_source_id || payload.source_script_source_id ||
+        (item && item.source_script_source_id)
+      await this.loadSources()
+      const local = sourceId
+        ? this.allScriptOptions.find(source => String(source.id) === String(sourceId))
+        : this.allScriptOptions.find(source => Number(source.source_marketplace_indicator_id) === Number(item && item.id))
+      if (!local) {
+        this.$message.warning(this.text.loadScriptFailed)
+        return
+      }
+      this.strategyMarketVisible = false
+      await this.openSource(local.id, { updateRoute: true })
+    },
     syncRunConfigFromCode (code = this.scriptCode) {
       if (this.currentAssetType !== 'script' || this.scriptCodeHidden) return
       const inferred = extractStrategyRuntimeContractFromCode(code).config
@@ -1491,6 +1549,7 @@ export default {
       }
     },
     onScriptDropdownVisibleChange (visible) {
+      this.strategySourceDropdownVisible = visible
       if (visible && !this.loadingScripts) this.loadSources()
     },
     extractSources (res) {
@@ -1587,6 +1646,10 @@ export default {
         return
       }
       await this.openSource(id, { updateRoute: true })
+    },
+    selectStrategySource (id) {
+      this.strategySourceDropdownVisible = false
+      this.handleScriptSelect(id)
     },
     async openSource (id, options = {}) {
       const sourceId = String(id || '').trim()
@@ -2779,6 +2842,12 @@ export default {
   border-right: 1px solid #e5e7eb;
 }
 
+.strategy-workspace-switcher /deep/ .ant-radio-group {
+  display: inline-flex;
+  overflow: hidden;
+  border-radius: 6px;
+}
+
 .strategy-workspace-copy {
   display: flex;
   width: 150px;
@@ -2801,11 +2870,20 @@ export default {
   white-space: nowrap;
 }
 
-.strategy-workspace-switcher .ant-radio-button-wrapper {
+.strategy-workspace-switcher /deep/ .ant-radio-button-wrapper {
   height: 36px;
   padding: 0 13px;
   line-height: 34px;
   font-weight: 700;
+  border-radius: 0;
+}
+
+.strategy-workspace-switcher /deep/ .ant-radio-button-wrapper:first-child {
+  border-radius: 6px 0 0 6px;
+}
+
+.strategy-workspace-switcher /deep/ .ant-radio-button-wrapper:last-child {
+  border-radius: 0 6px 6px 0;
 }
 
 .script-select-label {
@@ -3134,13 +3212,13 @@ export default {
     border-right-color: rgba(255, 255, 255, 0.1);
   }
 
-  .strategy-workspace-switcher .ant-radio-button-wrapper {
+  .strategy-workspace-switcher /deep/ .ant-radio-button-wrapper {
     border-color: rgba(255, 255, 255, 0.12);
     color: rgba(255, 255, 255, 0.68);
     background: #202020;
   }
 
-  .strategy-workspace-switcher .ant-radio-button-wrapper-checked {
+  .strategy-workspace-switcher /deep/ .ant-radio-button-wrapper-checked {
     border-color: var(--primary-color, #52c41a);
     color: #fff;
     background: var(--primary-color, #52c41a);
@@ -3287,6 +3365,176 @@ export default {
 </style>
 
 <style lang="less">
+.strategy-source-dropdown {
+  z-index: 10050 !important;
+
+  .ant-dropdown-menu {
+    overflow: hidden;
+    padding: 0;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  }
+}
+
+.strategy-source-dropdown-trigger {
+  display: inline-flex;
+  height: 36px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  border-radius: 6px;
+
+  .strategy-source-trigger-text {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+    margin-right: 6px;
+    font-size: 12px;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.strategy-source-overlay {
+  width: 280px;
+  max-width: calc(100vw - 24px);
+  max-height: 320px;
+  overflow: auto;
+  padding: 8px 0;
+  background: #fff;
+}
+
+.strategy-source-overlay-hint,
+.strategy-source-overlay-empty {
+  padding: 0 12px 8px;
+  color: #8c8c8c;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.strategy-source-overlay-empty {
+  padding-top: 8px;
+}
+
+.strategy-source-market-entry {
+  display: flex;
+  width: calc(100% - 16px);
+  height: 34px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 8px 8px;
+  padding: 0 10px;
+  border: 1px solid rgba(82, 196, 26, 0.26);
+  border-radius: 6px;
+  outline: none;
+  background: rgba(82, 196, 26, 0.08);
+  color: #389e0d;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  &:hover,
+  &:focus-visible {
+    border-color: rgba(82, 196, 26, 0.48);
+    background: rgba(82, 196, 26, 0.14);
+  }
+}
+
+.strategy-source-overlay-loading {
+  display: block;
+  padding: 12px;
+}
+
+.strategy-source-overlay-list {
+  padding: 0 4px;
+}
+
+.strategy-source-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  outline: none;
+  background: transparent;
+  color: #262626;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+
+  .anticon {
+    flex: 0 0 12px;
+    color: transparent;
+  }
+
+  span {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &:hover {
+    background: #f5f5f5;
+  }
+
+  &.active {
+    color: #389e0d;
+    font-weight: 600;
+
+    .anticon {
+      color: #52c41a;
+    }
+  }
+}
+
+.strategy-source-dropdown--dark {
+  .ant-dropdown-menu,
+  .strategy-source-overlay {
+    border-color: #363636;
+    background: #1f1f1f;
+  }
+
+  .strategy-source-overlay-hint,
+  .strategy-source-overlay-empty {
+    color: rgba(255, 255, 255, 0.45);
+  }
+
+  .strategy-source-market-entry {
+    border-color: rgba(82, 196, 26, 0.28);
+    background: rgba(82, 196, 26, 0.1);
+    color: #73d13d;
+
+    &:hover,
+    &:focus-visible {
+      border-color: rgba(82, 196, 26, 0.52);
+      background: rgba(82, 196, 26, 0.17);
+    }
+  }
+
+  .strategy-source-row {
+    color: rgba(255, 255, 255, 0.85);
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    &.active {
+      color: #73d13d;
+    }
+  }
+}
+
 .strategy-ai-preview-modal--dark {
   .ant-modal-content,
   .ant-modal-header,

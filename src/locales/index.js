@@ -25,6 +25,7 @@ import backtestRangeOverrides from './backtest-range-overrides'
 import settingsResearchOverrides from './settings-research-overrides'
 import strategyBuilderOverrides from './strategy-builder-overrides'
 import eventRadarMessages from './lang/event-radar'
+import currentFeatureOverrides from './lang/current-feature-overrides'
 
 Vue.use(VueI18n)
 
@@ -54,6 +55,7 @@ const messages = {
     ...(backtestRangeOverrides[defaultLang] || {}),
     ...(settingsResearchOverrides[defaultLang] || {}),
     ...(strategyBuilderOverrides[defaultLang] || {}),
+    ...(currentFeatureOverrides[defaultLang] || {}),
     ...(eventRadarMessages[defaultLang] || {})
   }
 }
@@ -143,6 +145,7 @@ function mergeLocaleOverrides (lang) {
     ...(backtestRangeOverrides[lang] || {}),
     ...(settingsResearchOverrides[lang] || {}),
     ...(strategyBuilderOverrides[lang] || {}),
+    ...(currentFeatureOverrides[lang] || {}),
     ...(eventRadarMessages[lang] || {})
   }
   i18n.setLocaleMessage(lang, {
@@ -186,6 +189,7 @@ export async function loadLanguageAsync (lang = defaultLang) {
       ...(backtestRangeOverrides[lang] || {}),
       ...(settingsResearchOverrides[lang] || {}),
       ...(strategyBuilderOverrides[lang] || {}),
+      ...(currentFeatureOverrides[lang] || {}),
       ...(eventRadarMessages[lang] || {})
     })
     i18n.setLocaleMessage(lang, locale)

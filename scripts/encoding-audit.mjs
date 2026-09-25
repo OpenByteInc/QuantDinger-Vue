@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { basename, extname, join, relative, resolve } from 'node:path'
+import { localeTargets } from './i18n-utils.mjs'
 import { TextDecoder } from 'node:util'
 import vm from 'node:vm'
 
@@ -205,8 +206,9 @@ for (const filePath of files) {
 }
 
 const langDir = join(root, 'src', 'locales', 'lang')
+const coreLocaleNames = ['en-US', ...Object.keys(localeTargets)]
 const localeFiles = readdirSync(langDir)
-  .filter((name) => name.endsWith('.js'))
+  .filter((name) => coreLocaleNames.includes(name.replace(/\.js$/, '')))
   .map((name) => join(langDir, name))
   .sort()
 

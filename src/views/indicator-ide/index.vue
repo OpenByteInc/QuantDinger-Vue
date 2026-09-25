@@ -492,6 +492,10 @@
                         </a-button>
                         <div slot="overlay" class="ide-indicator-overlay" @mousedown.stop @click.stop>
                           <div class="ide-indicator-overlay-hint">{{ $t('indicatorIde.chartPickHint') }}</div>
+                          <button type="button" class="ide-indicator-market-entry" @click="openIndicatorMarketPicker">
+                            <span><a-icon type="shop" /> {{ $t('indicatorIde.marketPicker.open') }}</span>
+                            <a-icon type="right" />
+                          </button>
                           <a-spin v-if="loadingIndicators" size="small" style="padding: 12px;" />
                           <div v-else-if="!indicators.length" class="ide-indicator-overlay-empty">{{ $t('indicatorIde.noIndicatorsYet') }}</div>
                           <div v-else class="ide-indicator-overlay-list">
@@ -1119,6 +1123,13 @@
       </div>
       <pre class="ai-candidate-code-preview">{{ (aiCandidate && aiCandidate.code) || '' }}</pre>
     </a-modal>
+    <indicator-market-picker
+      :visible="indicatorMarketVisible"
+      :dark="isDarkTheme"
+      :get-container="ideModalGetContainer"
+      @close="indicatorMarketVisible = false"
+      @acquired="handleMarketIndicatorAcquired"
+    />
   </div>
 </template>
 
@@ -1148,6 +1159,7 @@ import { extractIndicatorSignalLabels } from '@/utils/indicatorSignalOptions'
 import { renderSafeMarkdown } from '@/utils/safeMarkdown'
 import KlineChart from '@/views/indicator-analysis/components/KlineChart.vue'
 import QuickTradePanel from '@/components/QuickTradePanel/QuickTradePanel'
+import IndicatorMarketPicker from './components/IndicatorMarketPicker.vue'
 import { Modal } from 'ant-design-vue'
 import message from 'ant-design-vue/es/message'
 
@@ -1190,7 +1202,7 @@ function chartTypeStorageKey (userId) {
 export default {
   name: 'IndicatorIDE',
   mixins: [baseMixin],
-  components: { KlineChart, QuickTradePanel },
+  components: { KlineChart, QuickTradePanel, IndicatorMarketPicker },
   data () {
     return {
       userId: null,
@@ -1199,6 +1211,7 @@ export default {
       selectedIndicatorId: undefined,
       chartVisibleIndicatorIds: [],
       indicatorDropdownVisible: false,
+      indicatorMarketVisible: false,
       indicatorsLoadedAt: 0,
       editorFullscreen: false,
       chartFullscreen: false,
@@ -2582,6 +2595,22 @@ export default {
       if (Date.now() - Number(this.indicatorsLoadedAt || 0) > 30000) {
         this.loadIndicators({ background: true })
       }
+    },
+    openIndicatorMarketPicker () {
+      this.indicatorDropdownVisible = false
+      this.indicatorMarketVisible = true
+    },
+    async handleMarketIndicatorAcquired ({ item }) {
+      await this.loadIndicators({ background: true })
+      const marketId = Number(item && item.id)
+      const name = String((item && item.name) || '')
+      const local = this.indicators.find(indicator => Number(indicator.source_indicator_id) === marketId) ||
+        [...this.indicators].reverse().find(indicator => Number(indicator.is_buy) === 1 && String(indicator.name || '') === name)
+      if (!local) return
+      this.selectedIndicatorId = local.id
+      this.chartVisibleIndicatorIds = [Number(local.id)]
+      this.onIndicatorChange(local.id)
+      this.persistIdeSelectionPreference()
     },
     onChartIndicatorCheckChange (rawId, checked) {
       const id = Number(rawId)
@@ -7770,6 +7799,35 @@ body.dark .ide-param-modal-wrap {
   color: #8c8c8c;
   line-height: 1.4;
 }
+.ide-indicator-market-entry {
+  display: flex;
+  width: calc(100% - 16px);
+  height: 34px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 8px 8px;
+  padding: 0 10px;
+  border: 1px solid rgba(82, 196, 26, 0.26);
+  border-radius: 6px;
+  outline: none;
+  background: rgba(82, 196, 26, 0.08);
+  color: #389e0d;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  &:hover,
+  &:focus-visible {
+    border-color: rgba(82, 196, 26, 0.48);
+    background: rgba(82, 196, 26, 0.14);
+  }
+}
 .ide-indicator-overlay-empty {
   padding: 12px;
   font-size: 12px;
@@ -7820,6 +7878,17 @@ body.dark .ide-param-modal-wrap {
   .ide-indicator-overlay-hint,
   .ide-indicator-overlay-empty {
     color: rgba(255, 255, 255, 0.45);
+  }
+  .ide-indicator-market-entry {
+    border-color: rgba(82, 196, 26, 0.28);
+    background: rgba(82, 196, 26, 0.1);
+    color: #73d13d;
+
+    &:hover,
+    &:focus-visible {
+      border-color: rgba(82, 196, 26, 0.52);
+      background: rgba(82, 196, 26, 0.17);
+    }
   }
   .ide-indicator-row:hover {
     background: rgba(255, 255, 255, 0.06);

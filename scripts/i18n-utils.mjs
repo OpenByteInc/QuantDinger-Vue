@@ -26,7 +26,9 @@ export const overrideModulePaths = [
   '../src/locales/lang/strategy-trade-records.js',
   '../src/locales/ux-overrides.js',
   '../src/locales/copilot-callsite-overrides.js',
-  '../src/locales/reviewed-ui-overrides.js'
+  '../src/locales/reviewed-ui-overrides.js',
+  '../src/locales/lang/current-feature-overrides.js',
+  '../src/locales/lang/event-radar.js'
 ]
 
 export function extractObjectRange(source, marker, fileName = 'locale file') {

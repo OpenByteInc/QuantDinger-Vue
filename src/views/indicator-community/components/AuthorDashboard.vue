@@ -57,7 +57,7 @@
 
     <div class="author-dashboard-detail">
       <div class="author-dashboard-detail-toolbar">
-        <a-radio-group v-model="subTab" button-style="solid" @change="onSubTabChange">
+        <a-radio-group v-model="subTab" class="author-dashboard-tabs" button-style="solid" @change="onSubTabChange">
           <a-radio-button value="published">
             <a-icon type="appstore" /> {{ $t('authorDashboard.tab.published') }}
           </a-radio-button>
@@ -477,6 +477,24 @@ export default {
 
 .author-dashboard-detail-toolbar {
   margin-bottom: 12px;
+}
+
+.author-dashboard-tabs {
+  display: inline-flex;
+  overflow: hidden;
+  border-radius: 6px;
+}
+
+.author-dashboard-tabs /deep/ .ant-radio-button-wrapper {
+  border-radius: 0;
+}
+
+.author-dashboard-tabs /deep/ .ant-radio-button-wrapper:first-child {
+  border-radius: 6px 0 0 6px;
+}
+
+.author-dashboard-tabs /deep/ .ant-radio-button-wrapper:last-child {
+  border-radius: 0 6px 6px 0;
 }
 
 .author-dashboard-load-error {

@@ -17,60 +17,64 @@
     <div v-show="activeTab === 'market'" class="market-header">
       <div class="market-header__workspace">
         <div class="market-filter-bar">
-          <a-radio-group
-            v-model="marketAssetType"
-            button-style="solid"
-            class="market-asset-tabs"
-            @change="handleMarketAssetTypeChange"
-          >
-            <a-radio-button value="indicator">
-              {{ $t('community.tabIndicators') }} ({{ marketAssetCounts.indicator }})
-            </a-radio-button>
-            <a-radio-button value="script_template">
-              {{ $t('community.tabScriptTemplates') }} ({{ marketAssetCounts.script_template }})
-            </a-radio-button>
-          </a-radio-group>
-          <a-radio-group v-model="filters.pricingType" button-style="solid" @change="handleFilterChange">
-            <a-radio-button value="">{{ $t('community.all') }}</a-radio-button>
-            <a-radio-button value="free">{{ $t('community.freeOnly') }}</a-radio-button>
-            <a-radio-button value="paid">{{ $t('community.paidOnly') }}</a-radio-button>
-            <a-radio-button value="vip_free">{{ $t('community.vipFree') }}</a-radio-button>
-          </a-radio-group>
-          <a-select v-model="filters.codeVisibility" class="market-filter-select" @change="handleFilterChange">
-            <a-select-option value="">{{ $t('community.codeVisibilityAll') }}</a-select-option>
-            <a-select-option value="visible">{{ $t('community.codeVisible') }}</a-select-option>
-            <a-select-option value="hidden">{{ $t('community.codeHidden') }}</a-select-option>
-          </a-select>
-          <a-select v-model="filters.sortBy" class="market-sort-select" @change="handleFilterChange">
-            <a-select-option
-              v-for="option in marketSortOptions"
-              :key="option.value"
-              :value="option.value"
+          <div class="market-filter-bar__primary">
+            <a-radio-group
+              v-model="marketAssetType"
+              button-style="solid"
+              class="market-asset-tabs"
+              @change="handleMarketAssetTypeChange"
             >
-              {{ option.label }}
-            </a-select-option>
-          </a-select>
-          <a-button :type="showMarketFilters ? 'primary' : 'default'" @click="showMarketFilters = !showMarketFilters">
-            <a-icon type="filter" />
-            {{ $t('community.moreFilters') }}
-          </a-button>
-          <a-button class="market-reset-btn" @click="resetMarketFilters">
-            <a-icon type="reload" />
-            {{ $t('community.resetFilters') }}
-          </a-button>
-          <a-input-search
-            v-model="filters.keyword"
-            :placeholder="$t('community.searchPlaceholder')"
-            :enter-button="$t('community.applyFilters')"
-            class="market-search"
-            allow-clear
-            @search="handleSearch"
-            @pressEnter="handleSearch"
-          />
-          <a-button type="link" class="market-purchases-btn" @click="showMyPurchases = true">
-            <a-icon type="shopping" />
-            {{ $t('community.myPurchases') }}
-          </a-button>
+              <a-radio-button value="indicator">
+                {{ $t('community.tabIndicators') }} ({{ marketAssetCounts.indicator }})
+              </a-radio-button>
+              <a-radio-button value="script_template">
+                {{ $t('community.tabScriptTemplates') }} ({{ marketAssetCounts.script_template }})
+              </a-radio-button>
+            </a-radio-group>
+            <a-input-search
+              v-model="filters.keyword"
+              :placeholder="$t('community.searchPlaceholder')"
+              :enter-button="$t('community.applyFilters')"
+              class="market-search"
+              allow-clear
+              @search="handleSearch"
+              @pressEnter="handleSearch"
+            />
+            <a-button type="link" class="market-purchases-btn" @click="showMyPurchases = true">
+              <a-icon type="shopping" />
+              {{ $t('community.myPurchases') }}
+            </a-button>
+          </div>
+          <div class="market-filter-bar__secondary">
+            <a-radio-group v-model="filters.pricingType" button-style="solid" class="market-pricing-tabs" @change="handleFilterChange">
+              <a-radio-button value="">{{ $t('community.all') }}</a-radio-button>
+              <a-radio-button value="free">{{ $t('community.freeOnly') }}</a-radio-button>
+              <a-radio-button value="paid">{{ $t('community.paidOnly') }}</a-radio-button>
+              <a-radio-button value="vip_free">{{ $t('community.vipFree') }}</a-radio-button>
+            </a-radio-group>
+            <a-select v-model="filters.codeVisibility" class="market-filter-select" @change="handleFilterChange">
+              <a-select-option value="">{{ $t('community.codeVisibilityAll') }}</a-select-option>
+              <a-select-option value="visible">{{ $t('community.codeVisible') }}</a-select-option>
+              <a-select-option value="hidden">{{ $t('community.codeHidden') }}</a-select-option>
+            </a-select>
+            <a-select v-model="filters.sortBy" class="market-sort-select" @change="handleFilterChange">
+              <a-select-option
+                v-for="option in marketSortOptions"
+                :key="option.value"
+                :value="option.value"
+              >
+                {{ option.label }}
+              </a-select-option>
+            </a-select>
+            <a-button :type="showMarketFilters ? 'primary' : 'default'" @click="showMarketFilters = !showMarketFilters">
+              <a-icon type="filter" />
+              {{ $t('community.moreFilters') }}
+            </a-button>
+            <a-button class="market-reset-btn" @click="resetMarketFilters">
+              <a-icon type="reload" />
+              {{ $t('community.resetFilters') }}
+            </a-button>
+          </div>
         </div>
       </div>
 
@@ -195,11 +199,9 @@
       <div class="review-panel">
         <div class="review-header">
           <div class="review-header__status">
-            <a-radio-group v-model="reviewFilter" button-style="solid" @change="handleReviewStatusChange">
+            <a-radio-group v-model="reviewFilter" button-style="solid" class="review-status-tabs" @change="handleReviewStatusChange">
               <a-radio-button value="pending">
-                <a-badge :count="reviewStats.pending" :offset="[8, -2]" :number-style="{ backgroundColor: '#faad14' }">
-                  {{ $t('community.admin.pending') }}
-                </a-badge>
+                {{ $t('community.admin.pending') }} ({{ reviewStats.pending }})
               </a-radio-button>
               <a-radio-button value="approved">
                 {{ $t('community.admin.approved') }} ({{ reviewStats.approved }})
@@ -1002,7 +1004,12 @@ export default {
       try {
         const res = await request({
           url: '/api/community/admin/review-stats',
-          method: 'get'
+          method: 'get',
+          params: {
+            keyword: this.reviewFilters.keyword || undefined,
+            asset_type: this.reviewFilters.assetType || undefined,
+            pricing_type: this.reviewFilters.pricingType || undefined
+          }
         })
         if (res.code === 1) {
           this.reviewStats = res.data || { pending: 0, approved: 0, rejected: 0 }
@@ -1048,6 +1055,7 @@ export default {
     handleReviewFilterChange () {
       this.reviewPagination.current = 1
       this.loadPendingIndicators()
+      this.loadReviewStats()
     },
 
     resetReviewFilters () {
@@ -1059,6 +1067,7 @@ export default {
       }
       this.reviewPagination.current = 1
       this.loadPendingIndicators()
+      this.loadReviewStats()
     },
 
     handleReviewPageChange (page) {
@@ -1285,32 +1294,49 @@ export default {
 
   .market-header {
     margin-bottom: 18px;
-    padding: 14px 16px;
+    padding: 12px 14px;
     background: #fff;
     border: 1px solid rgba(15, 23, 42, 0.08);
-    border-radius: 10px;
+    border-radius: 8px;
     box-shadow: 0 8px 28px rgba(15, 23, 42, 0.05);
 
     &__workspace {
       min-width: 0;
 
       .market-search {
-        width: 340px;
-        max-width: 100%;
+        width: 42vw;
+        max-width: 560px;
         margin-left: auto;
-        flex: 0 1 340px;
+        flex: 1 1 420px;
       }
     }
 
-    .market-filter-bar,
     .market-advanced-filters {
       display: flex;
       align-items: center;
       flex-wrap: wrap;
-      gap: 9px;
+      gap: 8px;
     }
 
     .market-filter-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+
+      &__primary,
+      &__secondary {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        width: 100%;
+      }
+
+      &__secondary {
+        padding-top: 10px;
+        border-top: 1px solid rgba(15, 23, 42, 0.07);
+      }
+
       .market-filter-select {
         width: 138px;
       }
@@ -1321,6 +1347,63 @@ export default {
 
       .market-purchases-btn {
         flex-shrink: 0;
+      }
+
+      ::v-deep .ant-btn,
+      ::v-deep .ant-select-selection,
+      ::v-deep .ant-input,
+      ::v-deep .ant-input-affix-wrapper,
+      ::v-deep .ant-input-number {
+        border-radius: 6px;
+      }
+
+      ::v-deep .ant-btn,
+      ::v-deep .ant-select-selection--single,
+      ::v-deep .ant-input,
+      ::v-deep .ant-input-affix-wrapper {
+        min-height: 32px;
+      }
+
+      ::v-deep .ant-select-selection__rendered {
+        line-height: 30px;
+      }
+
+      ::v-deep .ant-radio-group {
+        display: inline-flex;
+        overflow: hidden;
+        border-radius: 6px;
+
+        .ant-radio-button-wrapper {
+          height: 32px;
+          line-height: 30px;
+          border-radius: 0;
+
+          &:first-child {
+            border-radius: 6px 0 0 6px;
+          }
+
+          &:last-child {
+            border-radius: 0 6px 6px 0;
+          }
+        }
+      }
+
+      .market-search {
+        ::v-deep .ant-input-affix-wrapper,
+        ::v-deep .ant-input-group > .ant-input:first-child {
+          border-radius: 6px 0 0 6px;
+        }
+
+        ::v-deep .ant-input-affix-wrapper .ant-input {
+          min-height: 30px;
+          border-radius: 0;
+        }
+
+        ::v-deep .ant-input-group-addon .ant-btn {
+          min-width: 68px;
+          border-radius: 0 6px 6px 0;
+          box-shadow: none;
+        }
       }
     }
 
@@ -1481,6 +1564,26 @@ export default {
 
       &__status {
         flex-shrink: 0;
+
+        .review-status-tabs {
+          display: inline-flex;
+          overflow: hidden;
+          border-radius: 6px;
+
+          ::v-deep .ant-radio-button-wrapper {
+            height: 32px;
+            line-height: 30px;
+            border-radius: 0;
+
+            &:first-child {
+              border-radius: 6px 0 0 6px;
+            }
+
+            &:last-child {
+              border-radius: 0 6px 6px 0;
+            }
+          }
+        }
       }
 
       &__filters {
@@ -1744,6 +1847,7 @@ export default {
     background: #1f1f1f;
     box-shadow: none;
 
+    .market-filter-bar__secondary,
     .market-advanced-filters {
       border-color: rgba(255, 255, 255, 0.08);
     }
@@ -2006,7 +2110,6 @@ export default {
         }
       }
 
-      .market-filter-bar,
       .market-advanced-filters {
         align-items: stretch;
         flex-direction: column;
@@ -2023,6 +2126,37 @@ export default {
 
         .market-purchases-btn {
           margin-left: 0;
+        }
+      }
+
+      .market-filter-bar {
+        &__primary,
+        &__secondary {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .market-search,
+        .market-filter-select,
+        .market-sort-select,
+        .market-reset-btn,
+        .market-purchases-btn,
+        .market-asset-tabs,
+        .market-pricing-tabs,
+        &__secondary > .ant-btn {
+          width: 100%;
+        }
+
+        .market-purchases-btn {
+          margin-left: 0;
+        }
+
+        .market-asset-tabs,
+        .market-pricing-tabs {
+          ::v-deep .ant-radio-button-wrapper {
+            flex: 1;
+            text-align: center;
+          }
         }
       }
 

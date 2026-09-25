@@ -2,7 +2,7 @@
   <div class="backtest-page qd-workspace-page" :class="{ 'theme-dark': isDarkTheme }" data-testid="backtest-center">
     <section class="workspace-toolbar">
       <div class="workspace-toolbar__primary">
-        <a-radio-group v-model="mode" button-style="solid" data-testid="research-mode-switch">
+        <a-radio-group v-model="mode" class="workspace-mode-tabs" button-style="solid" data-testid="research-mode-switch">
           <a-radio-button value="portfolio">{{ $t('strategyV2.backtest.mode.portfolio') }}</a-radio-button>
           <a-radio-button value="factor">{{ $t('strategyV2.backtest.mode.factor') }}</a-radio-button>
         </a-radio-group>
@@ -1313,12 +1313,18 @@ export default {
 .workspace-toolbar, .panel { border: 1px solid #e2e6eb; border-radius: 10px; background: #fff; box-shadow: 0 6px 20px rgba(15, 35, 60, 0.045); }
 .workspace-toolbar { position: sticky; z-index: 20; top: 0; display: flex; width: calc(100% + 28px); align-items: center; justify-content: space-between; gap: 16px; min-height: 48px; margin-right: -14px; margin-bottom: 10px; margin-left: -14px; padding: 7px 24px; border-radius: 0; }
 .workspace-toolbar__primary { display: flex; min-width: 0; align-items: center; gap: 12px; }
+.workspace-mode-tabs { display: inline-flex; overflow: hidden; border-radius: 6px; }
+.workspace-mode-tabs /deep/ .ant-radio-button-wrapper { border-radius: 0; }
+.workspace-mode-tabs /deep/ .ant-radio-button-wrapper:first-child { border-radius: 6px 0 0 6px; }
+.workspace-mode-tabs /deep/ .ant-radio-button-wrapper:last-child { border-radius: 0 6px 6px 0; }
 .workspace-toolbar__context { overflow: hidden; color: #718096; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .section-hint, .history-title-row p { margin: 0; color: #718096; line-height: 1.55; }
 .hero-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
 .hero-stat { display: inline-flex; align-items: baseline; gap: 5px; padding: 7px 10px; border-radius: 8px; color: #718096; background: #f7f9fb; font-size: 12px; }
-.source-category-switch { display: flex; width: 100%; margin-bottom: 9px; }
-.source-category-switch /deep/ .ant-radio-button-wrapper { flex: 1 1 0; min-width: 0; overflow: hidden; padding: 0 8px; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+.source-category-switch { display: flex; width: 100%; overflow: hidden; margin-bottom: 9px; border-radius: 6px; }
+.source-category-switch /deep/ .ant-radio-button-wrapper { flex: 1 1 0; min-width: 0; overflow: hidden; padding: 0 8px; border-radius: 0; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+.source-category-switch /deep/ .ant-radio-button-wrapper:first-child { border-radius: 6px 0 0 6px; }
+.source-category-switch /deep/ .ant-radio-button-wrapper:last-child { border-radius: 0 6px 6px 0; }
 .source-empty-alert { margin-top: 10px; }
 .hero-stat strong { color: #25364f; font-size: 16px; }
 .workspace-grid { display: grid; grid-template-columns: 332px minmax(620px, 1fr); gap: 10px; align-items: start; }
