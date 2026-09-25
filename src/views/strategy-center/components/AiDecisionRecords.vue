@@ -256,7 +256,7 @@ export default {
 .ai-decision-records__error { margin-bottom: 14px; }
 .ai-decision-records__list { background: transparent; }
 .ai-decision-records__list /deep/ .ant-collapse-item { margin-bottom: 10px; overflow: hidden; border: 1px solid #e8ebf0; border-radius: 9px; background: #fff; }
-.ai-decision-records__list /deep/ .ant-collapse-header { padding: 12px 38px 12px 14px; }
+.ai-decision-records__list /deep/ .ant-collapse-header { padding: 12px 38px 12px 42px; }
 .ai-decision-records__list /deep/ .ant-collapse-content { border-top: 1px solid #eef0f3; }
 .ai-decision-records__list /deep/ .ant-collapse-content-box { padding: 12px 14px 14px; }
 .ai-decision-record { min-width: 0; }
