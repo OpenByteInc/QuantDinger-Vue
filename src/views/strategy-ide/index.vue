@@ -262,12 +262,20 @@
                     <div
                       v-for="messageItem in aiMessages"
                       :key="messageItem.localId || messageItem.id"
-                      :class="['strategy-ai-message', `strategy-ai-message--${messageItem.role || 'assistant'}`]"
+                      :class="[
+                        'strategy-ai-message',
+                        `strategy-ai-message--${messageItem.role || 'assistant'}`,
+                        { 'strategy-ai-message--error': messageItem.message_type === 'error' }
+                      ]"
                     >
                       <div class="strategy-ai-message__role">
                         {{ messageItem.role === 'user' ? aiWorkspaceText.you : 'AI' }}
-                        <span v-if="messageItem.role !== 'user'" class="strategy-ai-message__badge">
-                          {{ messageItem.message_type === 'candidate' ? aiWorkspaceText.candidateBadge : aiWorkspaceText.discussionBadge }}
+                        <span
+                          v-if="messageItem.role !== 'user'"
+                          class="strategy-ai-message__badge"
+                          :class="{ 'strategy-ai-message__badge--error': messageItem.message_type === 'error' }"
+                        >
+                          {{ messageItem.message_type === 'candidate' ? aiWorkspaceText.candidateBadge : (messageItem.message_type === 'error' ? aiWorkspaceText.errorBadge : aiWorkspaceText.discussionBadge) }}
                         </span>
                       </div>
                       <div class="strategy-ai-message__content" v-html="renderStrategyAiMessage(messageItem)" />
@@ -861,7 +869,7 @@ export default {
       const keys = [
         'title', 'resize', 'ctaContract', 'portfolioContract', 'memoryActive', 'temporaryMemory', 'clear',
         'loading', 'emptyTitle', 'ctaEmptyDesc', 'portfolioEmptyDesc', 'you', 'candidateBadge',
-        'discussionBadge', 'candidateValid', 'candidateNeedsReview', 'preview', 'apply', 'discard',
+        'discussionBadge', 'errorBadge', 'candidateValid', 'candidateNeedsReview', 'preview', 'apply', 'discard',
         'thinking', 'placeholder', 'shortcut', 'send', 'checksTab',
         'checkPassed', 'checkPassedDesc', 'checkPending', 'checkPendingDesc', 'frequencies', 'instruments',
         'runCheck', 'previewTitle', 'previewHint', 'clearConfirm', 'candidateReady', 'candidateApplied',
@@ -1421,7 +1429,7 @@ export default {
         this.$nextTick(this.scrollStrategyAiConversation)
       } catch (e) {
         const message = this.localizeStrategyAiError(e)
-        this.aiMessages.push({ role: 'assistant', content: message, message_type: 'discussion', localId: `strategy-error-${Date.now()}` })
+        this.aiMessages.push({ role: 'assistant', content: message, message_type: 'error', localId: `strategy-error-${Date.now()}` })
         this.$message.error(message)
         this.$nextTick(this.scrollStrategyAiConversation)
       } finally {
@@ -3115,6 +3123,7 @@ export default {
 .strategy-ai-message__role { margin: 0 4px 3px; color: #96a0b2; font-size: 9px; }
 .strategy-ai-message--user .strategy-ai-message__role { text-align: right; }
 .strategy-ai-message__badge { margin-left: 5px; color: #1677ff; background: #e6f4ff; }
+.strategy-ai-message__badge--error { color: #cf1322; background: #fff1f0; }
 .strategy-ai-message__content {
   padding: 8px 10px;
   border-radius: 9px 9px 9px 3px;
@@ -3124,6 +3133,11 @@ export default {
   line-height: 1.55;
   white-space: normal;
   word-break: break-word;
+}
+.strategy-ai-message--error .strategy-ai-message__content {
+  border: 1px solid #ffccc7;
+  color: #a8071a;
+  background: #fff2f0;
 }
 .strategy-ai-message__content ::v-deep p { margin: 0 0 7px; }
 .strategy-ai-message__content ::v-deep p:last-child { margin-bottom: 0; }
@@ -3307,6 +3321,17 @@ export default {
     border-color: rgba(82, 196, 26, 0.28);
     color: #d9f7be;
     background: rgba(82, 196, 26, 0.12);
+  }
+
+  .strategy-ai-message__badge--error {
+    color: #ff7875;
+    background: rgba(255, 77, 79, 0.14);
+  }
+
+  .strategy-ai-message--error .strategy-ai-message__content {
+    border-color: rgba(255, 77, 79, 0.42);
+    color: #ffb3b0;
+    background: rgba(255, 77, 79, 0.1);
   }
 
   .strategy-ai-quick-prompts button {
