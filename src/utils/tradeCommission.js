@@ -14,6 +14,6 @@ export function formatTradeCommission (row, t) {
   if (native !== null && native !== 0) {
     return currency && currency !== 'MIXED' ? `${format(native)} ${currency}` : t('trading-assistant.fees.pending')
   }
-  if (status === 'actual_zero' || (status === 'actual' && (quote === 0 || native === 0))) return '$0.00'
+  if (status === 'actual_zero' || status === 'complete' || (status === 'actual' && (quote === 0 || native === 0))) return '$0.00'
   return t('trading-assistant.fees.pending')
 }

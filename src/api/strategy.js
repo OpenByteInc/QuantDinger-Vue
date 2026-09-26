@@ -33,6 +33,10 @@ const api = {
   strategyFactorResearchGet: '/api/backtest/factor-research/get',
   strategyBacktestHistory: '/api/backtest/history',
   strategyBacktestGet: '/api/backtest/get',
+  strategyEvolutionRun: '/api/strategy-evolution/run',
+  strategyEvolutionEstimate: '/api/strategy-evolution/estimate',
+  strategyEvolutionParameterSpace: '/api/strategy-evolution/parameter-space',
+  strategyEvolutionJobs: '/api/strategy-evolution/jobs',
   scriptSources: '/api/strategies/script-sources',
   scriptSourceDetail: '/api/strategies/script-sources/detail',
   createScriptSource: '/api/strategies/script-sources/create',
@@ -383,6 +387,53 @@ export function getStrategyBacktestRun (runId) {
     url: api.strategyBacktestGet,
     method: 'get',
     params: { runId }
+  })
+}
+
+export function runStrategyEvolution (data) {
+  return request({
+    url: api.strategyEvolutionRun,
+    method: 'post',
+    data,
+    timeout: 1800000
+  })
+}
+
+export function estimateStrategyEvolution (data) {
+  return request({
+    url: api.strategyEvolutionEstimate,
+    method: 'post',
+    data
+  })
+}
+
+export function getStrategyEvolutionParameterSpace (sourceId) {
+  return request({
+    url: api.strategyEvolutionParameterSpace,
+    method: 'get',
+    params: { sourceId }
+  })
+}
+
+export function getStrategyEvolutionJob (jobId) {
+  return request({
+    url: `${api.strategyEvolutionJobs}/${jobId}`,
+    method: 'get'
+  })
+}
+
+export function getStrategyEvolutionJobs (params = {}) {
+  return request({
+    url: api.strategyEvolutionJobs,
+    method: 'get',
+    params
+  })
+}
+
+export function cancelStrategyEvolutionJob (jobId) {
+  return request({
+    url: `${api.strategyEvolutionJobs}/${jobId}/cancel`,
+    method: 'post'
   })
 }
 

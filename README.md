@@ -35,7 +35,12 @@ For backend APIs, Docker Compose deployment, database services, and project-leve
 
 - AI market analysis, asset research, and assistant-style decision support
 - Strategy and indicator authoring with chart inspection and code editing
-- Backtest center with result review, trade records, and equity curves
+- Backtest center with factor research, result review, trade records, and equity curves
+- Strategy evolution workspace with asynchronous parameter search, bar-count
+  walk-forward validation, blind holdouts, robustness diagnostics, and
+  per-strategy research history
+- Signal-only virtual accounts with simulated orders, fills, positions, PnL,
+  and equity curves without broker submission
 - Trading assistant, trading bot, quick trade, and portfolio views
 - Exchange account binding and API key management UI
 - Membership, credits, billing, admin, OAuth, settings, and profile pages

@@ -13,6 +13,7 @@ test('missing and unconfirmed fees do not display as free trades', () => {
 
 test('confirmed zero fee is displayed as zero', () => {
   assert.equal(formatTradeCommission({ commission: 0, fee_status: 'actual_zero' }, t), '$0.00')
+  assert.equal(formatTradeCommission({ commission: 0, commission_quote: 0, fee_status: 'complete' }, t), '$0.00')
 })
 
 test('quote fees preserve small amounts and override native fees', () => {

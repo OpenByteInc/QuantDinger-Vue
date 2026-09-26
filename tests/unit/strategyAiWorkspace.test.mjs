@@ -35,7 +35,7 @@ test('strategy AI workspace keeps memory source-bound and uses explicit candidat
   assert.match(api, /export function clearStrategyAiWorkspace/)
   assert.match(api, /export function setStrategyAiCandidateStatus/)
   assert.match(page, /sourceId: Number\(this\.currentSourceId \|\| 0\)/)
-  assert.match(page, /this\.aiCandidate\.baseCodeMatchesCurrent === false/)
+  assert.match(page, /candidate\.baseCodeMatchesCurrent === false/)
   assert.match(page, /currentAssetType \(\) \{[\s\S]*this\.aiStrategyPrompt = ''[\s\S]*this\.aiInteractionMode = 'auto'/)
 })
 
@@ -138,7 +138,7 @@ test('strategy and indicator conversations share safe markdown rendering', () =>
   const strategy = read('src/views/strategy-ide/index.vue')
   const indicator = read('src/views/indicator-ide/index.vue')
   assert.match(strategy, /v-html="renderStrategyAiMessage\(messageItem\)"/)
-  assert.match(indicator, /v-html="renderAiMessage\(messageItem\.content\)"/)
+  assert.match(indicator, /v-html="renderAiMessage\(messageItem\)"/)
   assert.match(strategy, /renderSafeMarkdown/)
   assert.match(indicator, /renderSafeMarkdown/)
 
@@ -156,6 +156,16 @@ test('strategy candidate status messages are localized for current and historica
   assert.match(page, /messageKey === 'candidate_generated_validated'/)
   assert.match(page, /rawContent === legacyCandidateText/)
   assert.match(page, /this\.aiWorkspaceText\.candidateReady/)
+  assert.match(page, /item\.change_status === 'applied'/)
+  assert.match(page, /this\.\$set\(item, 'change_status', 'applied'\)/)
+})
+
+test('indicator candidate messages reflect automatic application immediately and after reload', () => {
+  const page = read('src/views/indicator-ide/index.vue')
+
+  assert.match(page, /renderAiMessage \(messageItem\)/)
+  assert.match(page, /item\.change_status === 'applied'/)
+  assert.match(page, /this\.\$set\(item, 'change_status', 'applied'\)/)
 })
 
 test('strategy AI generation failures surface and localize the nested validation error', () => {

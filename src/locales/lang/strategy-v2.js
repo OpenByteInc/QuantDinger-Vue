@@ -150,8 +150,15 @@ const locale = {
   'strategyV2.factorResearch.monotonicity': 'Group monotonicity',
   'strategyV2.factorResearch.coverage': 'Coverage',
   'strategyV2.factorResearch.missingRate': 'Missing rate',
-  'strategyV2.factorResearch.turnover': 'Turnover',
+  'strategyV2.factorResearch.turnover': 'Average rebalance turnover',
   'strategyV2.factorResearch.netLongShort': 'Net long-short return',
+  'strategyV2.factorResearch.groupsAdjusted': '{requested} groups requested · {effective} used',
+  'strategyV2.factorResearch.sampleQuality.robust': 'Sample quality is suitable for research',
+  'strategyV2.factorResearch.sampleQuality.limited': 'Interpret this result with caution',
+  'strategyV2.factorResearch.sampleQuality.insufficient': 'The sample is too small for a stable conclusion',
+  'strategyV2.factorResearch.sampleWarning.groupsReduced': 'The cross-section cannot support {requested} reliable groups, so the analysis used {effective}.',
+  'strategyV2.factorResearch.sampleWarning.smallCrossSection': 'The median cross-section contains {members} assets ({perGroup} per group); use a broader universe before relying on the result.',
+  'strategyV2.factorResearch.sampleWarning.fewObservations': 'Only {observations} valid IC observations are available; extend the research period.',
   'strategyV2.factorResearch.firstHalfIc': 'First-half IC',
   'strategyV2.factorResearch.secondHalfIc': 'Second-half IC',
   'strategyV2.factorResearch.rankAutocorrelation': 'Rank stability',
@@ -578,8 +585,15 @@ const zhCN = {
   'strategyV2.factorResearch.monotonicity': '分组单调性',
   'strategyV2.factorResearch.coverage': '因子覆盖率',
   'strategyV2.factorResearch.missingRate': '缺失率',
-  'strategyV2.factorResearch.turnover': '换手率',
+  'strategyV2.factorResearch.turnover': '平均调仓换手率',
   'strategyV2.factorResearch.netLongShort': '多空净收益',
+  'strategyV2.factorResearch.groupsAdjusted': '请求 {requested} 组 · 实际使用 {effective} 组',
+  'strategyV2.factorResearch.sampleQuality.robust': '样本质量适合开展因子研究',
+  'strategyV2.factorResearch.sampleQuality.limited': '当前结果需要谨慎解读',
+  'strategyV2.factorResearch.sampleQuality.insufficient': '样本量不足，暂时不能形成稳定结论',
+  'strategyV2.factorResearch.sampleWarning.groupsReduced': '当前截面不足以支持 {requested} 个可靠分组，系统已自动调整为 {effective} 组。',
+  'strategyV2.factorResearch.sampleWarning.smallCrossSection': '有效截面中位数为 {members} 个标的，每组约 {perGroup} 个；扩大标的池后再判断因子有效性。',
+  'strategyV2.factorResearch.sampleWarning.fewObservations': '当前只有 {observations} 个有效 IC 观察，请延长研究区间。',
   'backtest-center.refreshHistory': '刷新历史',
   'backtest-center.codeParams': '源码参数',
   'strategyV2.backtest.strategyNormalized': '策略（归一化）',
@@ -979,6 +993,14 @@ const zhTW = {
   'strategyV2.backtest.historyLoadFailed': '\u56de\u6e2c\u6b77\u53f2\u8a73\u60c5\u8f09\u5165\u5931\u6557\u3002',
   'strategyV2.factorResearch.historyLoading': '\u6b63\u5728\u8f09\u5165\u56e0\u5b50\u7814\u7a76 FR-{id}\uff0c\u8cc7\u6599\u8f03\u591a\u6642\u9700\u8981\u7b49\u5f85\u7247\u523b\u3002',
   'strategyV2.factorResearch.historyLoadFailed': '\u56e0\u5b50\u7814\u7a76\u6b77\u53f2\u8a73\u60c5\u8f09\u5165\u5931\u6557\u3002',
+  'strategyV2.factorResearch.turnover': '平均調倉換手率',
+  'strategyV2.factorResearch.groupsAdjusted': '請求 {requested} 組 · 實際使用 {effective} 組',
+  'strategyV2.factorResearch.sampleQuality.robust': '樣本品質適合進行因子研究',
+  'strategyV2.factorResearch.sampleQuality.limited': '目前結果需要謹慎解讀',
+  'strategyV2.factorResearch.sampleQuality.insufficient': '樣本量不足，暫時無法形成穩定結論',
+  'strategyV2.factorResearch.sampleWarning.groupsReduced': '目前截面不足以支援 {requested} 個可靠分組，系統已自動調整為 {effective} 組。',
+  'strategyV2.factorResearch.sampleWarning.smallCrossSection': '有效截面中位數為 {members} 個標的，每組約 {perGroup} 個；擴大標的池後再判斷因子有效性。',
+  'strategyV2.factorResearch.sampleWarning.fewObservations': '目前只有 {observations} 個有效 IC 觀察，請延長研究區間。',
   'strategyV2.backtest.rangeLimitTitle': '{timeframe} 回測單次最多涵蓋 {maxDays} 天',
   'strategyV2.backtest.rangeLimitEstimate': '目前每個標的預計約 {bars} 根 K 線。日期選擇器和服務端會在載入行情前共同執行限制。',
   'strategyV2.backtest.rangeLimitExceeded': '所選區間超過 {timeframe} 上限，請縮短到 {maxDays} 天以內，或改用更高 K 線週期。',
@@ -1359,6 +1381,83 @@ const runtimeQueueLocales = {
 Object.entries(runtimeQueueLocales).forEach(([localeKey, values]) => {
   additionalAiContractErrors[localeKey]['strategyV2.frequencyNotSubscribed'] = values[0]
   additionalAiContractErrors[localeKey]['strategyCenter.console.pendingSignals'] = values[1]
+})
+const factorResearchSampleLocales = {
+  'ar-SA': {
+    'strategyV2.factorResearch.groupsAdjusted': 'تم طلب {requested} مجموعات · تم استخدام {effective}',
+    'strategyV2.factorResearch.sampleQuality.robust': 'جودة العينة مناسبة لبحث العوامل',
+    'strategyV2.factorResearch.sampleQuality.limited': 'فسّر هذه النتيجة بحذر',
+    'strategyV2.factorResearch.sampleQuality.insufficient': 'العينة صغيرة جداً لاستخلاص نتيجة مستقرة',
+    'strategyV2.factorResearch.sampleWarning.groupsReduced': 'لا يدعم المقطع العرضي {requested} مجموعات موثوقة، لذلك استخدم التحليل {effective}.',
+    'strategyV2.factorResearch.sampleWarning.smallCrossSection': 'يحتوي المقطع العرضي الوسيط على {members} أصول ({perGroup} لكل مجموعة)؛ استخدم نطاقاً أوسع قبل الاعتماد على النتيجة.',
+    'strategyV2.factorResearch.sampleWarning.fewObservations': 'لا يتوفر سوى {observations} من مشاهدات IC الصالحة؛ مدّد فترة البحث.'
+  },
+  'de-DE': {
+    'strategyV2.factorResearch.groupsAdjusted': '{requested} Gruppen angefordert · {effective} verwendet',
+    'strategyV2.factorResearch.sampleQuality.robust': 'Die Stichprobenqualität ist für die Faktoranalyse geeignet',
+    'strategyV2.factorResearch.sampleQuality.limited': 'Dieses Ergebnis vorsichtig interpretieren',
+    'strategyV2.factorResearch.sampleQuality.insufficient': 'Die Stichprobe ist zu klein für eine stabile Aussage',
+    'strategyV2.factorResearch.sampleWarning.groupsReduced': 'Der Querschnitt trägt keine {requested} verlässlichen Gruppen; daher verwendet die Analyse {effective}.',
+    'strategyV2.factorResearch.sampleWarning.smallCrossSection': 'Der mittlere Querschnitt umfasst {members} Werte ({perGroup} je Gruppe); vor einer belastbaren Aussage ein breiteres Universum verwenden.',
+    'strategyV2.factorResearch.sampleWarning.fewObservations': 'Es liegen nur {observations} gültige IC-Beobachtungen vor; den Analysezeitraum verlängern.'
+  },
+  'fr-FR': {
+    'strategyV2.factorResearch.groupsAdjusted': '{requested} groupes demandés · {effective} utilisés',
+    'strategyV2.factorResearch.sampleQuality.robust': 'La qualité de l’échantillon convient à l’étude factorielle',
+    'strategyV2.factorResearch.sampleQuality.limited': 'Interprétez ce résultat avec prudence',
+    'strategyV2.factorResearch.sampleQuality.insufficient': 'L’échantillon est trop faible pour une conclusion stable',
+    'strategyV2.factorResearch.sampleWarning.groupsReduced': 'Le panel ne permet pas {requested} groupes fiables ; l’analyse en utilise donc {effective}.',
+    'strategyV2.factorResearch.sampleWarning.smallCrossSection': 'Le panel médian contient {members} actifs ({perGroup} par groupe) ; élargissez l’univers avant de vous fier au résultat.',
+    'strategyV2.factorResearch.sampleWarning.fewObservations': 'Seules {observations} observations IC valides sont disponibles ; allongez la période d’étude.'
+  },
+  'ja-JP': {
+    'strategyV2.factorResearch.groupsAdjusted': '要求 {requested} グループ · 使用 {effective} グループ',
+    'strategyV2.factorResearch.sampleQuality.robust': 'サンプル品質はファクター分析に適しています',
+    'strategyV2.factorResearch.sampleQuality.limited': 'この結果は慎重に解釈してください',
+    'strategyV2.factorResearch.sampleQuality.insufficient': '安定した結論を得るにはサンプルが不足しています',
+    'strategyV2.factorResearch.sampleWarning.groupsReduced': 'このクロスセクションでは信頼できる {requested} グループを作れないため、{effective} グループを使用しました。',
+    'strategyV2.factorResearch.sampleWarning.smallCrossSection': 'クロスセクションの中央値は {members} 銘柄（1グループ当たり {perGroup}）です。結果を判断する前にユニバースを広げてください。',
+    'strategyV2.factorResearch.sampleWarning.fewObservations': '有効な IC 観測は {observations} 件のみです。分析期間を延長してください。'
+  },
+  'ko-KR': {
+    'strategyV2.factorResearch.groupsAdjusted': '요청 {requested}개 그룹 · 실제 {effective}개 사용',
+    'strategyV2.factorResearch.sampleQuality.robust': '표본 품질이 팩터 연구에 적합합니다',
+    'strategyV2.factorResearch.sampleQuality.limited': '이 결과는 신중하게 해석하세요',
+    'strategyV2.factorResearch.sampleQuality.insufficient': '안정적인 결론을 내리기에는 표본이 부족합니다',
+    'strategyV2.factorResearch.sampleWarning.groupsReduced': '현재 횡단면으로는 신뢰할 수 있는 {requested}개 그룹을 구성할 수 없어 {effective}개로 조정했습니다.',
+    'strategyV2.factorResearch.sampleWarning.smallCrossSection': '횡단면 중앙값은 {members}개 자산(그룹당 {perGroup}개)입니다. 결과를 신뢰하기 전에 유니버스를 확대하세요.',
+    'strategyV2.factorResearch.sampleWarning.fewObservations': '유효한 IC 관측치가 {observations}개뿐입니다. 연구 기간을 늘리세요.'
+  },
+  'ru-RU': {
+    'strategyV2.factorResearch.groupsAdjusted': 'Запрошено групп: {requested} · использовано: {effective}',
+    'strategyV2.factorResearch.sampleQuality.robust': 'Качество выборки подходит для факторного исследования',
+    'strategyV2.factorResearch.sampleQuality.limited': 'Интерпретируйте результат с осторожностью',
+    'strategyV2.factorResearch.sampleQuality.insufficient': 'Выборка слишком мала для устойчивого вывода',
+    'strategyV2.factorResearch.sampleWarning.groupsReduced': 'Сечение не поддерживает {requested} надёжных групп, поэтому использовано {effective}.',
+    'strategyV2.factorResearch.sampleWarning.smallCrossSection': 'Медианное сечение содержит {members} активов ({perGroup} на группу); расширьте вселенную перед использованием результата.',
+    'strategyV2.factorResearch.sampleWarning.fewObservations': 'Доступно только {observations} корректных наблюдений IC; увеличьте период исследования.'
+  },
+  'th-TH': {
+    'strategyV2.factorResearch.groupsAdjusted': 'ขอ {requested} กลุ่ม · ใช้งานจริง {effective} กลุ่ม',
+    'strategyV2.factorResearch.sampleQuality.robust': 'คุณภาพตัวอย่างเหมาะสำหรับการวิจัยปัจจัย',
+    'strategyV2.factorResearch.sampleQuality.limited': 'ควรตีความผลลัพธ์นี้อย่างระมัดระวัง',
+    'strategyV2.factorResearch.sampleQuality.insufficient': 'ตัวอย่างน้อยเกินไปสำหรับข้อสรุปที่มีเสถียรภาพ',
+    'strategyV2.factorResearch.sampleWarning.groupsReduced': 'ข้อมูลภาคตัดขวางไม่เพียงพอสำหรับ {requested} กลุ่มที่น่าเชื่อถือ จึงใช้ {effective} กลุ่ม',
+    'strategyV2.factorResearch.sampleWarning.smallCrossSection': 'ค่ามัธยฐานของภาคตัดขวางมี {members} สินทรัพย์ ({perGroup} ต่อกลุ่ม) ควรขยายจักรวาลก่อนนำผลไปใช้',
+    'strategyV2.factorResearch.sampleWarning.fewObservations': 'มีข้อมูล IC ที่ใช้ได้เพียง {observations} จุด โปรดขยายช่วงเวลาวิจัย'
+  },
+  'vi-VN': {
+    'strategyV2.factorResearch.groupsAdjusted': 'Yêu cầu {requested} nhóm · sử dụng {effective} nhóm',
+    'strategyV2.factorResearch.sampleQuality.robust': 'Chất lượng mẫu phù hợp cho nghiên cứu nhân tố',
+    'strategyV2.factorResearch.sampleQuality.limited': 'Hãy diễn giải kết quả này một cách thận trọng',
+    'strategyV2.factorResearch.sampleQuality.insufficient': 'Mẫu quá nhỏ để đưa ra kết luận ổn định',
+    'strategyV2.factorResearch.sampleWarning.groupsReduced': 'Mặt cắt không đủ để tạo {requested} nhóm đáng tin cậy, nên phân tích sử dụng {effective} nhóm.',
+    'strategyV2.factorResearch.sampleWarning.smallCrossSection': 'Mặt cắt trung vị có {members} tài sản ({perGroup} mỗi nhóm); hãy mở rộng tập tài sản trước khi dựa vào kết quả.',
+    'strategyV2.factorResearch.sampleWarning.fewObservations': 'Chỉ có {observations} quan sát IC hợp lệ; hãy kéo dài giai đoạn nghiên cứu.'
+  }
+}
+Object.entries(factorResearchSampleLocales).forEach(([localeKey, messages]) => {
+  Object.assign(additionalAiContractErrors[localeKey], messages)
 })
 Object.values(additionalAiContractErrors).forEach(messages => {
   messages['strategyV2.aiHistoryWindowClockUnsupported'] = locale['strategyV2.aiHistoryWindowClockUnsupported']

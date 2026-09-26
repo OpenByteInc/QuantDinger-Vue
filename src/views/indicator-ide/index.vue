@@ -243,7 +243,7 @@
                           <span v-if="messageItem.role !== 'user' && messageItem.message_type === 'discussion'" class="ai-message__badge">{{ $t('indicatorIde.aiDiscussionBadge') }}</span>
                           <span v-else-if="messageItem.role !== 'user' && messageItem.message_type === 'candidate'" class="ai-message__badge ai-message__badge--candidate">{{ $t('indicatorIde.aiCandidateBadge') }}</span>
                         </div>
-                        <div class="ai-message__content" v-html="renderAiMessage(messageItem.content)" />
+                        <div class="ai-message__content" v-html="renderAiMessage(messageItem)" />
                         <div
                           v-if="isActiveAiCandidateMessage(messageItem)"
                           class="ai-message-candidate"
@@ -255,7 +255,7 @@
                           </div>
                           <div class="ai-candidate-actions">
                             <a-button size="small" @click="previewAiCandidate"><a-icon type="eye" /> {{ $t('indicatorIde.aiPreview') }}</a-button>
-                            <a-button size="small" type="primary" @click="applyAiCandidate"><a-icon type="check" /> {{ $t('indicatorIde.aiApply') }}</a-button>
+                            <a-button size="small" type="primary" :disabled="!aiCandidateValidationPassed" @click="applyAiCandidate"><a-icon type="check" /> {{ $t('indicatorIde.aiApply') }}</a-button>
                             <a-button size="small" type="link" @click="discardAiCandidate">{{ $t('indicatorIde.aiDiscard') }}</a-button>
                           </div>
                         </div>
@@ -1119,7 +1119,7 @@
     >
       <div class="ai-preview-toolbar">
         <span>{{ $t('indicatorIde.aiPreviewHint') }}</span>
-        <a-button size="small" type="primary" @click="applyAiCandidate">{{ $t('indicatorIde.aiApply') }}</a-button>
+        <a-button size="small" type="primary" :disabled="!aiCandidateValidationPassed" @click="applyAiCandidate">{{ $t('indicatorIde.aiApply') }}</a-button>
       </div>
       <pre class="ai-candidate-code-preview">{{ (aiCandidate && aiCandidate.code) || '' }}</pre>
     </a-modal>
@@ -1157,6 +1157,7 @@ import { getWatchlist, addWatchlist, searchSymbols } from '@/api/market'
 import { getPublicSettingsConfig } from '@/api/settings'
 import { extractIndicatorSignalLabels } from '@/utils/indicatorSignalOptions'
 import { renderSafeMarkdown } from '@/utils/safeMarkdown'
+import { applyCodeEditsToCodeMirror, applyExactCodeEdits, candidateCodeEditOperations, setCodeMirrorValueWithHighlight } from '@/utils/codeEdits'
 import KlineChart from '@/views/indicator-analysis/components/KlineChart.vue'
 import QuickTradePanel from '@/components/QuickTradePanel/QuickTradePanel'
 import IndicatorMarketPicker from './components/IndicatorMarketPicker.vue'
@@ -3153,42 +3154,73 @@ export default {
       this.$message.info(this.$t('indicatorIde.aiPreviewing'))
     },
     applyAiCandidate () {
-      if (!this.aiCandidate || !this.aiCandidate.code) return
-      const currentEditorCode = this.cmInstance ? this.cmInstance.getValue() : this.currentCode
-      const changedSinceRequest = this.aiCandidate.baseCodeMatchesCurrent === false ||
-        (!!this.codeDirty && (!this.aiCandidate.baseCode || currentEditorCode !== this.aiCandidate.baseCode))
-      if (changedSinceRequest) {
+      if (!this.aiCandidate || !this.aiCandidate.code || !this.aiCandidateValidationPassed) return
+      if (this.aiCandidateHasSourceConflict()) {
         Modal.confirm({
           title: this.$t('indicatorIde.aiEditorChangedTitle'),
           content: this.$t('indicatorIde.aiEditorChangedDesc'),
           okText: this.$t('indicatorIde.aiApply'),
           cancelText: this.$t('dashboard.indicator.editor.cancel'),
           getContainer: () => this.resolveIdeFullscreenMountNode() || document.body,
-          onOk: () => this.applyAiCandidateCode()
+          onOk: () => this.applyAiCandidateCode(true)
         })
         return
       }
       this.applyAiCandidateCode()
     },
-    async applyAiCandidateCode () {
+    aiCandidateHasSourceConflict (candidate = this.aiCandidate) {
+      if (!candidate) return false
+      const currentEditorCode = this.cmInstance ? this.cmInstance.getValue() : this.currentCode
+      return candidate.baseCodeMatchesCurrent === false ||
+        (!!this.codeDirty && (!candidate.baseCode || currentEditorCode !== candidate.baseCode))
+    },
+    async autoApplyAiCandidate () {
+      if (!this.aiCandidate || !this.aiCandidate.code || !this.aiCandidateValidationPassed) return false
+      if (this.aiCandidateHasSourceConflict()) return false
+      await this.applyAiCandidateCode()
+      return true
+    },
+    markLatestAiCandidateApplied () {
+      for (let index = this.aiMessages.length - 1; index >= 0; index -= 1) {
+        const item = this.aiMessages[index]
+        if (!item || item.role === 'user' || item.message_type !== 'candidate') continue
+        this.$set(item, 'change_status', 'applied')
+        this.$set(item, 'content', this.$t('indicatorIde.aiApplied'))
+        break
+      }
+    },
+    async applyAiCandidateCode (forceFullReplacement = false) {
       const candidate = this.aiCandidate
       if (!candidate || !candidate.code) return
+      const operations = candidateCodeEditOperations(candidate)
+      let nextCode = candidate.code
+      let useCodeEdits = !forceFullReplacement && operations.length > 0 && this.cmInstance
+      if (useCodeEdits) {
+        try {
+          const preview = applyExactCodeEdits(this.cmInstance.getValue(), operations)
+          useCodeEdits = preview.code === candidate.code
+        } catch (_) {
+          useCodeEdits = false
+        }
+      }
       if (this.cmInstance) {
-        this.cmInstance.setValue(candidate.code)
+        if (useCodeEdits) nextCode = applyCodeEditsToCodeMirror(this.cmInstance, operations)
+        else nextCode = setCodeMirrorValueWithHighlight(this.cmInstance, candidate.code)
         this.cmInstance.refresh()
       }
-      this.currentCode = candidate.code
+      this.currentCode = nextCode
       this.codeDirty = true
       this.aiPreviewVisible = false
-      this.syncSelectedIndicatorToChart(candidate.code)
-      await this.fetchCodeQualityHints(candidate.code)
+      this.syncSelectedIndicatorToChart(nextCode)
+      await this.fetchCodeQualityHints(nextCode)
       if (candidate.id) {
-        request({
+        await request({
           url: `/api/indicator/aiWorkspace/changes/${candidate.id}/status`,
           method: 'post',
           data: { status: 'applied' }
         }).catch(() => {})
       }
+      this.markLatestAiCandidateApplied()
       this.aiCandidate = null
       this.$message.success(this.$t('indicatorIde.aiApplied'))
     },
@@ -3254,7 +3286,7 @@ export default {
             paramDefaults
           }
         }
-        if (existingCode.trim()) requestBody.existingCode = existingCode.trim()
+        if (existingCode.trim()) requestBody.existingCode = existingCode
 
         const response = await fetch(url, {
           method: 'POST',
@@ -3342,7 +3374,8 @@ export default {
             summary: (workspaceMeta && workspaceMeta.summary) || {}
           }
           this.aiPanelExpanded = true
-          this.$message.success(this.$t('indicatorIde.aiCandidateReady'))
+          const autoApplied = await this.autoApplyAiCandidate()
+          if (!autoApplied) this.$message.success(this.$t('indicatorIde.aiCandidateReady'))
           this.$nextTick(this.scrollAiConversationToBottom)
         } else if (!generatedCode) {
           this.$message.warning(this.$t('indicatorIde.aiNoCode'))
@@ -3360,8 +3393,14 @@ export default {
         this.aiGenerating = false
       }
     },
-    renderAiMessage (value) {
-      return renderSafeMarkdown(value)
+    renderAiMessage (messageItem) {
+      const item = messageItem && typeof messageItem === 'object'
+        ? messageItem
+        : { content: messageItem }
+      const content = item.change_status === 'applied'
+        ? this.$t('indicatorIde.aiApplied')
+        : item.content
+      return renderSafeMarkdown(content)
     },
     normalizeAiDebugSummary (summary) {
       if (!summary || typeof summary !== 'object') return null
@@ -3514,8 +3553,8 @@ export default {
     },
     cleanMarkdownCodeBlocks (code) {
       if (!code || typeof code !== 'string') return code
+      if (!/```/.test(code)) return code
       let c = code.trim()
-      if (!/```/.test(c)) return c
       c = c.replace(/^```[\w]*\s*\n?/i, '')
       if (c.startsWith('```')) c = c.replace(/^```\s*\n?/g, '')
       if (c.endsWith('```')) c = c.replace(/\n?```\s*$/g, '')
@@ -5341,12 +5380,25 @@ body.dark .ide-signal-alert-modal-wrap {
     font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
     line-height: 1.55;
   }
+  ::v-deep .CodeMirror-linebackground.ai-code-edit-line {
+    background: rgba(24, 144, 255, 0.14);
+    background: color-mix(in srgb, var(--primary-color, #1890ff) 18%, transparent);
+    animation: indicator-ai-code-edit-highlight 8s ease-out forwards;
+  }
+  ::v-deep .ai-code-edit-wrap {
+    box-shadow: inset 3px 0 0 var(--primary-color, #1890ff);
+  }
   ::v-deep .CodeMirror-vscrollbar,
   ::v-deep .CodeMirror-hscrollbar {
     &::-webkit-scrollbar { width: 5px; height: 5px; }
     &::-webkit-scrollbar-thumb { background: #c8c8c8; border-radius: 3px; }
     &::-webkit-scrollbar-track { background: transparent; }
   }
+}
+
+@keyframes indicator-ai-code-edit-highlight {
+  0%, 72% { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 // ===== AI Panel =====

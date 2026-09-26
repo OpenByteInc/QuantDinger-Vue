@@ -26,6 +26,7 @@ import settingsResearchOverrides from './settings-research-overrides'
 import strategyBuilderOverrides from './strategy-builder-overrides'
 import eventRadarMessages from './lang/event-radar'
 import currentFeatureOverrides from './lang/current-feature-overrides'
+import strategyEvolutionMessages from './lang/strategy-evolution'
 
 Vue.use(VueI18n)
 
@@ -56,7 +57,8 @@ const messages = {
     ...(settingsResearchOverrides[defaultLang] || {}),
     ...(strategyBuilderOverrides[defaultLang] || {}),
     ...(currentFeatureOverrides[defaultLang] || {}),
-    ...(eventRadarMessages[defaultLang] || {})
+    ...(eventRadarMessages[defaultLang] || {}),
+    ...(strategyEvolutionMessages[defaultLang] || {})
   }
 }
 
@@ -146,7 +148,8 @@ function mergeLocaleOverrides (lang) {
     ...(settingsResearchOverrides[lang] || {}),
     ...(strategyBuilderOverrides[lang] || {}),
     ...(currentFeatureOverrides[lang] || {}),
-    ...(eventRadarMessages[lang] || {})
+    ...(eventRadarMessages[lang] || {}),
+    ...(strategyEvolutionMessages[lang] || {})
   }
   i18n.setLocaleMessage(lang, {
     ...(i18n.getLocaleMessage(lang) || {}),

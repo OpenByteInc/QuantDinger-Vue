@@ -20,6 +20,13 @@
           {{ $t('strategyCenter.positionOwnership.openRepair') }}
         </a-button>
       </div>
+      <a-alert
+        v-else-if="executionMode === 'signal'"
+        class="virtual-account-alert"
+        type="info"
+        show-icon
+        :message="$t('strategyCenter.console.virtualPositionsHint')"
+      />
       <div v-if="positions.length === 0 && !loading" class="empty-state strategy-tab-empty" :class="{ 'is-compact': compact }">
         <template v-if="compact">
           <a-icon type="inbox" />
@@ -632,7 +639,8 @@ export default {
     border-color: rgba(255, 255, 255, 0.08);
   }
 
-  .position-reconciliation-alert {
+  .position-reconciliation-alert,
+  .virtual-account-alert {
     margin-bottom: 12px;
     border-radius: 6px;
   }

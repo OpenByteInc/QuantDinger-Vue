@@ -30,7 +30,7 @@ test('backtest strategy picker refreshes source options when opened', () => {
 test('strategy workspace picker refreshes scripts when opened', () => {
   const source = read('src/views/strategy-ide/index.vue')
 
-  assert.match(source, /class="script-select"[\s\S]*@dropdownVisibleChange="onScriptDropdownVisibleChange"/)
+  assert.match(source, /<a-dropdown[\s\S]*@visibleChange="onScriptDropdownVisibleChange"[\s\S]*class="script-select strategy-source-dropdown-trigger"/)
   assert.match(source, /onScriptDropdownVisibleChange \(visible\)[\s\S]*visible && !this\.loadingScripts[\s\S]*this\.loadSources\(\)/)
 })
 

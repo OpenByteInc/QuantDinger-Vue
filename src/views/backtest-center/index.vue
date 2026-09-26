@@ -5,10 +5,11 @@
         <a-radio-group v-model="mode" class="workspace-mode-tabs" button-style="solid" data-testid="research-mode-switch">
           <a-radio-button value="portfolio">{{ $t('strategyV2.backtest.mode.portfolio') }}</a-radio-button>
           <a-radio-button value="factor">{{ $t('strategyV2.backtest.mode.factor') }}</a-radio-button>
+          <a-radio-button value="evolution">{{ $t('strategyEvolution.tab') }}</a-radio-button>
         </a-radio-group>
-        <span class="workspace-toolbar__context">{{ $t('backtest-center.title') }} · {{ mode === 'factor' ? $t('strategyV2.factorResearch.workspace') : $t('backtest-center.resultOverview') }}</span>
+        <span class="workspace-toolbar__context">{{ $t('backtest-center.title') }} · {{ modeContextLabel }}</span>
       </div>
-      <div class="hero-actions">
+      <div v-if="mode !== 'evolution'" class="hero-actions">
         <span class="hero-stat"><strong>{{ availableSources.length }}</strong>{{ mode === 'factor' ? $t('strategyV2.factorResearch.eligibleSources') : $t('strategyV2.backtest.sources') }}</span>
         <span class="hero-stat"><strong>{{ history.length }}</strong>{{ mode === 'factor' ? $t('strategyV2.factorResearch.runs') : $t('strategyV2.backtest.runs') }}</span>
         <a-button icon="reload" :loading="historyLoading" @click="refreshPage">
@@ -20,7 +21,8 @@
       </div>
     </section>
 
-    <div class="workspace-grid">
+    <strategy-evolution v-if="mode === 'evolution'" @apply="applyEvolutionParams" />
+    <div v-else class="workspace-grid">
       <section class="panel config-panel">
         <div class="config-scroll">
           <section class="config-section config-section--source">
@@ -326,6 +328,7 @@
     </div>
 
     <a-drawer
+      v-if="mode !== 'evolution'"
       :visible="historyVisible"
       :title="mode === 'factor' ? $t('strategyV2.factorResearch.historyTitle') : $t('strategyV2.backtest.historyTitle')"
       placement="right"
@@ -405,6 +408,7 @@ import {
 } from '@/api/strategy'
 import PortfolioResult from './PortfolioResult.vue'
 import FactorResearchResult from './FactorResearchResult.vue'
+import StrategyEvolution from './StrategyEvolution.vue'
 import {
   strategyParameterDescription,
   strategyParameterLabel,
@@ -415,7 +419,7 @@ import { ratioPercentInputFormatter, ratioPercentInputParser } from '@/utils/num
 
 export default {
   name: 'BacktestCenter',
-  components: { PortfolioResult, FactorResearchResult },
+  components: { PortfolioResult, FactorResearchResult, StrategyEvolution },
   data () {
     const latestCompleteDate = moment().subtract(1, 'day').startOf('day')
     return {
@@ -474,6 +478,11 @@ export default {
     },
     activeResult () {
       return this.mode === 'portfolio' ? this.result : this.factorResult
+    },
+    modeContextLabel () {
+      if (this.mode === 'factor') return this.$t('strategyV2.factorResearch.workspace')
+      if (this.mode === 'evolution') return this.$t('strategyEvolution.workspace')
+      return this.$t('backtest-center.resultOverview')
     },
     availableSources () {
       if (this.mode === 'factor') return this.portfolioSources
@@ -901,6 +910,7 @@ export default {
     async handleModeChange () {
       this.selectedRun = null
       this.historyVisible = false
+      if (this.mode === 'evolution') return
       const currentId = Number(this.form.sourceId)
       const currentAvailable = this.availableSources.some(item => Number(item.id) === currentId)
       if (!currentAvailable) {
@@ -916,6 +926,19 @@ export default {
       this.loadHistory({ mode: this.mode }).catch(() => {})
       this.applyBacktestRangePolicy()
       this.$nextTick(() => this.resizeEquityChart())
+    },
+    async applyEvolutionParams (selection) {
+      const sourceId = Number(selection && selection.sourceId)
+      this.mode = 'portfolio'
+      await this.$nextTick()
+      const target = this.sources.find(item => Number(item.id) === sourceId)
+      if (target) {
+        this.sourceCategory = target.asset_type === 'portfolio_strategy' ? 'portfolio_strategy' : 'script'
+        this.form.sourceId = sourceId
+        await this.selectSource(sourceId)
+      }
+      this.params = { ...((selection && selection.params) || {}) }
+      this.$message.success(this.$t('strategyEvolution.paramsApplied'))
     },
     async handleSourceCategoryChange () {
       const currentId = Number(this.form.sourceId)

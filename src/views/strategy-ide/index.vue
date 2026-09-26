@@ -642,6 +642,7 @@ import ExecutorStrategies from '@/views/executor-strategies'
 import IndicatorMarketPicker from '@/views/indicator-ide/components/IndicatorMarketPicker.vue'
 import { resolveIndicatorStrategyContext } from '@/utils/indicatorStrategyContext'
 import { renderSafeMarkdown } from '@/utils/safeMarkdown'
+import { applyExactCodeEdits, candidateCodeEditOperations } from '@/utils/codeEdits'
 import { getWatchlist, searchSymbols } from '@/api/market'
 import { CRYPTO_EXCHANGE_IDS, normalizeExchangeId, normalizeMarketType } from '@/utils/marketContext'
 import {
@@ -1231,9 +1232,11 @@ export default {
       const metadata = item.metadata && typeof item.metadata === 'object' ? item.metadata : {}
       const messageKey = item.message_key || metadata.message_key || ''
       const rawContent = String(item.content || '').trim()
-      const localizedContent = messageKey === 'candidate_generated_validated' || rawContent === legacyCandidateText
-        ? this.aiWorkspaceText.candidateReady
-        : rawContent
+      const localizedContent = item.change_status === 'applied'
+        ? this.aiWorkspaceText.candidateApplied
+        : (messageKey === 'candidate_generated_validated' || rawContent === legacyCandidateText
+            ? this.aiWorkspaceText.candidateReady
+            : rawContent)
       return renderSafeMarkdown(localizedContent)
     },
     localizeStrategyAiError (error) {
@@ -1411,7 +1414,8 @@ export default {
             validation: data.validation || { success: false },
             summary: data.summary || {}
           }
-          this.$message.success(this.aiWorkspaceText.candidateReady)
+          const autoApplied = await this.autoApplyStrategyAiCandidate()
+          if (!autoApplied) this.$message.success(this.aiWorkspaceText.candidateReady)
         }
         this.aiPanelExpanded = true
         this.$nextTick(this.scrollStrategyAiConversation)
@@ -1438,33 +1442,72 @@ export default {
     },
     applyStrategyAiCandidate () {
       if (!this.aiCandidate || !this.aiCandidate.code || !this.aiCandidateValidationPassed) return
-      const current = this.getCurrentScriptCode()
-      const changed = this.aiCandidate.baseCodeMatchesCurrent === false ||
-        (!!this.aiCandidate.baseCode && current !== this.aiCandidate.baseCode) ||
-        (!!this.aiRequestBaseCode && current !== this.aiRequestBaseCode)
-      if (changed) {
+      if (this.strategyAiCandidateHasSourceConflict()) {
         this.$confirm({
           title: this.aiWorkspaceText.editorChangedTitle,
           content: this.aiWorkspaceText.editorChangedDesc,
           okText: this.aiWorkspaceText.apply,
           cancelText: this.text.cancel,
-          onOk: () => this.applyStrategyAiCandidateCode()
+          onOk: () => this.applyStrategyAiCandidateCode(true)
         })
         return
       }
       this.applyStrategyAiCandidateCode()
     },
-    async applyStrategyAiCandidateCode () {
+    strategyAiCandidateHasSourceConflict (candidate = this.aiCandidate) {
+      if (!candidate) return false
+      const current = this.getCurrentScriptCode()
+      return candidate.baseCodeMatchesCurrent === false ||
+        (!!candidate.baseCode && current !== candidate.baseCode) ||
+        (!!this.aiRequestBaseCode && current !== this.aiRequestBaseCode)
+    },
+    async autoApplyStrategyAiCandidate () {
+      if (!this.aiCandidate || !this.aiCandidate.code || !this.aiCandidateValidationPassed) return false
+      if (this.strategyAiCandidateHasSourceConflict()) return false
+      await this.applyStrategyAiCandidateCode()
+      return true
+    },
+    markLatestStrategyAiCandidateApplied () {
+      for (let index = this.aiMessages.length - 1; index >= 0; index -= 1) {
+        const item = this.aiMessages[index]
+        if (!item || item.role === 'user' || item.message_type !== 'candidate') continue
+        this.$set(item, 'change_status', 'applied')
+        this.$set(item, 'content', this.aiWorkspaceText.candidateApplied)
+        break
+      }
+    },
+    async applyStrategyAiCandidateCode (forceFullReplacement = false) {
       const candidate = this.aiCandidate
       if (!candidate || !candidate.code) return
-      this.scriptCode = candidate.code
-      await this.$nextTick()
       const editor = this.$refs.scriptEditor
-      if (editor && typeof editor.setCode === 'function') editor.setCode(candidate.code)
+      const operations = candidateCodeEditOperations(candidate)
+      let nextCode = candidate.code
+      let useCodeEdits = !forceFullReplacement && operations.length > 0 && editor && typeof editor.applyCodeEdits === 'function'
+      if (useCodeEdits) {
+        try {
+          const preview = applyExactCodeEdits(this.getCurrentScriptCode(), operations)
+          useCodeEdits = preview.code === candidate.code
+        } catch (_) {
+          useCodeEdits = false
+        }
+      }
+      if (useCodeEdits) {
+        nextCode = editor.applyCodeEdits(operations)
+      } else {
+        if (editor && typeof editor.setCodeWithHighlight === 'function') {
+          nextCode = editor.setCodeWithHighlight(candidate.code)
+        } else {
+          this.scriptCode = candidate.code
+          await this.$nextTick()
+          if (editor && typeof editor.setCode === 'function') editor.setCode(candidate.code)
+        }
+      }
+      this.scriptCode = nextCode
       this.scriptVerified = true
       this.strategyValidation = { valid: true, manifest: (candidate.validation && candidate.validation.manifest) || {} }
       this.aiPreviewVisible = false
-      if (candidate.id) setStrategyAiCandidateStatus(candidate.id, 'applied').catch(() => {})
+      if (candidate.id) await setStrategyAiCandidateStatus(candidate.id, 'applied').catch(() => {})
+      this.markLatestStrategyAiCandidateApplied()
       this.aiCandidate = null
       this.$message.success(this.aiWorkspaceText.candidateApplied)
     },

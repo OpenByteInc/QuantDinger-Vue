@@ -168,7 +168,7 @@
             </div>
             <div>
               <span>{{ $t('strategyCenter.console.cumulativeNetPnl') }}</span>
-              <strong :class="isLiveFinancial ? pnlClass(performanceSummary.netPnl) : ''">{{ formatLiveMoney(performanceSummary.netPnl, true) }}</strong>
+              <strong :class="hasFinancialLedger ? pnlClass(performanceSummary.netPnl) : ''">{{ formatLiveMoney(performanceSummary.netPnl, true) }}</strong>
               <small>{{ financialMetricSuffix }}</small>
             </div>
             <div>
@@ -192,15 +192,15 @@
           <div class="performance-strip">
             <div>
               <span>{{ $t('strategyCenter.console.todayPnl') }}</span>
-              <strong :class="isLiveFinancial ? pnlClass(strategyPnl(selectedStrategy)) : ''">{{ formatLivePnl(strategyPnl(selectedStrategy)) }}</strong>
+              <strong :class="hasFinancialLedger ? pnlClass(strategyPnl(selectedStrategy)) : ''">{{ formatLivePnl(strategyPnl(selectedStrategy)) }}</strong>
               <small
-                v-if="isLiveFinancial && selectedStrategy.today_pnl_estimated"
+                v-if="hasFinancialLedger && selectedStrategy.today_pnl_estimated"
                 :title="$t('strategyCenter.console.todayPnlEstimatedHint')"
               >{{ $t('strategyCenter.console.todayPnlEstimated') }}</small>
             </div>
             <div>
               <span>{{ $t('trading-assistant.performance.totalReturn') }}</span>
-              <strong :class="isLiveFinancial ? pnlClass(performanceSummary.totalReturn) : ''">{{ formatLivePercent(performanceSummary.totalReturn) }}</strong>
+              <strong :class="hasFinancialLedger ? pnlClass(performanceSummary.totalReturn) : ''">{{ formatLivePercent(performanceSummary.totalReturn) }}</strong>
             </div>
             <div>
               <span>{{ $t('trading-assistant.performance.maxDrawdown') }}</span>
@@ -209,13 +209,13 @@
             <div>
               <span>{{ $t('trading-assistant.performance.winRate') }}</span>
               <strong>{{ formatLivePercent(performanceSummary.winRate, false) }}</strong>
-              <small v-if="isLiveFinancial && performanceSummary.completedTrades">
+              <small v-if="hasFinancialLedger && performanceSummary.completedTrades">
                 {{ $t('strategyCenter.console.winRateSample', { wins: performanceSummary.wins, total: performanceSummary.completedTrades }) }}
               </small>
             </div>
             <div>
               <span>{{ $t('strategyCenter.console.completedTrades') }}</span>
-              <strong>{{ isLiveFinancial ? performanceSummary.completedTrades : '—' }}</strong>
+              <strong>{{ hasFinancialLedger ? performanceSummary.completedTrades : '—' }}</strong>
             </div>
           </div>
         </section>
@@ -396,25 +396,28 @@ export default {
     isLiveFinancial () {
       return this.selectedStrategy && this.executionMode(this.selectedStrategy) === 'live'
     },
+    hasFinancialLedger () {
+      return this.selectedStrategy && ['live', 'signal'].includes(this.executionMode(this.selectedStrategy))
+    },
     financialCurrency () {
       return strategyQuoteCurrency(this.selectedStrategy)
     },
     financialMetricContext () {
       return this.isLiveFinancial
         ? this.$t('strategyCenter.console.netPnlBasis')
-        : this.$t('strategyCenter.console.liveFinancialUnavailable')
+        : this.$t('strategyCenter.console.virtualAccountBasis')
     },
     financialMetricSuffix () {
       return this.isLiveFinancial
         ? this.financialCurrency
-        : this.$t('systemOverview.signal')
+        : this.$t('strategyCenter.console.virtualAccount')
     },
     leverageDisplay () {
-      if (!this.isLiveFinancial) return '—'
+      if (!this.hasFinancialLedger) return '—'
       return `${strategyLeverage(this.selectedStrategy).toLocaleString(undefined, { maximumFractionDigits: 2 })}×`
     },
     leverageMarketLabel () {
-      if (!this.isLiveFinancial) return this.$t('systemOverview.signal')
+      if (!this.isLiveFinancial) return this.$t('strategyCenter.console.virtualAccount')
       const marketType = String(this.tradingConfig(this.selectedStrategy).market_type || this.selectedStrategy.market_type || '').toLowerCase()
       return marketType === 'spot'
         ? this.$t('strategyCenter.console.spotMarket')
@@ -553,12 +556,12 @@ export default {
     },
     formatPercent (value, signed = true) { const number = Number(value || 0) * 100; return `${signed && number > 0 ? '+' : ''}${number.toFixed(2)}%` },
     formatLiveMoney (value, signed = false) {
-      if (!this.isLiveFinancial) return '—'
+      if (!this.hasFinancialLedger) return '—'
       const number = Number(value || 0)
       return `${signed && number > 0 ? '+' : ''}${number.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
     },
-    formatLivePnl (value) { return this.isLiveFinancial ? this.formatPnl(value) : '—' },
-    formatLivePercent (value, signed = true) { return this.isLiveFinancial ? this.formatPercent(value, signed) : '—' },
+    formatLivePnl (value) { return this.hasFinancialLedger ? this.formatPnl(value) : '—' },
+    formatLivePercent (value, signed = true) { return this.hasFinancialLedger ? this.formatPercent(value, signed) : '—' },
     runtimeLatency (strategy) {
       const health = this.health(strategy)
       const value = health.latency_ms ?? health.loop_latency_ms
