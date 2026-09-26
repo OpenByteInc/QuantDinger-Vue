@@ -248,13 +248,18 @@ export default {
           this.$message.success(this.$t('trading-assistant.messages.deleteSuccess'))
           await this.loadStrategies()
         } else {
-          this.$message.error((res && res.msg) || this.$t('trading-assistant.messages.deleteFailed'))
+          this.$message.error(this.localizedBackendMessage(res && res.msg, 'trading-assistant.messages.deleteFailed'))
         }
       } catch (error) {
-        this.$message.error((error && (error.backendMessage || error.message)) || this.$t('trading-assistant.messages.deleteFailed'))
+        this.$message.error(this.localizedBackendMessage(error && (error.backendMessage || error.message), 'trading-assistant.messages.deleteFailed'))
       } finally {
         this.controlLoadingId = null
       }
+    },
+    localizedBackendMessage (code, fallbackKey) {
+      if (!code) return this.$t(fallbackKey)
+      const translated = this.$t(code)
+      return translated && translated !== code ? translated : code
     },
     openStrategyWorkspace () {
       this.openCreateLive()

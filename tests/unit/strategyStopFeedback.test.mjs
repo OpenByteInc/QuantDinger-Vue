@@ -39,3 +39,17 @@ test('completed pause uses the confirmed action returned by the backend', () => 
   const result = strategyStopFeedback({ code: 1, data: { status: 'stopped', close_requested: false } }, t, true)
   assert.deepEqual(result, { level: 'success', message: zh['strategyV2.paused'] })
 })
+
+test('completed virtual close reports settlement instead of only queueing', () => {
+  const result = strategyStopFeedback({
+    code: 1,
+    data: {
+      status: 'stopped',
+      close_requested: true,
+      close_orders_queued: 2,
+      close_orders_completed: 2
+    }
+  }, t, true)
+  assert.equal(result.level, 'success')
+  assert.equal(result.message, zh['strategyV2.stoppedAndVirtualCloseCompleted'])
+})

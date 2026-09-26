@@ -93,7 +93,19 @@
               :loading="controlLoadingId === selectedStrategy.id"
               @click="$emit('start', selectedStrategy)"
             >{{ $t('trading-assistant.startStrategy') }}</a-button>
-            <div v-else class="pause-actions">
+            <a-popconfirm
+              v-if="hasRetainedVirtualPosition"
+              :title="$t('strategyCenter.console.settleVirtualPositionsConfirm')"
+              :ok-text="$t('strategyCenter.console.settleVirtualPositions')"
+              :cancel-text="$t('common.cancel')"
+              ok-type="danger"
+              @confirm="$emit('stop', selectedStrategy, { closePositions: true })"
+            >
+              <a-button icon="stop" type="danger" ghost :loading="controlLoadingId === selectedStrategy.id">
+                {{ $t('strategyCenter.console.settleVirtualPositions') }}
+              </a-button>
+            </a-popconfirm>
+            <div v-if="isRunning(selectedStrategy)" class="pause-actions">
               <a-popconfirm
                 :title="$t('strategyCenter.console.pauseConfirm')"
                 :ok-text="$t('strategyCenter.console.pauseOnly')"
@@ -402,6 +414,14 @@ export default {
     },
     hasFinancialLedger () {
       return this.selectedStrategy && ['live', 'signal'].includes(this.executionMode(this.selectedStrategy))
+    },
+    hasRetainedVirtualPosition () {
+      return Boolean(
+        this.selectedStrategy &&
+        !this.isRunning(this.selectedStrategy) &&
+        this.executionMode(this.selectedStrategy) === 'signal' &&
+        Math.abs(this.performanceSummary.grossExposure) > 1e-8
+      )
     },
     financialCurrency () {
       return strategyQuoteCurrency(this.selectedStrategy)

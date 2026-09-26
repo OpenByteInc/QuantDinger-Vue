@@ -50,6 +50,8 @@ const locale = {
   'strategyCenter.console.pauseConfirm': 'Pause strategy execution and keep its current positions?',
   'strategyCenter.console.stopAndClose': 'Pause and close',
   'strategyCenter.console.stopAndCloseConfirm': 'Pause the strategy and queue reduce-only orders for all positions owned by it?',
+  'strategyCenter.console.settleVirtualPositions': 'Settle virtual positions',
+  'strategyCenter.console.settleVirtualPositionsConfirm': 'Settle all retained virtual positions now? This only updates the built-in virtual account and never sends an exchange order.',
   'strategyCenter.console.stopAndCloseQueued': 'Strategy paused and its close orders were queued',
   'strategyCenter.console.pauseSuccess': 'Strategy paused; positions remain open',
   'strategyCenter.console.runtimeStatus': 'Runtime status',
@@ -143,12 +145,15 @@ const locale = {
   'strategyRuntime.virtualLimitOrderOpenedNotificationFailed': 'The virtual limit order is open, but its notification could not be delivered.',
   'strategyV2.stopAndCloseQueued': 'Pause and close request accepted; waiting for execution. Positions have not been confirmed closed.',
   'strategyV2.stopFailed': 'Pause could not be confirmed. Check the latest strategy status and logs before retrying.',
+  'strategyV2.stopBeforeDelete': 'The strategy is still running or stopping. Pause it and wait for execution to finish before deleting it.',
+  'strategyV2.virtualCloseSettlementFailed': 'A virtual position could not be settled during pause and close.',
   'strategyV2.closeRunIdentityMissing': 'The position has no usable strategy run identity.',
   'strategyV2.closePositionSideInvalid': 'The position direction could not be confirmed.',
   'strategyV2.closePositionQuoteMissing': 'The position quantity or reference price is unavailable.',
   'strategyV2.closeOrderQueueFailed': 'The close order could not be added to the execution queue.',
   'strategyV2.paused': 'Strategy paused',
   'strategyV2.stoppedAndCloseQueued': 'Strategy paused and close orders queued',
+  'strategyV2.stoppedAndVirtualCloseCompleted': 'Strategy paused and all virtual positions were settled',
   'strategyV2.startQueued': 'Strategy start queued; waiting for the execution worker to confirm.',
   'accountRisk.grossNotionalExceeded': 'Account gross notional limit exceeded.',
   'accountRisk.symbolGrossNotionalExceeded': 'Symbol gross notional limit exceeded.',
@@ -162,7 +167,7 @@ const locale = {
   , 'strategyCenter.gridOrders.tabVirtual': 'Virtual orders'
   , 'strategyCenter.gridOrders.title': 'Exchange resting grid orders'
   , 'strategyCenter.gridOrders.virtualTitle': 'Virtual resting grid orders'
-  , 'strategyCenter.gridOrders.virtualDescription': 'Limit orders stay open in the built-in virtual account until the latest market price reaches their limit. No order is sent to an exchange.'
+  , 'strategyCenter.gridOrders.virtualDescription': 'The strategy keeps independently tracked price levels up to its configured open-order limit. Exit levels appear after the matching virtual inventory exists; no order is sent to an exchange.'
   , 'strategyCenter.gridOrders.description': 'Matches tracked order IDs against the bound account’s current exchange orders. Prices and quantities come from the exchange; verification does not place or cancel orders.'
   , 'strategyCenter.gridOrders.errors.grid_exchange_snapshot_failed': 'Could not read a complete exchange order snapshot. Order status remains unverified; retry shortly.'
   , 'strategyCenter.gridOrders.exchangeStatus.open': 'Confirmed open'
@@ -257,6 +262,8 @@ const zhCN = {
   'strategyCenter.console.pauseConfirm': '暂停策略运行并保留当前持仓吗？',
   'strategyCenter.console.stopAndClose': '暂停并平仓',
   'strategyCenter.console.stopAndCloseConfirm': '暂停策略，并为该策略持有的全部仓位提交只减仓订单吗？',
+  'strategyCenter.console.settleVirtualPositions': '结算虚拟持仓',
+  'strategyCenter.console.settleVirtualPositionsConfirm': '立即结算全部保留的虚拟持仓吗？此操作只更新系统内置虚拟账户，不会向交易所提交订单。',
   'strategyCenter.console.stopAndCloseQueued': '策略已暂停，平仓订单已提交队列',
   'strategyCenter.console.pauseSuccess': '策略已暂停，当前持仓继续保留',
   'strategyCenter.console.runtimeStatus': '运行状态',
@@ -350,12 +357,15 @@ const zhCN = {
   'strategyRuntime.virtualLimitOrderOpenedNotificationFailed': '虚拟限价单已挂出，但通知发送失败。',
   'strategyV2.stopAndCloseQueued': '暂停并平仓请求已受理，等待执行，尚未确认平仓完成。',
   'strategyV2.stopFailed': '暂未确认暂停成功，请查看最新策略状态和日志后再重试。',
+  'strategyV2.stopBeforeDelete': '策略仍在运行或停止处理中，请先暂停并等待执行完成后再删除。',
+  'strategyV2.virtualCloseSettlementFailed': '暂停并平仓时有虚拟持仓未能完成结算。',
   'strategyV2.closeRunIdentityMissing': '未找到持仓对应的有效策略运行记录。',
   'strategyV2.closePositionSideInvalid': '无法确认持仓方向。',
   'strategyV2.closePositionQuoteMissing': '持仓数量或参考价格不可用。',
   'strategyV2.closeOrderQueueFailed': '平仓订单未能加入执行队列。',
   'strategyV2.paused': '策略已暂停',
   'strategyV2.stoppedAndCloseQueued': '策略已暂停，平仓订单已提交',
+  'strategyV2.stoppedAndVirtualCloseCompleted': '策略已暂停，全部虚拟持仓已完成结算',
   'accountRisk.grossNotionalExceeded': '账户总名义仓位超过限制。',
   'accountRisk.symbolGrossNotionalExceeded': '该标的总名义仓位超过限制。',
   'accountRisk.marginEstimateExceeded': '账户预估保证金超过限制。',
@@ -368,7 +378,7 @@ const zhCN = {
   , 'strategyCenter.gridOrders.tabVirtual': '虚拟挂单'
   , 'strategyCenter.gridOrders.title': '交易所常驻网格挂单'
   , 'strategyCenter.gridOrders.virtualTitle': '虚拟账户网格挂单'
-  , 'strategyCenter.gridOrders.virtualDescription': '限价单会保留在系统虚拟账户中，最新行情触及委托价后才模拟成交，不会向交易所提交订单。'
+  , 'strategyCenter.gridOrders.virtualDescription': '策略会在最大同时挂单数内保留多档独立限价单；对应虚拟持仓形成后才会出现平仓档位，全程不会向交易所提交订单。'
   , 'strategyCenter.gridOrders.description': '按订单号核对绑定账户的当前交易所挂单，价格和数量以交易所回报为准。核验不会下单或撤单。'
   , 'strategyCenter.gridOrders.errors.grid_exchange_snapshot_failed': '未能完整读取交易所挂单，当前状态待核验，请稍后重试。'
   , 'strategyCenter.gridOrders.exchangeStatus.open': '已确认挂单'
@@ -424,6 +434,9 @@ const zhTW = {
   'strategyRuntime.virtualFillNotificationFailed': '虛擬交易已入帳，但通知傳送失敗。',
   'strategyRuntime.virtualLimitOrderOpened': '虛擬限價單已掛出，將在行情觸及委託價後成交。',
   'strategyRuntime.virtualLimitOrderOpenedNotificationFailed': '虛擬限價單已掛出，但通知傳送失敗。',
+  'strategyV2.stopBeforeDelete': '策略仍在執行或停止處理中，請先暫停並等待執行完成後再刪除。',
+  'strategyV2.virtualCloseSettlementFailed': '暫停並平倉時有虛擬持倉未能完成結算。',
+  'strategyV2.stoppedAndVirtualCloseCompleted': '策略已暫停，全部虛擬持倉已完成結算',
   'strategyRuntime.spotBalanceUnavailable': '無法確認現貨可用餘額，未提交賣單。請重新整理帳戶餘額後重試。',
   'strategyRuntime.spotBalanceInsufficient': '現貨可賣餘額為零，或數量低於交易最小要求。請檢查凍結餘額和未完成訂單後重試。',
   'strategyRuntime.spotCloseQuantityInvalid': '現貨賣出數量或精度調整結果無效，未提交訂單。',
@@ -448,6 +461,8 @@ const zhTW = {
   'strategyCenter.console.pauseConfirm': '暫停策略執行並保留目前持倉嗎？',
   'strategyCenter.console.stopAndClose': '暫停並平倉',
   'strategyCenter.console.stopAndCloseConfirm': '暫停策略，並為此策略持有的全部倉位提交只減倉訂單嗎？',
+  'strategyCenter.console.settleVirtualPositions': '結算虛擬持倉',
+  'strategyCenter.console.settleVirtualPositionsConfirm': '立即結算全部保留的虛擬持倉嗎？此操作只會更新系統內建虛擬帳戶，不會向交易所提交訂單。',
   'strategyCenter.console.pauseSuccess': '策略已暫停，目前持倉繼續保留',
   'strategyCenter.console.runtimeStatus': '執行狀態',
   'strategyCenter.console.financialOverview': '資金與風險',
@@ -477,7 +492,7 @@ const zhTW = {
   'strategyCenter.editor.positionSideShort': '做空腿',
   'strategyCenter.gridOrders.tabVirtual': '虛擬掛單',
   'strategyCenter.gridOrders.virtualTitle': '虛擬帳戶網格掛單',
-  'strategyCenter.gridOrders.virtualDescription': '限價單會保留在系統虛擬帳戶中，最新行情觸及委託價後才模擬成交，不會向交易所提交訂單。',
+  'strategyCenter.gridOrders.virtualDescription': '策略會在最大同時掛單數內保留多檔獨立限價單；對應虛擬持倉形成後才會出現平倉檔位，全程不會向交易所提交訂單。',
   'strategyCenter.gridOrders.source': '執行來源',
   'strategyCenter.gridOrders.virtualAccount': '虛擬帳戶',
   'strategyCenter.gridOrders.matching': '成交模型',

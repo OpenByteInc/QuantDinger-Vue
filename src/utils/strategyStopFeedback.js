@@ -8,7 +8,11 @@ export function strategyStopFeedback (response, translate, closePositions = fals
     key = closing ? 'strategyV2.stopAndCloseQueued' : 'strategyV2.stopQueued'
     level = 'info'
   } else if (accepted) {
-    key = closing ? 'strategyV2.stoppedAndCloseQueued' : 'strategyV2.paused'
+    const queued = Number(data.close_orders_queued || 0)
+    const completed = Number(data.close_orders_completed || 0)
+    key = closing && completed > 0 && completed === queued
+      ? 'strategyV2.stoppedAndVirtualCloseCompleted'
+      : (closing ? 'strategyV2.stoppedAndCloseQueued' : 'strategyV2.paused')
     level = 'success'
   } else if (data.status === 'stopped' && closing) {
     key = 'strategyV2.stopClosePartialFailure'
