@@ -221,7 +221,7 @@
         </section>
 
         <a-tabs v-model="detailTab" class="runtime-tabs" :animated="false">
-          <a-tab-pane v-if="isGridStrategy" key="grid-orders" :tab="$t('strategyCenter.gridOrders.tab')">
+          <a-tab-pane v-if="isGridStrategy" key="grid-orders" :tab="gridOrdersTabLabel">
             <grid-resting-orders
               v-if="detailTab === 'grid-orders'"
               :strategy-id="Number(selectedStrategy.id)"
@@ -347,7 +347,6 @@ export default {
     },
     isGridStrategy () {
       const strategy = this.selectedStrategy || {}
-      if (this.executionMode(strategy) !== 'live') return false
       const config = strategyTradingConfig(strategy)
       const type = String(strategy.resolved_bot_type || strategy.bot_type || config.bot_type || config.executor_type || '').toLowerCase().replace(/-/g, '_')
       const template = String(strategy.template_key || config.template_key || '').toLowerCase()
@@ -356,6 +355,11 @@ export default {
       const hasGridParameters = ['gridcount', 'lowerprice', 'upperprice'].every(key => parameterKeys.includes(key))
       const triggerMode = String(this.health(strategy).trigger_mode || '').toLowerCase()
       return type === 'grid' || hasGridParameters || template.includes('robot_v2_grid') || triggerMode === 'exchange_resting_orders'
+    },
+    gridOrdersTabLabel () {
+      return this.$t(this.executionMode(this.selectedStrategy || {}) === 'signal'
+        ? 'strategyCenter.gridOrders.tabVirtual'
+        : 'strategyCenter.gridOrders.tab')
     },
     aiDecisionFilterEnabled () {
       return Boolean(strategyTradingConfig(this.selectedStrategy || {}).ai_decision_filter)

@@ -2,10 +2,10 @@
   <section class="grid-orders-panel" :class="{ 'theme-dark': isDark }">
     <header class="grid-orders-head">
       <div>
-        <h3>{{ $t('strategyCenter.gridOrders.title') }}</h3>
-        <p>{{ $t('strategyCenter.gridOrders.description') }}</p>
+        <h3>{{ $t(isVirtual ? 'strategyCenter.gridOrders.virtualTitle' : 'strategyCenter.gridOrders.title') }}</h3>
+        <p>{{ $t(isVirtual ? 'strategyCenter.gridOrders.virtualDescription' : 'strategyCenter.gridOrders.description') }}</p>
       </div>
-      <a-button icon="sync" :loading="loading" @click="load(true)">{{ $t('strategyCenter.gridOrders.reconcile') }}</a-button>
+      <a-button icon="sync" :loading="loading" @click="load(true)">{{ $t(isVirtual ? 'strategyCenter.gridOrders.refresh' : 'strategyCenter.gridOrders.reconcile') }}</a-button>
     </header>
 
     <a-alert
@@ -15,7 +15,13 @@
       :message="$t('strategyCenter.gridOrders.syncFailed')"
       :description="syncErrorDescription"
     />
-    <div class="grid-order-summary">
+    <div v-if="isVirtual" class="grid-order-summary">
+      <div><span>{{ $t('strategyCenter.gridOrders.open') }}</span><strong>{{ summary.total || orders.length }}</strong></div>
+      <div><span>{{ $t('strategyCenter.gridOrders.source') }}</span><strong>{{ $t('strategyCenter.gridOrders.virtualAccount') }}</strong></div>
+      <div><span>{{ $t('strategyCenter.gridOrders.matching') }}</span><strong>{{ $t('strategyCenter.gridOrders.priceTrigger') }}</strong></div>
+      <div><span>{{ $t('strategyCenter.gridOrders.lastEvaluated') }}</span><strong>{{ formatTime(summary.last_reconciled_at) }}</strong></div>
+    </div>
+    <div v-else class="grid-order-summary">
       <div><span>{{ $t('strategyCenter.gridOrders.open') }}</span><strong>{{ summary.total || orders.length }}</strong></div>
       <div><span>{{ $t('strategyCenter.gridOrders.verified') }}</span><strong>{{ summary.exchange_audit_completed ? (summary.verified_exchange_orders || 0) : '-' }}</strong></div>
       <div :class="{ danger: Number(summary.unverified_orders || 0) > 0 }"><span>{{ $t('strategyCenter.gridOrders.unverified') }}</span><strong>{{ summary.unverified_orders || 0 }}</strong></div>
@@ -35,18 +41,18 @@
         <a-tag :color="String(row.side).toLowerCase() === 'buy' ? 'green' : 'red'">{{ row.side || '-' }}</a-tag>
       </template>
       <template slot="status" slot-scope="value">
-        <a-tag :color="statusColor(value)">{{ $t(`strategyCenter.gridOrders.exchangeStatus.${value || 'unverified'}`) }}</a-tag>
+        <a-tag :color="statusColor(value)">{{ statusLabel(value) }}</a-tag>
       </template>
       <template slot="number" slot-scope="value">{{ formatNumber(value) }}</template>
       <template slot="exchangeOrderId" slot-scope="value">
-        <code :class="{ missing: !value }">{{ value || $t('strategyCenter.gridOrders.notVerified') }}</code>
+        <code :class="{ missing: !value }">{{ value || $t(isVirtual ? 'strategyCenter.gridOrders.notAvailable' : 'strategyCenter.gridOrders.notVerified') }}</code>
       </template>
       <template slot="updatedAt" slot-scope="value">{{ formatTime(value) }}</template>
       <template slot="emptyText">
         <div class="grid-orders-empty">
           <a-icon type="warning" />
-          <strong>{{ $t('strategyCenter.gridOrders.empty') }}</strong>
-          <span>{{ $t('strategyCenter.gridOrders.emptyHint') }}</span>
+          <strong>{{ $t(isVirtual ? 'strategyCenter.gridOrders.virtualEmpty' : 'strategyCenter.gridOrders.empty') }}</strong>
+          <span>{{ $t(isVirtual ? 'strategyCenter.gridOrders.virtualEmptyHint' : 'strategyCenter.gridOrders.emptyHint') }}</span>
         </div>
       </template>
     </a-table>
@@ -72,6 +78,9 @@ export default {
     }
   },
   computed: {
+    isVirtual () {
+      return Boolean(this.summary.virtual_mode)
+    },
     syncErrorDescription () {
       const code = String(this.summary.sync_error || '')
       const known = ['grid_runner_not_available', 'grid_exchange_client_unavailable', 'grid_exchange_audit_rate_limited', 'grid_exchange_orders_unverified', 'grid_exchange_snapshot_failed']
@@ -86,7 +95,7 @@ export default {
         { title: this.$t('strategyCenter.gridOrders.quantity'), dataIndex: 'exchange_quantity', scopedSlots: { customRender: 'number' }, width: 130 },
         { title: this.$t('strategyCenter.gridOrders.filled'), dataIndex: 'exchange_filled_quantity', scopedSlots: { customRender: 'number' }, width: 120 },
         { title: this.$t('strategyCenter.gridOrders.status'), dataIndex: 'exchange_status', scopedSlots: { customRender: 'status' }, width: 140 },
-        { title: this.$t('strategyCenter.gridOrders.exchangeOrderId'), dataIndex: 'exchange_order_id', scopedSlots: { customRender: 'exchangeOrderId' }, width: 210 },
+        { title: this.$t(this.isVirtual ? 'strategyCenter.gridOrders.virtualOrderId' : 'strategyCenter.gridOrders.exchangeOrderId'), dataIndex: 'exchange_order_id', scopedSlots: { customRender: 'exchangeOrderId' }, width: 210 },
         { title: this.$t('strategyCenter.gridOrders.updatedAt'), dataIndex: 'updated_at', scopedSlots: { customRender: 'updatedAt' }, width: 170 }
       ]
     }
@@ -139,6 +148,11 @@ export default {
       if (status === 'not_open') return 'red'
       if (['cancelled', 'rejected', 'failed'].includes(status)) return 'red'
       return 'blue'
+    },
+    statusLabel (value) {
+      const status = String(value || 'unverified').toLowerCase()
+      if (this.isVirtual && status === 'open') return this.$t('strategyCenter.gridOrders.virtualOpen')
+      return this.$t(`strategyCenter.gridOrders.exchangeStatus.${status}`)
     },
     formatNumber (value) {
       if (value === null || value === undefined || value === '') return '-'
