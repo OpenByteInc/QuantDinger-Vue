@@ -4,6 +4,7 @@ import path from 'node:path'
 import test from 'node:test'
 
 import talibFactorMessages from '../../src/locales/lang/talib-factors.js'
+import factorResearchMessages from '../../src/locales/lang/factor-research-factors.js'
 
 const root = path.resolve(import.meta.dirname, '../..')
 const indicatorIds = [
@@ -38,12 +39,27 @@ test('strategy template cards expose the backend TA-Lib version metadata', () =>
   assert.ok((source.match(/templateTaLibLabel\(tpl\)/g) || []).length >= 2)
 })
 
-test('factor research loads the TA-Lib catalog and submits selected parameters', () => {
+test('factor research loads the unified technical catalog and submits selected parameters', () => {
   const source = fs.readFileSync(path.join(root, 'src/views/backtest-center/index.vue'), 'utf8')
 
-  assert.match(source, /getFactorCatalog\(\{ type: 'technical', provider: 'ta-lib' \}\)/)
+  assert.match(source, /getFactorCatalog\(\{ type: 'technical' \}\)/)
+  assert.doesNotMatch(source, /getFactorCatalog\(\{ type: 'technical', provider: 'ta-lib' \}\)/)
   assert.match(source, /factorParams: \{ \.\.\.this\.factorParams \}/)
   assert.match(source, /researchFactorParameterEntries/)
+})
+
+test('distribution factors have localized research labels in every desktop locale', () => {
+  const locales = [
+    'en-US', 'ar-SA', 'de-DE', 'fr-FR', 'ja-JP', 'ko-KR',
+    'ru-RU', 'th-TH', 'vi-VN', 'zh-CN', 'zh-TW'
+  ]
+  for (const locale of locales) {
+    const messages = factorResearchMessages[locale]
+    for (const factorId of ['skewness', 'kurtosis']) {
+      assert.ok(messages[`factor.${factorId}.name`], `${locale} ${factorId} name`)
+      assert.ok(messages[`factor.${factorId}.description`], `${locale} ${factorId} description`)
+    }
+  }
 })
 
 test('TA-Lib locale messages are merged into initial and lazy-loaded locales', () => {
@@ -51,4 +67,6 @@ test('TA-Lib locale messages are merged into initial and lazy-loaded locales', (
 
   assert.match(source, /import talibFactorMessages from '\.\/lang\/talib-factors'/)
   assert.ok((source.match(/talibFactorMessages\[/g) || []).length >= 3)
+  assert.match(source, /import factorResearchMessages from '\.\/lang\/factor-research-factors'/)
+  assert.ok((source.match(/factorResearchMessages\[/g) || []).length >= 3)
 })

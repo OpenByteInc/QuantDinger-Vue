@@ -932,7 +932,7 @@ export default {
     async loadResearchFactors () {
       this.factorCatalogLoading = true
       try {
-        const response = await getFactorCatalog({ type: 'technical', provider: 'ta-lib' })
+        const response = await getFactorCatalog({ type: 'technical' })
         this.researchFactors = Array.isArray(response.data) ? response.data : []
         if (this.selectedResearchFactor && !Object.keys(this.factorParams).length) {
           this.factorParams = { ...(this.selectedResearchFactor.default_params || {}) }

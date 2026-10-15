@@ -31,6 +31,7 @@ import currentFeatureOverrides from './lang/current-feature-overrides'
 import strategyEvolutionMessages from './lang/strategy-evolution'
 import quickTradeSpotSellMessages from './lang/quick-trade-spot-sell'
 import talibFactorMessages from './lang/talib-factors'
+import factorResearchMessages from './lang/factor-research-factors'
 
 Vue.use(VueI18n)
 
@@ -66,7 +67,8 @@ const messages = {
     ...(eventRadarMessages[defaultLang] || {}),
     ...(strategyEvolutionMessages[defaultLang] || {}),
     ...(quickTradeSpotSellMessages[defaultLang] || {}),
-    ...(talibFactorMessages[defaultLang] || {})
+    ...(talibFactorMessages[defaultLang] || {}),
+    ...(factorResearchMessages[defaultLang] || {})
   }
 }
 
@@ -161,7 +163,8 @@ function mergeLocaleOverrides (lang) {
     ...(eventRadarMessages[lang] || {}),
     ...(strategyEvolutionMessages[lang] || {}),
     ...(quickTradeSpotSellMessages[lang] || {}),
-    ...(talibFactorMessages[lang] || {})
+    ...(talibFactorMessages[lang] || {}),
+    ...(factorResearchMessages[lang] || {})
   }
   i18n.setLocaleMessage(lang, {
     ...(i18n.getLocaleMessage(lang) || {}),
@@ -209,7 +212,8 @@ export async function loadLanguageAsync (lang = defaultLang) {
       ...(currentFeatureOverrides[lang] || {}),
       ...(eventRadarMessages[lang] || {}),
       ...(quickTradeSpotSellMessages[lang] || {}),
-      ...(talibFactorMessages[lang] || {})
+      ...(talibFactorMessages[lang] || {}),
+      ...(factorResearchMessages[lang] || {})
     })
     i18n.setLocaleMessage(lang, locale)
     loadedLanguages.push(lang)
