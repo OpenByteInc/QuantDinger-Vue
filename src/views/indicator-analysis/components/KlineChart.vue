@@ -1906,11 +1906,13 @@ registerOverlay({
       needDefaultXAxisFigure: false,
       needDefaultYAxisFigure: false,
       checkEventOn: () => false,
-      createPointFigures: ({ coordinates, overlay }) => {
+      createPointFigures: ({ coordinates, overlay, bounding }) => {
         if (!coordinates[0] || !coordinates[1]) return []
         const data = overlay.extendData || {}
         const x1 = Math.min(coordinates[0].x, coordinates[1].x)
-        const x2 = Math.max(coordinates[0].x, coordinates[1].x)
+        const x2 = data.extendRight === true && Number.isFinite(bounding?.width)
+          ? Math.max(x1, bounding.width)
+          : Math.max(coordinates[0].x, coordinates[1].x)
         const y1 = Math.min(coordinates[0].y, coordinates[1].y)
         const y2 = Math.max(coordinates[0].y, coordinates[1].y)
         const isDark = chartTheme.value === 'dark'
@@ -1931,7 +1933,7 @@ registerOverlay({
               style: 'stroke_fill',
               color: fillColor,
               borderColor,
-              borderSize: Number(data.borderSize || 1),
+              borderSize: Number(data.borderSize ?? 1),
               borderDashedValue: data.dashed === false ? [] : [5, 4]
             },
             ignoreEvent: true
@@ -1978,7 +1980,7 @@ registerOverlay({
       needDefaultXAxisFigure: false,
       needDefaultYAxisFigure: false,
       checkEventOn: () => false,
-      createPointFigures: ({ coordinates, overlay }) => {
+      createPointFigures: ({ coordinates, overlay, bounding }) => {
         if (!coordinates[0] || !coordinates[1]) return []
         const data = overlay.extendData || {}
         const color = data.color || 'var(--primary-color, #1890ff)'
@@ -1996,13 +1998,21 @@ registerOverlay({
           }
         ]
         if (data.text) {
+          const centered = data.textPosition === 'center'
+          let textX = centered ? (coordinates[0].x + coordinates[1].x) / 2 : coordinates[1].x + 6
+          if (!centered && data.keepTextVisible === true && Number.isFinite(bounding?.width)) {
+            const width = measureLayerText(data.text, Number(data.fontSize || 10))
+            textX = Math.max(4, Math.min(textX, bounding.width - width - 4))
+          }
+          const textY = centered ? (coordinates[0].y + coordinates[1].y) / 2 : coordinates[1].y
+          const offset = Number(data.textOffsetY)
           figures.push({
             type: 'text',
-            attrs: { x: coordinates[1].x + 6, y: coordinates[1].y, text: String(data.text), align: 'left', baseline: 'middle' },
+            attrs: { x: textX, y: textY + (Number.isFinite(offset) ? offset : 0), text: String(data.text), align: centered ? 'center' : 'left', baseline: 'middle' },
             styles: {
               color: data.textColor || color,
               size: Number(data.fontSize || 10),
-              weight: '600',
+              weight: data.fontWeight || '600',
               backgroundColor: 'transparent'
             },
             ignoreEvent: true
@@ -4465,6 +4475,14 @@ registerOverlay({
       return null
     }
 
+    const layerEndPoint = (timestamp, value, extendBars, internalData) => {
+      const bars = Number(extendBars)
+      if (Number.isFinite(bars) && bars > 0) {
+        return { dataIndex: internalData.length - 1 + Math.min(500, Math.floor(bars)), value }
+      }
+      return { timestamp, value }
+    }
+
     const pushLayerOverlay = (overlayConfig) => {
       if (!chartRef.value || typeof chartRef.value.createOverlay !== 'function') return
       try {
@@ -4502,6 +4520,8 @@ registerOverlay({
               fillColor: layer.fillColor,
               borderColor: layer.borderColor,
               opacity: layer.opacity,
+              borderSize: layer.borderSize,
+              extendRight: layer.extendRight,
               dashed: layer.dashed,
               fontSize: layer.fontSize,
               textColor: layer.textColor
@@ -4523,12 +4543,16 @@ registerOverlay({
             name: 'qdIndicatorLine',
             points: [
               { timestamp: start, value: y1 },
-              { timestamp: end, value: y2 }
+              layerEndPoint(end, y2, layer.extendBars, internalData)
             ],
             extendData: {
               text: layer.text || layer.name || '',
               color: layer.color,
               lineWidth: layer.lineWidth,
+              textPosition: layer.textPosition,
+              textOffsetY: layer.textOffsetY,
+              fontWeight: layer.fontWeight,
+              keepTextVisible: layer.keepTextVisible,
               dashed: layer.dashed,
               fontSize: layer.fontSize,
               textColor: layer.textColor

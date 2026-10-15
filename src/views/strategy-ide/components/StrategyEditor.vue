@@ -287,6 +287,7 @@
                 <div class="template-card__meta">
                   <span>{{ (tpl.params || []).length }} {{ $t('trading-assistant.editor.paramsTab') }}</span>
                   <span>{{ $t('strategyV2.apiBadge') }}</span>
+                  <span v-if="templateTaLibLabel(tpl)">{{ templateTaLibLabel(tpl) }}</span>
                 </div>
                 <div class="template-card__foot">
                   <span class="template-card__action">
@@ -453,6 +454,7 @@
           <div class="template-card__meta">
             <span>{{ (tpl.params || []).length }} {{ $t('trading-assistant.editor.paramsTab') }}</span>
             <span>{{ $t('strategyV2.apiBadge') }}</span>
+            <span v-if="templateTaLibLabel(tpl)">{{ templateTaLibLabel(tpl) }}</span>
           </div>
           <div class="template-card__foot">
             <span class="template-card__action">
@@ -1126,6 +1128,12 @@ export default {
       const key = `trading-assistant.template.${template.key}Desc`
       const translated = this.$t(key)
       return translated === key ? (template.desc || '') : translated
+    },
+
+    templateTaLibLabel (template) {
+      const metadata = (template && template.metadata) || {}
+      const version = String(metadata.taLibVersion || metadata.ta_lib_version || '').trim()
+      return version ? this.$t('strategyV2.taLibBadge', { version }) : ''
     },
 
     getParamPrecision (param) {

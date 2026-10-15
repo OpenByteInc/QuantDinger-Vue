@@ -221,14 +221,56 @@
                 :description="$t('strategyV2.factorResearch.universeContractDesc')" />
               <div class="form-grid">
                 <a-form-item :label="$t('strategyV2.factorResearch.factor')">
-                  <a-select v-model="factorForm.factorId" class="full-width">
-                    <a-select-option value="momentum_20">{{ $t('strategyV2.factorResearch.factors.momentum20') }}</a-select-option>
-                    <a-select-option value="volatility_20">{{ $t('strategyV2.factorResearch.factors.volatility20') }}</a-select-option>
-                    <a-select-option value="reversal_5">{{ $t('strategyV2.factorResearch.factors.reversal5') }}</a-select-option>
-                    <a-select-option value="value">{{ $t('strategyV2.factorResearch.factors.value') }}</a-select-option>
-                    <a-select-option value="quality">{{ $t('strategyV2.factorResearch.factors.quality') }}</a-select-option>
-                    <a-select-option value="size">{{ $t('strategyV2.factorResearch.factors.size') }}</a-select-option>
+                  <a-select
+                    v-model="factorForm.factorId"
+                    class="full-width"
+                    show-search
+                    option-filter-prop="children"
+                    :loading="factorCatalogLoading"
+                    @change="handleResearchFactorChange"
+                  >
+                    <a-select-option v-for="factor in researchFactorOptions" :key="factor.factor_id" :value="factor.factor_id">
+                      {{ researchFactorName(factor) }} · {{ factor.factor_id }}
+                    </a-select-option>
                   </a-select>
+                </a-form-item>
+                <a-form-item
+                  v-for="entry in researchFactorParameterEntries"
+                  :key="entry[0]"
+                  :label="entry[0]"
+                >
+                  <a-select
+                    v-if="researchFactorParameterSchema(entry[0]).type === 'enum'"
+                    :value="factorParams[entry[0]]"
+                    class="full-width"
+                    @change="setResearchFactorParam(entry[0], $event)"
+                  >
+                    <a-select-option
+                      v-for="option in researchFactorParameterSchema(entry[0]).options"
+                      :key="option"
+                      :value="option"
+                    >{{ option }}</a-select-option>
+                  </a-select>
+                  <a-switch
+                    v-else-if="researchFactorParameterSchema(entry[0]).type === 'boolean'"
+                    :checked="factorParams[entry[0]]"
+                    @change="setResearchFactorParam(entry[0], $event)"
+                  />
+                  <a-input-number
+                    v-else-if="['integer', 'number'].includes(researchFactorParameterSchema(entry[0]).type)"
+                    :value="factorParams[entry[0]]"
+                    :min="researchFactorParameterSchema(entry[0]).minimum"
+                    :max="researchFactorParameterSchema(entry[0]).maximum"
+                    :step="researchFactorParameterSchema(entry[0]).step"
+                    :precision="researchFactorParameterSchema(entry[0]).type === 'integer' ? 0 : undefined"
+                    class="full-width"
+                    @change="setResearchFactorParam(entry[0], $event)"
+                  />
+                  <a-input
+                    v-else
+                    :value="factorParams[entry[0]]"
+                    @change="setResearchFactorParam(entry[0], $event.target.value)"
+                  />
                 </a-form-item>
                 <a-form-item :label="$t('strategyV2.factorResearch.groups')">
                   <a-input-number v-model="factorForm.groups" :min="2" :max="10" class="full-width" />
@@ -416,6 +458,7 @@ import {
   strategyParameterOptions
 } from '@/utils/strategyParameterPresentation'
 import { ratioPercentInputFormatter, ratioPercentInputParser } from '@/utils/numberFormat'
+import { getFactorCatalog } from '@/api/factor'
 
 export default {
   name: 'BacktestCenter',
@@ -465,7 +508,10 @@ export default {
         groups: 5,
         holdingPeriod: 5,
         neutralizeIndustry: false
-      }
+      },
+      factorParams: {},
+      researchFactors: [],
+      factorCatalogLoading: false
     }
   },
   computed: {
@@ -502,6 +548,29 @@ export default {
       if (!this.manifest || this.manifest.strategyType !== 'portfolio') return false
       const universe = this.manifest.universe || {}
       return Boolean(universe.reference) || (universe.instruments || []).length >= 3
+    },
+    researchFactorOptions () {
+      const legacy = [
+        ['momentum_20', 'momentum20'],
+        ['volatility_20', 'volatility20'],
+        ['reversal_5', 'reversal5'],
+        ['value', 'value'],
+        ['quality', 'quality'],
+        ['size', 'size']
+      ].map(([factorId, label]) => ({
+        factor_id: factorId,
+        display_name: this.$t(`strategyV2.factorResearch.factors.${label}`),
+        default_params: {},
+        parameter_schema: {}
+      }))
+      return [...legacy, ...this.researchFactors]
+    },
+    selectedResearchFactor () {
+      const selected = String(this.factorForm.factorId || '').toLowerCase()
+      return this.researchFactorOptions.find(item => String(item.factor_id || '').toLowerCase() === selected) || null
+    },
+    researchFactorParameterEntries () {
+      return Object.entries((this.selectedResearchFactor && this.selectedResearchFactor.default_params) || {})
     },
     emptyResultTitle () {
       if (this.mode === 'factor') {
@@ -724,6 +793,7 @@ export default {
   },
   async mounted () {
     await this.loadSources()
+    this.loadResearchFactors().catch(() => {})
     this.pageReady = true
     await this.syncRouteSource({ fallback: true })
     this.loadHistory({ mode: this.mode }).catch(() => {})
@@ -845,6 +915,7 @@ export default {
     async refreshPage () {
       await Promise.all([
         this.loadSources(),
+        this.loadResearchFactors(),
         this.loadHistory({ mode: this.mode, force: true })
       ])
       await this.syncRouteSource({ fallback: true })
@@ -857,6 +928,36 @@ export default {
       } finally {
         this.sourcesLoading = false
       }
+    },
+    async loadResearchFactors () {
+      this.factorCatalogLoading = true
+      try {
+        const response = await getFactorCatalog({ type: 'technical', provider: 'ta-lib' })
+        this.researchFactors = Array.isArray(response.data) ? response.data : []
+        if (this.selectedResearchFactor && !Object.keys(this.factorParams).length) {
+          this.factorParams = { ...(this.selectedResearchFactor.default_params || {}) }
+        }
+      } finally {
+        this.factorCatalogLoading = false
+      }
+    },
+    researchFactorName (factor) {
+      const key = factor && factor.name_i18n_key
+      if (key) {
+        const translated = this.$t(key)
+        if (translated && translated !== key) return translated
+      }
+      return (factor && (factor.display_name || factor.factor_id)) || ''
+    },
+    researchFactorParameterSchema (key) {
+      return (this.selectedResearchFactor && this.selectedResearchFactor.parameter_schema && this.selectedResearchFactor.parameter_schema[key]) || { type: 'string' }
+    },
+    setResearchFactorParam (key, value) {
+      if (value === null || value === undefined) return
+      this.$set(this.factorParams, key, value)
+    },
+    handleResearchFactorChange () {
+      this.factorParams = { ...((this.selectedResearchFactor && this.selectedResearchFactor.default_params) || {}) }
     },
     onSourceDropdownVisibleChange (visible) {
       if (!visible || this.sourcesLoading) return
@@ -1176,6 +1277,7 @@ export default {
           commission: this.form.commission,
           slippage: this.form.slippage,
           factorId: this.factorForm.factorId,
+          factorParams: { ...this.factorParams },
           groups: this.factorForm.groups,
           holdingPeriod: this.factorForm.holdingPeriod,
           neutralizeIndustry: this.factorForm.neutralizeIndustry
@@ -1260,6 +1362,7 @@ export default {
           holdingPeriod: Number(run.holding_period || 5),
           neutralizeIndustry: Boolean(run.neutralize_industry)
         }
+        this.factorParams = { ...((run.result && run.result.factorParams) || {}) }
         this.form.commission = Number(run.commission || 0)
         this.form.slippage = Number(run.slippage || 0)
         if (run.start_date) this.form.startDate = moment(run.start_date)
@@ -1281,6 +1384,8 @@ export default {
       }
     },
     factorLabel (factorId) {
+      const selected = this.researchFactorOptions.find(item => String(item.factor_id || '').toLowerCase() === String(factorId || '').toLowerCase())
+      if (selected) return this.researchFactorName(selected)
       return this.$t(`strategyV2.factorResearch.factors.${{
         momentum_20: 'momentum20',
         volatility_20: 'volatility20',
