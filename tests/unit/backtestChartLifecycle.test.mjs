@@ -192,6 +192,12 @@ test('partial benchmark metrics stay visible and review-only chart hides inactiv
   assert.match(klineChartSource, /v-if="showIndicatorToolbar && \(showIndicatorLibraryTrigger \|\| activePresetIndicators\.length\)"[\s\S]*?class="indicator-toolbar"/)
 })
 
+test('benchmark-relative metrics render independently from benchmark chart coverage', () => {
+  assert.match(portfolioResultSource, /v-if="hasBenchmarkRelativeAnalysis" class="benchmark-analysis-card"/)
+  assert.match(portfolioResultSource, /hasBenchmarkRelativeAnalysis \(\) \{\s*return Number\(this\.benchmarkRelativeMetrics\.observations \|\| 0\) > 0\s*\}/)
+  assert.match(portfolioResultSource, /status \|\| \(this\.hasMetricValue\(value\) \? 'available' : 'unavailable'\)/)
+})
+
 test('backtests default to the latest completed date and reject today in the picker', () => {
   assert.match(source, /const latestCompleteDate = moment\(\)\.subtract\(1, 'day'\)\.startOf\('day'\)/)
   assert.match(source, /endDate: latestCompleteDate/)

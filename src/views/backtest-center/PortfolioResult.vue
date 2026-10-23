@@ -51,6 +51,37 @@
       </div>
     </div>
 
+    <section v-if="hasBenchmarkRelativeAnalysis" class="benchmark-analysis-card">
+      <div class="benchmark-analysis-heading">
+        <div>
+          <h3>{{ $t('strategyV2.backtest.benchmarkMetrics.title') }}</h3>
+          <p>{{ $t('strategyV2.backtest.benchmarkMetrics.subtitle') }}</p>
+        </div>
+        <div class="benchmark-analysis-meta">
+          <a-tag color="blue">
+            {{ $t('strategyV2.backtest.benchmarkMetrics.observations', { count: benchmarkRelativeMetrics.observations || 0 }) }}
+          </a-tag>
+          <a-tag>{{ benchmarkRelativeMetrics.frequency || '-' }}</a-tag>
+          <a-tooltip :title="$t('strategyV2.backtest.benchmarkMetrics.riskFreeHint')">
+            <a-tag>
+              {{ $t('strategyV2.backtest.benchmarkMetrics.riskFreeRate', { value: formatMetricRate(benchmarkRelativeMetrics.riskFreeRate, false) }) }}
+            </a-tag>
+          </a-tooltip>
+        </div>
+      </div>
+      <div class="benchmark-analysis-grid">
+        <article v-for="item in benchmarkMetricCards" :key="item.key" class="benchmark-analysis-metric">
+          <span>
+            {{ item.label }}
+            <a-tooltip :title="item.hint"><a-icon type="info-circle" /></a-tooltip>
+          </span>
+          <strong :class="item.tone">{{ item.value }}</strong>
+          <small>{{ item.detail }}</small>
+        </article>
+      </div>
+      <p class="benchmark-analysis-note">{{ $t('strategyV2.backtest.benchmarkMetrics.assumption') }}</p>
+    </section>
+
     <section class="chart-card">
       <div class="chart-heading">
         <div>
@@ -409,6 +440,92 @@ export default {
       return Number.isFinite(Number(this.result.benchmarkTotalReturn)) &&
         Number.isFinite(Number(this.result.excessReturn)) &&
         this.benchmarkCurveRows.length > 0
+    },
+    benchmarkRelativeMetrics () {
+      const metrics = this.result.benchmarkRelativeMetrics
+      return metrics && typeof metrics === 'object' ? metrics : {}
+    },
+    hasBenchmarkRelativeAnalysis () {
+      return Number(this.benchmarkRelativeMetrics.observations || 0) > 0
+    },
+    benchmarkMetricCards () {
+      const metrics = this.benchmarkRelativeMetrics
+      return [
+        {
+          key: 'informationRatio',
+          label: this.$t('strategyV2.backtest.benchmarkMetrics.informationRatio'),
+          value: this.formatMetricNumber(metrics.informationRatio),
+          detail: metrics.classification
+            ? this.$t(`strategyV2.backtest.benchmarkMetrics.classification.${metrics.classification}`)
+            : this.benchmarkMetricStatus(metrics.status),
+          hint: this.$t('strategyV2.backtest.benchmarkMetrics.informationRatioHint'),
+          tone: this.metricTone(metrics.informationRatio)
+        },
+        {
+          key: 'beta',
+          label: this.$t('strategyV2.backtest.benchmarkMetrics.beta'),
+          value: this.formatMetricNumber(metrics.beta),
+          detail: this.benchmarkMetricStatus(metrics.betaStatus, metrics.beta),
+          hint: this.$t('strategyV2.backtest.benchmarkMetrics.betaHint'),
+          tone: ''
+        },
+        {
+          key: 'alpha',
+          label: this.$t('strategyV2.backtest.benchmarkMetrics.alpha'),
+          value: this.formatMetricRate(metrics.alphaAnnualized),
+          detail: this.benchmarkMetricStatus(metrics.betaStatus, metrics.alphaAnnualized),
+          hint: this.$t('strategyV2.backtest.benchmarkMetrics.alphaHint'),
+          tone: this.metricTone(metrics.alphaAnnualized)
+        },
+        {
+          key: 'treynor',
+          label: this.$t('strategyV2.backtest.benchmarkMetrics.treynor'),
+          value: this.formatMetricNumber(metrics.treynorRatio),
+          detail: this.benchmarkMetricStatus(metrics.treynorStatus, metrics.treynorRatio),
+          hint: this.$t('strategyV2.backtest.benchmarkMetrics.treynorHint'),
+          tone: this.metricTone(metrics.treynorRatio)
+        },
+        {
+          key: 'correlation',
+          label: this.$t('strategyV2.backtest.benchmarkMetrics.correlation'),
+          value: this.formatMetricNumber(metrics.correlation),
+          detail: this.benchmarkMetricStatus(metrics.correlationStatus, metrics.correlation),
+          hint: this.$t('strategyV2.backtest.benchmarkMetrics.correlationHint'),
+          tone: ''
+        },
+        {
+          key: 'rSquared',
+          label: this.$t('strategyV2.backtest.benchmarkMetrics.rSquared'),
+          value: this.formatMetricRate(metrics.rSquared, false),
+          detail: this.benchmarkMetricStatus(metrics.correlationStatus, metrics.rSquared),
+          hint: this.$t('strategyV2.backtest.benchmarkMetrics.rSquaredHint'),
+          tone: ''
+        },
+        {
+          key: 'upCapture',
+          label: this.$t('strategyV2.backtest.benchmarkMetrics.upCapture'),
+          value: this.formatMetricRate(metrics.upCapture, false),
+          detail: this.$t('strategyV2.backtest.benchmarkMetrics.periods', { count: metrics.upMarketPeriods || 0 }),
+          hint: this.$t('strategyV2.backtest.benchmarkMetrics.upCaptureHint'),
+          tone: ''
+        },
+        {
+          key: 'downCapture',
+          label: this.$t('strategyV2.backtest.benchmarkMetrics.downCapture'),
+          value: this.formatMetricRate(metrics.downCapture, false),
+          detail: this.$t('strategyV2.backtest.benchmarkMetrics.periods', { count: metrics.downMarketPeriods || 0 }),
+          hint: this.$t('strategyV2.backtest.benchmarkMetrics.downCaptureHint'),
+          tone: ''
+        },
+        {
+          key: 'captureRatio',
+          label: this.$t('strategyV2.backtest.benchmarkMetrics.captureRatio'),
+          value: this.formatMetricMultiple(metrics.captureRatio),
+          detail: this.benchmarkMetricStatus(metrics.captureStatus, metrics.captureRatio),
+          hint: this.$t('strategyV2.backtest.benchmarkMetrics.captureRatioHint'),
+          tone: ''
+        }
+      ]
     },
     metrics () {
       return [
@@ -880,6 +997,30 @@ export default {
     formatPercentagePointValue (value) { const number = Number(value || 0); return `${number > 0 ? '+' : ''}${number.toFixed(2)}` },
     formatNullablePercent (value, signed = true) { return value === null || value === undefined ? '-' : this.formatPercent(value, signed) },
     formatRate (value) { return `${(Number(value || 0) * 100).toFixed(2)}%` },
+    hasMetricValue (value) { return value !== null && value !== undefined && Number.isFinite(Number(value)) },
+    formatMetricNumber (value, digits = 2) {
+      if (!this.hasMetricValue(value)) return '-'
+      const number = Number(value)
+      return `${number > 0 ? '+' : ''}${number.toFixed(digits)}`
+    },
+    formatMetricRate (value, signed = true) {
+      if (!this.hasMetricValue(value)) return '-'
+      const number = Number(value) * 100
+      return `${signed && number > 0 ? '+' : ''}${number.toFixed(2)}%`
+    },
+    formatMetricMultiple (value) {
+      if (!this.hasMetricValue(value)) return '-'
+      return `${Number(value).toFixed(2)}×`
+    },
+    benchmarkMetricStatus (status, value) {
+      const normalizedStatus = status || (this.hasMetricValue(value) ? 'available' : 'unavailable')
+      const key = `strategyV2.backtest.benchmarkMetrics.status.${normalizedStatus}`
+      return this.$te(key) ? this.$t(key) : this.$t('strategyV2.backtest.benchmarkMetrics.status.unavailable')
+    },
+    metricTone (value) {
+      if (!this.hasMetricValue(value)) return ''
+      return this.profitTone(value)
+    },
     formatNumber (value, digits = 2) { const number = Number(value || 0); return Number.isFinite(number) ? number.toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits }) : '-' },
     formatNullableNumber (value, digits = 2) { return value === null || value === undefined ? '-' : this.formatNumber(value, digits) },
     formatSignedNumber (value, digits = 2) { const number = Number(value || 0); return `${number > 0 ? '+' : ''}${this.formatNumber(number, digits)}` },
@@ -914,10 +1055,22 @@ export default {
 .negative { color: #dc2626 !important; }
 .neutral { color: #94a3b8 !important; }
 .chart-card, .trade-review-card { margin-top: 10px; padding: 12px; border: 1px solid #e5e9ee; border-radius: 8px; background: #fff; }
-.chart-card { order: 4; }
-.trade-review-card { order: 5; }
-.assumption-strip { order: 6; }
-.result-tabs { order: 7; }
+.benchmark-analysis-card { order: 4; margin-top: 10px; padding: 14px; border: 1px solid #dbe7f3; border-radius: 8px; background: linear-gradient(135deg, #fbfdff 0%, #f5f9ff 100%); }
+.benchmark-analysis-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.benchmark-analysis-heading h3 { margin: 0; color: #20324a; font-size: 14px; }
+.benchmark-analysis-heading p, .benchmark-analysis-note { margin: 3px 0 0; color: #7c8ca1; font-size: 11px; }
+.benchmark-analysis-meta { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
+.benchmark-analysis-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+.benchmark-analysis-metric { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 12px; min-width: 0; padding: 10px 11px; border: 1px solid #e5edf6; border-radius: 7px; background: rgba(255, 255, 255, .86); }
+.benchmark-analysis-metric > span { overflow: hidden; color: #64748b; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.benchmark-analysis-metric .anticon { margin-left: 4px; cursor: help; }
+.benchmark-analysis-metric strong { grid-row: 1 / 3; grid-column: 2; align-self: center; color: #20324a; font-size: 18px; font-variant-numeric: tabular-nums; }
+.benchmark-analysis-metric small { overflow: hidden; color: #94a3b8; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.benchmark-analysis-note { margin-top: 10px; }
+.chart-card { order: 5; }
+.trade-review-card { order: 6; }
+.assumption-strip { order: 7; }
+.result-tabs { order: 8; }
 .chart-heading { display: flex; justify-content: space-between; gap: 16px; }
 .chart-heading h3, .trade-review-heading h3 { margin: 0; color: #26364c; font-size: 14px; }
 .chart-heading span, .chart-legend-note { color: #7c8ca1; font-size: 11px; }
@@ -986,6 +1139,9 @@ export default {
 .audit-summary div { display: flex; flex-direction: column; }
 .audit-summary span { color: #7c8ca1; font-size: 11px; }
 .portfolio-result.theme-dark .metrics-grid, .portfolio-result.theme-dark .assumption-strip { border-color: #2d2d2d; }
+.portfolio-result.theme-dark .benchmark-analysis-card { border-color: #26364a; background: linear-gradient(135deg, #111820 0%, #10151b 100%); }
+.portfolio-result.theme-dark .benchmark-analysis-heading h3, .portfolio-result.theme-dark .benchmark-analysis-metric strong { color: #e5e7eb; }
+.portfolio-result.theme-dark .benchmark-analysis-metric { border-color: #2b3948; background: rgba(21, 21, 21, .86); }
 .portfolio-result.theme-dark .metric-card, .portfolio-result.theme-dark .overview-card, .portfolio-result.theme-dark .status-card, .portfolio-result.theme-dark .assumption-strip div, .portfolio-result.theme-dark .review-facts div { border-color: #2d2d2d; background: #151515; }
 .portfolio-result.theme-dark .portfolio-contribution-panel { border-color: rgba(255,255,255,.1); background: #0d0d0d; }
 .portfolio-result.theme-dark .contribution-heading strong, .portfolio-result.theme-dark .contribution-item b, .portfolio-result.theme-dark .contribution-symbol { color: #e5e7eb; }
@@ -1007,6 +1163,8 @@ export default {
 .portfolio-result.theme-dark .result-trustbar /deep/ .trust-tag--warning { border-color: #664d03; background: rgba(250, 173, 20, .18); color: #ffe58f; }
 @media (max-width: 1500px) { .metrics-grid { grid-template-columns: repeat(6, minmax(95px, 1fr)); } .assumption-strip { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 @media (max-width: 900px) { .metrics-grid, .overview-grid, .status-grid, .assumption-strip { grid-template-columns: repeat(2, 1fr); } .metrics-grid .metric-card, .assumption-strip div { border-right: 0; border-bottom: 1px solid #e5e9ee; } }
+@media (max-width: 900px) { .benchmark-analysis-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .benchmark-analysis-heading { flex-direction: column; } .benchmark-analysis-meta { justify-content: flex-start; } }
+@media (max-width: 560px) { .benchmark-analysis-grid { grid-template-columns: 1fr; } }
 @media (max-width: 900px) { .review-facts { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 1150px) { .contribution-list { grid-template-columns: 1fr; } }
 @media (max-width: 720px) { .result-trustbar { align-items: flex-start; flex-direction: column; }.result-trustbar > div { flex-wrap: wrap; } }
