@@ -303,6 +303,24 @@
                   </div>
 
                   <div class="strategy-ai-composer">
+                    <div class="strategy-ai-auth-row">
+                      <a-select v-model="aiAuthMode" size="small" style="width: 160px">
+                        <a-select-option value="chatgpt_account">ChatGPT account</a-select-option>
+                        <a-select-option value="api_key">API key</a-select-option>
+                      </a-select>
+                      <a-select
+                        v-if="aiAuthMode === 'chatgpt_account'"
+                        v-model="aiAccountModel"
+                        size="small"
+                        style="min-width: 180px"
+                        :loading="aiAccountModelsLoading"
+                      >
+                        <a-select-option v-for="item in aiAccountModels" :key="item.id" :value="item.id">
+                          {{ item.name || item.id }}
+                        </a-select-option>
+                      </a-select>
+                      <span class="strategy-ai-auth-hint">{{ aiAuthMode === 'chatgpt_account' ? 'ChatGPT plan · no API-key fallback' : 'Explicit API billing mode' }}</span>
+                    </div>
                     <a-textarea
                       ref="strategyAiPrompt"
                       v-model="aiStrategyPrompt"
@@ -683,6 +701,7 @@ import {
   deleteScriptSource,
   getIndicatorListForStrategy,
   getStrategyAiWorkspace,
+  getStrategyAiAccountModels,
   getScriptSourcePublishReadiness,
   getScriptSourceDetail,
   getScriptSourceList,
@@ -769,6 +788,10 @@ export default {
       aiStrategyPrompt: '',
       aiStrategyGenerating: false,
       aiInteractionMode: 'auto',
+      aiAuthMode: 'chatgpt_account',
+      aiAccountModel: 'gpt-6-luna',
+      aiAccountModels: [],
+      aiAccountModelsLoading: false,
       aiRequestBaseCode: '',
       strategyValidation: null,
       showIndicatorConvertModal: false,
@@ -1074,6 +1097,7 @@ export default {
     window.addEventListener('keydown', this._saveShortcut, true)
     this._initialPagePromise = this.initPage()
     this.initializeStrategyBuilderOptions()
+    this.loadStrategyAiAccountModels()
   },
   activated () {
     if (this._saveShortcut) {
@@ -1331,6 +1355,21 @@ export default {
       this.aiStrategyPrompt = ''
       this.aiInteractionMode = 'auto'
     },
+    async loadStrategyAiAccountModels () {
+      this.aiAccountModelsLoading = true
+      try {
+        const res = await getStrategyAiAccountModels()
+        const data = (res && res.data) || {}
+        this.aiAccountModels = Array.isArray(data.models) ? data.models : []
+        if (this.aiAccountModels.length && !this.aiAccountModels.some(item => item.id === this.aiAccountModel)) {
+          this.aiAccountModel = this.aiAccountModels[0].id
+        }
+      } catch (e) {
+        this.aiAccountModels = []
+      } finally {
+        this.aiAccountModelsLoading = false
+      }
+    },
     async loadStrategyAiWorkspace (sourceId) {
       const id = Number(sourceId || 0)
       if (!id || this.scriptCodeHidden) {
@@ -1433,6 +1472,8 @@ export default {
           existingCode,
           interactionMode,
           generationMode: 'authoring',
+          authMode: this.aiAuthMode,
+          model: this.aiAuthMode === 'chatgpt_account' ? this.aiAccountModel : undefined,
           context: { source: 'strategy_ide' }
         })
         const data = (res && res.data) || {}
@@ -3052,6 +3093,18 @@ export default {
   border: 1px solid #e1e4e8;
   border-radius: 9px;
   background: #fff;
+}
+
+.strategy-ai-auth-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.strategy-ai-auth-hint {
+  color: #7f8a9b;
+  font-size: 12px;
 }
 
 .strategy-ai-workspace--collapsed {
