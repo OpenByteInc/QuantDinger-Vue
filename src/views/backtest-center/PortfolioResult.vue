@@ -72,21 +72,43 @@
           </span>
         </div>
         <div class="benchmark-analysis-meta">
+          <a-tag v-if="hasTailRiskAnalysis" class="analysis-accent-tag">
+            {{ tailRiskStatusLabel }}
+          </a-tag>
+          <a-tag v-if="hasTailRiskAnalysis">
+            {{ $t('strategyV2.backtest.riskMetrics.tailObservations', { count: result.tailRiskObservations || 0 }) }}
+          </a-tag>
           <a-tag class="analysis-accent-tag">
             {{ $t('strategyV2.backtest.riskMetrics.periodsPerYear', { count: formatNumber(result.periodsPerYear, 0) }) }}
           </a-tag>
         </div>
       </div>
-      <div v-if="riskAnalysisExpanded" class="benchmark-analysis-grid">
-        <article v-for="item in riskMetricCards" :key="item.key" class="benchmark-analysis-metric">
-          <span>
-            {{ item.label }}
-            <a-tooltip :title="item.hint"><a-icon type="info-circle" /></a-tooltip>
-          </span>
-          <strong :class="item.tone">{{ item.value }}</strong>
-          <small>{{ item.detail }}</small>
-        </article>
-      </div>
+      <template v-if="riskAnalysisExpanded">
+        <div class="benchmark-analysis-grid">
+          <article v-for="item in riskMetricCards" :key="item.key" class="benchmark-analysis-metric">
+            <span>
+              {{ item.label }}
+              <a-tooltip :title="item.hint"><a-icon type="info-circle" /></a-tooltip>
+            </span>
+            <strong :class="item.tone">{{ item.value }}</strong>
+            <small>{{ item.detail }}</small>
+          </article>
+        </div>
+        <template v-if="hasTailRiskAnalysis">
+          <h4 class="benchmark-analysis-subheading">{{ $t('strategyV2.backtest.riskMetrics.tailTitle') }}</h4>
+          <div class="benchmark-analysis-grid benchmark-analysis-grid--advanced">
+            <article v-for="item in tailRiskMetricCards" :key="item.key" class="benchmark-analysis-metric">
+              <span>
+                {{ item.label }}
+                <a-tooltip :title="item.hint"><a-icon type="info-circle" /></a-tooltip>
+              </span>
+              <strong :class="item.tone">{{ item.value }}</strong>
+              <small>{{ item.detail }}</small>
+            </article>
+          </div>
+          <p class="benchmark-analysis-note">{{ $t('strategyV2.backtest.riskMetrics.tailNote') }}</p>
+        </template>
+      </template>
     </section>
 
     <section v-if="hasBenchmarkRelativeAnalysis" class="benchmark-analysis-card">
@@ -536,8 +558,25 @@ export default {
         'annualizedDownsideDeviation',
         'maxDrawdownDurationDays',
         'maxDrawdownRecoveryDays',
-        'recoveryFactor'
+        'recoveryFactor',
+        'tailRiskStatus',
+        'valueAtRisk95',
+        'omegaRatio'
       ].some(key => this.result[key] !== undefined)
+    },
+    hasTailRiskAnalysis () {
+      return [
+        'tailRiskStatus',
+        'valueAtRisk95',
+        'valueAtRisk99',
+        'omegaRatio',
+        'tailRatio',
+        'skewness',
+        'kurtosis'
+      ].some(key => this.result[key] !== undefined)
+    },
+    tailRiskStatusLabel () {
+      return this.tailRiskMetricStatus(this.result.tailRiskStatus)
     },
     riskMetricCards () {
       const recoveryTime = this.result.maxDrawdownRecoveryTime
@@ -596,6 +635,39 @@ export default {
           tone: recovered ? 'positive' : 'negative'
         }
       ]
+    },
+    tailRiskMetricCards () {
+      const status95 = this.result.valueAtRisk95Status
+      const status99 = this.result.valueAtRisk99Status
+      const cards = [
+        ['valueAtRisk95', 'valueAtRisk95', status95, 'rate', 'loss'],
+        ['cvar95', 'cvar95', status95, 'rate', 'loss'],
+        ['valueAtRisk99', 'valueAtRisk99', status99, 'rate', 'loss'],
+        ['cvar99', 'cvar99', status99, 'rate', 'loss'],
+        ['parametricVaR95', 'parametricVaR95', status95, 'rate', 'loss'],
+        ['parametricVaR99', 'parametricVaR99', status99, 'rate', 'loss'],
+        ['omegaRatio', 'omegaRatio', null, 'number', 'ratio'],
+        ['tailRatio', 'tailRatio', null, 'number', 'ratio'],
+        ['skewness', 'skewness', null, 'number', 'signed'],
+        ['kurtosis', 'kurtosis', null, 'number', 'neutral']
+      ]
+      return cards.map(([key, resultKey, status, format, tone]) => {
+        const value = this.result[resultKey]
+        return {
+          key,
+          label: this.$t(`strategyV2.backtest.riskMetrics.${key}`),
+          value: format === 'rate' ? this.formatMetricRate(value, false) : this.formatMetricNumber(value),
+          detail: this.tailRiskMetricStatus(status, value),
+          hint: this.$t(`strategyV2.backtest.riskMetrics.${key}Hint`),
+          tone: tone === 'loss'
+            ? (this.hasMetricValue(value) && Number(value) > 0 ? 'negative' : '')
+            : tone === 'ratio'
+              ? this.thresholdRatioTone(value)
+              : tone === 'signed'
+                ? this.metricTone(value)
+                : ''
+        }
+      })
     },
     hasAdvancedBenchmarkMetrics () {
       return [
@@ -1295,6 +1367,15 @@ export default {
       const normalizedStatus = status || (this.hasMetricValue(value) ? 'available' : 'unavailable')
       const key = `strategyV2.backtest.benchmarkMetrics.status.${normalizedStatus}`
       return this.$te(key) ? this.$t(key) : this.$t('strategyV2.backtest.benchmarkMetrics.status.unavailable')
+    },
+    tailRiskMetricStatus (status, value) {
+      const normalizedStatus = status || (this.hasMetricValue(value) ? 'available' : 'unavailable')
+      const key = `strategyV2.backtest.riskMetrics.tailStatus.${normalizedStatus}`
+      return this.$te(key) ? this.$t(key) : this.$t('strategyV2.backtest.riskMetrics.tailStatus.unavailable')
+    },
+    thresholdRatioTone (value) {
+      if (!this.hasMetricValue(value)) return ''
+      return Number(value) >= 1 ? 'positive' : 'negative'
     },
     metricTone (value) {
       if (!this.hasMetricValue(value)) return ''

@@ -212,7 +212,7 @@ test('risk analysis defaults to compact previews and expands full diagnostics on
   assert.match(portfolioResultSource, /benchmarkAnalysisExpanded: false/)
   assert.match(portfolioResultSource, /v-if="!riskAnalysisExpanded" class="benchmark-analysis-preview"/)
   assert.match(portfolioResultSource, /riskMetricCards\.slice\(0, 3\)/)
-  assert.match(portfolioResultSource, /v-if="riskAnalysisExpanded" class="benchmark-analysis-grid"/)
+  assert.match(portfolioResultSource, /<template v-if="riskAnalysisExpanded">/)
   assert.match(portfolioResultSource, /v-if="!benchmarkAnalysisExpanded" class="benchmark-analysis-preview"/)
   assert.match(portfolioResultSource, /benchmarkMetricCards\.slice\(0, 3\)/)
   assert.match(portfolioResultSource, /v-if="benchmarkAnalysisExpanded"/)

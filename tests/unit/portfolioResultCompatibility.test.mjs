@@ -56,6 +56,20 @@ test('portfolio contribution rows disclose open positions and use attributed pro
   assert.match(source, /this\.isPortfolioStrategy && this\.activeContributionRow/)
 })
 
+test('tail-risk analytics expose sample quality and format loss fractions as percentages', () => {
+  assert.match(source, /result\.tailRiskObservations/)
+  assert.match(source, /result\.valueAtRisk95Status/)
+  assert.match(source, /result\.valueAtRisk99Status/)
+  assert.match(source, /format === 'rate' \? this\.formatMetricRate\(value, false\)/)
+  assert.match(source, /strategyV2\.backtest\.riskMetrics\.tailNote/)
+
+  for (const messages of Object.values(strategyV2Messages)) {
+    assert.equal(typeof messages['strategyV2.backtest.riskMetrics.tailTitle'], 'string')
+    assert.equal(typeof messages['strategyV2.backtest.riskMetrics.valueAtRisk95Hint'], 'string')
+    assert.equal(typeof messages['strategyV2.backtest.riskMetrics.tailStatus.insufficient_history'], 'string')
+  }
+})
+
 test('English Strategy V2 interface copy contains no Han text', () => {
   const leaks = Object.entries(strategyV2Messages['en-US'])
     .filter(([, value]) => typeof value === 'string' && /\p{Script=Han}/u.test(value))

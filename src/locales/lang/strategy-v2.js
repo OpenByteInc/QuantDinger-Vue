@@ -362,6 +362,33 @@ const locale = {
   'strategyV2.backtest.riskMetrics.noRecoveryNeeded': 'No drawdown to recover',
   'strategyV2.backtest.riskMetrics.notRecovered': 'Not recovered by test end',
   'strategyV2.backtest.riskMetrics.days': '{count} days',
+  'strategyV2.backtest.riskMetrics.tailObservations': '{count} return observations',
+  'strategyV2.backtest.riskMetrics.tailTitle': 'Tail risk and return distribution',
+  'strategyV2.backtest.riskMetrics.tailNote': 'Loss metrics are shown as return percentages. Historical 95% estimates require 20 observations and 99% estimates require 100.',
+  'strategyV2.backtest.riskMetrics.valueAtRisk95': 'Historical VaR 95%',
+  'strategyV2.backtest.riskMetrics.valueAtRisk95Hint': 'Estimated one-period loss threshold exceeded in about 5% of observations.',
+  'strategyV2.backtest.riskMetrics.cvar95': 'Historical CVaR 95%',
+  'strategyV2.backtest.riskMetrics.cvar95Hint': 'Average one-period loss among observations beyond the historical 95% VaR threshold.',
+  'strategyV2.backtest.riskMetrics.valueAtRisk99': 'Historical VaR 99%',
+  'strategyV2.backtest.riskMetrics.valueAtRisk99Hint': 'Estimated one-period loss threshold exceeded in about 1% of observations.',
+  'strategyV2.backtest.riskMetrics.cvar99': 'Historical CVaR 99%',
+  'strategyV2.backtest.riskMetrics.cvar99Hint': 'Average one-period loss among observations beyond the historical 99% VaR threshold.',
+  'strategyV2.backtest.riskMetrics.parametricVaR95': 'Gaussian VaR 95%',
+  'strategyV2.backtest.riskMetrics.parametricVaR95Hint': 'One-period VaR estimated from the sample mean and volatility under a Gaussian assumption.',
+  'strategyV2.backtest.riskMetrics.parametricVaR99': 'Gaussian VaR 99%',
+  'strategyV2.backtest.riskMetrics.parametricVaR99Hint': 'One-period 99% VaR estimated from the sample mean and volatility under a Gaussian assumption.',
+  'strategyV2.backtest.riskMetrics.omegaRatio': 'Omega ratio',
+  'strategyV2.backtest.riskMetrics.omegaRatioHint': 'Cumulative gains divided by cumulative losses relative to a zero-return threshold.',
+  'strategyV2.backtest.riskMetrics.tailRatio': 'Tail ratio',
+  'strategyV2.backtest.riskMetrics.tailRatioHint': 'Magnitude of the 95th-percentile gain divided by the 5th-percentile loss.',
+  'strategyV2.backtest.riskMetrics.skewness': 'Skewness',
+  'strategyV2.backtest.riskMetrics.skewnessHint': 'Asymmetry of the return distribution; negative values indicate a heavier downside tail.',
+  'strategyV2.backtest.riskMetrics.kurtosis': 'Excess kurtosis',
+  'strategyV2.backtest.riskMetrics.kurtosisHint': 'Tail heaviness relative to a Gaussian distribution; higher values indicate more extreme observations.',
+  'strategyV2.backtest.riskMetrics.tailStatus.available': 'Available',
+  'strategyV2.backtest.riskMetrics.tailStatus.partial': '95% metrics available',
+  'strategyV2.backtest.riskMetrics.tailStatus.insufficient_history': 'More history required',
+  'strategyV2.backtest.riskMetrics.tailStatus.unavailable': 'Unavailable',
   'strategyV2.backtest.benchmarkMetrics.advancedTitle': 'Advanced benchmark diagnostics',
   'strategyV2.backtest.benchmarkMetrics.mSquared': 'M² return',
   'strategyV2.backtest.benchmarkMetrics.mSquaredHint': 'Risk-adjusted annualized return after scaling strategy volatility to the benchmark volatility.',
@@ -961,6 +988,33 @@ const zhCN = {
   'strategyV2.backtest.riskMetrics.noRecoveryNeeded': '没有需要恢复的回撤',
   'strategyV2.backtest.riskMetrics.notRecovered': '回测结束时仍未恢复',
   'strategyV2.backtest.riskMetrics.days': '{count} 天',
+  'strategyV2.backtest.riskMetrics.tailObservations': '{count} 个收益观察值',
+  'strategyV2.backtest.riskMetrics.tailTitle': '尾部风险与收益分布',
+  'strategyV2.backtest.riskMetrics.tailNote': '损失指标按收益率百分比展示。历史 95% 估计至少需要 20 个观察值，99% 估计至少需要 100 个。',
+  'strategyV2.backtest.riskMetrics.valueAtRisk95': '历史 VaR 95%',
+  'strategyV2.backtest.riskMetrics.valueAtRisk95Hint': '约有 5% 的观察周期会超过该单周期损失阈值。',
+  'strategyV2.backtest.riskMetrics.cvar95': '历史 CVaR 95%',
+  'strategyV2.backtest.riskMetrics.cvar95Hint': '超过历史 95% VaR 阈值的观察周期平均损失。',
+  'strategyV2.backtest.riskMetrics.valueAtRisk99': '历史 VaR 99%',
+  'strategyV2.backtest.riskMetrics.valueAtRisk99Hint': '约有 1% 的观察周期会超过该单周期损失阈值。',
+  'strategyV2.backtest.riskMetrics.cvar99': '历史 CVaR 99%',
+  'strategyV2.backtest.riskMetrics.cvar99Hint': '超过历史 99% VaR 阈值的观察周期平均损失。',
+  'strategyV2.backtest.riskMetrics.parametricVaR95': '高斯 VaR 95%',
+  'strategyV2.backtest.riskMetrics.parametricVaR95Hint': '基于样本均值和波动率，并假设收益服从正态分布估算的单周期 VaR。',
+  'strategyV2.backtest.riskMetrics.parametricVaR99': '高斯 VaR 99%',
+  'strategyV2.backtest.riskMetrics.parametricVaR99Hint': '基于样本均值和波动率，并假设收益服从正态分布估算的单周期 99% VaR。',
+  'strategyV2.backtest.riskMetrics.omegaRatio': 'Omega 比率',
+  'strategyV2.backtest.riskMetrics.omegaRatioHint': '相对零收益门槛的累计盈利除以累计亏损。',
+  'strategyV2.backtest.riskMetrics.tailRatio': '尾部比率',
+  'strategyV2.backtest.riskMetrics.tailRatioHint': '95% 分位上涨收益幅度除以 5% 分位下跌损失幅度。',
+  'strategyV2.backtest.riskMetrics.skewness': '偏度',
+  'strategyV2.backtest.riskMetrics.skewnessHint': '收益分布的不对称程度；负值表示下行尾部更重。',
+  'strategyV2.backtest.riskMetrics.kurtosis': '超额峰度',
+  'strategyV2.backtest.riskMetrics.kurtosisHint': '相对正态分布的尾部厚度；数值越高表示极端观察越多。',
+  'strategyV2.backtest.riskMetrics.tailStatus.available': '全部可用',
+  'strategyV2.backtest.riskMetrics.tailStatus.partial': '95% 指标可用',
+  'strategyV2.backtest.riskMetrics.tailStatus.insufficient_history': '需要更多历史数据',
+  'strategyV2.backtest.riskMetrics.tailStatus.unavailable': '不可用',
   'strategyV2.backtest.benchmarkMetrics.advancedTitle': '进阶基准诊断',
   'strategyV2.backtest.benchmarkMetrics.mSquared': 'M² 收益',
   'strategyV2.backtest.benchmarkMetrics.mSquaredHint': '将策略波动缩放到基准波动水平后得到的风险调整年化收益。',
@@ -1230,6 +1284,33 @@ const zhTW = {
   'strategyV2.backtest.riskMetrics.noRecoveryNeeded': '沒有需要恢復的回撤',
   'strategyV2.backtest.riskMetrics.notRecovered': '回測結束時仍未恢復',
   'strategyV2.backtest.riskMetrics.days': '{count} 天',
+  'strategyV2.backtest.riskMetrics.tailObservations': '{count} 個收益觀察值',
+  'strategyV2.backtest.riskMetrics.tailTitle': '尾部風險與收益分布',
+  'strategyV2.backtest.riskMetrics.tailNote': '損失指標按收益率百分比展示。歷史 95% 估計至少需要 20 個觀察值，99% 估計至少需要 100 個。',
+  'strategyV2.backtest.riskMetrics.valueAtRisk95': '歷史 VaR 95%',
+  'strategyV2.backtest.riskMetrics.valueAtRisk95Hint': '約有 5% 的觀察週期會超過該單週期損失門檻。',
+  'strategyV2.backtest.riskMetrics.cvar95': '歷史 CVaR 95%',
+  'strategyV2.backtest.riskMetrics.cvar95Hint': '超過歷史 95% VaR 門檻的觀察週期平均損失。',
+  'strategyV2.backtest.riskMetrics.valueAtRisk99': '歷史 VaR 99%',
+  'strategyV2.backtest.riskMetrics.valueAtRisk99Hint': '約有 1% 的觀察週期會超過該單週期損失門檻。',
+  'strategyV2.backtest.riskMetrics.cvar99': '歷史 CVaR 99%',
+  'strategyV2.backtest.riskMetrics.cvar99Hint': '超過歷史 99% VaR 門檻的觀察週期平均損失。',
+  'strategyV2.backtest.riskMetrics.parametricVaR95': '高斯 VaR 95%',
+  'strategyV2.backtest.riskMetrics.parametricVaR95Hint': '基於樣本均值和波動率，並假設收益服從正態分布估算的單週期 VaR。',
+  'strategyV2.backtest.riskMetrics.parametricVaR99': '高斯 VaR 99%',
+  'strategyV2.backtest.riskMetrics.parametricVaR99Hint': '基於樣本均值和波動率，並假設收益服從正態分布估算的單週期 99% VaR。',
+  'strategyV2.backtest.riskMetrics.omegaRatio': 'Omega 比率',
+  'strategyV2.backtest.riskMetrics.omegaRatioHint': '相對零收益門檻的累計盈利除以累計虧損。',
+  'strategyV2.backtest.riskMetrics.tailRatio': '尾部比率',
+  'strategyV2.backtest.riskMetrics.tailRatioHint': '95% 分位上漲收益幅度除以 5% 分位下跌損失幅度。',
+  'strategyV2.backtest.riskMetrics.skewness': '偏度',
+  'strategyV2.backtest.riskMetrics.skewnessHint': '收益分布的不對稱程度；負值表示下行尾部更重。',
+  'strategyV2.backtest.riskMetrics.kurtosis': '超額峰度',
+  'strategyV2.backtest.riskMetrics.kurtosisHint': '相對正態分布的尾部厚度；數值越高表示極端觀察越多。',
+  'strategyV2.backtest.riskMetrics.tailStatus.available': '全部可用',
+  'strategyV2.backtest.riskMetrics.tailStatus.partial': '95% 指標可用',
+  'strategyV2.backtest.riskMetrics.tailStatus.insufficient_history': '需要更多歷史資料',
+  'strategyV2.backtest.riskMetrics.tailStatus.unavailable': '不可用',
   'strategyV2.backtest.benchmarkMetrics.advancedTitle': '進階基準診斷',
   'strategyV2.backtest.benchmarkMetrics.mSquared': 'M² 收益',
   'strategyV2.backtest.benchmarkMetrics.mSquaredHint': '將策略波動縮放到基準波動水平後得到的風險調整年化收益。',
@@ -1950,6 +2031,119 @@ const advancedBacktestMetricLocales = {
 
 Object.entries(advancedBacktestMetricLocales).forEach(([localeKey, values]) => {
   advancedBacktestMetricKeys.forEach((key, index) => {
+    additionalAiContractErrors[localeKey][`strategyV2.backtest.${key}`] = values[index]
+  })
+})
+
+const tailRiskMetricKeys = [
+  'tailObservations', 'tailTitle', 'tailNote',
+  'valueAtRisk95', 'valueAtRisk95Hint', 'cvar95', 'cvar95Hint',
+  'valueAtRisk99', 'valueAtRisk99Hint', 'cvar99', 'cvar99Hint',
+  'parametricVaR95', 'parametricVaR95Hint', 'parametricVaR99', 'parametricVaR99Hint',
+  'omegaRatio', 'omegaRatioHint', 'tailRatio', 'tailRatioHint',
+  'skewness', 'skewnessHint', 'kurtosis', 'kurtosisHint',
+  'tailStatus.available', 'tailStatus.partial', 'tailStatus.insufficient_history', 'tailStatus.unavailable'
+]
+
+const tailRiskMetricLocales = {
+  'ar-SA': [
+    '{count} ملاحظات عائد', 'مخاطر الذيل وتوزيع العوائد', 'تُعرض مقاييس الخسارة كنسب عائد. تتطلب تقديرات 95% التاريخية 20 ملاحظة، وتقديرات 99% تتطلب 100.',
+    'القيمة المعرضة للخطر التاريخية 95%', 'حد خسارة لفترة واحدة يُتجاوز في نحو 5% من الملاحظات.', 'الخسارة المتوقعة التاريخية 95%', 'متوسط خسارة الفترات التي تجاوزت حد القيمة المعرضة للخطر 95%.',
+    'القيمة المعرضة للخطر التاريخية 99%', 'حد خسارة لفترة واحدة يُتجاوز في نحو 1% من الملاحظات.', 'الخسارة المتوقعة التاريخية 99%', 'متوسط خسارة الفترات التي تجاوزت حد القيمة المعرضة للخطر 99%.',
+    'القيمة المعرضة للخطر الغاوسية 95%', 'تقدير يعتمد على متوسط العينة وتقلبها بافتراض التوزيع الطبيعي.', 'القيمة المعرضة للخطر الغاوسية 99%', 'تقدير 99% يعتمد على متوسط العينة وتقلبها بافتراض التوزيع الطبيعي.',
+    'نسبة أوميغا', 'الأرباح التراكمية مقسومة على الخسائر التراكمية نسبةً إلى عائد صفري.', 'نسبة الذيل', 'مقدار ربح المئين 95 مقسوماً على خسارة المئين 5.',
+    'الالتواء', 'عدم تماثل توزيع العوائد؛ تشير القيم السالبة إلى ذيل هابط أثقل.', 'التفرطح الزائد', 'سماكة الذيل مقارنة بالتوزيع الطبيعي؛ القيم الأعلى تعني ملاحظات أكثر تطرفاً.',
+    'متاح', 'مقاييس 95% متاحة', 'يلزم سجل أطول', 'غير متاح'
+  ],
+  'de-DE': [
+    '{count} Renditebeobachtungen', 'Tail-Risiko und Renditeverteilung', 'Verlustkennzahlen werden als Renditeprozente gezeigt. Historische 95%-Schätzungen benötigen 20 Beobachtungen, 99%-Schätzungen 100.',
+    'Historischer VaR 95 %', 'Geschätzte Einperioden-Verlustschwelle, die in etwa 5 % der Beobachtungen überschritten wird.', 'Historischer CVaR 95 %', 'Durchschnittlicher Einperiodenverlust jenseits der historischen 95%-VaR-Schwelle.',
+    'Historischer VaR 99 %', 'Geschätzte Einperioden-Verlustschwelle, die in etwa 1 % der Beobachtungen überschritten wird.', 'Historischer CVaR 99 %', 'Durchschnittlicher Einperiodenverlust jenseits der historischen 99%-VaR-Schwelle.',
+    'Gauß-VaR 95 %', 'Aus Stichprobenmittel und Volatilität unter Normalverteilungsannahme geschätzter Einperioden-VaR.', 'Gauß-VaR 99 %', 'Aus Stichprobenmittel und Volatilität unter Normalverteilungsannahme geschätzter 99%-VaR.',
+    'Omega-Verhältnis', 'Kumulierte Gewinne geteilt durch kumulierte Verluste relativ zu einer Nullrendite.', 'Tail-Verhältnis', 'Betrag des 95%-Quantilgewinns geteilt durch den Verlust im 5%-Quantil.',
+    'Schiefe', 'Asymmetrie der Renditeverteilung; negative Werte zeigen einen schwereren Abwärtsschwanz.', 'Exzess-Kurtosis', 'Schwanzlastigkeit relativ zur Normalverteilung; höhere Werte zeigen mehr Extrembeobachtungen.',
+    'Verfügbar', '95%-Kennzahlen verfügbar', 'Mehr Historie erforderlich', 'Nicht verfügbar'
+  ],
+  'fr-FR': [
+    '{count} observations de rendement', 'Risque de queue et distribution des rendements', 'Les pertes sont affichées en pourcentage de rendement. Les estimations historiques à 95 % exigent 20 observations, celles à 99 % en exigent 100.',
+    'VaR historique 95 %', 'Seuil de perte sur une période dépassé dans environ 5 % des observations.', 'CVaR historique 95 %', 'Perte moyenne sur une période au-delà du seuil de VaR historique à 95 %.',
+    'VaR historique 99 %', 'Seuil de perte sur une période dépassé dans environ 1 % des observations.', 'CVaR historique 99 %', 'Perte moyenne sur une période au-delà du seuil de VaR historique à 99 %.',
+    'VaR gaussienne 95 %', 'VaR sur une période estimée avec la moyenne et la volatilité de l’échantillon sous hypothèse gaussienne.', 'VaR gaussienne 99 %', 'VaR à 99 % estimée avec la moyenne et la volatilité de l’échantillon sous hypothèse gaussienne.',
+    'Ratio Oméga', 'Gains cumulés divisés par les pertes cumulées par rapport à un seuil de rendement nul.', 'Ratio de queue', 'Amplitude du gain au 95e centile divisée par la perte au 5e centile.',
+    'Asymétrie', 'Asymétrie de la distribution ; une valeur négative indique une queue baissière plus lourde.', 'Excès de kurtosis', 'Épaisseur des queues par rapport à une loi normale ; une valeur élevée indique davantage d’extrêmes.',
+    'Disponible', 'Mesures à 95 % disponibles', 'Historique supplémentaire requis', 'Indisponible'
+  ],
+  'ja-JP': [
+    'リターン観測数 {count}', 'テールリスクとリターン分布', '損失指標はリターン率で表示します。過去データによる95%推定には20観測、99%推定には100観測が必要です。',
+    'ヒストリカルVaR 95%', '約5%の観測で超過する1期間の推定損失しきい値です。', 'ヒストリカルCVaR 95%', 'ヒストリカル95% VaRしきい値を超えた観測の平均損失です。',
+    'ヒストリカルVaR 99%', '約1%の観測で超過する1期間の推定損失しきい値です。', 'ヒストリカルCVaR 99%', 'ヒストリカル99% VaRしきい値を超えた観測の平均損失です。',
+    'ガウスVaR 95%', '正規分布を仮定し、標本平均とボラティリティから推定した1期間VaRです。', 'ガウスVaR 99%', '正規分布を仮定し、標本平均とボラティリティから推定した99% VaRです。',
+    'オメガ比率', 'ゼロリターンを基準に累積利益を累積損失で割った値です。', 'テール比率', '95パーセンタイルの利益幅を5パーセンタイルの損失幅で割った値です。',
+    '歪度', 'リターン分布の非対称性で、負の値は下方テールが重いことを示します。', '超過尖度', '正規分布に対するテールの厚さで、高い値ほど極端な観測が多いことを示します。',
+    '利用可能', '95%指標が利用可能', '履歴が不足しています', '利用不可'
+  ],
+  'ko-KR': [
+    '수익률 관측치 {count}개', '꼬리 위험과 수익률 분포', '손실 지표는 수익률 백분율로 표시됩니다. 과거 95% 추정에는 20개, 99% 추정에는 100개의 관측치가 필요합니다.',
+    '과거 VaR 95%', '약 5%의 관측 구간에서 초과하는 단일 기간 추정 손실 임계값입니다.', '과거 CVaR 95%', '과거 95% VaR 임계값을 넘은 관측 구간의 평균 손실입니다.',
+    '과거 VaR 99%', '약 1%의 관측 구간에서 초과하는 단일 기간 추정 손실 임계값입니다.', '과거 CVaR 99%', '과거 99% VaR 임계값을 넘은 관측 구간의 평균 손실입니다.',
+    '가우시안 VaR 95%', '정규분포를 가정해 표본 평균과 변동성으로 추정한 단일 기간 VaR입니다.', '가우시안 VaR 99%', '정규분포를 가정해 표본 평균과 변동성으로 추정한 99% VaR입니다.',
+    '오메가 비율', '0 수익률 기준 누적 이익을 누적 손실로 나눈 값입니다.', '꼬리 비율', '95백분위 상승 폭을 5백분위 하락 폭으로 나눈 값입니다.',
+    '왜도', '수익률 분포의 비대칭성으로, 음수는 하방 꼬리가 더 두꺼움을 뜻합니다.', '초과 첨도', '정규분포 대비 꼬리 두께로, 값이 높을수록 극단 관측이 많음을 뜻합니다.',
+    '사용 가능', '95% 지표 사용 가능', '더 긴 이력이 필요함', '사용 불가'
+  ],
+  'ru-RU': [
+    '{count} наблюдений доходности', 'Хвостовой риск и распределение доходности', 'Показатели убытка показаны в процентах доходности. Для исторической оценки 95% нужно 20 наблюдений, для 99% — 100.',
+    'Исторический VaR 95%', 'Порог однопериодного убытка, превышаемый примерно в 5% наблюдений.', 'Исторический CVaR 95%', 'Средний однопериодный убыток за порогом исторического VaR 95%.',
+    'Исторический VaR 99%', 'Порог однопериодного убытка, превышаемый примерно в 1% наблюдений.', 'Исторический CVaR 99%', 'Средний однопериодный убыток за порогом исторического VaR 99%.',
+    'Гауссовский VaR 95%', 'Однопериодный VaR по среднему и волатильности выборки при допущении нормальности.', 'Гауссовский VaR 99%', 'VaR 99% по среднему и волатильности выборки при допущении нормальности.',
+    'Коэффициент Омега', 'Накопленная прибыль, делённая на накопленные убытки относительно нулевой доходности.', 'Хвостовой коэффициент', 'Модуль прибыли 95-го процентиля, делённый на убыток 5-го процентиля.',
+    'Асимметрия', 'Асимметрия распределения; отрицательное значение означает более тяжёлый левый хвост.', 'Эксцесс', 'Толщина хвостов относительно нормального распределения; большие значения означают больше экстремумов.',
+    'Доступно', 'Показатели 95% доступны', 'Нужно больше истории', 'Недоступно'
+  ],
+  'th-TH': [
+    'ข้อมูลผลตอบแทน {count} ค่า', 'ความเสี่ยงส่วนหางและการกระจายผลตอบแทน', 'ตัวชี้วัดการขาดทุนแสดงเป็นเปอร์เซ็นต์ผลตอบแทน การประมาณย้อนหลัง 95% ต้องมี 20 ค่า และ 99% ต้องมี 100 ค่า',
+    'VaR ย้อนหลัง 95%', 'เกณฑ์ขาดทุนต่อช่วงที่ถูกเกินในประมาณ 5% ของข้อมูล', 'CVaR ย้อนหลัง 95%', 'ขาดทุนเฉลี่ยของช่วงที่เกินเกณฑ์ VaR ย้อนหลัง 95%',
+    'VaR ย้อนหลัง 99%', 'เกณฑ์ขาดทุนต่อช่วงที่ถูกเกินในประมาณ 1% ของข้อมูล', 'CVaR ย้อนหลัง 99%', 'ขาดทุนเฉลี่ยของช่วงที่เกินเกณฑ์ VaR ย้อนหลัง 99%',
+    'VaR แบบเกาส์ 95%', 'VaR ต่อช่วงจากค่าเฉลี่ยและความผันผวนของตัวอย่างภายใต้สมมติฐานการแจกแจงปกติ', 'VaR แบบเกาส์ 99%', 'VaR 99% จากค่าเฉลี่ยและความผันผวนของตัวอย่างภายใต้สมมติฐานการแจกแจงปกติ',
+    'อัตราส่วนโอเมกา', 'กำไรสะสมหารด้วยขาดทุนสะสมเทียบกับเกณฑ์ผลตอบแทนศูนย์', 'อัตราส่วนส่วนหาง', 'ขนาดกำไรเปอร์เซ็นไทล์ 95 หารด้วยขาดทุนเปอร์เซ็นไทล์ 5',
+    'ความเบ้', 'ความไม่สมมาตรของการกระจาย ค่าลบบ่งชี้หางขาลงที่หนากว่า', 'ความโด่งส่วนเกิน', 'ความหนาของหางเทียบกับการแจกแจงปกติ ค่าสูงบ่งชี้ข้อมูลสุดขั้วมากขึ้น',
+    'พร้อมใช้', 'ตัวชี้วัด 95% พร้อมใช้', 'ต้องมีประวัติเพิ่ม', 'ไม่พร้อมใช้'
+  ],
+  'vi-VN': [
+    '{count} quan sát lợi suất', 'Rủi ro đuôi và phân phối lợi suất', 'Chỉ số lỗ được hiển thị theo phần trăm lợi suất. Ước lượng lịch sử 95% cần 20 quan sát, còn 99% cần 100.',
+    'VaR lịch sử 95%', 'Ngưỡng lỗ một kỳ bị vượt trong khoảng 5% số quan sát.', 'CVaR lịch sử 95%', 'Khoản lỗ một kỳ trung bình vượt ngưỡng VaR lịch sử 95%.',
+    'VaR lịch sử 99%', 'Ngưỡng lỗ một kỳ bị vượt trong khoảng 1% số quan sát.', 'CVaR lịch sử 99%', 'Khoản lỗ một kỳ trung bình vượt ngưỡng VaR lịch sử 99%.',
+    'VaR Gauss 95%', 'VaR một kỳ ước lượng từ trung bình và biến động mẫu với giả định phân phối chuẩn.', 'VaR Gauss 99%', 'VaR 99% ước lượng từ trung bình và biến động mẫu với giả định phân phối chuẩn.',
+    'Tỷ lệ Omega', 'Lãi tích lũy chia cho lỗ tích lũy so với ngưỡng lợi suất bằng không.', 'Tỷ lệ đuôi', 'Độ lớn lãi ở phân vị 95 chia cho lỗ ở phân vị 5.',
+    'Độ lệch', 'Mức bất đối xứng của phân phối; giá trị âm cho biết đuôi giảm nặng hơn.', 'Độ nhọn dư', 'Độ dày đuôi so với phân phối chuẩn; giá trị cao cho biết nhiều quan sát cực đoan hơn.',
+    'Khả dụng', 'Chỉ số 95% khả dụng', 'Cần thêm dữ liệu lịch sử', 'Không khả dụng'
+  ]
+}
+
+Object.entries(tailRiskMetricLocales).forEach(([localeKey, values]) => {
+  tailRiskMetricKeys.forEach((key, index) => {
+    const messageKey = `strategyV2.backtest.riskMetrics.${key}`
+    additionalAiContractErrors[localeKey][messageKey] = values[index]
+  })
+})
+
+const recordHistoryKeys = [
+  'recordType', 'recordType.rebalance', 'recordType.protection', 'recordType.liquidation', 'recordType.execution',
+  'recordReason.stop_loss', 'recordReason.take_profit', 'recordReason.trailing_stop', 'recordReason.time_limit'
+]
+const recordHistoryLocales = {
+  'ar-SA': ['النوع', 'إعادة موازنة الاستراتيجية', 'خروج وقائي', 'تصفية قسرية', 'تنفيذ الأمر', 'خروج وقف الخسارة', 'خروج جني الأرباح', 'خروج وقف متحرك', 'خروج بانتهاء المدة'],
+  'de-DE': ['Typ', 'Strategie-Neugewichtung', 'Risikoausstieg', 'Zwangsliquidation', 'Orderausführung', 'Stop-Loss-Ausstieg', 'Take-Profit-Ausstieg', 'Trailing-Stop-Ausstieg', 'Ausstieg nach Zeitlimit'],
+  'fr-FR': ['Catégorie', 'Rééquilibrage de stratégie', 'Sortie de protection', 'Liquidation forcée', 'Exécution d’ordre', 'Sortie stop-loss', 'Sortie take-profit', 'Sortie stop suiveur', 'Sortie à échéance'],
+  'ja-JP': ['種類', '戦略リバランス', 'リスク退出', '強制清算', '注文約定', 'ストップロス退出', '利益確定退出', 'トレーリングストップ退出', '時間制限退出'],
+  'ko-KR': ['유형', '전략 리밸런싱', '위험 청산', '강제 청산', '주문 체결', '손절 청산', '익절 청산', '추적 손절 청산', '시간 제한 청산'],
+  'ru-RU': ['Тип', 'Ребалансировка стратегии', 'Защитный выход', 'Принудительная ликвидация', 'Исполнение заявки', 'Выход по стоп-лоссу', 'Выход по тейк-профиту', 'Выход по трейлинг-стопу', 'Выход по времени'],
+  'th-TH': ['ประเภท', 'ปรับสมดุลกลยุทธ์', 'ออกตามการควบคุมความเสี่ยง', 'บังคับชำระบัญชี', 'ดำเนินคำสั่ง', 'ออกเมื่อตัดขาดทุน', 'ออกเมื่อทำกำไร', 'ออกตามจุดหยุดแบบเลื่อน', 'ออกเมื่อครบเวลา'],
+  'vi-VN': ['Loại', 'Tái cân bằng chiến lược', 'Thoát theo kiểm soát rủi ro', 'Thanh lý bắt buộc', 'Khớp lệnh', 'Thoát cắt lỗ', 'Thoát chốt lời', 'Thoát dừng lỗ động', 'Thoát theo giới hạn thời gian']
+}
+
+Object.entries(recordHistoryLocales).forEach(([localeKey, values]) => {
+  recordHistoryKeys.forEach((key, index) => {
     additionalAiContractErrors[localeKey][`strategyV2.backtest.${key}`] = values[index]
   })
 })
