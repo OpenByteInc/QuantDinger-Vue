@@ -16,6 +16,7 @@ const api = {
   verifyCode: '/api/strategies/verify',
   aiGenerate: '/api/strategies/generate',
   aiWorkspace: '/api/strategies/ai-workspace',
+  aiWorkspaceAccountModels: '/api/strategies/ai-workspace/account-models',
   scriptTemplates: '/api/strategies/script-templates',
   reviewReport: '/api/strategies/review-report',
   reviewReportHistory: '/api/strategies/review-report/history',
@@ -250,6 +251,13 @@ export function runStrategyAiTurn (data) {
     method: 'post',
     data,
     timeout: AI_GENERATE_TIMEOUT
+  })
+}
+
+export function getStrategyAiAccountModels () {
+  return request({
+    url: api.aiWorkspaceAccountModels,
+    method: 'get'
   })
 }
 
