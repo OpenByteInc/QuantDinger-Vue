@@ -32,6 +32,12 @@ body {
   text-rendering: optimizelegibility;
 }
 
+// Ant Design inserts its own spinner before button content while loading.
+// Hide the button's regular icon so the two icons never occupy the same slot.
+.ant-btn-loading > .anticon:not(.anticon-loading) {
+  display: none;
+}
+
 .ant-modal-content {
   overflow: hidden;
   border: 1px solid rgba(15, 23, 42, 0.08);
