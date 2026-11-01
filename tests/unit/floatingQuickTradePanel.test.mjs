@@ -47,9 +47,13 @@ test('indicator IDE keeps every required quick-trade capability in the floating 
 
   for (const contract of [
     'startQuickTradeDrag',
+    'startQuickTradeResize',
+    'moveQuickTradeResize',
+    'stopQuickTradeResize',
     'toggleQuickTradePin',
     'quickTradeMinimized',
-    'quickTradeFloatingStyle'
+    'quickTradeFloatingStyle',
+    'quickTradeSize: this.quickTradeSize'
   ]) assert.match(ide, new RegExp(contract))
 
   assert.doesNotMatch(ide, /quickTradeAiDecisionFilter/)

@@ -6,6 +6,7 @@
         <strong>{{ $t('quickTrade.liquidityArena.title') }}</strong>
         <a-tooltip :title="$t('quickTrade.liquidityArena.info')"><a-icon type="info-circle" class="qla-info" /></a-tooltip>
         <span v-if="snapshot" class="qla-feed" :class="[`is-${feedStatusClass}`, { 'is-slow': feedLatencyMs > 2000 }]"><i />{{ feedStatusText }}</span>
+        <span v-if="loadedLevelCount" class="qla-depth-count">{{ $t('quickTrade.liquidityArena.levelsPerSideLoaded', { count: loadedLevelCount }) }}</span>
       </div>
       <div class="qla-tools">
         <div v-if="!collapsed" class="qla-modes" role="group" :aria-label="$t('quickTrade.liquidityArena.depthMode')">
@@ -63,7 +64,7 @@
           </div>
         </div>
 
-        <div class="qla-ladder" role="table" :aria-label="$t('quickTrade.liquidityArena.priceLadder')">
+        <div ref="ladder" class="qla-ladder" :style="ladderViewportStyle" role="table" :aria-label="$t('quickTrade.liquidityArena.priceLadder')">
           <div class="qla-ladder__head" role="row">
             <span role="columnheader">{{ $t('quickTrade.liquidityArena.bidSize') }}</span>
             <span role="columnheader">{{ $t('quickTrade.liquidityArena.bidPrice') }}</span>
@@ -77,6 +78,21 @@
             <div class="qla-depth-cell is-ask" role="cell"><i :style="{ width: `${row.askFill}%` }" /><strong>{{ formatCompact(row.ask && row.ask.size) }}</strong><small>{{ formatCompact(row.askCumulative) }}</small></div>
           </div>
         </div>
+        <button
+          type="button"
+          class="qla-ladder-resizer"
+          :class="{ 'is-resizing': ladderResizing }"
+          role="separator"
+          aria-orientation="horizontal"
+          :aria-label="$t('quickTrade.liquidityArena.priceLadder')"
+          :aria-valuemin="5"
+          :aria-valuemax="maxVisibleLadderRows"
+          :aria-valuenow="visibleLadderRows"
+          @mousedown.stop.prevent="startLadderResize"
+          @keydown.up.prevent="adjustLadderRows(1)"
+          @keydown.down.prevent="adjustLadderRows(-1)"
+          @dblclick="resetLadderRows"
+        ><i /></button>
 
         <div class="qla-decision">
           <div class="qla-wall is-bid">
@@ -144,6 +160,8 @@ export default {
       requestController: null,
       requestLatencyMs: 0,
       contractMultiplier: 0,
+      ladderViewportRows: 10,
+      ladderResizing: false,
       pressureHistory: [],
       lastPressureSampleAt: 0,
       levelMemory: {},
@@ -169,6 +187,21 @@ export default {
     },
     displayLevelCount () {
       return this.requestLimit
+    },
+    loadedLevelCount () {
+      const bids = ((this.snapshot && this.snapshot.bids) || []).filter(row => Number(row && row.size) > 0).length
+      const asks = ((this.snapshot && this.snapshot.asks) || []).filter(row => Number(row && row.size) > 0).length
+      return Math.min(this.requestLimit, bids, asks)
+    },
+    visibleLadderRows () {
+      return Math.max(5, Math.min(this.maxVisibleLadderRows, this.ladderViewportRows))
+    },
+    maxVisibleLadderRows () {
+      const availableRows = this.ladderRows.length || this.displayLevelCount || 10
+      return Math.max(5, Math.min(14, availableRows))
+    },
+    ladderViewportStyle () {
+      return { height: `${24 + this.visibleLadderRows * 23}px` }
     },
     displaySymbol () {
       return String(this.symbol || '').replace(/^[^:]+:/, '').replace(/[-_]SWAP$/i, '') || '—'
@@ -325,9 +358,14 @@ export default {
   },
   mounted () {
     try { this.collapsed = window.localStorage.getItem('quantdinger.quickTrade.liquidityArena.collapsed') === '1' } catch (e) {}
+    try {
+      const storedRows = Number(window.localStorage.getItem('quantdinger.quickTrade.liquidityArena.rows'))
+      if (Number.isFinite(storedRows) && storedRows >= 5) this.ladderViewportRows = Math.max(5, Math.min(14, storedRows))
+    } catch (e) {}
     if (this.active) this.restart()
   },
   beforeDestroy () {
+    this.stopLadderResize()
     this.stopPolling()
   },
   methods: {
@@ -335,6 +373,46 @@ export default {
       if (this.depthMode === mode) return
       this.depthMode = mode
       if (this.streamStatus !== 'live') this.loadOrderBook()
+      this.$nextTick(() => {
+        if (this.$refs.ladder) this.$refs.ladder.scrollTop = 0
+      })
+    },
+    adjustLadderRows (delta) {
+      this.ladderViewportRows = Math.max(5, Math.min(this.maxVisibleLadderRows, this.ladderViewportRows + Number(delta || 0)))
+      try { window.localStorage.setItem('quantdinger.quickTrade.liquidityArena.rows', String(this.ladderViewportRows)) } catch (e) {}
+    },
+    resetLadderRows () {
+      this.ladderViewportRows = Math.min(10, this.maxVisibleLadderRows)
+      try { window.localStorage.setItem('quantdinger.quickTrade.liquidityArena.rows', String(this.ladderViewportRows)) } catch (e) {}
+    },
+    startLadderResize (event) {
+      if (!event || event.button !== 0) return
+      event.preventDefault()
+      this.ladderResizing = true
+      this._ladderResizeStart = {
+        y: event.clientY,
+        rows: this.visibleLadderRows
+      }
+      this._ladderResizeMove = moveEvent => {
+        const start = this._ladderResizeStart
+        if (!start) return
+        const rowDelta = Math.round((moveEvent.clientY - start.y) / 23)
+        this.ladderViewportRows = Math.max(5, Math.min(this.maxVisibleLadderRows, start.rows + rowDelta))
+      }
+      this._ladderResizeEnd = () => this.stopLadderResize(true)
+      window.addEventListener('mousemove', this._ladderResizeMove)
+      window.addEventListener('mouseup', this._ladderResizeEnd, { once: true })
+    },
+    stopLadderResize (persist = false) {
+      if (this._ladderResizeMove) window.removeEventListener('mousemove', this._ladderResizeMove)
+      if (this._ladderResizeEnd) window.removeEventListener('mouseup', this._ladderResizeEnd)
+      this._ladderResizeMove = null
+      this._ladderResizeEnd = null
+      this._ladderResizeStart = null
+      this.ladderResizing = false
+      if (persist) {
+        try { window.localStorage.setItem('quantdinger.quickTrade.liquidityArena.rows', String(this.ladderViewportRows)) } catch (e) {}
+      }
     },
     restart () {
       this.stopPolling()
@@ -542,6 +620,7 @@ export default {
 .qla-info { font-size: 12px; }
 .qla-feed { gap: 5px; margin-left: 3px; padding: 2px 7px; color: var(--qtc-green); border: 1px solid color-mix(in srgb, var(--qtc-green) 20%, transparent); border-radius: 999px; background: color-mix(in srgb, var(--qtc-green) 6%, transparent); font-size: 10px; font-weight: 500; }
 .qla-feed.is-rest, .qla-feed.is-reconnecting { color: #d48806; border-color: color-mix(in srgb, #d48806 25%, transparent); background: color-mix(in srgb, #d48806 7%, transparent); }
+.qla-depth-count { display: inline-flex; align-items: center; min-height: 20px; padding: 1px 7px; color: var(--qtc-muted); border: 1px solid color-mix(in srgb, var(--qtc-border) 82%, transparent); border-radius: 999px; background: color-mix(in srgb, var(--qtc-muted-bg) 62%, transparent); font-size: 10px; font-weight: 600; white-space: nowrap; }
 .qla-feed.is-connecting { color: var(--qtc-muted); border-color: color-mix(in srgb, var(--qtc-muted) 22%, transparent); background: color-mix(in srgb, var(--qtc-muted-bg) 70%, transparent); }
 .qla-feed.is-slow { color: #d48806; }
 .qla-feed i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 12%, transparent); }
@@ -583,11 +662,15 @@ export default {
 .qla-flow__scale > div > i { position: absolute; top: 0; bottom: 0; border-radius: 999px; transition: left 140ms ease, right 140ms ease, width 140ms ease; }
 .qla-flow__scale > div > i.is-bid { background: var(--qtc-green); }
 .qla-flow__scale > div > i.is-ask { background: var(--qtc-red); }
-.qla-ladder { position: relative; height: 140px; overflow-x: hidden; overflow-y: auto; border: 1px solid color-mix(in srgb, var(--qtc-border) 88%, transparent); border-radius: 8px; background: color-mix(in srgb, var(--qtc-bg) 96%, var(--qtc-muted-bg)); box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 14%, transparent); scrollbar-color: color-mix(in srgb, var(--qtc-muted) 40%, transparent) transparent; scrollbar-width: thin; isolation: isolate; }
+.qla-ladder { position: relative; height: 254px; overflow-x: hidden; overflow-y: auto; border: 1px solid color-mix(in srgb, var(--qtc-border) 88%, transparent); border-radius: 8px; background: color-mix(in srgb, var(--qtc-bg) 96%, var(--qtc-muted-bg)); box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 14%, transparent); scrollbar-color: color-mix(in srgb, var(--qtc-muted) 40%, transparent) transparent; scrollbar-width: thin; isolation: isolate; transition: height 160ms ease; }
 .qla-ladder::-webkit-scrollbar { width: 5px; }
 .qla-ladder::-webkit-scrollbar-track { background: transparent; }
 .qla-ladder::-webkit-scrollbar-thumb { border-radius: 999px; background: color-mix(in srgb, var(--qtc-muted) 38%, transparent); }
 .qla-ladder::after { position: absolute; z-index: 2; top: 20px; bottom: 0; left: 50%; width: 1px; content: ''; pointer-events: none; background: linear-gradient(180deg, color-mix(in srgb, var(--primary-color) 12%, transparent), color-mix(in srgb, var(--primary-color) 42%, transparent) 48%, color-mix(in srgb, var(--primary-color) 12%, transparent)); box-shadow: 0 0 7px color-mix(in srgb, var(--primary-color) 18%, transparent); }
+.qla-ladder-resizer { width: 92px; height: 10px; display: flex; align-items: center; justify-content: center; margin: -1px auto 0; padding: 0; color: var(--qtc-muted); border: 0; background: transparent; cursor: ns-resize; touch-action: none; }
+.qla-ladder-resizer i { width: 36px; height: 3px; display: block; border-radius: 999px; background: color-mix(in srgb, var(--qtc-muted) 42%, transparent); box-shadow: 0 1px 0 color-mix(in srgb, #fff 16%, transparent); transition: width 140ms ease, background 140ms ease, box-shadow 140ms ease; }
+.qla-ladder-resizer:hover i, .qla-ladder-resizer:focus-visible i, .qla-ladder-resizer.is-resizing i { width: 48px; background: color-mix(in srgb, var(--primary-color) 72%, var(--qtc-muted)); box-shadow: 0 0 8px color-mix(in srgb, var(--primary-color) 24%, transparent); }
+.qla-ladder-resizer:focus { outline: none; }
 .qla-ladder__head, .qla-ladder__row { display: grid; grid-template-columns: minmax(74px, 1fr) 86px 86px minmax(74px, 1fr); }
 .qla-ladder__head { position: sticky; z-index: 4; top: 0; min-height: 22px; align-items: center; color: var(--qtc-muted); background: linear-gradient(90deg, color-mix(in srgb, var(--qtc-green) 4%, var(--qtc-muted-bg)), var(--qtc-muted-bg) 48%, var(--qtc-muted-bg) 52%, color-mix(in srgb, var(--qtc-red) 4%, var(--qtc-muted-bg))); box-shadow: 0 1px 0 color-mix(in srgb, var(--qtc-border) 72%, transparent); font-size: 10px; font-weight: 500; letter-spacing: 0; }
 .qla-ladder__head span { padding: 0 7px; }

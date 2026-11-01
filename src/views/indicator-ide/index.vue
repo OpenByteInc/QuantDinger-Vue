@@ -624,7 +624,8 @@
                   :class="{
                     'is-minimized': quickTradeMinimized,
                     'is-pinned': quickTradePinned,
-                    'is-dragging': quickTradeDragging
+                    'is-dragging': quickTradeDragging,
+                    'is-resizing': quickTradeResizing
                   }"
                   :style="quickTradeFloatingStyle"
                 >
@@ -679,6 +680,11 @@
                       </template>
                     </quick-trade-panel>
                   </div>
+                  <template v-if="!quickTradeMinimized">
+                    <span class="ide-quick-float__resize ide-quick-float__resize--east" aria-hidden="true" @mousedown.stop.prevent="startQuickTradeResize($event, 'east')" />
+                    <span class="ide-quick-float__resize ide-quick-float__resize--south" aria-hidden="true" @mousedown.stop.prevent="startQuickTradeResize($event, 'south')" />
+                    <span class="ide-quick-float__resize ide-quick-float__resize--corner" aria-hidden="true" @mousedown.stop.prevent="startQuickTradeResize($event, 'corner')" />
+                  </template>
                 </section>
                 <button
                   v-else
@@ -1369,7 +1375,9 @@ export default {
       quickTradeMinimized: false,
       quickTradePinned: false,
       quickTradeDragging: false,
+      quickTradeResizing: false,
       quickTradePosition: null,
+      quickTradeSize: null,
       quickTradeChartPositions: [],
       paramDrawerVisible: false,
       indicatorParamOverrides: {},
@@ -1567,11 +1575,17 @@ export default {
       return (trigger) => this.chartToolbarGetPopupContainer(trigger)
     },
     quickTradeFloatingStyle () {
-      if (!this.quickTradePosition) return { top: '96px', right: '16px' }
-      return {
-        left: `${this.quickTradePosition.x}px`,
-        top: `${this.quickTradePosition.y}px`
+      const style = this.quickTradePosition
+        ? {
+          left: `${this.quickTradePosition.x}px`,
+          top: `${this.quickTradePosition.y}px`
+        }
+        : { top: '96px', right: '16px' }
+      if (!this.quickTradeMinimized && this.quickTradeSize) {
+        style.width = `${this.quickTradeSize.width}px`
+        style.height = `${this.quickTradeSize.height}px`
       }
+      return style
     },
     klineRealtimeEnabled () {
       return !!(this.symbol && String(this.symbol).trim())
@@ -1714,6 +1728,7 @@ export default {
     this.stopCodeAiResize()
     this.stopWorkspaceResize()
     this.stopQuickTradeDrag()
+    this.stopQuickTradeResize()
     if (this._persistIdeUiTimer) {
       clearTimeout(this._persistIdeUiTimer)
       this._persistIdeUiTimer = null
@@ -1993,6 +2008,12 @@ export default {
             y: Number(s.quickTradePosition.y)
           }
         }
+        if (s.quickTradeSize && Number.isFinite(Number(s.quickTradeSize.width)) && Number.isFinite(Number(s.quickTradeSize.height))) {
+          this.quickTradeSize = {
+            width: Math.max(320, Number(s.quickTradeSize.width)),
+            height: Math.max(360, Number(s.quickTradeSize.height))
+          }
+        }
         if (s.market && s.symbol) {
           this.market = String(s.market)
           this.symbol = String(s.symbol)
@@ -2047,6 +2068,7 @@ export default {
           quickTradeMinimized: this.quickTradeMinimized,
           quickTradePinned: this.quickTradePinned,
           quickTradePosition: this.quickTradePosition,
+          quickTradeSize: this.quickTradeSize,
           codeDrawerVisible: this.codeDrawerVisible,
           workspaceSplitRatio: this.workspaceSplitRatio
         }
@@ -3880,7 +3902,7 @@ export default {
       this.schedulePersistIdeUiState()
     },
     startQuickTradeDrag (event) {
-      if (this.quickTradePinned || !event || event.button !== 0) return
+      if (this.quickTradePinned || this.quickTradeResizing || !event || event.button !== 0) return
       const panel = this.$refs.quickTradeFloat
       const container = this.$refs.chartPanel
       if (!panel || !container) return
@@ -3925,6 +3947,71 @@ export default {
         this.schedulePersistIdeUiState()
       }
     },
+    startQuickTradeResize (event, direction = 'corner') {
+      if (this.quickTradeMinimized || !event || event.button !== 0) return
+      const panel = this.$refs.quickTradeFloat
+      const container = this.$refs.chartPanel
+      if (!panel || !container) return
+      const panelRect = panel.getBoundingClientRect()
+      const containerRect = container.getBoundingClientRect()
+      const position = {
+        x: panelRect.left - containerRect.left,
+        y: panelRect.top - containerRect.top
+      }
+      const inset = 10
+      const maxWidth = Math.max(320, containerRect.width - position.x - inset)
+      const maxHeight = Math.max(360, containerRect.height - position.y - inset)
+      const minWidth = Math.min(620, maxWidth)
+      const minHeight = Math.min(520, maxHeight)
+      event.preventDefault()
+      event.stopPropagation()
+      this.stopQuickTradeDrag()
+      this.quickTradePosition = position
+      this.quickTradeSize = {
+        width: Math.min(panelRect.width, maxWidth),
+        height: Math.min(panelRect.height, maxHeight)
+      }
+      this.quickTradeResizing = true
+      this._quickTradeResizeStart = {
+        x: event.clientX,
+        y: event.clientY,
+        width: this.quickTradeSize.width,
+        height: this.quickTradeSize.height,
+        minWidth,
+        minHeight,
+        maxWidth,
+        maxHeight,
+        direction
+      }
+      this._quickTradePanelResizeMove = moveEvent => this.moveQuickTradeResize(moveEvent)
+      this._quickTradePanelResizeEnd = () => this.stopQuickTradeResize(true)
+      document.body.classList.add('qd-quick-trade-resizing')
+      window.addEventListener('mousemove', this._quickTradePanelResizeMove)
+      window.addEventListener('mouseup', this._quickTradePanelResizeEnd, { once: true })
+    },
+    moveQuickTradeResize (event) {
+      const start = this._quickTradeResizeStart
+      if (!start || !event) return
+      const resizeWidth = start.direction === 'east' || start.direction === 'corner'
+      const resizeHeight = start.direction === 'south' || start.direction === 'corner'
+      const width = resizeWidth
+        ? Math.max(start.minWidth, Math.min(start.maxWidth, start.width + event.clientX - start.x))
+        : start.width
+      const height = resizeHeight
+        ? Math.max(start.minHeight, Math.min(start.maxHeight, start.height + event.clientY - start.y))
+        : start.height
+      this.quickTradeSize = { width, height }
+    },
+    stopQuickTradeResize (persist = false) {
+      if (this._quickTradePanelResizeMove) window.removeEventListener('mousemove', this._quickTradePanelResizeMove)
+      if (this._quickTradePanelResizeEnd) window.removeEventListener('mouseup', this._quickTradePanelResizeEnd)
+      this._quickTradePanelResizeMove = null
+      this._quickTradePanelResizeEnd = null
+      this._quickTradeResizeStart = null
+      this.quickTradeResizing = false
+      if (typeof document !== 'undefined') document.body.classList.remove('qd-quick-trade-resizing')
+      if (persist) this.schedulePersistIdeUiState()
+    },
     snapQuickTradeFloat () {
       const panel = this.$refs.quickTradeFloat
       const container = this.$refs.chartPanel
@@ -3938,11 +4025,24 @@ export default {
       })
     },
     clampQuickTradeFloat () {
-      if (!this.quickTradeDrawerVisible || !this.quickTradePosition) return
+      if (!this.quickTradeDrawerVisible) return
       this.$nextTick(() => {
         const panel = this.$refs.quickTradeFloat
         const container = this.$refs.chartPanel
         if (!panel || !container) return
+        if (this.quickTradeSize && !this.quickTradeMinimized) {
+          const position = this.quickTradePosition || {
+            x: Math.max(10, container.clientWidth - panel.offsetWidth - 16),
+            y: 96
+          }
+          const maxWidth = Math.max(320, container.clientWidth - position.x - 10)
+          const maxHeight = Math.max(360, container.clientHeight - position.y - 10)
+          this.quickTradeSize = {
+            width: Math.max(Math.min(620, maxWidth), Math.min(maxWidth, Number(this.quickTradeSize.width) || panel.offsetWidth)),
+            height: Math.max(Math.min(520, maxHeight), Math.min(maxHeight, Number(this.quickTradeSize.height) || panel.offsetHeight))
+          }
+        }
+        if (!this.quickTradePosition) return
         this.quickTradePosition = clampFloatingPanelPosition({
           ...this.quickTradePosition,
           containerWidth: container.clientWidth,
@@ -7133,7 +7233,11 @@ body.dark .ide-signal-alert-modal-wrap {
   position: absolute;
   z-index: 18;
   width: min(760px, calc(100% - 24px));
-  max-height: min(760px, calc(100% - 70px));
+  height: min(860px, calc(100% - 70px));
+  min-width: min(620px, calc(100% - 24px));
+  min-height: min(520px, calc(100% - 70px));
+  max-width: calc(100% - 12px);
+  max-height: calc(100% - 12px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -7142,15 +7246,58 @@ body.dark .ide-signal-alert-modal-wrap {
   background: rgba(255, 255, 255, .98);
   box-shadow: 0 18px 46px rgba(15, 23, 42, .22), 0 3px 10px rgba(15, 23, 42, .12);
   backdrop-filter: blur(14px);
-  transition: width .18s ease, max-height .18s ease, box-shadow .18s ease;
+  transition: width .18s ease, height .18s ease, box-shadow .18s ease;
   &.is-minimized {
     width: 244px;
+    height: 54px;
+    min-width: 0;
+    min-height: 0;
     max-height: 54px;
   }
-  &.is-dragging {
+  &.is-dragging,
+  &.is-resizing {
     user-select: none;
     box-shadow: 0 24px 58px rgba(15, 23, 42, .3), 0 5px 16px rgba(15, 23, 42, .16);
     transition: none;
+  }
+}
+.ide-quick-float__resize {
+  position: absolute;
+  z-index: 7;
+  display: block;
+  touch-action: none;
+  &--east {
+    top: 48px;
+    right: 0;
+    bottom: 16px;
+    width: 8px;
+    cursor: ew-resize;
+  }
+  &--south {
+    right: 16px;
+    bottom: 0;
+    left: 16px;
+    height: 8px;
+    cursor: ns-resize;
+  }
+  &--corner {
+    right: 0;
+    bottom: 0;
+    width: 18px;
+    height: 18px;
+    cursor: nwse-resize;
+    &::after {
+      position: absolute;
+      right: 4px;
+      bottom: 4px;
+      width: 8px;
+      height: 8px;
+      content: '';
+      border-right: 2px solid color-mix(in srgb, var(--primary-color, #ff5a1f) 70%, #64748b);
+      border-bottom: 2px solid color-mix(in srgb, var(--primary-color, #ff5a1f) 70%, #64748b);
+      border-radius: 0 0 2px;
+      opacity: .72;
+    }
   }
 }
 .ide-quick-float__titlebar {
@@ -7269,6 +7416,9 @@ body.dark .ide-signal-alert-modal-wrap {
     right: 8px !important;
     left: 8px !important;
     width: auto;
+    height: calc(100% - 60px) !important;
+    min-width: 0;
+    min-height: 0;
     max-height: calc(100% - 60px);
     transform: none !important;
   }
@@ -7276,7 +7426,9 @@ body.dark .ide-signal-alert-modal-wrap {
     right: 8px !important;
     left: auto !important;
     width: 224px;
+    height: 54px !important;
   }
+  .ide-quick-float__resize { display: none; }
 }
 
 .chart-panel-toolbar-controls .ide-toolbar-group {
