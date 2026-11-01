@@ -7132,7 +7132,7 @@ body.dark .ide-signal-alert-modal-wrap {
 .ide-quick-float {
   position: absolute;
   z-index: 18;
-  width: min(620px, calc(100% - 24px));
+  width: min(760px, calc(100% - 24px));
   max-height: min(760px, calc(100% - 70px));
   display: flex;
   flex-direction: column;
@@ -7167,6 +7167,12 @@ body.dark .ide-signal-alert-modal-wrap {
   color: #0f172a;
   border-bottom: 1px solid #e2e8f0;
   background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+  font-family: "SF Pro Text", "Segoe UI Variable Text", Inter, "HarmonyOS Sans SC", MiSans, "PingFang SC", "Noto Sans SC", "Microsoft YaHei UI", sans-serif;
+  font-size: 13px;
+  line-height: 1.35;
+  letter-spacing: 0;
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
   cursor: grab;
   .is-dragging & { cursor: grabbing; }
   .is-pinned & { cursor: default; }
@@ -7182,10 +7188,10 @@ body.dark .ide-signal-alert-modal-wrap {
   padding: 3px;
   border-radius: 8px;
   background: var(--bg-secondary, #f1f5f9);
-  button { border: 1px solid transparent; background: transparent; color: #64748b; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-weight: 600; white-space: nowrap; }
+  button { border: 1px solid transparent; background: transparent; color: #64748b; padding: 4px 11px; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; line-height: 1.35; white-space: nowrap; }
   button.active { color: var(--primary-color); border-color: var(--primary-color); background: color-mix(in srgb, var(--primary-color) 8%, transparent); }
 }
-.ide-quick-float__connected { display: flex; align-items: center; white-space: nowrap; color: #16a34a; font-size: 12px; margin-left: auto; }
+.ide-quick-float__connected { display: flex; align-items: center; white-space: nowrap; color: #16a34a; font-size: 12px; font-weight: 500; margin-left: auto; }
 @media (max-width: 480px) {
   .ide-quick-float__connected { display: none; }
   .ide-quick-float__modes button { padding: 4px 6px; }
@@ -7196,16 +7202,17 @@ body.dark .ide-signal-alert-modal-wrap {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 17px;
+  font-weight: 650;
+  line-height: 1;
   .anticon { color: var(--primary-color, #ff5a1f); }
 }
 .ide-quick-float__symbol {
   min-width: 0;
   overflow: hidden;
   color: #64748b;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

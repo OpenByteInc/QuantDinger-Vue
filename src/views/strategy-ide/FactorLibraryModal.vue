@@ -26,6 +26,9 @@
         <a-button class="factor-library-refresh" icon="reload" :loading="loading" @click="loadFactors">
           {{ $t('factorLibrary.refresh') }}
         </a-button>
+        <a-button type="primary" icon="plus" @click="openCustomFactorModal">
+          {{ $t('factorLibrary.custom.create') }}
+        </a-button>
       </div>
 
       <div class="factor-library-filterbar">
@@ -163,10 +166,11 @@
           <section v-if="selectedFactor.expression" class="factor-detail__section factor-detail__formula">
             <div class="factor-detail__section-head">
               <h4>{{ $t('factorLibrary.formula') }}</h4>
-              <a :href="selectedFactor.source_url" target="_blank" rel="noopener noreferrer">
+              <a v-if="selectedFactor.source_url" :href="selectedFactor.source_url" target="_blank" rel="noopener noreferrer">
                 {{ $t('factorLibrary.sourceReference') }}
                 <a-icon type="export" />
               </a>
+              <span v-else-if="selectedFactor.is_custom" class="factor-detail__muted">{{ $t('factorLibrary.custom.version', { version: selectedFactor.version }) }}</span>
             </div>
             <code>{{ selectedFactor.expression }}</code>
           </section>
@@ -266,11 +270,81 @@
         <div v-else class="factor-detail-empty">{{ $t('factorLibrary.selectHint') }}</div>
       </div>
     </a-spin>
+
+    <a-modal
+      :visible="customModalVisible"
+      :title="$t('factorLibrary.custom.title')"
+      :width="720"
+      :confirm-loading="customSaving"
+      :ok-text="$t('factorLibrary.custom.save')"
+      :cancel-text="$t('factorLibrary.custom.cancel')"
+      :wrap-class-name="isDark ? 'custom-factor-modal custom-factor-modal--dark' : 'custom-factor-modal'"
+      @ok="saveCustomFactor"
+      @cancel="customModalVisible = false"
+    >
+      <a-alert
+        type="info"
+        show-icon
+        :message="$t('factorLibrary.custom.securityTitle')"
+        :description="$t('factorLibrary.custom.securityDescription')"
+        class="custom-factor-form__notice"
+      />
+      <a-form layout="vertical" class="custom-factor-form">
+        <div class="custom-factor-form__grid">
+          <a-form-item :label="$t('factorLibrary.custom.name')">
+            <a-input v-model="customForm.name" :max-length="120" :placeholder="$t('factorLibrary.custom.namePlaceholder')" />
+          </a-form-item>
+          <a-form-item :label="$t('factorLibrary.custom.category')">
+            <a-select v-model="customForm.category">
+              <a-select-option value="momentum">{{ $t('factorLibrary.category.momentum') }}</a-select-option>
+              <a-select-option value="trend">{{ $t('factorLibrary.category.trend') }}</a-select-option>
+              <a-select-option value="volatility">{{ $t('factorLibrary.category.volatility') }}</a-select-option>
+              <a-select-option value="risk">{{ $t('factorLibrary.category.risk') }}</a-select-option>
+              <a-select-option value="liquidity">{{ $t('factorLibrary.category.liquidity') }}</a-select-option>
+              <a-select-option value="custom">{{ $t('factorLibrary.custom.categoryOther') }}</a-select-option>
+            </a-select>
+          </a-form-item>
+        </div>
+        <a-form-item :label="$t('factorLibrary.custom.description')">
+          <a-input v-model="customForm.description" :placeholder="$t('factorLibrary.custom.descriptionPlaceholder')" />
+        </a-form-item>
+        <a-form-item :label="$t('factorLibrary.custom.direction')">
+          <a-radio-group v-model="customForm.directionHint">
+            <a-radio value="higher_is_bullish">{{ $t('factorLibrary.direction.higher_is_bullish') }}</a-radio>
+            <a-radio value="lower_is_bullish">{{ $t('factorLibrary.direction.lower_is_bullish') }}</a-radio>
+            <a-radio value="neutral">{{ $t('factorLibrary.direction.neutral') }}</a-radio>
+          </a-radio-group>
+        </a-form-item>
+        <a-form-item :label="$t('factorLibrary.custom.expression')">
+          <a-textarea
+            v-model="customForm.expression"
+            :rows="5"
+            class="custom-factor-form__expression"
+            :placeholder="$t('factorLibrary.custom.expressionPlaceholder')"
+          />
+          <span class="custom-factor-form__help">{{ $t('factorLibrary.custom.expressionHelp') }}</span>
+        </a-form-item>
+        <a-form-item :label="$t('factorLibrary.custom.parameters')">
+          <a-textarea v-model="customForm.paramsJson" :rows="3" class="custom-factor-form__expression" />
+          <span class="custom-factor-form__help">{{ $t('factorLibrary.custom.parametersHelp') }}</span>
+        </a-form-item>
+        <div class="custom-factor-form__validation">
+          <a-button icon="safety" :loading="customValidating" @click="validateCustomFactorForm">
+            {{ $t('factorLibrary.custom.validate') }}
+          </a-button>
+          <div v-if="customValidation" class="custom-factor-form__validation-result">
+            <a-icon type="check-circle" />
+            <span>{{ $t('factorLibrary.custom.validationPassed', { warmup: customValidation.warmupBars }) }}</span>
+            <code v-for="field in customValidation.requiredFields || []" :key="field">{{ field }}</code>
+          </div>
+        </div>
+      </a-form>
+    </a-modal>
   </a-modal>
 </template>
 
 <script>
-import { getFactorCatalog } from '@/api/factor'
+import { createCustomFactor, getFactorCatalog, validateCustomFactor } from '@/api/factor'
 
 export default {
   name: 'FactorLibraryModal',
@@ -307,7 +381,19 @@ export default {
       scrollFrameHandle: null,
       pendingScrollTop: 0,
       preloadHandle: null,
-      preloadHandleType: ''
+      preloadHandleType: '',
+      customModalVisible: false,
+      customSaving: false,
+      customValidating: false,
+      customValidation: null,
+      customForm: {
+        name: '',
+        description: '',
+        category: 'momentum',
+        directionHint: 'higher_is_bullish',
+        expression: 'momentum(period=lookback) / max(realized_volatility(period=vol_window), floor)',
+        paramsJson: '{\n  "lookback": 20,\n  "vol_window": 20,\n  "floor": 0.0001\n}'
+      }
     }
   },
   computed: {
@@ -315,6 +401,7 @@ export default {
       return [
         { value: 'all', label: this.$t('factorLibrary.family.allShort') },
         { value: 'native', label: this.$t('factorLibrary.family.native') },
+        { value: 'custom', label: this.$t('factorLibrary.family.custom') },
         { value: 'talib', label: this.$t('factorLibrary.family.talib') },
         { value: 'alpha158', label: this.$t('factorLibrary.family.alpha158') },
         { value: 'alpha360', label: this.$t('factorLibrary.family.alpha360') }
@@ -333,7 +420,7 @@ export default {
         counts.all += 1
         counts[factor._family] = (counts[factor._family] || 0) + 1
         return counts
-      }, { all: 0, native: 0, talib: 0, alpha158: 0, alpha360: 0 })
+      }, { all: 0, native: 0, custom: 0, talib: 0, alpha158: 0, alpha360: 0 })
     },
     emptyDescription () {
       if (['alpha158', 'alpha360'].includes(this.familyFilter) && !this.familyCounts[this.familyFilter]) {
@@ -509,6 +596,7 @@ export default {
       return english || fallback
     },
     factorFamily (factor) {
+      if (factor && factor.provider === 'user') return 'custom'
       if (factor && factor.provider === 'microsoft-qlib') return String(factor.family || '').toLowerCase()
       if (factor && factor.provider === 'ta-lib') return 'talib'
       return 'native'
@@ -535,7 +623,7 @@ export default {
         })
       } else {
         prepared._displayName = this.translation(prepared.name_i18n_key, prepared.display_name || prepared.factor_id)
-        prepared._displayDescription = this.translation(prepared.description_i18n_key, '')
+        prepared._displayDescription = this.translation(prepared.description_i18n_key, prepared.description || '')
         if (!prepared._displayDescription && prepared.provider === 'ta-lib') {
           prepared._displayDescription = this.$t('factorLibrary.talibFeatureDescription', {
             name: prepared._displayName,
@@ -557,6 +645,71 @@ export default {
         ...(prepared.required_fields || [])
       ].map(value => String(value || '').toLowerCase()).join(' ')
       return prepared
+    },
+    openCustomFactorModal () {
+      this.customValidation = null
+      this.customModalVisible = true
+    },
+    customFactorPayload () {
+      let defaultParams = {}
+      try {
+        defaultParams = JSON.parse(String(this.customForm.paramsJson || '{}'))
+      } catch (_) {
+        throw new Error(this.$t('factorLibrary.custom.parametersInvalid'))
+      }
+      if (!defaultParams || Array.isArray(defaultParams) || typeof defaultParams !== 'object') {
+        throw new Error(this.$t('factorLibrary.custom.parametersInvalid'))
+      }
+      return {
+        name: String(this.customForm.name || '').trim(),
+        description: String(this.customForm.description || '').trim(),
+        category: this.customForm.category,
+        directionHint: this.customForm.directionHint,
+        expression: String(this.customForm.expression || '').trim(),
+        defaultParams
+      }
+    },
+    async validateCustomFactorForm () {
+      this.customValidating = true
+      try {
+        const payload = this.customFactorPayload()
+        const response = await validateCustomFactor(payload)
+        if (!(response && response.code === 1)) throw new Error((response && response.msg) || this.$t('factorLibrary.custom.validationFailed'))
+        this.customValidation = response.data
+        this.$message.success(this.$t('factorLibrary.custom.validationSuccess'))
+        return true
+      } catch (error) {
+        this.customValidation = null
+        this.$message.error(error.backendMessage || error.message || this.$t('factorLibrary.custom.validationFailed'))
+        return false
+      } finally {
+        this.customValidating = false
+      }
+    },
+    async saveCustomFactor () {
+      if (!String(this.customForm.name || '').trim()) {
+        this.$message.warning(this.$t('factorLibrary.custom.nameRequired'))
+        return
+      }
+      this.customSaving = true
+      try {
+        const payload = this.customFactorPayload()
+        const response = await createCustomFactor(payload)
+        if (!(response && response.code === 1)) throw new Error((response && response.msg) || this.$t('factorLibrary.custom.saveFailed'))
+        const createdId = response.data && response.data.factor_id
+        this.customModalVisible = false
+        this.familyFilter = 'custom'
+        this.scopeFilter = 'all'
+        this.selectedId = createdId || ''
+        await this.loadFactors()
+        const created = this.factors.find(item => item.factor_id === createdId)
+        if (created) this.selectFactor(created)
+        this.$message.success(this.$t('factorLibrary.custom.saveSuccess'))
+      } catch (error) {
+        this.$message.error(error.backendMessage || error.message || this.$t('factorLibrary.custom.saveFailed'))
+      } finally {
+        this.customSaving = false
+      }
     },
     factorName (factor) {
       return factor && (factor._displayName || factor.display_name || factor.factor_id)
@@ -1246,6 +1399,79 @@ export default {
 .factor-detail__muted {
   color: #8a94a6;
   font-size: 12px;
+}
+
+.custom-factor-form__notice {
+  margin-bottom: 18px;
+}
+
+.custom-factor-form__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(180px, 0.6fr);
+  gap: 14px;
+}
+
+.custom-factor-form__expression {
+  font-family: Consolas, Monaco, monospace;
+  line-height: 1.55;
+}
+
+.custom-factor-form__help {
+  display: block;
+  margin-top: 6px;
+  color: #8a94a6;
+  font-size: 12px;
+}
+
+.custom-factor-form__validation {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 34px;
+}
+
+.custom-factor-form__validation-result {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  color: #389e0d;
+}
+
+.custom-factor-form__validation-result code {
+  padding: 2px 7px;
+  border-radius: 4px;
+  color: #52606d;
+  background: #f1f4f8;
+}
+
+.custom-factor-modal--dark {
+  .ant-modal-content,
+  .ant-modal-header,
+  .ant-modal-body,
+  .ant-modal-footer {
+    border-color: rgba(255, 255, 255, 0.09);
+    background: #151515;
+  }
+
+  .ant-modal-title,
+  .ant-modal-close,
+  .ant-form-item-label > label,
+  .ant-radio-wrapper {
+    color: rgba(255, 255, 255, 0.82);
+  }
+
+  .ant-input,
+  .ant-select-selection {
+    border-color: rgba(255, 255, 255, 0.14);
+    color: rgba(255, 255, 255, 0.84);
+    background: #202020;
+  }
+
+  .custom-factor-form__validation-result code {
+    color: rgba(255, 255, 255, 0.72);
+    background: #272727;
+  }
 }
 
 .factor-library-modal--dark {

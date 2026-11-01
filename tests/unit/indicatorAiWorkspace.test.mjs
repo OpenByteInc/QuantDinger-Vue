@@ -179,7 +179,7 @@ test('indicator quick trade opens as a compact draggable floating console', () =
   assert.match(viewSource, /:style="quickTradeFloatingStyle"/)
   assert.match(viewSource, /<quick-trade-panel[\s\S]*?embedded-dock[\s\S]*?side-dock[\s\S]*?floating-console/)
   assert.match(viewSource, /\.ide-chart-fs-row\s*\{[\s\S]*?flex-direction: row;/)
-  assert.match(viewSource, /\.ide-quick-float\s*\{[\s\S]*?position: absolute;[\s\S]*?width: min\(620px, calc\(100% - 24px\)\);/)
+  assert.match(viewSource, /\.ide-quick-float\s*\{[\s\S]*?position: absolute;[\s\S]*?width: min\(760px, calc\(100% - 24px\)\);/)
   assert.match(viewSource, /\.ide-quick-float\s*\{[\s\S]*?&\.is-minimized\s*\{[\s\S]*?width: 244px;/)
   assert.match(viewSource, /snapFloatingPanelPosition/)
   assert.match(quickTradeSource, /embeddedDock: \{ type: Boolean, default: false \}/)

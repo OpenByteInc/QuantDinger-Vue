@@ -18,6 +18,17 @@ export function getQuickTradeBalance (params) {
   })
 }
 
+/** Get a normalized public crypto order-book snapshot. */
+export function getQuickTradeOrderBook (params, options = {}) {
+  return request({
+    url: '/api/quick-trade/order-book',
+    method: 'get',
+    params,
+    signal: options.signal,
+    timeout: 6000
+  })
+}
+
 /** Get current position for a symbol */
 export function getQuickTradePosition (params) {
   return request({

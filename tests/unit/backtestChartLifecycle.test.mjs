@@ -61,7 +61,7 @@ test('source loading is prioritized and detail compilation runs concurrently', (
 test('history loads only the active mode and opens the drawer immediately', () => {
   assert.match(source, /@click="openHistoryDrawer"/)
   assert.match(source, /openHistoryDrawer \(\) \{[\s\S]*?this\.historyVisible = true/)
-  assert.match(source, /requestedMode === 'factor'[\s\S]*?getStrategyFactorResearchHistory[\s\S]*?: await getStrategyBacktestHistory/)
+  assert.match(source, /requestedMode === 'factor'[\s\S]*?getStrategyFactorResearchHistory[\s\S]*?getStrategyFactorBenchmarkHistory[\s\S]*?else \{[\s\S]*?getStrategyBacktestHistory/)
   assert.doesNotMatch(source, /const \[portfolioResponse, factorResponse\] = await Promise\.all/)
 })
 
@@ -91,18 +91,18 @@ test('backtest workbench keeps execution controls visible and moves history into
   assert.doesNotMatch(source, /class="panel history-panel"/)
 })
 
-test('backtest and factor workspaces open settings by default and align the shared research range label', () => {
+test('backtest and factor workspaces open settings by default and align the research date fields', () => {
   assert.match(source, /settingsVisible: true/)
-  assert.match(source, /\.command-bar__range \.command-label \{ grid-column-start: 1; grid-column-end: 4; \}/)
-  assert.doesNotMatch(source, /grid-column: 1 \/ -1/)
+  assert.match(source, /\.date-range-fields \{ display: grid; grid-template-columns: minmax\(0, 1fr\) 18px minmax\(0, 1fr\);/)
+  assert.match(source, /class="date-range-arrow"/)
 })
 
 test('sticky research controls use an opaque surface and cover the seam while scrolling', () => {
-  assert.match(source, /\.command-bar \{[^}]*background: #fff;/)
-  assert.match(source, /box-shadow: 0 -10px 0 #f1f3f5/)
-  assert.match(source, /\.theme-dark \.command-bar \{[^}]*background: #111111;/)
-  assert.match(source, /box-shadow: 0 -10px 0 #080808/)
-  assert.doesNotMatch(source, /\.command-bar \{[^}]*backdrop-filter:/)
+  assert.match(source, /\.run-action-bar \{[^}]*background: #fff;/)
+  assert.match(source, /box-shadow: 0 -8px 20px rgba\(15, 35, 60, 0\.05\)/)
+  assert.match(source, /\.theme-dark \.run-action-bar \{[^}]*background: #111111;/)
+  assert.match(source, /box-shadow: 0 -10px 24px rgba\(0, 0, 0, 0\.28\)/)
+  assert.doesNotMatch(source, /\.run-action-bar \{[^}]*backdrop-filter:/)
 })
 
 test('saved backtest details expose an in-drawer loading state', () => {

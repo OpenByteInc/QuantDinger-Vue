@@ -26,6 +26,18 @@
           <div class="qtc-balance"><span>{{ $t('quickTrade.totalAssets') }}</span><strong>{{ formatPrice(activeBalanceTotal) }}</strong><span>{{ orderCurrency }}</span></div>
           <a-button class="qtc-icon-button" :title="$t('common.refresh')" :aria-label="$t('common.refresh')" :loading="dockRefreshing" @click="refreshDockData"><a-icon type="reload" /></a-button>
         </div>
+        <crypto-liquidity-arena
+          v-if="isCryptoMarket"
+          :symbol="currentSymbol"
+          :exchange-id="activeCryptoExchangeId"
+          :market-type="effectiveMarketType"
+          :current-price="currentPrice"
+          :order-notional="estimatedNotionalUsdt"
+          :order-side="side"
+          :active="visible && !consoleMinimized"
+          :dark="isDark"
+          @price-select="applyLiquidityPrice"
+        />
         <div v-if="balanceErrorMessage" class="qtc-error">{{ balanceErrorMessage }}</div>
         <div v-if="strategyConflict" class="qtc-conflict" role="alert">
           <a-icon type="warning" />
@@ -1093,6 +1105,7 @@ import { listExchangeCredentials } from '@/api/credentials'
 import { formatExchangeCredentialLabel, isQuickTradeExchangeCredential, US_STOCK_EXCHANGE_IDS, HK_STOCK_EXCHANGE_IDS } from '@/utils/exchangeCredential'
 import ExchangeAccountModal from '@/components/ExchangeAccountModal/ExchangeAccountModal.vue'
 import PositionActivity from './PositionActivity.vue'
+import CryptoLiquidityArena from './CryptoLiquidityArena.vue'
 import { updateQuickPositionProtection, placeQuickOrder, getQuickTradeBalance, getQuickTradePosition, getQuickTradeHistory, closeQuickTradePosition, cancelQuickTradeOrder } from '@/api/quick-trade'
 import { searchSymbols, getWatchlist } from '@/api/market'
 import { getUserInfo } from '@/api/login'
@@ -1104,7 +1117,7 @@ import { calculatePositionMetrics } from './positionMetrics'
 
 export default {
   name: 'QuickTradePanel',
-  components: { ExchangeAccountModal, PositionActivity },
+  components: { ExchangeAccountModal, PositionActivity, CryptoLiquidityArena },
   props: {
     visible: { type: Boolean, default: false },
     symbol: { type: String, default: '' },
@@ -1215,6 +1228,11 @@ export default {
     },
     isCryptoMarket () {
       return this.normalizedMarket === 'Crypto'
+    },
+    activeCryptoExchangeId () {
+      if (!this.isCryptoMarket) return ''
+      const credential = this.credentials.find(item => item.id === this.selectedCredentialId)
+      return String((credential && credential.exchange_id) || this.exchangeId || '').trim().toLowerCase()
     },
     tradableMarketSupported () {
       return this.isCryptoMarket || this.isStockMarket
@@ -1985,6 +2003,12 @@ export default {
           this.limitPrice = parsed
         }
       }
+    },
+    applyLiquidityPrice (price) {
+      const parsed = Number(price || 0)
+      if (!(parsed > 0)) return
+      this.orderType = 'limit'
+      this.limitPrice = parsed
     },
     handleAddAccountClick () {
       if (this.isStockMarket) {
@@ -5434,7 +5458,7 @@ export default {
 .quick-trade-panel-root,
 .quick-trade-embedded,
 .quick-trade-drawer {
-  --qt-font-ui: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --qt-font-ui: "SF Pro Text", "Segoe UI Variable Text", Inter, "HarmonyOS Sans SC", MiSans, "PingFang SC", "Noto Sans SC", "Microsoft YaHei UI", sans-serif;
   --qt-type-title: 13px;
   --qt-type-body: 12px;
   --qt-type-caption: 11px;

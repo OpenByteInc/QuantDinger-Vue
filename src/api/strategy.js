@@ -30,6 +30,9 @@ const api = {
   strategyBacktestRun: '/api/backtest/run',
   strategyBacktestJobs: '/api/backtest/jobs',
   strategyFactorResearch: '/api/backtest/factor-research',
+  strategyFactorBenchmark: '/api/backtest/factor-benchmark',
+  strategyFactorBenchmarkHistory: '/api/backtest/factor-benchmark/history',
+  strategyFactorBenchmarkGet: '/api/backtest/factor-benchmark/get',
   strategyFactorResearchHistory: '/api/backtest/factor-research/history',
   strategyFactorResearchGet: '/api/backtest/factor-research/get',
   strategyBacktestHistory: '/api/backtest/history',
@@ -339,6 +342,18 @@ export function runStrategyFactorResearch (data) {
   })
 }
 
+export function runStrategyFactorBenchmark (data) {
+  const payload = { ...(data || {}) }
+  const timeout = Number(payload.timeout) > 0 ? Number(payload.timeout) : BACKTEST_TIMEOUT
+  delete payload.timeout
+  return request({
+    url: api.strategyFactorBenchmark,
+    method: 'post',
+    data: payload,
+    timeout
+  })
+}
+
 export function getStrategyFactorResearchHistory (params = {}) {
   return request({
     url: api.strategyFactorResearchHistory,
@@ -352,6 +367,22 @@ export function getStrategyFactorResearchRun (runId) {
     url: api.strategyFactorResearchGet,
     method: 'get',
     params: { runId }
+  })
+}
+
+export function getStrategyFactorBenchmarkHistory (params = {}) {
+  return request({
+    url: api.strategyFactorBenchmarkHistory,
+    method: 'get',
+    params
+  })
+}
+
+export function getStrategyFactorBenchmarkRun (benchmarkId) {
+  return request({
+    url: api.strategyFactorBenchmarkGet,
+    method: 'get',
+    params: { benchmarkId }
   })
 }
 

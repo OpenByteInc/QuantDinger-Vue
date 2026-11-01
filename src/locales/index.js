@@ -32,9 +32,11 @@ import quickTradeSpotSellMessages from './lang/quick-trade-spot-sell'
 import talibFactorMessages from './lang/talib-factors'
 import factorResearchMessages from './lang/factor-research-factors'
 import factorLibraryEnhancementMessages from './lang/factor-library-enhancements'
+import factorLibraryCustomMessages from './lang/factor-library-custom'
 import backtestWorkbenchMessages from './lang/backtest-workbench'
 import strategyReviewMessages from './lang/strategy-review'
 import quickTradeFloatingMessages from './lang/quick-trade-floating'
+import quickTradeLiquidityArenaMessages from './lang/quick-trade-liquidity-arena'
 import quickTradeWorkflowMessages from './lang/quick-trade-workflow'
 import settingsFeatureMessages from './settings-feature-overrides'
 import zhTwProductMessages from './zh-tw-product-overrides'
@@ -83,9 +85,11 @@ const messages = {
     ...(talibFactorMessages[defaultLang] || {}),
     ...(factorResearchMessages[defaultLang] || {}),
     ...(factorLibraryEnhancementMessages[defaultLang] || {}),
+    ...(factorLibraryCustomMessages[defaultLang] || {}),
     ...(backtestWorkbenchMessages[defaultLang] || {}),
     ...(strategyReviewMessages[defaultLang] || {}),
     ...(quickTradeFloatingMessages[defaultLang] || {}),
+    ...(quickTradeLiquidityArenaMessages[defaultLang] || {}),
     ...(quickTradeWorkflowMessages[defaultLang] || {}),
     ...(settingsFeatureMessages[defaultLang] || {}),
     ...(zhTwProductMessages[defaultLang] || {}),
@@ -194,9 +198,11 @@ function mergeLocaleOverrides (lang) {
     ...(talibFactorMessages[lang] || {}),
     ...(factorResearchMessages[lang] || {}),
     ...(factorLibraryEnhancementMessages[lang] || {}),
+    ...(factorLibraryCustomMessages[lang] || {}),
     ...(backtestWorkbenchMessages[lang] || {}),
     ...(strategyReviewMessages[lang] || {}),
     ...(quickTradeFloatingMessages[lang] || {}),
+    ...(quickTradeLiquidityArenaMessages[lang] || {}),
     ...(quickTradeWorkflowMessages[lang] || {}),
     ...(settingsFeatureMessages[lang] || {}),
     ...(zhTwProductMessages[lang] || {}),
@@ -258,9 +264,11 @@ export async function loadLanguageAsync (lang = defaultLang) {
       ...(talibFactorMessages[lang] || {}),
       ...(factorResearchMessages[lang] || {}),
       ...(factorLibraryEnhancementMessages[lang] || {}),
+      ...(factorLibraryCustomMessages[lang] || {}),
       ...(backtestWorkbenchMessages[lang] || {}),
       ...(strategyReviewMessages[lang] || {}),
       ...(quickTradeFloatingMessages[lang] || {}),
+      ...(quickTradeLiquidityArenaMessages[lang] || {}),
       ...(quickTradeWorkflowMessages[lang] || {}),
       ...(settingsFeatureMessages[lang] || {}),
       ...(zhTwProductMessages[lang] || {}),

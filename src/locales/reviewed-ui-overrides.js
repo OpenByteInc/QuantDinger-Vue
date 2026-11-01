@@ -2923,7 +2923,17 @@ export const verifiedSameUiMessages = [
   'factorLibrary.family.talib',
   'factorLibrary.family.alpha158',
   'factorLibrary.family.alpha360',
-  'factorLibrary.qlibFeatureName'
+  'factorLibrary.qlibFeatureName',
+  'strategyV2.factorResearch.sharedObservationShort',
+  'factorLibrary.custom.expressionPlaceholder',
+  'quickTrade.liquidityArena.usdtAmount',
+  'settings.universeSync.memberPlaceholder',
+  'settings.venues.name.alpaca',
+  'settings.venues.name.ibkr',
+  'settings.venues.name.binance',
+  'settings.venues.name.bybit',
+  'settings.venues.name.bitget',
+  'settings.venues.name.gate'
 ]
 
 // Keep trademarks and protocol names canonical in every locale.

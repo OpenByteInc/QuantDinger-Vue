@@ -7,89 +7,63 @@
           <a-radio-button value="factor">{{ $t('strategyV2.backtest.mode.factor') }}</a-radio-button>
           <a-radio-button value="evolution">{{ $t('strategyEvolution.tab') }}</a-radio-button>
         </a-radio-group>
-        <span class="workspace-toolbar__context">{{ $t('backtest-center.title') }} · {{ modeContextLabel }}</span>
+        <span v-if="mode !== 'factor'" class="workspace-toolbar__context">{{ $t('backtest-center.title') }} · {{ modeContextLabel }}</span>
+        <div v-else class="workspace-factor-mode" data-testid="factor-research-mode-chooser">
+          <span class="workspace-factor-mode__label">{{ $t('strategyV2.factorResearch.currentWorkflow') }}</span>
+          <div class="factor-mode-compact">
+            <a-tooltip :title="$t('strategyV2.factorResearch.singleModeDesc')" placement="bottom">
+              <button
+                type="button"
+                class="factor-mode-compact__button"
+                :class="{ active: factorResearchMode === 'single' }"
+                :aria-pressed="factorResearchMode === 'single'"
+                data-testid="factor-mode-single"
+                @click="selectFactorResearchMode('single')"
+              >
+                <a-icon type="line-chart" />
+                <span>{{ $t('strategyV2.factorResearch.singleMode') }}</span>
+                <b>{{ factorHistory.length }}</b>
+              </button>
+            </a-tooltip>
+            <a-tooltip :title="$t('strategyV2.factorResearch.benchmarkModeDesc')" placement="bottom">
+              <button
+                type="button"
+                class="factor-mode-compact__button"
+                :class="{ active: factorResearchMode === 'benchmark' }"
+                :aria-pressed="factorResearchMode === 'benchmark'"
+                data-testid="factor-mode-benchmark"
+                @click="selectFactorResearchMode('benchmark')"
+              >
+                <a-icon type="experiment" />
+                <span>{{ $t('strategyV2.factorResearch.benchmarkMode') }}</span>
+                <b>{{ factorBenchmarkHistory.length }}</b>
+              </button>
+            </a-tooltip>
+          </div>
+        </div>
       </div>
       <div v-if="mode !== 'evolution'" class="hero-actions">
         <span class="hero-stat"><strong>{{ mode === 'factor' ? researchableUniverses.length : availableSources.length }}</strong>{{ mode === 'factor' ? $t('strategyV2.factorResearch.eligibleUniverses') : $t('strategyV2.backtest.sources') }}</span>
-        <span class="hero-stat"><strong>{{ history.length }}</strong>{{ mode === 'factor' ? $t('strategyV2.factorResearch.runs') : $t('strategyV2.backtest.runs') }}</span>
+        <span class="hero-stat"><strong>{{ mode === 'factor' ? totalFactorHistoryCount : history.length }}</strong>{{ mode === 'factor' ? $t('strategyV2.factorResearch.runs') : $t('strategyV2.backtest.runs') }}</span>
+        <a-tooltip :title="settingsVisible ? $t('backtestWorkbench.hideSettings') : $t('backtestWorkbench.advancedSettings')">
+          <a-button
+            icon="control"
+            :type="settingsVisible ? 'primary' : 'default'"
+            :aria-label="settingsVisible ? $t('backtestWorkbench.hideSettings') : $t('backtestWorkbench.advancedSettings')"
+            @click="settingsVisible = !settingsVisible"
+          />
+        </a-tooltip>
         <a-button icon="reload" :loading="historyLoading" @click="refreshPage">
           {{ $t('backtest-center.refreshHistory') }}
         </a-button>
         <a-button icon="history" @click="openHistoryDrawer">
-          {{ mode === 'factor' ? $t('strategyV2.factorResearch.historyTitle') : $t('strategyV2.backtest.historyTitle') }}
+          {{ historyButtonLabel }}
         </a-button>
       </div>
     </section>
 
     <strategy-evolution v-if="mode === 'evolution'" @apply="applyEvolutionParams" />
     <template v-else>
-      <section class="command-bar" data-testid="backtest-command-bar">
-        <div class="command-bar__source">
-          <span class="command-label">{{ mode === 'factor' ? $t('strategyV2.factorResearch.universe') : $t('backtestWorkbench.strategy') }}</span>
-          <a-select
-            v-if="mode === 'factor'"
-            v-model="factorForm.universeId"
-            class="command-source-select"
-            show-search
-            option-filter-prop="children"
-            :loading="universesLoading"
-            :placeholder="$t('strategyV2.factorResearch.universePlaceholder')"
-            @change="handleFactorResearchContextChange"
-          >
-            <a-select-option v-for="item in researchableUniverses" :key="item.id" :value="item.id">
-              {{ universeName(item) }} · {{ item.market }} · {{ $t('strategyV2.symbolCount', { count: item.member_count }) }}
-            </a-select-option>
-          </a-select>
-          <a-select
-            v-else
-            v-model="form.sourceId"
-            class="command-source-select"
-            show-search
-            option-filter-prop="children"
-            :loading="sourcesLoading"
-            :placeholder="$t('backtest-center.strategyPlaceholder')"
-            @change="selectSource"
-          >
-            <a-select-option v-for="item in availableSources" :key="item.id" :value="item.id">
-              {{ item.name }} · {{ sourceTypeLabel(item) }}
-            </a-select-option>
-          </a-select>
-        </div>
-        <div class="command-bar__range">
-          <span class="command-label">{{ $t('backtestWorkbench.period') }}</span>
-          <a-date-picker v-model="form.startDate" size="small" :disabled-date="disabledStartDate" />
-          <span class="command-range-separator">—</span>
-          <a-date-picker v-model="form.endDate" size="small" :disabled-date="disabledEndDate" />
-        </div>
-        <div v-if="mode === 'portfolio'" class="command-bar__capital">
-          <span class="command-label">{{ $t('backtestWorkbench.capital') }}</span>
-          <a-input-number v-model="form.initialCapital" :min="1" :precision="0" size="small" />
-        </div>
-        <div v-else class="command-bar__factor">
-          <span class="command-label">{{ $t('backtestWorkbench.factor') }}</span>
-          <a-select v-model="factorForm.factorId" size="small">
-            <a-select-option v-for="item in researchFactorOptions" :key="item.factor_id" :value="item.factor_id">
-              {{ researchFactorName(item) }}
-            </a-select-option>
-          </a-select>
-        </div>
-        <div class="command-bar__actions">
-          <a-button icon="control" @click="settingsVisible = !settingsVisible">
-            {{ settingsVisible ? $t('backtestWorkbench.hideSettings') : $t('backtestWorkbench.advancedSettings') }}
-          </a-button>
-          <a-button
-            type="primary"
-            icon="thunderbolt"
-            data-testid="run-backtest-primary"
-            :disabled="runDisabled"
-            :loading="running"
-            @click="runActive"
-          >
-            {{ mode === 'portfolio' ? $t('backtest-center.runBacktest') : $t('strategyV2.factorResearch.run') }}
-          </a-button>
-        </div>
-      </section>
-
       <div class="workspace-grid" :class="{ 'settings-open': settingsVisible }">
         <section v-show="settingsVisible" class="panel config-panel">
           <div class="config-scroll">
@@ -316,6 +290,14 @@
                     <span>{{ $t('strategyV2.factorResearch.universeModeDesc') }}</span>
                   </div>
                 </div>
+                <div v-if="factorResearchMode === 'benchmark'" class="benchmark-selection-summary">
+                  <span><a-icon type="experiment" /></span>
+                  <div>
+                    <strong>{{ $t('strategyV2.factorResearch.validationControls') }}</strong>
+                    <small>{{ $t('strategyV2.factorResearch.selectedFactorsCount', { count: benchmarkFactorIds.length }) }}</small>
+                  </div>
+                  <em>{{ benchmarkFactorIds.length }}</em>
+                </div>
                 <div class="form-grid">
                   <a-form-item :label="$t('strategyV2.factorResearch.frequency')">
                     <a-select v-model="factorForm.frequency" class="full-width" @change="handleFactorResearchContextChange">
@@ -324,7 +306,7 @@
                       </a-select-option>
                     </a-select>
                   </a-form-item>
-                  <a-form-item :label="$t('strategyV2.factorResearch.factor')">
+                  <a-form-item v-if="factorResearchMode === 'single'" :label="$t('strategyV2.factorResearch.factor')">
                     <a-select
                       v-model="factorForm.factorId"
                       class="full-width"
@@ -338,7 +320,24 @@
                       </a-select-option>
                     </a-select>
                   </a-form-item>
+                  <a-form-item v-else :label="$t('strategyV2.factorResearch.benchmarkFactors')">
+                    <a-select
+                      v-model="benchmarkFactorIds"
+                      mode="multiple"
+                      class="full-width"
+                      show-search
+                      option-filter-prop="children"
+                      :loading="factorCatalogLoading"
+                      :placeholder="$t('strategyV2.factorResearch.benchmarkFactorsPlaceholder')"
+                      @change="handleFactorResearchContextChange"
+                    >
+                      <a-select-option v-for="factor in researchFactorOptions" :key="factor.factor_id" :value="factor.factor_id">
+                        {{ researchFactorName(factor) }} · {{ factor.factor_id }}
+                      </a-select-option>
+                    </a-select>
+                  </a-form-item>
                   <a-form-item
+                    v-if="factorResearchMode === 'single'"
                     v-for="entry in researchFactorParameterEntries"
                     :key="entry[0]"
                     :label="entry[0]"
@@ -376,6 +375,15 @@
                       @change="setResearchFactorParam(entry[0], $event.target.value)"
                     />
                   </a-form-item>
+                  <a-form-item v-if="factorResearchMode === 'benchmark'" :label="$t('strategyV2.factorResearch.trainFraction')">
+                    <a-input-number v-model="benchmarkValidation.trainFraction" :min="0.5" :max="0.8" :step="0.05" class="full-width" />
+                  </a-form-item>
+                  <a-form-item v-if="factorResearchMode === 'benchmark'" :label="$t('strategyV2.factorResearch.falseDiscoveryRate')">
+                    <a-input-number v-model="benchmarkValidation.falseDiscoveryRate" :min="0.01" :max="0.5" :step="0.01" class="full-width" />
+                  </a-form-item>
+                  <a-form-item v-if="factorResearchMode === 'benchmark'" :label="$t('strategyV2.factorResearch.minimumOosIc')">
+                    <a-input-number v-model="benchmarkValidation.minimumAbsOosIc" :min="0" :max="1" :step="0.01" class="full-width" />
+                  </a-form-item>
                   <a-form-item :label="$t('strategyV2.factorResearch.groups')">
                     <a-input-number v-model="factorForm.groups" :min="2" :max="10" class="full-width" />
                   </a-form-item>
@@ -412,7 +420,7 @@
               :loading="running"
               @click="runActive"
             >
-              {{ mode === 'portfolio' ? $t('backtest-center.runBacktest') : $t('strategyV2.factorResearch.run') }}
+              {{ mode === 'portfolio' ? $t('backtest-center.runBacktest') : factorRunLabel }}
             </a-button>
           </div>
         </section>
@@ -423,7 +431,7 @@
               <h2>{{ mode === 'factor' ? $t('strategyV2.factorResearch.workspace') : $t('backtest-center.resultOverview') }}</h2>
               <span v-if="mode === 'factor' ? selectedUniverse : source" class="result-source-name">{{ mode === 'factor' ? factorUniverseLabel : source.name }}</span>
             </div>
-            <span v-if="selectedRun" class="run-id">{{ mode === 'factor' ? 'FR-' : '#' }}{{ selectedRun.id || selectedRun.runId }}</span>
+            <span v-if="selectedRun" class="run-id">{{ selectedRunLabel }}</span>
           </div>
 
           <div v-if="running && !activeResult" class="result-running" data-testid="backtest-running" aria-live="polite">
@@ -479,6 +487,7 @@
               <a-progress :percent="runProgressPercent" :show-info="false" status="active" />
             </div>
             <portfolio-result v-if="mode === 'portfolio'" :result="result" :is-dark="isDarkTheme" />
+            <factor-benchmark-result v-else-if="factorResult && factorResult.researchMode === 'benchmark'" :result="factorResult" :is-dark="isDarkTheme" />
             <factor-research-result v-else :result="factorResult" :is-dark="isDarkTheme" />
           </template>
         </section>
@@ -488,50 +497,73 @@
     <a-drawer
       v-if="mode !== 'evolution'"
       :visible="historyVisible"
-      :title="mode === 'factor' ? $t('strategyV2.factorResearch.historyTitle') : $t('strategyV2.backtest.historyTitle')"
+      :title="historyDrawerTitle"
       placement="right"
       width="430"
       :wrap-class-name="isDarkTheme ? 'backtest-history-drawer theme-dark' : 'backtest-history-drawer'"
       :destroy-on-close="false"
       @close="historyVisible = false"
     >
+      <a-radio-group
+        v-if="mode === 'factor'"
+        v-model="factorHistoryView"
+        class="factor-history-switch"
+        button-style="solid"
+        data-testid="factor-history-filter"
+      >
+        <a-radio-button value="all">{{ $t('strategyV2.factorResearch.historyAll') }} <b>{{ totalFactorHistoryCount }}</b></a-radio-button>
+        <a-radio-button value="single">{{ $t('strategyV2.factorResearch.historySingle') }} <b>{{ factorHistory.length }}</b></a-radio-button>
+        <a-radio-button value="benchmark">{{ $t('strategyV2.factorResearch.historyBenchmark') }} <b>{{ factorBenchmarkHistory.length }}</b></a-radio-button>
+      </a-radio-group>
       <div class="drawer-history-header" data-testid="backtest-history">
-        <p>{{ mode === 'factor' ? $t('strategyV2.factorResearch.historyDesc') : $t('strategyV2.backtest.historyDesc') }}</p>
+        <p>{{ historyDrawerDescription }}</p>
         <a-button icon="reload" size="small" :loading="historyLoading" @click="refreshCurrentHistory">
           {{ $t('backtest-center.refreshHistory') }}
         </a-button>
       </div>
       <div v-if="historyDetailLoading" class="drawer-detail-loading" role="status" aria-live="polite">
         <a-icon type="loading" />
-        <span>{{ mode === 'factor'
-          ? $t('strategyV2.factorResearch.historyLoading', { id: historyDetailRunId })
-          : $t('strategyV2.backtest.historyLoading', { id: historyDetailRunId }) }}</span>
+        <span>{{ historyDetailLoadingText }}</span>
       </div>
       <a-empty v-if="!historyLoading && !history.length" :description="mode === 'factor' ? $t('strategyV2.factorResearch.noHistory') : $t('strategyV2.backtest.noHistory')" />
       <div v-else class="drawer-run-list">
         <button
           v-for="item in history"
-          :key="item.id"
+          :key="historyItemKey(item)"
           type="button"
           class="run-card"
           :class="{
-            active: selectedRun && Number(selectedRun.id || selectedRun.runId) === Number(item.id),
-            loading: historyDetailLoading && Number(historyDetailRunId) === Number(item.id)
+            active: isHistoryItemActive(item),
+            loading: historyDetailLoading && historyDetailRunId === historyItemKey(item),
+            'run-card--benchmark': item.history_type === 'benchmark'
           }"
           :disabled="historyDetailLoading"
           @click="openRun(item)"
         >
           <span class="run-card__top">
-            <strong><a-icon v-if="historyDetailLoading && Number(historyDetailRunId) === Number(item.id)" type="loading" />{{ mode === 'factor' ? (item.universe_name || item.source_name || item.factor_id) : (item.strategy_name || item.symbol) }}</strong>
-            <em>{{ mode === 'factor' ? 'FR-' : '#' }}{{ item.id }}</em>
+            <strong><a-icon v-if="historyDetailLoading && historyDetailRunId === historyItemKey(item)" type="loading" />{{ mode === 'factor' ? (item.universe_name || item.source_name || item.factor_id) : (item.strategy_name || item.symbol) }}</strong>
+            <em>{{ historyRunLabel(item) }}</em>
           </span>
           <span class="run-card__meta">{{ item.market }} · {{ item.timeframe }} · {{ formatDate(item.created_at) }}</span>
           <template v-if="mode === 'factor'">
-            <span class="run-card__status status-complete">{{ factorLabel(item.factor_id) }} · {{ item.groups_count }}Q · {{ item.holding_period }}{{ $t('strategyV2.factorResearch.bars') }}</span>
-            <span class="run-card__metrics factor-history-metrics">
-              <b :class="factorTone(item.rank_ic)">IC {{ formatSignedNumber(item.rank_ic, 4) }}</b>
-              <small>{{ $t('strategyV2.factorResearch.icir') }} {{ formatNumber(item.icir, 3) }} · {{ $t('strategyV2.factorResearch.netLongShort') }} {{ formatRate(item.net_long_short_return) }}</small>
+            <span class="history-kind-pill" :class="`history-kind-pill--${item.history_type || 'single'}`">
+              <a-icon :type="item.history_type === 'benchmark' ? 'experiment' : 'line-chart'" />
+              {{ $t(item.history_type === 'benchmark' ? 'strategyV2.factorResearch.historyTypeBenchmark' : 'strategyV2.factorResearch.historyTypeSingle') }}
             </span>
+            <template v-if="item.history_type === 'benchmark'">
+              <span class="run-card__status status-complete">{{ $t('strategyV2.factorResearch.factorsCompleted', { completed: item.completed_count, total: item.factor_count }) }} · {{ $t('strategyV2.factorResearch.validatedFactors', { count: item.validated_count }) }}</span>
+              <span class="run-card__metrics factor-history-metrics">
+                <b>{{ $t('strategyV2.factorResearch.historyBestFactor', { factor: item.best_factor_id || '-' }) }}</b>
+                <small>{{ $t('strategyV2.factorResearch.score') }} {{ formatNumber(item.best_score, 1) }} · {{ $t('strategyV2.factorResearch.failedFactorsCount', { count: item.failed_count || 0 }) }}</small>
+              </span>
+            </template>
+            <template v-else>
+              <span class="run-card__status status-complete">{{ factorLabel(item.factor_id) }} · {{ item.groups_count }}Q · {{ item.holding_period }}{{ $t('strategyV2.factorResearch.bars') }}</span>
+              <span class="run-card__metrics factor-history-metrics">
+                <b :class="factorTone(item.rank_ic)">IC {{ formatSignedNumber(item.rank_ic, 4) }}</b>
+                <small>{{ $t('strategyV2.factorResearch.icir') }} {{ formatNumber(item.icir, 3) }} · {{ $t('strategyV2.factorResearch.netLongShort') }} {{ formatRate(item.net_long_short_return) }}</small>
+              </span>
+            </template>
           </template>
           <template v-else>
             <span class="run-card__status" :class="`status-${item.result_status || 'unknown'}`">{{ historyStatusLabel(item) }}</span>
@@ -557,16 +589,20 @@ import {
   compileScriptSource,
   getScriptSourceDetail,
   getScriptSourceList,
+  getStrategyFactorBenchmarkHistory,
+  getStrategyFactorBenchmarkRun,
   getStrategyFactorResearchHistory,
   getStrategyFactorResearchRun,
   getStrategyBacktestHistory,
   getStrategyBacktestJob,
   getStrategyBacktestRun,
   runStrategyFactorResearch,
+  runStrategyFactorBenchmark,
   startStrategyBacktestJob
 } from '@/api/strategy'
 import PortfolioResult from './PortfolioResult.vue'
 import FactorResearchResult from './FactorResearchResult.vue'
+import FactorBenchmarkResult from './FactorBenchmarkResult.vue'
 import StrategyEvolution from './StrategyEvolution.vue'
 import {
   strategyParameterDescription,
@@ -578,19 +614,38 @@ import { ratioPercentInputFormatter, ratioPercentInputParser } from '@/utils/num
 import { getFactorCatalog } from '@/api/factor'
 import { getUniverses } from '@/api/universe'
 
+const WORKSPACE_MODE_STORAGE_KEY = 'quantdinger:backtest-center:mode'
+const FACTOR_ID_STORAGE_KEY = 'quantdinger:backtest-center:factor-id'
+const FACTOR_RESEARCH_MODE_STORAGE_KEY = 'quantdinger:backtest-center:factor-research-mode'
+
+function storedWorkspaceMode () {
+  const value = window.localStorage.getItem(WORKSPACE_MODE_STORAGE_KEY)
+  return ['portfolio', 'factor', 'evolution'].includes(value) ? value : 'portfolio'
+}
+
+function storedFactorId () {
+  return window.localStorage.getItem(FACTOR_ID_STORAGE_KEY) || 'momentum_20'
+}
+
+function storedFactorResearchMode () {
+  const value = window.localStorage.getItem(FACTOR_RESEARCH_MODE_STORAGE_KEY)
+  return ['single', 'benchmark'].includes(value) ? value : 'single'
+}
+
 export default {
   name: 'BacktestCenter',
-  components: { PortfolioResult, FactorResearchResult, StrategyEvolution },
+  components: { PortfolioResult, FactorResearchResult, FactorBenchmarkResult, StrategyEvolution },
   data () {
     const latestCompleteDate = moment().subtract(1, 'day').startOf('day')
     return {
-      mode: 'portfolio',
+      mode: storedWorkspaceMode(),
       sources: [],
       sourcesLoading: false,
       universes: [],
       universesLoading: false,
       portfolioHistory: [],
       factorHistory: [],
+      factorBenchmarkHistory: [],
       source: null,
       sourceCategory: 'all',
       manifest: null,
@@ -608,6 +663,7 @@ export default {
       runTimer: null,
       historyLoading: false,
       historyVisible: false,
+      factorHistoryView: 'all',
       historyLoadedByMode: { portfolio: false, factor: false },
       historyRequestSequence: 0,
       historyDetailLoading: false,
@@ -631,12 +687,19 @@ export default {
       factorForm: {
         universeId: null,
         frequency: '1d',
-        factorId: 'momentum_20',
+        factorId: storedFactorId(),
         groups: 5,
         holdingPeriod: 5,
         neutralizeIndustry: false
       },
       factorParams: {},
+      factorResearchMode: storedFactorResearchMode(),
+      benchmarkFactorIds: ['momentum_20', 'volatility_20', 'reversal_5'],
+      benchmarkValidation: {
+        trainFraction: 0.6,
+        falseDiscoveryRate: 0.1,
+        minimumAbsOosIc: 0.02
+      },
       researchFactors: [],
       factorCatalogLoading: false
     }
@@ -653,17 +716,35 @@ export default {
       return this.mode === 'portfolio' ? this.result : this.factorResult
     },
     runProgressPercent () {
+      if (this.mode === 'factor' && this.running) return this.factorEstimatedProgress
       const percent = Number(this.runProgress && this.runProgress.percent)
       return Number.isFinite(percent) ? Math.max(0, Math.min(100, Math.round(percent))) : 0
     },
+    factorEstimatedProgress () {
+      const factorCount = this.factorResearchMode === 'benchmark' ? Math.max(2, this.benchmarkFactorIds.length) : 1
+      const memberCount = Number((this.selectedUniverse && this.selectedUniverse.member_count) || 0)
+      const expectedSeconds = Math.max(24, 15 + factorCount * 3.2 + Math.min(memberCount, 300) * 0.12)
+      const completion = 1 - Math.exp(-Number(this.runElapsedSeconds || 0) / (expectedSeconds * 0.45))
+      return Math.max(4, Math.min(94, Math.round(4 + completion * 90)))
+    },
+    factorProgressPhase () {
+      if (this.factorEstimatedProgress < 20) return 'loading_universe'
+      if (this.factorEstimatedProgress < 72) return 'computing_factors'
+      if (this.factorEstimatedProgress < 90) return 'validating'
+      return 'saving'
+    },
     currentProgressLabel () {
-      if (this.mode === 'factor') return this.$t('strategyV2.factorResearch.runningTitle')
+      if (this.mode === 'factor') return this.$t(`strategyV2.factorResearch.stage.${this.factorProgressPhase}`)
       const phase = String((this.runProgress && this.runProgress.phase) || 'preparing')
       const key = `backtestWorkbench.stage.${phase}`
       return this.$te(key) ? this.$t(key) : this.$t('strategyV2.backtest.runningTitle')
     },
     modeContextLabel () {
-      if (this.mode === 'factor') return this.$t('strategyV2.factorResearch.workspace')
+      if (this.mode === 'factor') {
+        return this.$t(this.factorResearchMode === 'benchmark'
+          ? 'strategyV2.factorResearch.benchmarkMode'
+          : 'strategyV2.factorResearch.singleMode')
+      }
       if (this.mode === 'evolution') return this.$t('strategyEvolution.workspace')
       return this.$t('backtest-center.resultOverview')
     },
@@ -687,7 +768,50 @@ export default {
       return ['1m', '3m', '5m', '15m', '30m', '1h', '4h', '1d', '1w']
     },
     history () {
-      return this.mode === 'factor' ? this.factorHistory : this.portfolioHistory
+      if (this.mode !== 'factor') return this.portfolioHistory
+      if (this.factorHistoryView === 'single') return this.factorHistory
+      if (this.factorHistoryView === 'benchmark') return this.factorBenchmarkHistory
+      return [...this.factorHistory, ...this.factorBenchmarkHistory]
+        .sort((left, right) => new Date(right.created_at || 0) - new Date(left.created_at || 0))
+    },
+    totalFactorHistoryCount () {
+      return this.factorHistory.length + this.factorBenchmarkHistory.length
+    },
+    historyButtonLabel () {
+      if (this.mode !== 'factor') return this.$t('strategyV2.backtest.historyTitle')
+      return this.$t(this.factorResearchMode === 'benchmark'
+        ? 'strategyV2.factorResearch.benchmarkHistoryTitle'
+        : 'strategyV2.factorResearch.singleHistoryTitle')
+    },
+    historyDrawerTitle () {
+      if (this.mode !== 'factor') return this.$t('strategyV2.backtest.historyTitle')
+      if (this.factorHistoryView === 'single') return this.$t('strategyV2.factorResearch.singleHistoryTitle')
+      if (this.factorHistoryView === 'benchmark') return this.$t('strategyV2.factorResearch.benchmarkHistoryTitle')
+      return this.$t('strategyV2.factorResearch.historyTitle')
+    },
+    historyDrawerDescription () {
+      if (this.mode !== 'factor') return this.$t('strategyV2.backtest.historyDesc')
+      if (this.factorHistoryView === 'single') return this.$t('strategyV2.factorResearch.singleHistoryDesc')
+      if (this.factorHistoryView === 'benchmark') return this.$t('strategyV2.factorResearch.benchmarkHistoryDesc')
+      return this.$t('strategyV2.factorResearch.historyDesc')
+    },
+    historyDetailDisplayId () {
+      const id = String(this.historyDetailRunId || '').split(':').slice(1).join(':') || '-'
+      return String(this.historyDetailRunId || '').startsWith('benchmark:') ? id.slice(0, 8) : id
+    },
+    historyDetailLoadingText () {
+      if (this.mode !== 'factor') return this.$t('strategyV2.backtest.historyLoading', { id: this.historyDetailDisplayId })
+      if (String(this.historyDetailRunId || '').startsWith('benchmark:')) {
+        return this.$t('strategyV2.factorResearch.benchmarkHistoryLoading', { id: this.historyDetailDisplayId })
+      }
+      return this.$t('strategyV2.factorResearch.historyLoading', { id: this.historyDetailDisplayId })
+    },
+    selectedRunLabel () {
+      if (!this.selectedRun) return ''
+      const id = this.selectedRun.benchmark_id || this.selectedRun.id || this.selectedRun.runId
+      if (this.mode !== 'factor') return `#${id}`
+      if (this.factorResearchMode === 'benchmark') return `MF-${String(id || '').slice(0, 8)}`
+      return `FR-${id}`
     },
     factorCompatible () {
       return Boolean(this.selectedUniverse && Number(this.selectedUniverse.member_count || 0) >= 3)
@@ -804,8 +928,16 @@ export default {
       })
     },
     runDisabled () {
-      if (this.mode === 'factor') return this.universesLoading || this.backtestRangeExceeded || !this.factorCompatible
+      if (this.mode === 'factor') {
+        const factorSelectionInvalid = this.factorResearchMode === 'benchmark' && this.benchmarkFactorIds.length < 2
+        return this.universesLoading || this.backtestRangeExceeded || !this.factorCompatible || factorSelectionInvalid
+      }
       return this.sourceContractLoading || !this.manifest || this.backtestRangeExceeded
+    },
+    factorRunLabel () {
+      return this.$t(this.factorResearchMode === 'benchmark'
+        ? 'strategyV2.factorResearch.runBenchmark'
+        : 'strategyV2.factorResearch.run')
     },
     strategyTypeLabel () {
       const type = String((this.manifest && this.manifest.strategyType) || 'cta')
@@ -933,7 +1065,11 @@ export default {
       this.$nextTick(this.renderEquityChart)
     },
     mode (value) {
+      window.localStorage.setItem(WORKSPACE_MODE_STORAGE_KEY, value)
       this.handleModeChange(value)
+    },
+    factorResearchMode (value) {
+      window.localStorage.setItem(FACTOR_RESEARCH_MODE_STORAGE_KEY, value)
     },
     '$route.query.sourceId' () {
       if (this.pageReady && this.mode === 'portfolio') this.syncRouteSource({ fallback: true })
@@ -1133,12 +1269,19 @@ export default {
       this.$set(this.factorParams, key, value)
     },
     handleResearchFactorChange () {
+      window.localStorage.setItem(FACTOR_ID_STORAGE_KEY, this.factorForm.factorId || '')
       this.factorParams = { ...((this.selectedResearchFactor && this.selectedResearchFactor.default_params) || {}) }
       this.handleFactorResearchContextChange()
     },
     handleFactorResearchContextChange () {
       this.factorResult = null
       this.selectedRun = null
+    },
+    selectFactorResearchMode (value) {
+      if (!['single', 'benchmark'].includes(value) || value === this.factorResearchMode) return
+      this.factorResearchMode = value
+      this.factorHistoryView = value
+      this.handleFactorResearchContextChange()
     },
     onSourceDropdownVisibleChange (visible) {
       if (!visible || this.sourcesLoading) return
@@ -1152,12 +1295,19 @@ export default {
       const requestSequence = ++this.historyRequestSequence
       if (requestedMode === this.mode) this.historyLoading = true
       try {
-        const response = requestedMode === 'factor'
-          ? await getStrategyFactorResearchHistory({ limit: 24 })
-          : await getStrategyBacktestHistory({ limit: 24 })
-        const items = Array.isArray(response.data) ? response.data : []
-        if (requestedMode === 'factor') this.factorHistory = items
-        else this.portfolioHistory = items
+        if (requestedMode === 'factor') {
+          const [singleResponse, benchmarkResponse] = await Promise.all([
+            getStrategyFactorResearchHistory({ researchType: 'single', limit: 48 }),
+            getStrategyFactorBenchmarkHistory({ limit: 24 })
+          ])
+          this.factorHistory = (Array.isArray(singleResponse.data) ? singleResponse.data : [])
+            .map(item => ({ ...item, history_type: 'single' }))
+          this.factorBenchmarkHistory = (Array.isArray(benchmarkResponse.data) ? benchmarkResponse.data : [])
+            .map(item => ({ ...item, history_type: 'benchmark' }))
+        } else {
+          const response = await getStrategyBacktestHistory({ limit: 24 })
+          this.portfolioHistory = Array.isArray(response.data) ? response.data : []
+        }
         this.historyLoadedByMode = { ...this.historyLoadedByMode, [requestedMode]: true }
       } finally {
         if (requestSequence === this.historyRequestSequence || requestedMode === this.mode) {
@@ -1169,10 +1319,28 @@ export default {
       return this.loadHistory({ mode: this.mode, force: true })
     },
     openHistoryDrawer () {
+      if (this.mode === 'factor') this.factorHistoryView = this.factorResearchMode
       this.historyVisible = true
       this.loadHistory({ mode: this.mode }).catch(error => {
         this.$message.error((error && error.backendMessage) || this.$t('strategyV2.backtest.historyLoadFailed'))
       })
+    },
+    historyItemKey (item) {
+      if (this.mode === 'factor') return `${item.history_type || 'single'}:${item.id}`
+      return `portfolio:${item.id}`
+    },
+    isHistoryItemActive (item) {
+      if (!this.selectedRun) return false
+      if (this.mode === 'factor' && item.history_type === 'benchmark') {
+        const selectedId = this.selectedRun.benchmark_id || this.selectedRun.id || (this.factorResult && this.factorResult.benchmarkId)
+        return String(selectedId || '') === String(item.id || '')
+      }
+      return Number(this.selectedRun.id || this.selectedRun.runId) === Number(item.id)
+    },
+    historyRunLabel (item) {
+      if (this.mode !== 'factor') return `#${item.id}`
+      if (item.history_type === 'benchmark') return `MF-${String(item.id || '').slice(0, 8)}`
+      return `FR-${item.id}`
     },
     async syncRouteSource ({ fallback = false, forceReload = false, preserveParams = false } = {}) {
       const routeSourceId = Number(this.$route.query.sourceId)
@@ -1510,23 +1678,36 @@ export default {
       }
       if (!this.ensureBacktestRangeAllowed()) return
       this.running = true
+      this.runProgress = { phase: 'loading_universe', percent: 4 }
       this.startRunTimer()
       try {
-        const response = await runStrategyFactorResearch({
+        const sharedPayload = {
           universeId: this.factorForm.universeId,
           frequency: this.factorForm.frequency,
           startDate: this.form.startDate.format('YYYY-MM-DD'),
           endDate: this.form.endDate.format('YYYY-MM-DD'),
           commission: this.form.commission,
           slippage: this.form.slippage,
-          factorId: this.factorForm.factorId,
-          factorParams: { ...this.factorParams },
           groups: this.factorForm.groups,
           holdingPeriod: this.factorForm.holdingPeriod,
           neutralizeIndustry: this.factorForm.neutralizeIndustry
-        })
+        }
+        const response = this.factorResearchMode === 'benchmark'
+          ? await runStrategyFactorBenchmark({
+            ...sharedPayload,
+            factors: this.benchmarkFactorIds.map(factorId => ({ factorId, factorParams: {} })),
+            ...this.benchmarkValidation
+          })
+          : await runStrategyFactorResearch({
+            ...sharedPayload,
+            factorId: this.factorForm.factorId,
+            factorParams: { ...this.factorParams }
+          })
+        this.runProgress = { phase: 'completed', percent: 100 }
         this.factorResult = response.data
-        this.selectedRun = { id: response.data && response.data.runId }
+        this.selectedRun = this.factorResearchMode === 'benchmark'
+          ? { id: response.data && response.data.benchmarkId }
+          : { id: response.data && response.data.runId }
         await this.loadHistory({ mode: 'factor', force: true })
       } catch (error) {
         this.$message.error((error && error.backendMessage) || this.$t('strategyV2.factorResearch.runFailed'))
@@ -1540,9 +1721,13 @@ export default {
     },
     async openRun (item) {
       if (this.historyDetailLoading) return
-      if (this.mode === 'factor') return this.openFactorRun(item)
+      if (this.mode === 'factor') {
+        return item.history_type === 'benchmark'
+          ? this.openFactorBenchmarkRun(item)
+          : this.openFactorRun(item)
+      }
       this.historyDetailLoading = true
-      this.historyDetailRunId = item.id
+      this.historyDetailRunId = this.historyItemKey(item)
       try {
         const response = await getStrategyBacktestRun(item.id)
         const run = response.data || {}
@@ -1593,10 +1778,11 @@ export default {
     async openFactorRun (item) {
       if (this.historyDetailLoading) return
       this.historyDetailLoading = true
-      this.historyDetailRunId = item.id
+      this.historyDetailRunId = this.historyItemKey(item)
       try {
         const response = await getStrategyFactorResearchRun(item.id)
         const run = response.data || {}
+        this.factorResearchMode = 'single'
         this.selectedRun = run
         this.factorResult = run.result || null
         this.factorForm = {
@@ -1620,6 +1806,45 @@ export default {
           this.manifest = compiled.data && compiled.data.manifest
           this.backtestRangePolicy = compiled.data && compiled.data.backtestRangePolicy
         }
+        this.historyVisible = false
+      } catch (error) {
+        this.$message.error((error && error.backendMessage) || this.$t('strategyV2.factorResearch.historyLoadFailed'))
+      } finally {
+        this.historyDetailLoading = false
+        this.historyDetailRunId = null
+      }
+    },
+    async openFactorBenchmarkRun (item) {
+      if (this.historyDetailLoading) return
+      this.historyDetailLoading = true
+      this.historyDetailRunId = this.historyItemKey(item)
+      try {
+        const response = await getStrategyFactorBenchmarkRun(item.id)
+        const run = response.data || {}
+        const result = run.result || {}
+        this.factorResearchMode = 'benchmark'
+        this.selectedRun = run
+        this.factorResult = result
+        this.factorForm = {
+          universeId: Number(run.universe_id || (result.universe && result.universe.id)) || null,
+          frequency: run.timeframe || result.frequency || '1d',
+          factorId: this.factorForm.factorId,
+          groups: Number(run.groups_count || 5),
+          holdingPeriod: Number(run.holding_period || 5),
+          neutralizeIndustry: Boolean(run.neutralize_industry)
+        }
+        this.benchmarkFactorIds = (result.rankings || []).map(row => row.factorId).filter(Boolean)
+        if (result.validation) {
+          this.benchmarkValidation = {
+            trainFraction: Number(result.validation.trainFraction || 0.6),
+            falseDiscoveryRate: Number(result.validation.falseDiscoveryRate || 0.1),
+            minimumAbsOosIc: Number(result.validation.minimumAbsOosIc || 0.02)
+          }
+        }
+        this.form.commission = Number(run.commission || 0)
+        this.form.slippage = Number(run.slippage || 0)
+        if (run.start_date) this.form.startDate = moment(run.start_date)
+        if (run.end_date) this.form.endDate = moment(run.end_date)
         this.historyVisible = false
       } catch (error) {
         this.$message.error((error && error.backendMessage) || this.$t('strategyV2.factorResearch.historyLoadFailed'))
@@ -1704,6 +1929,14 @@ export default {
 .workspace-mode-tabs /deep/ .ant-radio-button-wrapper:first-child { border-radius: 6px 0 0 6px; }
 .workspace-mode-tabs /deep/ .ant-radio-button-wrapper:last-child { border-radius: 0 6px 6px 0; }
 .workspace-toolbar__context { overflow: hidden; color: var(--workspace-muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.workspace-factor-mode { display: inline-flex; min-width: 0; align-items: center; gap: 7px; }
+.workspace-factor-mode__label { color: var(--workspace-muted); font-size: 10px; white-space: nowrap; }
+.factor-mode-compact { display: inline-flex; overflow: hidden; flex: none; padding: 2px; border: 1px solid var(--workspace-border); border-radius: 7px; background: var(--workspace-surface); }
+.factor-mode-compact__button { display: inline-flex; height: 26px; align-items: center; gap: 6px; padding: 0 9px; border: 0; border-radius: 5px; color: var(--workspace-muted); background: transparent; font-size: 11px; font-weight: 600; line-height: 26px; white-space: nowrap; cursor: pointer; transition: color .16s ease, background .16s ease, box-shadow .16s ease; }
+.factor-mode-compact__button:hover { color: var(--primary-color, #52c41a); }
+.factor-mode-compact__button.active { color: var(--primary-color, #52c41a); background: #fff; box-shadow: 0 1px 4px rgba(15, 35, 60, .13); }
+.factor-mode-compact__button b { min-width: 17px; height: 17px; padding: 0 5px; border-radius: 999px; color: var(--workspace-faint); background: color-mix(in srgb, var(--workspace-border) 58%, transparent); font-size: 9px; font-weight: 700; line-height: 17px; text-align: center; }
+.factor-mode-compact__button.active b { color: #fff; background: var(--primary-color, #52c41a); }
 .section-hint, .history-title-row p { margin: 0; color: var(--workspace-muted); font-size: 12px; line-height: 1.55; }
 .hero-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
 .hero-stat { display: inline-flex; align-items: baseline; gap: 5px; padding: 7px 10px; border-radius: 8px; color: #718096; background: #f7f9fb; font-size: 12px; }
@@ -1713,22 +1946,13 @@ export default {
 .source-category-switch /deep/ .ant-radio-button-wrapper:last-child { border-radius: 0 6px 6px 0; }
 .source-empty-alert { margin-top: 10px; }
 .hero-stat strong { color: #25364f; font-size: 16px; }
-.command-bar { position: sticky; z-index: 18; top: 58px; display: grid; grid-template-columns: minmax(240px, 1.4fr) minmax(340px, 1.25fr) minmax(150px, .55fr) auto; align-items: end; gap: 12px; margin-bottom: 10px; padding: 11px 14px; border: 1px solid #e2e6eb; border-radius: 10px; background: #fff; box-shadow: 0 -10px 0 #f1f3f5, 0 8px 24px rgba(15, 35, 60, .055); }
-.command-bar__source, .command-bar__range, .command-bar__capital, .command-bar__factor { display: grid; min-width: 0; gap: 5px; }
-.command-bar__range { grid-template-columns: minmax(120px, 1fr) 16px minmax(120px, 1fr); }
-.command-bar__range .command-label { grid-column-start: 1; grid-column-end: 4; }
-.command-label { overflow: hidden; color: var(--workspace-muted); font-size: 11px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
-.command-source-select, .command-bar__factor /deep/ .ant-select { width: 100%; }
-.command-range-separator { align-self: center; color: #98a2b3; text-align: center; }
-.command-bar__capital /deep/ .ant-input-number { width: 100%; }
-.command-bar__actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
 .workspace-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; align-items: start; }
 .workspace-grid.settings-open { grid-template-columns: 332px minmax(620px, 1fr); }
 .panel { padding: 14px; }
-.config-panel { position: sticky; top: 60px; display: flex; overflow: hidden; height: calc(100vh - 150px); min-height: 610px; flex-direction: column; padding: 0; }
-.config-scroll { min-height: 0; overflow-y: auto; padding: 10px 10px 4px; scrollbar-gutter: stable; }
+.config-panel { position: sticky; top: 60px; display: flex; overflow: hidden; height: calc(100vh - 164px); height: calc(100dvh - 164px); min-height: 0; flex-direction: column; padding: 0; }
+.config-scroll { min-height: 0; overflow-y: auto; flex: 1 1 auto; padding: 10px 10px 4px; scrollbar-gutter: stable; }
 .run-action-bar { position: relative; z-index: 2; flex: none; padding: 10px 14px 14px; border-top: 1px solid #e8edf2; background: #fff; box-shadow: 0 -8px 20px rgba(15, 35, 60, 0.05); }
-.result-panel { min-height: calc(100vh - 150px); overflow: hidden; }
+.result-panel { height: calc(100vh - 164px); height: calc(100dvh - 164px); min-height: 0; overflow-x: hidden; overflow-y: auto; }
 .result-progress-strip { display: grid; grid-template-columns: minmax(260px, .8fr) minmax(220px, 1.2fr); align-items: center; gap: 16px; margin-bottom: 12px; padding: 10px 13px; border: 1px solid color-mix(in srgb, var(--primary-color, #52c41a) 28%, #e2e6eb); border-radius: 9px; color: #516075; background: color-mix(in srgb, var(--primary-color, #52c41a) 5%, #fff); }
 .result-progress-strip > div { display: flex; min-width: 0; align-items: center; gap: 8px; }
 .result-progress-strip .anticon, .result-progress-strip strong { color: var(--primary-color, #52c41a); }
@@ -1791,11 +2015,36 @@ export default {
 .result-heading { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #edf0f4; }
 .result-heading > div { min-width: 0; }
 .result-source-name { overflow: hidden; max-width: 420px; color: #7c8ca1; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
-.factor-contract-note { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 8px; margin: 8px 0 12px; padding: 9px 0 10px; border-bottom: 1px solid var(--workspace-border); color: var(--workspace-muted); }
-.factor-contract-note > .anticon { margin-top: 2px; color: var(--primary-color, #52c41a); }
+.factor-settings { position: relative; overflow: hidden; padding: 0; background: #fff; }
+.factor-settings::before { position: absolute; top: 0; left: 0; width: 3px; height: 54px; background: var(--primary-color, #52c41a); content: ''; }
+.factor-settings > .config-section__heading { margin: 0; padding: 13px 13px 10px; border-bottom: 1px solid var(--workspace-border); background: linear-gradient(110deg, color-mix(in srgb, var(--primary-color, #52c41a) 7%, #fff), #fff 62%); }
+.factor-settings > .factor-contract-note,
+.factor-settings > .factor-research-mode,
+.factor-settings > .benchmark-selection-summary,
+.factor-settings > .form-grid { margin-right: 12px; margin-left: 12px; }
+.factor-contract-note { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 9px; margin-top: 11px; margin-bottom: 10px; padding: 9px; border: 1px solid var(--workspace-border); border-radius: 8px; color: var(--workspace-muted); background: var(--workspace-surface); }
+.factor-contract-note > .anticon { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 7px; color: var(--primary-color, #52c41a); background: color-mix(in srgb, var(--primary-color, #52c41a) 10%, transparent); }
 .factor-contract-note strong, .factor-contract-note span { display: block; }
-.factor-contract-note strong { color: var(--workspace-text); font-size: 12px; line-height: 1.45; }
-.factor-contract-note span { margin-top: 3px; color: var(--workspace-muted); font-size: 11px; line-height: 1.55; }
+.factor-contract-note strong { color: var(--workspace-text); font-size: 11px; line-height: 1.45; }
+.factor-contract-note span { margin-top: 2px; color: var(--workspace-muted); font-size: 10px; line-height: 1.5; }
+.factor-research-mode { display: flex; width: calc(100% - 24px); overflow: hidden; margin-bottom: 10px; border-radius: 7px; }
+.factor-research-mode /deep/ .ant-radio-button-wrapper { flex: 1 1 0; height: 34px; padding: 0 8px; border-color: var(--workspace-border); color: var(--workspace-muted); background: var(--workspace-surface); font-size: 11px; line-height: 32px; text-align: center; }
+.factor-research-mode /deep/ .ant-radio-button-wrapper:first-child { border-radius: 7px 0 0 7px; }
+.factor-research-mode /deep/ .ant-radio-button-wrapper:last-child { border-radius: 0 7px 7px 0; }
+.factor-research-mode /deep/ .ant-radio-button-wrapper-checked { border-color: var(--primary-color, #52c41a); color: #fff; background: var(--primary-color, #52c41a); box-shadow: -1px 0 0 0 var(--primary-color, #52c41a); }
+.benchmark-selection-summary { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 9px; align-items: center; margin-bottom: 10px; padding: 10px; border: 1px solid color-mix(in srgb, var(--primary-color, #52c41a) 28%, var(--workspace-border)); border-radius: 8px; background: color-mix(in srgb, var(--primary-color, #52c41a) 5%, #fff); }
+.benchmark-selection-summary > span { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; color: var(--primary-color, #52c41a); background: color-mix(in srgb, var(--primary-color, #52c41a) 10%, transparent); }
+.benchmark-selection-summary strong, .benchmark-selection-summary small { display: block; }
+.benchmark-selection-summary strong { color: var(--workspace-heading); font-size: 11px; }
+.benchmark-selection-summary small { margin-top: 2px; color: var(--workspace-muted); font-size: 9px; }
+.benchmark-selection-summary em { display: grid; place-items: center; min-width: 28px; height: 28px; border: 1px solid color-mix(in srgb, var(--primary-color, #52c41a) 38%, var(--workspace-border)); border-radius: 8px; color: var(--primary-color, #52c41a); background: #fff; font-size: 12px; font-style: normal; font-weight: 800; }
+.factor-settings > .form-grid { padding-bottom: 4px; }
+.factor-settings /deep/ .ant-form-item { margin-bottom: 10px; }
+.factor-settings /deep/ .ant-form-item-label { padding-bottom: 4px; line-height: 1; }
+.factor-settings /deep/ .ant-select-selection,
+.factor-settings /deep/ .ant-input-number { border-color: var(--workspace-border); border-radius: 7px; background: #fff; }
+.factor-settings /deep/ .ant-select-selection--multiple { min-height: 70px; padding: 3px; }
+.factor-settings /deep/ .ant-select-selection--multiple .ant-select-selection__choice { max-width: 100%; border-color: var(--workspace-border); border-radius: 5px; background: var(--workspace-surface); }
 .subheading h3 { margin: 0; color: #26364c; font-size: 14px; }
 .subheading span { color: #7c8ca1; font-size: 11px; }
 .metrics-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -1853,6 +2102,10 @@ export default {
 .history-title-row { align-items: flex-start; }
 .history-title-row p { margin-top: 4px; font-size: 12px; }
 .drawer-history-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.factor-history-switch { display: flex; width: 100%; margin-bottom: 14px; }
+.factor-history-switch /deep/ .ant-radio-button-wrapper { display: inline-flex; flex: 1 1 0; align-items: center; justify-content: center; gap: 6px; color: #64748b; text-align: center; }
+.factor-history-switch /deep/ .ant-radio-button-wrapper b { display: inline-flex; min-width: 18px; height: 18px; align-items: center; justify-content: center; padding: 0 5px; border-radius: 999px; color: inherit; background: rgba(100, 116, 139, .1); font-size: 9px; }
+.factor-history-switch /deep/ .ant-radio-button-wrapper-checked b { background: rgba(255, 255, 255, .2); }
 .drawer-history-header p { margin: 0; color: #718096; font-size: 12px; line-height: 1.55; }
 .drawer-run-list { display: flex; flex-direction: column; gap: 9px; }
 .run-card { display: flex; min-width: 0; flex-direction: column; gap: 6px; padding: 11px; border: 1px solid #e6eaf0; border-radius: 9px; background: #fafbfc; color: inherit; text-align: left; cursor: pointer; transition: 0.16s ease; }
@@ -1864,6 +2117,9 @@ export default {
 .run-card__status { width: fit-content; padding: 2px 6px; border-radius: 999px; color: #4d7c0f; background: #ecfccb; font-size: 9px; }
 .run-card__status.status-no_signals, .run-card__status.status-open_position_only { color: #a16207; background: #fef3c7; }
 .run-card__status.status-unknown { color: #64748b; background: #e2e8f0; }
+.history-kind-pill { display: inline-flex; width: fit-content; align-items: center; gap: 5px; padding: 3px 7px; border: 1px solid #dce4ed; border-radius: 5px; color: #64748b; background: #fff; font-size: 9px; font-weight: 650; }
+.history-kind-pill--benchmark { border-color: color-mix(in srgb, var(--primary-color, #52c41a) 34%, #dce4ed); color: var(--primary-color, #52c41a); background: color-mix(in srgb, var(--primary-color, #52c41a) 6%, #fff); }
+.run-card--benchmark { border-left: 3px solid color-mix(in srgb, var(--primary-color, #52c41a) 70%, transparent); }
 .run-card__metrics b { font-size: 15px; }
 .factor-history-metrics b { font-variant-numeric: tabular-nums; }
 .run-card__metrics small { color: #8491a4; }
@@ -1878,8 +2134,12 @@ export default {
   color: var(--workspace-text);
 }
 .theme-dark .workspace-toolbar, .theme-dark .panel { border-color: #2d2d2d; background: #111111; box-shadow: 0 8px 26px rgba(0, 0, 0, 0.24); }
-.theme-dark .command-bar { border-color: #2d2d2d; background: #111111; box-shadow: 0 -10px 0 #080808, 0 8px 26px rgba(0, 0, 0, .24); }
-.theme-dark .command-label { color: rgba(255, 255, 255, .42); }
+.theme-dark .factor-mode-compact { border-color: #303030; background: #0d0d0d; }
+.theme-dark .factor-mode-compact__button { color: rgba(255, 255, 255, .5); }
+.theme-dark .factor-mode-compact__button:hover { color: var(--primary-color, #52c41a); }
+.theme-dark .factor-mode-compact__button.active { color: var(--primary-color, #52c41a); background: #1b1b1b; box-shadow: 0 1px 5px rgba(0, 0, 0, .35); }
+.theme-dark .factor-mode-compact__button b { color: rgba(255, 255, 255, .42); background: #292929; }
+.theme-dark .factor-mode-compact__button.active b { color: #fff; background: var(--primary-color, #52c41a); }
 .theme-dark .result-progress-strip { border-color: color-mix(in srgb, var(--primary-color, #52c41a) 34%, #2d2d2d); background: color-mix(in srgb, var(--primary-color, #52c41a) 7%, #111111); }
 .theme-dark .workspace-toolbar__context { color: rgba(255, 255, 255, 0.42); }
 .theme-dark .run-action-bar { border-color: #2d2d2d; background: #111111; box-shadow: 0 -10px 24px rgba(0, 0, 0, 0.28); }
@@ -1903,6 +2163,8 @@ export default {
 .theme-dark .result-trustbar.is-error { border-color: #6b2525; background: #251111; color: #ff7875; }
 .theme-dark .result-trustbar span { color: rgba(255, 255, 255, 0.52); }
 .theme-dark .run-card:hover, .theme-dark .run-card.active { border-color: var(--primary-color, #52c41a); background: color-mix(in srgb, var(--primary-color, #52c41a) 10%, #111); }
+.theme-dark .history-kind-pill { border-color: #303030; color: rgba(255, 255, 255, .58); background: #151515; }
+.theme-dark .history-kind-pill--benchmark { border-color: color-mix(in srgb, var(--primary-color, #52c41a) 40%, #303030); color: var(--primary-color, #52c41a); background: color-mix(in srgb, var(--primary-color, #52c41a) 9%, #111); }
 .theme-dark .empty-hero-card { border-color: var(--workspace-border); background: var(--workspace-surface); box-shadow: none; }
 .theme-dark .empty-preview-card { border-color: var(--workspace-border); background: #111111; }
 .theme-dark .empty-preview-card strong { color: #e5e7eb; }
@@ -1925,12 +2187,22 @@ export default {
 .theme-dark .dependency-summary strong { color: var(--workspace-text); }
 .theme-dark .factor-contract-note { border-color: var(--workspace-border); }
 .theme-dark .factor-contract-note strong { color: var(--workspace-text); }
+.theme-dark .factor-settings { background: #151515; }
+.theme-dark .factor-settings > .config-section__heading { border-color: var(--workspace-border); background: linear-gradient(110deg, color-mix(in srgb, var(--primary-color, #52c41a) 8%, #151515), #151515 62%); }
+.theme-dark .factor-contract-note { background: #0d0d0d; }
+.theme-dark .factor-research-mode /deep/ .ant-radio-button-wrapper { border-color: #303030; color: rgba(255,255,255,.58); background: #0d0d0d; }
+.theme-dark .factor-research-mode /deep/ .ant-radio-button-wrapper-checked { border-color: var(--primary-color, #52c41a); color: #fff; background: var(--primary-color, #52c41a); }
+.theme-dark .benchmark-selection-summary { border-color: color-mix(in srgb, var(--primary-color, #52c41a) 34%, #2d2d2d); background: color-mix(in srgb, var(--primary-color, #52c41a) 7%, #111); }
+.theme-dark .benchmark-selection-summary strong { color: #f3f4f6; }
+.theme-dark .benchmark-selection-summary em { border-color: color-mix(in srgb, var(--primary-color, #52c41a) 42%, #2d2d2d); background: #0d0d0d; }
+.theme-dark .factor-settings /deep/ .ant-select-selection,
+.theme-dark .factor-settings /deep/ .ant-input-number { border-color: #333; color: rgba(255,255,255,.78); background: #181818; }
+.theme-dark .factor-settings /deep/ .ant-select-selection--multiple .ant-select-selection__choice { border-color: #353535; color: rgba(255,255,255,.72); background: #0d0d0d; }
 .theme-dark /deep/ .ant-form-item-label > label, .theme-dark /deep/ .ant-table { color: rgba(255, 255, 255, 0.72); }
 .theme-dark /deep/ .ant-table-thead > tr > th { border-color: rgba(255, 255, 255, 0.1); background: #0d0d0d; color: rgba(255, 255, 255, 0.68); }
 .theme-dark /deep/ .ant-table-tbody > tr > td { border-color: rgba(255, 255, 255, 0.08); background: #111; color: rgba(255, 255, 255, 0.72); }
-@media (max-width: 1280px) { .command-bar { grid-template-columns: minmax(220px, 1fr) minmax(320px, 1fr) auto; } .command-bar__capital, .command-bar__factor { display: none; } }
-@media (max-width: 1100px) { .workspace-grid, .workspace-grid.settings-open { grid-template-columns: 1fr; } .config-panel { position: static; overflow: visible; height: auto; min-height: 0; max-height: none; } .config-scroll { overflow: visible; } .result-panel { min-height: 560px; } .result-empty { min-height: 480px; } }
-@media (max-width: 840px) { .command-bar { position: static; grid-template-columns: 1fr; } .command-bar__actions { justify-content: stretch; } .command-bar__actions /deep/ .ant-btn { flex: 1; } }
+@media (max-width: 1280px) { .workspace-factor-mode__label { display: none; } }
+@media (max-width: 1100px) { .workspace-toolbar { flex-wrap: wrap; }.workspace-grid, .workspace-grid.settings-open { grid-template-columns: 1fr; } .config-panel { position: static; overflow: visible; height: auto; min-height: 0; max-height: none; } .config-scroll { overflow: visible; } .result-panel { min-height: 560px; } .result-empty { min-height: 480px; } }
 @media (max-width: 720px) { .backtest-page { padding: 0 10px 10px; } .workspace-toolbar { top: 0; width: calc(100% + 20px); align-items: flex-start; flex-direction: column; margin-right: -10px; margin-left: -10px; padding-right: 20px; padding-left: 20px; } .workspace-toolbar__primary { width: 100%; align-items: flex-start; flex-direction: column; }.hero-actions { justify-content: flex-start; } .result-progress-strip { grid-template-columns: 1fr; }.result-empty { padding: 12px 0; }.empty-hero-card { grid-template-columns: 34px minmax(0, 1fr); padding: 14px; }.empty-orbit { width: 34px; height: 34px; }.empty-checks { grid-column: 1 / 3; }.form-grid, .manifest-grid, .metrics-grid, .assumption-strip, .empty-preview-grid { grid-template-columns: 1fr; }.range-presets__buttons { width: 100%; }.range-preset-wrap /deep/ .ant-btn { width: 100%; } }
 </style>
 
@@ -1947,10 +2219,14 @@ export default {
 .backtest-history-drawer.theme-dark .ant-drawer-title,
 .backtest-history-drawer.theme-dark .ant-drawer-close { color: rgba(255, 255, 255, 0.88); }
 .backtest-history-drawer.theme-dark .drawer-history-header p { color: rgba(255, 255, 255, 0.5); }
+.backtest-history-drawer.theme-dark .factor-history-switch .ant-radio-button-wrapper { border-color: #303030; color: rgba(255, 255, 255, .58); background: #111; }
+.backtest-history-drawer.theme-dark .factor-history-switch .ant-radio-button-wrapper-checked { border-color: var(--primary-color, #52c41a); color: #fff; background: var(--primary-color, #52c41a); box-shadow: -1px 0 0 0 var(--primary-color, #52c41a); }
 .backtest-history-drawer.theme-dark .run-card { border-color: rgba(255, 255, 255, 0.1); background: #0d0d0d; color: rgba(255, 255, 255, 0.72); }
 .backtest-history-drawer.theme-dark .run-card:hover,
 .backtest-history-drawer.theme-dark .run-card.active { border-color: var(--primary-color, #52c41a); background: color-mix(in srgb, var(--primary-color, #52c41a) 10%, #111); }
 .backtest-history-drawer.theme-dark .drawer-detail-loading { border-color: color-mix(in srgb, var(--primary-color, #52c41a) 38%, transparent); color: var(--primary-color, #52c41a); background: color-mix(in srgb, var(--primary-color, #52c41a) 9%, #0d0d0d); }
 .backtest-history-drawer.theme-dark .run-card__top strong { color: #e5e7eb; }
+.backtest-history-drawer.theme-dark .history-kind-pill { border-color: #303030; color: rgba(255, 255, 255, .58); background: #151515; }
+.backtest-history-drawer.theme-dark .history-kind-pill--benchmark { border-color: color-mix(in srgb, var(--primary-color, #52c41a) 40%, #303030); color: var(--primary-color, #52c41a); background: color-mix(in srgb, var(--primary-color, #52c41a) 9%, #111); }
 .param-description { margin-top: 5px; color: #8c8c8c; font-size: 11px; line-height: 1.45; }
 </style>

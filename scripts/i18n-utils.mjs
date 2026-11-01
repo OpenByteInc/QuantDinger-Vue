@@ -47,14 +47,22 @@ export const postGeneratedOverrideModulePaths = [
   '../src/locales/lang/talib-factors.js',
   '../src/locales/lang/factor-research-factors.js',
   '../src/locales/lang/factor-library-enhancements.js',
+  '../src/locales/lang/factor-library-custom.js',
   '../src/locales/lang/backtest-workbench.js',
   '../src/locales/lang/strategy-review.js',
   '../src/locales/lang/quick-trade-floating.js',
+  '../src/locales/lang/quick-trade-liquidity-arena.js',
   '../src/locales/lang/quick-trade-workflow.js',
   '../src/locales/settings-feature-overrides.js',
   '../src/locales/zh-tw-product-overrides.js',
   '../src/locales/navigation-overrides.js',
+  '../src/locales/lang/bitget-account-mode.js',
   '../src/locales/lang/ai-skills-taxonomy.js',
+  '../src/locales/lang/factor-research-universe.js',
+  '../src/locales/ai-analysis-workbench-overrides.js',
+  '../src/locales/settings-universe-management-overrides.js',
+  '../src/locales/lang/trading-venue-settings.js',
+  '../src/locales/lang/indicator-workspace-layout.js',
   '../src/locales/venue-research-copy-overrides.js'
 ]
 
