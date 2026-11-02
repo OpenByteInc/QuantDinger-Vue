@@ -68,6 +68,90 @@ test('projected levels use future bar positions without inventing a timestamp', 
   assert.equal(drawn[2].extendData.borderSize, 0)
 })
 
+test('sloped layers accept documented startPrice and endPrice fields', () => {
+  drawn.length = 0
+  const bars = [{ timestamp: 1700000000000 }, { timestamp: 1700003600000 }]
+  context.render([
+    { type: 'line', startIndex: 0, endIndex: 1, startPrice: 120, endPrice: 105, dashed: true }
+  ], bars)
+  assert.equal(drawn.length, 1)
+  assert.equal(drawn[0].points[0].value, 120)
+  assert.equal(drawn[0].points[1].value, 105)
+  assert.equal(drawn[0].extendData.dashed, true)
+})
+
+test('sloped extend-right lines reach the pane edge without creating a future data point', () => {
+  drawn.length = 0
+  const bars = [{ timestamp: 1700000000000 }, { timestamp: 1700003600000 }]
+  context.render([
+    {
+      type: 'line',
+      startIndex: 0,
+      endIndex: 1,
+      startPrice: 120,
+      endPrice: 105,
+      dashed: true,
+      extendRight: true
+    }
+  ], bars)
+  assert.equal(drawn.length, 1)
+  assert.equal(drawn[0].points[1].timestamp, bars[1].timestamp)
+  assert.equal(drawn[0].points[1].dataIndex, undefined)
+  assert.equal(drawn[0].extendData.extendRight, true)
+
+  const line = figures(
+    'qdIndicatorLine',
+    drawn[0].extendData,
+    [{ x: 20, y: 100 }, { x: 120, y: 80 }]
+  )[0]
+  assert.equal(line.attrs.coordinates[1].x, 600)
+  assert.equal(line.attrs.coordinates[1].y, -16)
+  assert.equal(line.styles.dashedValue[0], 5)
+  assert.equal(line.styles.dashedValue[1], 5)
+  assert.equal(line.styles.style, 'dashed')
+})
+
+test('line figures activate dashes in the installed chart library, not only in metadata', () => {
+  const library = fs.readFileSync(new URL('../../node_modules/klinecharts/dist/index.esm.js', import.meta.url), 'utf8')
+  const start = library.indexOf('function drawLine(')
+  const end = library.indexOf('\nvar line =', start)
+  assert.ok(start >= 0 && end > start)
+  const runtime = vm.createContext({ LineType: { Dashed: 'dashed', Solid: 'solid' } })
+  vm.runInContext(`${library.slice(start, end)}; this.draw = drawLine`, runtime)
+  for (const dashed of [false, true]) {
+    const figure = figures('qdIndicatorLine', { dashed })[0]
+    let actualDash
+    const canvas = {
+      setLineDash: value => { actualDash = Array.from(value) },
+      beginPath () {}, moveTo () {}, lineTo () {}, stroke () {}, closePath () {}
+    }
+    runtime.draw(canvas, figure.attrs, figure.styles)
+    assert.deepEqual(actualDash, dashed ? [5, 5] : [])
+  }
+})
+
+test('sloped line projections preserve their source slope across future bars', () => {
+  drawn.length = 0
+  const bars = [
+    { timestamp: 1700000000000 },
+    { timestamp: 1700003600000 }
+  ]
+  context.render([
+    {
+      type: 'line',
+      startIndex: 0,
+      endIndex: 1,
+      startPrice: 120,
+      endPrice: 105,
+      dashed: true,
+      extendBars: 20
+    }
+  ], bars)
+  assert.equal(drawn.length, 1)
+  assert.equal(drawn[0].points[1].dataIndex, 21)
+  assert.equal(drawn[0].points[1].value, -195)
+})
+
 test('invalid and excessive projections cannot produce unbounded coordinates', () => {
   drawn.length = 0
   const bars = [{ timestamp: 1700000000000 }]

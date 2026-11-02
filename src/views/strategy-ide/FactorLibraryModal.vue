@@ -66,6 +66,7 @@
           </div>
         </div>
       </div>
+      <p class="factor-detail__muted">{{ $t('factorLibrary.runtimeOnlyNotice') }}</p>
       <div
         v-if="typeFilter === 'fundamental' || (selectedFactor && selectedFactor.factor_type === 'fundamental')"
         class="factor-library-notice"
@@ -145,23 +146,21 @@
             </div>
           </div>
 
-          <div class="factor-detail__insights">
-            <article>
-              <a-icon type="line-chart" />
+          <details class="factor-detail__insights" :key="selectedId">
+            <summary>{{ $t('factorLibrary.howToUse') }}<a-icon type="down" /></summary>
+            <article v-if="factorMeaning(selectedFactor) !== factorDescription(selectedFactor)">
               <strong>{{ $t('factorLibrary.whatItMeasures') }}</strong>
               <p>{{ factorMeaning(selectedFactor) }}</p>
             </article>
             <article>
-              <a-icon type="bulb" />
               <strong>{{ $t('factorLibrary.howToUse') }}</strong>
               <p>{{ factorInterpretation(selectedFactor) }}</p>
             </article>
             <article>
-              <a-icon type="safety" />
               <strong>{{ $t('factorLibrary.watchOut') }}</strong>
               <p>{{ factorCaution(selectedFactor) }}</p>
             </article>
-          </div>
+          </details>
 
           <section v-if="selectedFactor.expression" class="factor-detail__section factor-detail__formula">
             <div class="factor-detail__section-head">
@@ -188,6 +187,12 @@
             <div class="factor-token-row">
               <a-tag v-for="field in selectedFactor.required_fields" :key="field">{{ field }}</a-tag>
             </div>
+            <p v-if="extraDataFields.length" class="factor-detail__warning">
+              {{ $t('factorLibrary.extraDataNotice', { fields: extraDataFields.join(', ') }) }}
+            </p>
+            <p v-if="['talib:ACOS', 'talib:ASIN'].includes(selectedFactor.factor_id)" class="factor-detail__warning">
+              {{ $t('factorLibrary.unitDomainNotice') }}
+            </p>
             <p v-if="selectedFactor.factor_type === 'fundamental'" class="factor-detail__warning">
               <a-icon type="warning" />
               {{ $t('factorLibrary.pointInTimeWarning') }}
@@ -274,77 +279,136 @@
     <a-modal
       :visible="customModalVisible"
       :title="$t('factorLibrary.custom.title')"
-      :width="720"
+      :width="860"
+      :centered="true"
       :confirm-loading="customSaving"
+      :closable="!customAiGenerating"
+      :mask-closable="!customAiGenerating"
+      :keyboard="!customAiGenerating"
       :ok-text="$t('factorLibrary.custom.save')"
       :cancel-text="$t('factorLibrary.custom.cancel')"
       :wrap-class-name="isDark ? 'custom-factor-modal custom-factor-modal--dark' : 'custom-factor-modal'"
       @ok="saveCustomFactor"
       @cancel="customModalVisible = false"
     >
-      <a-alert
-        type="info"
-        show-icon
-        :message="$t('factorLibrary.custom.securityTitle')"
-        :description="$t('factorLibrary.custom.securityDescription')"
-        class="custom-factor-form__notice"
-      />
-      <a-form layout="vertical" class="custom-factor-form">
-        <div class="custom-factor-form__grid">
-          <a-form-item :label="$t('factorLibrary.custom.name')">
-            <a-input v-model="customForm.name" :max-length="120" :placeholder="$t('factorLibrary.custom.namePlaceholder')" />
-          </a-form-item>
-          <a-form-item :label="$t('factorLibrary.custom.category')">
-            <a-select v-model="customForm.category">
-              <a-select-option value="momentum">{{ $t('factorLibrary.category.momentum') }}</a-select-option>
-              <a-select-option value="trend">{{ $t('factorLibrary.category.trend') }}</a-select-option>
-              <a-select-option value="volatility">{{ $t('factorLibrary.category.volatility') }}</a-select-option>
-              <a-select-option value="risk">{{ $t('factorLibrary.category.risk') }}</a-select-option>
-              <a-select-option value="liquidity">{{ $t('factorLibrary.category.liquidity') }}</a-select-option>
-              <a-select-option value="custom">{{ $t('factorLibrary.custom.categoryOther') }}</a-select-option>
-            </a-select>
-          </a-form-item>
-        </div>
-        <a-form-item :label="$t('factorLibrary.custom.description')">
-          <a-input v-model="customForm.description" :placeholder="$t('factorLibrary.custom.descriptionPlaceholder')" />
-        </a-form-item>
-        <a-form-item :label="$t('factorLibrary.custom.direction')">
-          <a-radio-group v-model="customForm.directionHint">
-            <a-radio value="higher_is_bullish">{{ $t('factorLibrary.direction.higher_is_bullish') }}</a-radio>
-            <a-radio value="lower_is_bullish">{{ $t('factorLibrary.direction.lower_is_bullish') }}</a-radio>
-            <a-radio value="neutral">{{ $t('factorLibrary.direction.neutral') }}</a-radio>
-          </a-radio-group>
-        </a-form-item>
-        <a-form-item :label="$t('factorLibrary.custom.expression')">
-          <a-textarea
-            v-model="customForm.expression"
-            :rows="5"
-            class="custom-factor-form__expression"
-            :placeholder="$t('factorLibrary.custom.expressionPlaceholder')"
-          />
-          <span class="custom-factor-form__help">{{ $t('factorLibrary.custom.expressionHelp') }}</span>
-        </a-form-item>
-        <a-form-item :label="$t('factorLibrary.custom.parameters')">
-          <a-textarea v-model="customForm.paramsJson" :rows="3" class="custom-factor-form__expression" />
-          <span class="custom-factor-form__help">{{ $t('factorLibrary.custom.parametersHelp') }}</span>
-        </a-form-item>
-        <div class="custom-factor-form__validation">
-          <a-button icon="safety" :loading="customValidating" @click="validateCustomFactorForm">
-            {{ $t('factorLibrary.custom.validate') }}
-          </a-button>
-          <div v-if="customValidation" class="custom-factor-form__validation-result">
-            <a-icon type="check-circle" />
-            <span>{{ $t('factorLibrary.custom.validationPassed', { warmup: customValidation.warmupBars }) }}</span>
-            <code v-for="field in customValidation.requiredFields || []" :key="field">{{ field }}</code>
+      <a-tabs v-model="customTab" class="custom-factor-tabs" :animated="false">
+        <a-tab-pane key="editor" :tab="$t('factorLibrary.custom.tabEditor')">
+          <div class="custom-factor-pane custom-factor-workspace">
+            <a-form layout="vertical" class="custom-factor-form">
+              <div class="custom-factor-form__grid custom-factor-form__identity">
+                <a-form-item :label="$t('factorLibrary.custom.name')">
+                  <a-input v-model="customForm.name" :max-length="120" :aria-label="$t('factorLibrary.custom.name')" :placeholder="$t('factorLibrary.custom.namePlaceholder')" />
+                </a-form-item>
+                <a-form-item :label="$t('factorLibrary.custom.category')">
+                  <a-select v-model="customForm.category">
+                    <a-select-option value="momentum">{{ $t('factorLibrary.category.momentum') }}</a-select-option>
+                    <a-select-option value="trend">{{ $t('factorLibrary.category.trend') }}</a-select-option>
+                    <a-select-option value="volatility">{{ $t('factorLibrary.category.volatility') }}</a-select-option>
+                    <a-select-option value="risk">{{ $t('factorLibrary.category.risk') }}</a-select-option>
+                    <a-select-option value="liquidity">{{ $t('factorLibrary.category.liquidity') }}</a-select-option>
+                    <a-select-option value="custom">{{ $t('factorLibrary.custom.categoryOther') }}</a-select-option>
+                  </a-select>
+                </a-form-item>
+                <a-form-item class="custom-factor-form__direction" :label="$t('factorLibrary.custom.direction')">
+                  <a-radio-group v-model="customForm.directionHint" button-style="solid">
+                    <a-radio-button value="higher_is_bullish">{{ $t('factorLibrary.direction.higher_is_bullish') }}</a-radio-button>
+                    <a-radio-button value="lower_is_bullish">{{ $t('factorLibrary.direction.lower_is_bullish') }}</a-radio-button>
+                    <a-radio-button value="neutral">{{ $t('factorLibrary.direction.neutral') }}</a-radio-button>
+                  </a-radio-group>
+                </a-form-item>
+              </div>
+              <a-form-item class="custom-factor-editor" :label="$t('factorLibrary.custom.expression')">
+                <a-textarea
+                  v-model="customForm.expression"
+                  :aria-label="$t('factorLibrary.custom.expression')"
+                  :rows="3"
+                  class="custom-factor-form__expression"
+                  :placeholder="$t('factorLibrary.custom.expressionPlaceholder')"
+                />
+              </a-form-item>
+              <div class="custom-factor-form__grid">
+                <a-form-item :label="$t('factorLibrary.custom.parameters')">
+                  <a-textarea v-model="customForm.paramsJson" :aria-label="$t('factorLibrary.custom.parameters')" :rows="5" class="custom-factor-form__expression" />
+                </a-form-item>
+                <a-form-item :label="$t('factorLibrary.custom.optionalDescription')">
+                  <a-textarea v-model="customForm.description" :aria-label="$t('factorLibrary.custom.optionalDescription')" :rows="5" :placeholder="$t('factorLibrary.custom.descriptionPlaceholder')" />
+                </a-form-item>
+              </div>
+              <div v-if="customValidation" class="custom-factor-form__validation">
+                <div v-if="customValidation" class="custom-factor-form__validation-result">
+                  <a-icon type="check-circle" />
+                  <span>{{ $t('factorLibrary.custom.validationPassed', { warmup: customValidation.warmupBars }) }}</span>
+                  <code v-for="field in customValidation.requiredFields || []" :key="field">{{ field }}</code>
+                </div>
+              </div>
+            </a-form>
+            <aside class="custom-factor-ai" :aria-label="$t('factorLibrary.custom.ai.tab')">
+              <div class="custom-factor-ai__heading"><a-icon type="thunderbolt" /><strong>{{ $t('factorLibrary.custom.ai.tab') }}</strong></div>
+              <a-textarea
+                v-model="customAiPrompt"
+                :rows="2"
+                :max-length="4000"
+                :disabled="customAiGenerating"
+                :aria-label="$t('factorLibrary.custom.ai.heading')"
+                :placeholder="$t('factorLibrary.custom.ai.placeholder')" />
+              <div class="custom-factor-ai__actions">
+                <a-tooltip :title="$t('factorLibrary.custom.ai.billingHint')">
+                  <span v-if="customAiCost !== null" tabindex="0">{{ $t('factorLibrary.custom.ai.cost', { cost: customAiCost }) }}</span>
+                </a-tooltip>
+                <a-button v-if="customAiCost === null" type="link" size="small" :loading="customAiPricingLoading" @click="loadCustomAiPricing">{{ $t('factorLibrary.custom.ai.loadPrice') }}</a-button>
+                <a-button type="primary" :loading="customAiGenerating" :disabled="!customAiPrompt.trim() || customAiCost === null || customSaving" @click="generateCustomAiFactor">{{ $t(customAiGenerating ? 'factorLibrary.custom.ai.generating' : 'factorLibrary.custom.ai.generate') }}</a-button>
+              </div>
+              <a-alert v-if="customAiError" type="error" show-icon :message="customAiError" />
+              <article v-if="customAiCandidate" class="custom-factor-example custom-factor-ai__candidate">
+                <div class="custom-factor-example__heading"><strong>{{ customAiCandidate.name }}</strong></div>
+                <pre>{{ customAiCandidate.expression }}</pre>
+                <div class="custom-factor-example__footer"><div><span>{{ $t('factorLibrary.custom.exampleParams') }}</span><code>{{ JSON.stringify(customAiCandidate.defaultParams) }}</code></div></div>
+                <div class="custom-factor-example__footer">
+                  <a-button :disabled="customAiGenerating || customSaving" @click="applyCustomAiCandidate">{{ $t('factorLibrary.custom.ai.apply') }}</a-button>
+                </div>
+              </article>
+            </aside>
           </div>
+        </a-tab-pane>
+        <a-tab-pane key="examples" :tab="$t('factorLibrary.custom.tabExamples')">
+          <div class="custom-factor-pane custom-factor-examples">
+            <article v-for="example in customExamples" :key="example.id" class="custom-factor-example">
+              <div class="custom-factor-example__heading">
+                <strong>{{ $t(`factorLibrary.custom.example.${example.id}`) }}</strong>
+                <a-button type="link" size="small" icon="copy" @click="copyText(example.expression)">{{ $t('factorLibrary.copyCall') }}</a-button>
+              </div>
+              <pre>{{ example.expression }}</pre>
+              <div class="custom-factor-example__footer">
+                <div><span>{{ $t('factorLibrary.custom.exampleParams') }}</span><code>{{ example.paramsJson }}</code></div>
+                <a-button size="small" type="primary" @click="useCustomExample(example)">{{ $t('factorLibrary.custom.useExampleShort') }} <a-icon type="arrow-right" /></a-button>
+              </div>
+            </article>
+          </div>
+        </a-tab-pane>
+        <a-tab-pane key="rules" :tab="$t('factorLibrary.custom.tabRules')">
+          <div class="custom-factor-pane custom-factor-rules">
+            <p class="custom-factor-pane__lead">{{ $t('factorLibrary.custom.rulesHint') }}</p>
+            <details v-for="rule in customRules" :key="rule.id" class="custom-factor-rule">
+              <summary><a-icon :type="rule.icon" /><span>{{ $t(`factorLibrary.custom.rule.${rule.id}`) }}</span><a-icon type="down" /></summary>
+              <p>{{ $t(rule.description) }}</p>
+            </details>
+          </div>
+        </a-tab-pane>
+      </a-tabs>
+      <div slot="footer" class="custom-factor-footer">
+        <a-button icon="safety" :loading="customValidating" :disabled="customSaving || customAiGenerating" @click="validateCustomFactorForm">{{ $t('factorLibrary.custom.validate') }}</a-button>
+        <div>
+          <a-button :disabled="customAiGenerating" @click="customModalVisible = false">{{ $t('factorLibrary.custom.cancel') }}</a-button>
+          <a-button type="primary" :loading="customSaving" :disabled="customAiGenerating" @click="saveCustomFactor">{{ $t('factorLibrary.custom.save') }}</a-button>
         </div>
-      </a-form>
+      </div>
     </a-modal>
   </a-modal>
 </template>
 
 <script>
-import { createCustomFactor, getFactorCatalog, validateCustomFactor } from '@/api/factor'
+import { createCustomFactor, generateCustomFactor, getFactorCatalog, validateCustomFactor } from '@/api/factor'
+import { getMembershipPlans } from '@/api/billing'
 
 export default {
   name: 'FactorLibraryModal',
@@ -376,16 +440,23 @@ export default {
       scopeFilter: 'current',
       parameterValues: {},
       listScrollTop: 0,
-      factorRowHeight: 121,
+      factorRowHeight: 84,
       factorWindowSize: 14,
       scrollFrameHandle: null,
       pendingScrollTop: 0,
       preloadHandle: null,
       preloadHandleType: '',
       customModalVisible: false,
+      customTab: 'editor',
       customSaving: false,
       customValidating: false,
       customValidation: null,
+      customAiPrompt: '',
+      customAiGenerating: false,
+      customAiCandidate: null,
+      customAiError: '',
+      customAiCost: null,
+      customAiPricingLoading: false,
       customForm: {
         name: '',
         description: '',
@@ -397,6 +468,28 @@ export default {
     }
   },
   computed: {
+    customRules () {
+      return [
+        { id: 'metadata', icon: 'profile', description: 'factorLibrary.custom.contractMetadata' },
+        { id: 'input', icon: 'database', description: 'factorLibrary.custom.contractInput' },
+        { id: 'syntax', icon: 'code', description: 'factorLibrary.custom.contractSyntax' },
+        { id: 'params', icon: 'sliders', description: 'factorLibrary.custom.contractParams' },
+        { id: 'output', icon: 'export', description: 'factorLibrary.custom.contractOutput' },
+        { id: 'limits', icon: 'safety', description: 'factorLibrary.custom.contractLimits' },
+        { id: 'validation', icon: 'check-circle', description: 'factorLibrary.custom.contractValidation' },
+        { id: 'usage', icon: 'link', description: 'factorLibrary.custom.contractUsage' }
+      ]
+    },
+    extraDataFields () {
+      return ((this.selectedFactor && this.selectedFactor.required_fields) || []).filter(field => !['open', 'high', 'low', 'close', 'volume'].includes(field))
+    },
+    customExamples () {
+      return [
+        { id: 'native', expression: 'momentum(period=lookback) / max(realized_volatility(period=vol_window), floor)', paramsJson: '{"lookback":20,"vol_window":20,"floor":0.0001}' },
+        { id: 'talib', expression: 'factor("talib:RSI", timeperiod=period)', paramsJson: '{"period":14}' },
+        { id: 'qlib', expression: 'factor("qlib:alpha158:IMAX20")', paramsJson: '{}' }
+      ]
+    },
     familyOptions () {
       return [
         { value: 'all', label: this.$t('factorLibrary.family.allShort') },
@@ -409,7 +502,7 @@ export default {
     },
     scopeOptions () {
       return [
-        { value: 'current', label: this.$t('factorLibrary.scope.current') },
+        { value: 'current', label: this.$t('factorLibrary.scope.compatible') },
         { value: 'all', label: this.$t('factorLibrary.scope.all') },
         { value: 'cta', label: this.$t('factorLibrary.scope.cta') },
         { value: 'portfolio', label: this.$t('factorLibrary.scope.portfolio') }
@@ -461,6 +554,10 @@ export default {
     }
   },
   watch: {
+    customForm: {
+      deep: true,
+      handler () { this.customValidation = null }
+    },
     visible (value) {
       if (value && !this.loaded && !this.loading) this.loadFactors()
     },
@@ -495,6 +592,69 @@ export default {
     }
   },
   methods: {
+    async loadCustomAiPricing () {
+      if (this.customAiPricingLoading) return
+      this.customAiPricingLoading = true
+      try {
+        const response = await getMembershipPlans()
+        const data = (response && response.data) || {}
+        const billing = data.billing || data.billing_config || {}
+        const price = billing.feature_costs && billing.feature_costs.ai_code_gen
+        this.customAiCost = billing.billing_enabled === false ? 0 : (price != null && Number.isFinite(Number(price)) ? Number(price) : null)
+      } catch (_) {
+        this.customAiCost = null
+      } finally {
+        this.customAiPricingLoading = false
+      }
+    },
+    updateCustomAiCredits (data) {
+      const value = data && data.billing && data.billing.remaining_credits
+      if (value != null && Number.isFinite(Number(value))) this.$root.$emit('credits-updated', Number(value))
+    },
+    async generateCustomAiFactor () {
+      const prompt = this.customAiPrompt.trim()
+      if (!prompt || this.customAiGenerating || this.customSaving || this.customAiCost === null) return
+      this.customAiGenerating = true
+      this.customAiError = ''
+      this.customAiCandidate = null
+      try {
+        const response = await generateCustomFactor({ prompt, locale: this.$i18n.locale })
+        this.updateCustomAiCredits(response && response.data)
+        if (!response || response.code !== 1 || !response.data || !response.data.candidate) throw new Error((response && response.msg) || 'factor.aiInvalid')
+        this.customAiCandidate = response.data.candidate
+      } catch (error) {
+        this.updateCustomAiCredits(error.response && error.response.data && error.response.data.data)
+        this.customAiError = this.customFactorErrorMessage(error, 'factor.aiFailed')
+      } finally {
+        this.customAiGenerating = false
+      }
+    },
+    applyCustomAiCandidate () {
+      const candidate = this.customAiCandidate
+      if (!candidate || this.customAiGenerating || this.customSaving) return
+      this.customForm = {
+        name: candidate.name,
+        description: candidate.description,
+        category: candidate.category,
+        directionHint: candidate.directionHint,
+        expression: candidate.expression,
+        paramsJson: JSON.stringify(candidate.defaultParams, null, 2)
+      }
+      this.customValidation = null
+      this.customTab = 'editor'
+      this.$message.success(this.$t('factorLibrary.custom.ai.applied'))
+    },
+    customFactorErrorMessage (error, fallback) {
+      const message = String(error.backendMessage || error.message || '')
+      if (this.$te(message)) return this.$t(message)
+      return !message || message.startsWith('factor.') ? this.$t(fallback) : message
+    },
+    useCustomExample (example) {
+      this.customForm.expression = example.expression
+      this.customForm.paramsJson = example.paramsJson
+      this.customValidation = null
+      this.customTab = 'editor'
+    },
     schedulePreload () {
       if (this.loaded || this.loading || this.preloadHandle !== null) return
       const preload = () => {
@@ -648,7 +808,9 @@ export default {
     },
     openCustomFactorModal () {
       this.customValidation = null
+      this.customTab = 'editor'
       this.customModalVisible = true
+      this.loadCustomAiPricing()
     },
     customFactorPayload () {
       let defaultParams = {}
@@ -675,12 +837,13 @@ export default {
         const payload = this.customFactorPayload()
         const response = await validateCustomFactor(payload)
         if (!(response && response.code === 1)) throw new Error((response && response.msg) || this.$t('factorLibrary.custom.validationFailed'))
+        if (JSON.stringify(payload) !== JSON.stringify(this.customFactorPayload())) return false
         this.customValidation = response.data
         this.$message.success(this.$t('factorLibrary.custom.validationSuccess'))
         return true
       } catch (error) {
         this.customValidation = null
-        this.$message.error(error.backendMessage || error.message || this.$t('factorLibrary.custom.validationFailed'))
+        this.$message.error(this.customFactorErrorMessage(error, 'factorLibrary.custom.validationFailed'))
         return false
       } finally {
         this.customValidating = false
@@ -706,7 +869,7 @@ export default {
         if (created) this.selectFactor(created)
         this.$message.success(this.$t('factorLibrary.custom.saveSuccess'))
       } catch (error) {
-        this.$message.error(error.backendMessage || error.message || this.$t('factorLibrary.custom.saveFailed'))
+        this.$message.error(this.customFactorErrorMessage(error, 'factorLibrary.custom.saveFailed'))
       } finally {
         this.customSaving = false
       }
@@ -903,19 +1066,38 @@ export default {
 </script>
 
 <style lang="less">
+.factor-library-modal,
+.custom-factor-modal {
+  --factor-ui-font: "Segoe UI Variable Text", Inter, "HarmonyOS Sans SC", MiSans, "Microsoft YaHei UI", "PingFang SC", "Noto Sans SC", sans-serif;
+  font-family: var(--factor-ui-font);
+  font-size: 12px;
+  line-height: 1.6;
+
+  .ant-modal { max-width: calc(100vw - 32px); }
+  .ant-modal-content { border: 1px solid rgba(15, 23, 42, 0.08); border-radius: 14px; overflow: hidden; font-family: var(--factor-ui-font); box-shadow: 0 24px 70px rgba(15, 23, 42, 0.22); }
+  .ant-modal-header { padding: 15px 20px; border-bottom: 1px solid #e8ebef; }
+  .ant-modal-title { font-family: inherit; font-size: 16px; font-weight: 650; line-height: 24px; letter-spacing: -0.2px; }
+  .ant-modal-close-x { width: 54px; height: 54px; line-height: 54px; }
+  .ant-btn, .ant-input, .ant-select, .ant-radio-wrapper, .ant-radio-button-wrapper, .ant-input-number { font-family: inherit; font-size: 12px; }
+  .ant-btn, .ant-input, .ant-select-selection { border-radius: 7px; }
+  .ant-btn { box-shadow: none; }
+  .ant-btn:focus-visible, summary:focus-visible, .factor-card:focus-visible { outline: 2px solid var(--primary-color, #1890ff); outline-offset: 2px; }
+}
+
 .factor-library-modal {
   --factor-library-accent: var(--primary-color, #1890ff);
 
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif;
+  font-family: var(--factor-ui-font);
 
   .ant-modal {
-    top: 32px;
-    padding-bottom: 32px;
+    top: 24px;
+    padding-bottom: 24px;
   }
 
   .ant-modal-body {
-    padding: 20px 24px 24px;
+    padding: 0 18px 18px;
     overflow: hidden;
+    background: #f5f7f9;
   }
 
   button,
@@ -938,14 +1120,20 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 14px;
+  gap: 8px;
+  margin: 0 -18px 14px;
+  padding: 14px 18px 12px;
+  border-bottom: 1px solid #e7eaee;
+  background: #fff;
 }
 
 .factor-library-tools__main {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  flex-wrap: wrap;
+  width: 100%;
+  > .ant-btn:last-child { margin-left: auto; }
 }
 
 .factor-library-type-filter {
@@ -955,14 +1143,32 @@ export default {
   white-space: nowrap;
 }
 
+.factor-library-type-filter .ant-radio-button-wrapper {
+  height: 32px;
+  padding: 0 14px;
+  border-color: #e0e4e9;
+  color: #5d6776;
+  line-height: 30px;
+  background: #fff;
+}
+
+.factor-library-type-filter .ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled) {
+  z-index: 1;
+  border-color: #9edfdc;
+  color: #078f8a;
+  background: #eaf8f7;
+  box-shadow: none;
+}
+
 .factor-library-type-filter ::v-deep .ant-radio-button-wrapper {
   float: none;
   flex: 0 0 auto;
 }
 
 .factor-library-search {
-  width: 320px;
-  flex: 0 0 320px;
+  width: 280px;
+  flex: 0 0 280px;
+  .ant-input { height: 32px; border-color: #e0e4e9; background: #f8f9fb; }
 }
 
 .factor-library-refresh {
@@ -974,7 +1180,8 @@ export default {
   width: 100%;
   align-items: flex-start;
   justify-content: flex-start;
-  gap: 22px;
+  gap: 6px 18px;
+  flex-wrap: wrap;
   padding: 0;
   overflow-x: auto;
   scrollbar-width: none;
@@ -987,7 +1194,7 @@ export default {
 .factor-library-filterbar__label {
   flex: 0 0 auto;
   color: #7b8494;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
 }
 
@@ -1009,15 +1216,15 @@ export default {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 28px;
-  padding: 0 8px;
+  height: 26px;
+  padding: 0 7px;
   border: 1px solid transparent;
   border-radius: 6px;
   color: #596274;
   background: transparent;
   cursor: pointer;
-  font-size: 12px;
-  line-height: 26px;
+  font-size: 11px;
+  line-height: 24px;
   white-space: nowrap;
   transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
@@ -1033,10 +1240,16 @@ export default {
 }
 
 .factor-library-filter-chip--active {
-  border-color: color-mix(in srgb, var(--factor-library-accent) 32%, transparent);
+  border-color: color-mix(in srgb, var(--factor-library-accent) 25%, transparent);
   color: var(--factor-library-accent);
   background: color-mix(in srgb, var(--factor-library-accent) 7%, #fff);
-  box-shadow: 0 1px 3px color-mix(in srgb, var(--factor-library-accent) 10%, transparent);
+  box-shadow: none;
+}
+
+.factor-library-tools > .factor-detail__muted {
+  margin: 0;
+  font-size: 10px;
+  line-height: 16px;
 }
 
 .factor-library-filter-chip--active > span {
@@ -1073,22 +1286,24 @@ export default {
 
 .factor-library-workspace {
   display: grid;
-  grid-template-columns: 330px minmax(0, 1fr);
-  height: min(650px, calc(100vh - 270px));
-  min-height: 390px;
+  grid-template-columns: 292px minmax(0, 1fr);
+  height: min(660px, calc(100vh - 242px));
+  min-height: 180px;
   overflow: hidden;
-  border: 1px solid #e6e9ef;
-  border-radius: 10px;
+  border: 1px solid #e1e5ea;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
 .factor-library-list {
   min-height: 0;
-  padding: 12px;
+  padding: 8px 7px;
   overflow-y: auto;
   overscroll-behavior: contain;
   contain: strict;
   border-right: 1px solid #e6e9ef;
-  background: #f7f8fa;
+  background: #f3f5f7;
   scrollbar-color: #c8ced8 transparent;
   scrollbar-width: thin;
 }
@@ -1132,15 +1347,15 @@ export default {
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 112px;
-  margin: 0 0 9px;
-  padding: 11px 12px;
+  height: 80px;
+  margin: 0 0 4px;
+  padding: 9px 11px;
   overflow: hidden;
-  border: 1px solid #e2e6ec;
+  border: 1px solid transparent;
   border-radius: 8px;
   color: inherit;
   text-align: left;
-  background: #fff;
+  background: transparent;
   cursor: pointer;
   contain: layout paint style;
   transform: translateZ(0);
@@ -1149,8 +1364,14 @@ export default {
 
 .factor-card:hover,
 .factor-card--active {
-  border-color: var(--factor-library-accent);
-  box-shadow: inset 3px 0 0 var(--factor-library-accent);
+  border-color: #dce3e8;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+.factor-card--active {
+  border-color: #99dbd8;
+  box-shadow: inset 3px 0 0 #16b8b2, 0 2px 8px rgba(15, 23, 42, 0.06);
 }
 
 .factor-card__top,
@@ -1165,7 +1386,7 @@ export default {
 .factor-card__family {
   flex: 0 0 auto;
   color: var(--primary-color, #fa541c);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 600;
 }
 
@@ -1177,8 +1398,8 @@ export default {
   min-width: 0;
   overflow: hidden;
   color: #172033;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1187,7 +1408,7 @@ export default {
 .factor-detail__eyebrow {
   color: #8a94a6;
   font-family: Consolas, Monaco, monospace;
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .factor-card__id {
@@ -1195,7 +1416,7 @@ export default {
 }
 
 .factor-card__desc {
-  display: -webkit-box;
+  display: none;
   flex: 0 0 auto;
   margin: 4px 0;
   overflow: hidden;
@@ -1209,28 +1430,39 @@ export default {
 .factor-card__meta {
   margin-top: auto;
   color: #7b8494;
-  font-size: 11px;
+  font-size: 10px;
   line-height: 16px;
 }
 
 .factor-detail {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  gap: 12px;
   min-height: 0;
-  padding: 22px;
+  padding: 16px;
   overflow-y: auto;
   overscroll-behavior: contain;
-  background: #fff;
+  background: #f7f8fa;
   scrollbar-color: #c8ced8 transparent;
   scrollbar-width: thin;
 }
 
 .factor-detail__heading {
+  grid-column: ~"1 / -1";
   align-items: flex-start;
+  padding: 18px 20px;
+  border: 1px solid #e5e8ec;
+  border-radius: 10px;
+  background: #fff;
 }
 
 .factor-detail__heading h3 {
   margin: 4px 0 6px;
   color: #172033;
-  font-size: 21px;
+  font-size: 18px;
+  line-height: 1.5;
+  font-weight: 600;
 }
 
 .factor-detail__heading p {
@@ -1238,33 +1470,40 @@ export default {
   margin: 0;
   color: #667085;
   line-height: 1.6;
+  font-size: 12px;
 }
 
 .factor-detail__facts {
+  grid-column: ~"1 / -1";
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
-  margin: 20px 0;
-}
-
-.factor-detail__insights {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  margin: 0 0 20px;
-}
-
-.factor-detail__insights article {
-  min-height: 118px;
-  padding: 13px;
-  border: 1px solid #e7eaf0;
-  border-radius: 8px;
+  margin: 0;
+  padding: 12px 16px;
+  border: 1px solid #e5e8ec;
+  border-radius: 10px;
   background: #fff;
 }
 
+.factor-detail__insights {
+  grid-column: ~"1 / -1";
+  margin: 0;
+  padding: 12px 15px;
+  border: 1px solid #e5e8ec;
+  border-radius: 10px;
+  background: #fff;
+  summary { display: flex; align-items: center; gap: 8px; cursor: pointer; list-style: none; font-weight: 600; font-size: 12px; }
+  summary::-webkit-details-marker { display: none; }
+  &[open] summary .anticon { transform: rotate(180deg); }
+}
+
+.factor-detail__insights article {
+  padding: 12px 0 0;
+}
+
 .factor-detail__insights .anticon {
-  margin-right: 7px;
-  color: var(--primary-color, #fa541c);
+  color: #8a94a6;
+  font-size: 10px;
 }
 
 .factor-detail__insights strong {
@@ -1273,7 +1512,7 @@ export default {
 }
 
 .factor-detail__insights p {
-  margin: 9px 0 0;
+  margin: 4px 0 0;
   color: #667085;
   font-size: 12px;
   line-height: 1.6;
@@ -1286,16 +1525,13 @@ export default {
   border: 1px solid #e7eaf0;
   border-radius: 7px;
   color: #344054;
-  background: #f7f8fa;
+  background: #f5f7f9;
   font-family: Consolas, Monaco, monospace;
   white-space: nowrap;
 }
 
 .factor-detail__facts > div {
-  padding: 11px 12px;
-  border: 1px solid #e7eaf0;
-  border-radius: 8px;
-  background: #fafbfc;
+  padding: 0 8px 0 0;
 }
 
 .factor-detail__facts span,
@@ -1315,7 +1551,18 @@ export default {
 }
 
 .factor-detail__section {
-  margin-top: 18px;
+  min-width: 0;
+  margin: 0;
+  padding: 14px 15px;
+  border: 1px solid #e5e8ec;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.factor-detail__formula,
+.factor-detail__unsupported,
+.factor-detail__code-section {
+  grid-column: ~"1 / -1";
 }
 
 .factor-detail__unsupported {
@@ -1325,7 +1572,7 @@ export default {
 .factor-detail__section h4 {
   margin: 0 0 9px;
   color: #273044;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .factor-token-row .ant-tag {
@@ -1389,10 +1636,11 @@ export default {
   padding: 15px;
   overflow: auto;
   border-radius: 8px;
-  color: #d8dee9;
-  background: #141414;
+  color: #344054;
+  background: #f5f7f9;
+  border: 1px solid #e7eaf0;
   font-family: Consolas, Monaco, monospace;
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1.65;
 }
 
@@ -1401,26 +1649,170 @@ export default {
   font-size: 12px;
 }
 
-.custom-factor-form__notice {
-  margin-bottom: 18px;
+.custom-factor-modal {
+  --cf-surface: #f5f7f9;
+  --cf-border: #e3e8ee;
+  --cf-text: #1e2938;
+  --cf-muted: #778398;
+
+  .ant-modal-header { border-color: var(--cf-border); }
+  .ant-modal-body { padding: 0; background: #f4f6f8; }
+  .ant-modal-footer { padding: 11px 18px; border-color: var(--cf-border); background: #fff; }
+  .ant-form-item { margin-bottom: 13px; }
+  .ant-form-item-control { line-height: 1.5; }
+  .ant-radio-group { line-height: 26px; }
+  .ant-form-item-label { padding-bottom: 5px; line-height: 18px; }
+  .ant-form-item-label > label { color: #344054; font-size: 12px; font-weight: 600; }
+  .ant-input, .ant-select-selection { border-color: #dfe5eb; border-radius: 7px; box-shadow: none; }
+  input.ant-input, .ant-select-selection--single { height: 34px; }
+  .ant-select-selection__rendered { line-height: 32px; }
+  textarea.ant-input { padding: 9px 11px; line-height: 1.6; }
+  .ant-input::placeholder { color: #9aa2ad; font-size: 12px; }
+  .ant-radio-wrapper { color: var(--cf-text); font-size: 12px; }
+  .ant-btn { border-radius: 7px; }
+}
+
+.custom-factor-tabs {
+  .ant-tabs-bar { margin: 0; padding: 10px 18px; border: 0; background: #fff; }
+  .ant-tabs-nav { padding: 3px; border-radius: 8px; background: #f1f3f6; }
+  .ant-tabs-nav .ant-tabs-tab { min-width: 88px; margin: 0; padding: 6px 12px; border-radius: 6px; color: #667085; font-size: 12px; text-align: center; }
+  .ant-tabs-nav .ant-tabs-tab-active { color: #0c948e; background: #fff; box-shadow: 0 1px 3px rgba(16, 24, 40, 0.08); }
+  .ant-tabs-ink-bar { display: none !important; }
+}
+
+.custom-factor-pane {
+  height: min(520px, calc(100dvh - 230px));
+  min-height: 180px;
+  overflow-y: auto;
+  padding: 14px 18px 18px;
+  scrollbar-width: thin;
+  scrollbar-color: #c9d1dd transparent;
+}
+
+.custom-factor-workspace {
+  display: block;
+  .custom-factor-form {
+    min-width: 0;
+    padding: 16px 18px 3px;
+    border: 1px solid var(--cf-border);
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.025);
+  }
+}
+
+.custom-factor-pane__lead {
+  margin: 1px 2px 11px;
+  color: var(--cf-muted);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.custom-factor-example {
+  margin-bottom: 14px;
+  overflow: hidden;
+  border: 1px solid var(--cf-border);
+  border-radius: 6px;
+  color: var(--cf-text);
+
+  pre { margin: 0; padding: 14px 16px; color: var(--cf-text); background: var(--cf-surface); white-space: pre-wrap; overflow-wrap: anywhere; font: 12px/1.8 Consolas, Monaco, monospace; }
+}
+
+.custom-factor-ai {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px 10px;
+  padding: 9px 11px;
+  margin-top: 10px;
+  border: 1px solid var(--cf-border);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.025);
+  min-width: 0;
+  &__heading { display: flex; align-items: center; gap: 6px; color: var(--cf-text); font-size: 12px; white-space: nowrap; }
+  &__heading strong { font-weight: 600; }
+  &__heading .anticon { color: var(--primary-color, #1890ff); }
+  &__actions { display: flex; flex-direction: column-reverse; justify-content: center; align-items: center; gap: 3px; min-width: 86px; margin: 0; color: var(--cf-muted); font-size: 10px; }
+  &__actions .ant-btn-primary { height: 30px; padding: 0 12px; }
+  > .ant-input { min-height: 38px; max-height: 72px; padding: 8px 10px; resize: vertical; border-color: #e4e9ef; background: #f7f9fb; }
+  > .ant-input:focus { border-color: var(--primary-color); background: #fff; }
+  > .ant-alert, &__candidate { grid-column: ~"1 / -1"; }
+  &__candidate { margin: 5px 0 0; }
+  &__candidate > p { margin: 0; padding: 0 16px; color: var(--cf-muted); font-size: 12px; line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; }
+}
+
+.custom-factor-example__heading,
+.custom-factor-example__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  font-size: 12px;
+}
+
+.custom-factor-example__footer {
+  > div > span { display: block; margin-bottom: 4px; color: var(--cf-muted); font-size: 11px; }
+  code { font-size: 11px; overflow-wrap: anywhere; }
+  .ant-btn { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+}
+
+.custom-factor-rule {
+  margin-bottom: 7px;
+  border: 1px solid var(--cf-border);
+  border-radius: 9px;
+  color: var(--cf-text);
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.02);
+
+  summary { display: flex; align-items: center; gap: 9px; padding: 10px 13px; cursor: pointer; list-style: none; color: #344054; font-size: 12px; font-weight: 600; line-height: 18px; }
+  summary::-webkit-details-marker { display: none; }
+  summary > .anticon:first-child { color: #0fb7b2; font-size: 12px; }
+  summary > .anticon:last-child { margin-left: auto; color: var(--cf-muted); font-size: 10px; }
+  &[open] summary > .anticon:last-child { transform: rotate(180deg); }
+  p { margin: 0; padding: 0 13px 12px 34px; color: #667085; font-size: 11px; line-height: 1.7; overflow-wrap: anywhere; }
+}
+
+.custom-factor-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .custom-factor-form__grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(180px, 0.6fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
 
-.custom-factor-form__expression {
-  font-family: Consolas, Monaco, monospace;
-  line-height: 1.55;
+.custom-factor-form__identity {
+  grid-template-columns: minmax(0, 1fr) 124px auto;
+  gap: 0 12px;
+}
+
+.custom-factor-form__direction {
+  .ant-radio-button-wrapper { height: 30px; line-height: 28px; padding: 0 11px; font-size: 11px; }
+  .ant-radio-button-wrapper:first-child { border-radius: 5px 0 0 5px; }
+  .ant-radio-button-wrapper:last-child { border-radius: 0 5px 5px 0; }
+}
+
+.custom-factor-modal .ant-input.custom-factor-form__expression {
+  font-family: "Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.65;
+  padding: 11px 13px;
+  background: var(--cf-surface);
 }
 
 .custom-factor-form__help {
   display: block;
   margin-top: 6px;
-  color: #8a94a6;
+  color: var(--cf-muted);
   font-size: 12px;
+  line-height: 1.6;
 }
 
 .custom-factor-form__validation {
@@ -1446,6 +1838,10 @@ export default {
 }
 
 .custom-factor-modal--dark {
+  --cf-surface: #20242b;
+  --cf-border: #303640;
+  --cf-text: #e1e7ef;
+  --cf-muted: #9aa7b8;
   .ant-modal-content,
   .ant-modal-header,
   .ant-modal-body,
@@ -1474,6 +1870,20 @@ export default {
   }
 }
 
+@media (max-width: 900px) {
+  .custom-factor-ai { gap: 8px 12px; }
+}
+
+@media (max-width: 600px) {
+  .custom-factor-tabs .ant-tabs-bar { padding: 0 16px; }
+  .custom-factor-pane { padding: 16px; }
+  .custom-factor-form__grid { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .custom-factor-ai { grid-template-columns: minmax(0, 1fr); }
+  .custom-factor-ai__actions { flex-direction: row; justify-content: space-between; }
+  .custom-factor-example__footer { align-items: flex-start; flex-direction: column; }
+  .custom-factor-modal .ant-modal-footer { padding: 12px 16px; }
+}
+
 .factor-library-modal--dark {
   .ant-modal-content,
   .ant-modal-header,
@@ -1494,6 +1904,10 @@ export default {
   .factor-detail__insights strong {
     color: rgba(255, 255, 255, 0.88);
   }
+
+  .factor-detail__insights summary { color: rgba(255, 255, 255, 0.88); }
+  .factor-detail__facts { border-color: rgba(255, 255, 255, 0.09); }
+  .factor-detail__code-section pre { color: #d8dee9; background: #202020; border-color: #303640; }
 
   .factor-library-workspace,
   .factor-library-list,
@@ -1645,7 +2059,7 @@ export default {
 }
 
 .factor-library-dropdown {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif;
+  font-family: "Microsoft YaHei UI", "PingFang SC", "Noto Sans CJK SC", "Noto Sans SC", "Segoe UI", sans-serif;
 }
 
 .factor-library-dropdown--dark {
@@ -1667,8 +2081,9 @@ export default {
 @media (max-width: 900px) {
   .factor-library-workspace {
     grid-template-columns: 1fr;
+    grid-template-rows: minmax(100px, 35%) minmax(0, 1fr);
     height: min(680px, calc(100vh - 250px));
-    min-height: 390px;
+    min-height: 240px;
   }
 
   .factor-library-list {

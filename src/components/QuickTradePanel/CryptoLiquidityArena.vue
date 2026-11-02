@@ -5,7 +5,7 @@
         <a-icon type="radar-chart" />
         <strong>{{ $t('quickTrade.liquidityArena.title') }}</strong>
         <a-tooltip :title="$t('quickTrade.liquidityArena.info')"><a-icon type="info-circle" class="qla-info" /></a-tooltip>
-        <span v-if="snapshot" class="qla-feed" :class="[`is-${feedStatusClass}`, { 'is-slow': feedLatencyMs > 2000 }]"><i />{{ feedStatusText }}</span>
+        <span v-if="snapshot" class="qla-feed" :title="feedStatusText" :class="[`is-${feedStatusClass}`, { 'is-slow': feedLatencyMs > 2000 }]"><i /><span class="qla-feed-text">{{ feedStatusLabel }}</span></span>
         <span v-if="loadedLevelCount" class="qla-depth-count">{{ $t('quickTrade.liquidityArena.levelsPerSideLoaded', { count: loadedLevelCount }) }}</span>
       </div>
       <div class="qla-tools">
@@ -238,6 +238,12 @@ export default {
       if (this.streamStatus === 'reconnecting') return this.$t('quickTrade.liquidityArena.reconnecting')
       if (this.streamStatus === 'connecting') return this.$t('quickTrade.liquidityArena.connecting')
       return this.$t('quickTrade.liquidityArena.restFallback', { latency: this.requestLatencyMs })
+    },
+    feedStatusLabel () {
+      if (this.streamStatus === 'live' && !this.usingRestFallback) {
+        return this.$t('quickTrade.liquidityArena.liveFeedCompact', { latency: this.streamLatencyMs })
+      }
+      return this.feedStatusText
     },
     pressureDelta () {
       if (this.pressureHistory.length < 2) return 0
@@ -616,14 +622,15 @@ export default {
 .qla-title, .qla-tools, .qla-modes, .qla-feed { display: flex; align-items: center; }
 .qla-title { min-width: 0; gap: 6px; color: var(--qtc-muted); }
 .qla-title > .anticon:first-child { width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; color: var(--primary-color); border: 1px solid color-mix(in srgb, var(--primary-color) 24%, transparent); border-radius: 6px; background: color-mix(in srgb, var(--primary-color) 9%, transparent); box-shadow: 0 4px 12px color-mix(in srgb, var(--primary-color) 8%, transparent); font-size: 13px; }
-.qla-title strong { color: var(--qtc-text); font-size: 14px; font-weight: 650; line-height: 1.3; }
+.qla-title strong { color: var(--qtc-text); font-size: 14px; font-weight: 650; line-height: 1.3; white-space: nowrap; }
 .qla-info { font-size: 12px; }
-.qla-feed { gap: 5px; margin-left: 3px; padding: 2px 7px; color: var(--qtc-green); border: 1px solid color-mix(in srgb, var(--qtc-green) 20%, transparent); border-radius: 999px; background: color-mix(in srgb, var(--qtc-green) 6%, transparent); font-size: 10px; font-weight: 500; }
+.qla-feed { flex: 0 0 90px; width: 90px; box-sizing: border-box; justify-content: flex-start; white-space: nowrap; gap: 5px; margin-left: 3px; padding: 2px 7px; color: var(--qtc-green); border: 1px solid color-mix(in srgb, var(--qtc-green) 20%, transparent); border-radius: 999px; background: color-mix(in srgb, var(--qtc-green) 6%, transparent); font-size: 10px; font-weight: 500; }
+.qla-feed-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; text-align: left; }
 .qla-feed.is-rest, .qla-feed.is-reconnecting { color: #d48806; border-color: color-mix(in srgb, #d48806 25%, transparent); background: color-mix(in srgb, #d48806 7%, transparent); }
 .qla-depth-count { display: inline-flex; align-items: center; min-height: 20px; padding: 1px 7px; color: var(--qtc-muted); border: 1px solid color-mix(in srgb, var(--qtc-border) 82%, transparent); border-radius: 999px; background: color-mix(in srgb, var(--qtc-muted-bg) 62%, transparent); font-size: 10px; font-weight: 600; white-space: nowrap; }
 .qla-feed.is-connecting { color: var(--qtc-muted); border-color: color-mix(in srgb, var(--qtc-muted) 22%, transparent); background: color-mix(in srgb, var(--qtc-muted-bg) 70%, transparent); }
 .qla-feed.is-slow { color: #d48806; }
-.qla-feed i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 12%, transparent); }
+.qla-feed i { flex-shrink: 0; width: 5px; height: 5px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 12%, transparent); }
 .qla-tools { flex: 0 0 auto; gap: 5px; }
 .qla-modes { padding: 2px; border: 1px solid color-mix(in srgb, var(--qtc-border) 78%, transparent); border-radius: 7px; background: color-mix(in srgb, var(--qtc-muted-bg) 78%, transparent); }
 .qla-modes button, .qla-collapse, .qla-state button { color: var(--qtc-muted); background: transparent; border: 0; cursor: pointer; }

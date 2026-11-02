@@ -25,7 +25,16 @@
         <div class="code-panel">
           <div class="panel-title">
             <div class="panel-title__leading">
-              <a-icon type="code" />
+              <button
+                type="button"
+                class="code-panel-icon-toggle"
+                :title="$t('indicatorIde.hideCode')"
+                :aria-label="$t('indicatorIde.hideCode')"
+                :aria-expanded="codeDrawerVisible"
+                @click="toggleCodeDrawer"
+              >
+                <a-icon type="code" />
+              </button>
               <a-tag v-if="codeDirty && !selectedIndicatorCodeHidden" color="orange" size="small">{{ $t('indicatorIde.modified') }}</a-tag>
             </div>
             <div class="panel-title__trailing">
@@ -5682,6 +5691,32 @@ body.dark .ide-signal-alert-modal-wrap {
   flex: 1;
   min-width: 0;
   justify-content: flex-end;
+}
+
+.code-panel-icon-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  color: inherit;
+  background: transparent;
+  font-size: inherit;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    color: var(--primary-color, @primary-color);
+    background: color-mix(in srgb, var(--primary-color, #1890ff) 10%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color, @primary-color);
+    outline-offset: -2px;
+  }
 }
 
 .code-panel-collapse {

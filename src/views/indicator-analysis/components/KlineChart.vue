@@ -363,8 +363,6 @@ export default {
     let lastHistoryBeforeTimestamp = null
     let lastHistoryLoadAt = 0
     let suppressHistoryRangeUntil = 0
-    const chartInitialized = ref(false)
-
     const chartRef = shallowRef(null)
     const chartTheme = ref(props.theme || 'light')
     const supportedCandleTypes = new Set([
@@ -2117,12 +2115,26 @@ registerOverlay({
         if (!coordinates[0] || !coordinates[1]) return []
         const data = overlay.extendData || {}
         const color = data.color || 'var(--primary-color, #1890ff)'
+        const lineStart = { x: coordinates[0].x, y: coordinates[0].y }
+        let lineEnd = { x: coordinates[1].x, y: coordinates[1].y }
+        if (
+          data.extendRight === true &&
+          Number.isFinite(bounding?.width) &&
+          coordinates[1].x !== coordinates[0].x &&
+          bounding.width > coordinates[1].x
+        ) {
+          const yPerPixel = (coordinates[1].y - coordinates[0].y) / (coordinates[1].x - coordinates[0].x)
+          lineEnd = {
+            x: bounding.width,
+            y: coordinates[1].y + yPerPixel * (bounding.width - coordinates[1].x)
+          }
+        }
         const figures = [
           {
             type: 'line',
-            attrs: { coordinates: [{ x: coordinates[0].x, y: coordinates[0].y }, { x: coordinates[1].x, y: coordinates[1].y }] },
+            attrs: { coordinates: [lineStart, lineEnd] },
             styles: {
-              style: 'stroke',
+              style: data.dashed ? 'dashed' : 'solid',
               color,
               size: Number(data.lineWidth || 1),
               dashedValue: data.dashed ? [5, 5] : []
@@ -3580,52 +3592,24 @@ registerOverlay({
         }
 
         if (chartRef.value && typeof chartRef.value.subscribeAction === 'function') {
-          let lastVisibleFrom = null
-          let initialRangeProcessed = false
+          chartRef.value.subscribeAction('onScroll', async (event) => {
+            // KLineCharts clamps visibleRange.from at zero, so scroll distance is
+            // the reliable direction signal when the viewport is already at history.
+            if (!event || Number(event.distance) <= 0) return
+            if (Date.now() < suppressHistoryRangeUntil) return
+            if (loadingHistory.value || loadingHistoryPromise || !hasMoreHistory.value) return
+            if (!chartRef.value || typeof chartRef.value.getVisibleRange !== 'function') return
 
-          chartRef.value.subscribeAction('onVisibleRangeChange', async (data) => {
-            if (data && typeof data.from === 'number') {
-              if (Date.now() < suppressHistoryRangeUntil) {
-                lastVisibleFrom = data.from
-                return
-              }
+            const range = chartRef.value.getVisibleRange()
+            if (!range || typeof range.from !== 'number') return
 
-              if (!initialRangeProcessed) {
-                lastVisibleFrom = data.from
-                initialRangeProcessed = true
-                setTimeout(() => {
-                  chartInitialized.value = true
-                }, 1000)
-                return
-              }
+            const visibleBars = Math.max(1, (range.to || 0) - range.from)
+            const leftThreshold = clampNumber(Math.ceil(visibleBars * 0.08), 3, 18)
+            if (range.from > leftThreshold) return
+            if (Date.now() - lastHistoryLoadAt < HISTORY_LOAD_COOLDOWN_MS) return
+            if (!klineData.value.length) return
 
-              if (!chartInitialized.value) {
-                lastVisibleFrom = data.from
-                return
-              }
-
-              if (loadingHistory.value) {
-                lastVisibleFrom = data.from
-                return
-              }
-
-              const visibleBars = Math.max(1, (data.to || 0) - data.from)
-              const leftThreshold = clampNumber(Math.ceil(visibleBars * 0.08), 3, 18)
-              const reachedLeftEdge = data.from <= leftThreshold
-
-              if (reachedLeftEdge && !loadingHistory.value && !loadingHistoryPromise && hasMoreHistory.value && chartInitialized.value) {
-                const isScrollingLeft = lastVisibleFrom !== null && lastVisibleFrom > data.from
-                const canLoadAgain = Date.now() - lastHistoryLoadAt >= HISTORY_LOAD_COOLDOWN_MS
-                if (isScrollingLeft && canLoadAgain) {
-                  if (klineData.value.length > 0) {
-                    const earliestTimestamp = klineData.value[0].timestamp
-                    await loadMoreHistoryDataForScroll(earliestTimestamp)
-                  }
-                }
-              }
-
-              lastVisibleFrom = data.from
-            }
+            await loadMoreHistoryDataForScroll(klineData.value[0].timestamp)
           })
         }
 
@@ -4755,10 +4739,44 @@ registerOverlay({
       return null
     }
 
-    const layerEndPoint = (timestamp, value, extendBars, internalData) => {
+    const normalizeLayerDataIndex = (value, internalData, fallbackIndex = null) => {
+      const raw = value == null ? fallbackIndex : value
+      if (raw == null) return null
+      const numeric = Number(raw)
+      if (!Number.isFinite(numeric)) return null
+      if (Number.isInteger(numeric) && numeric >= 0 && numeric < internalData.length) {
+        return numeric
+      }
+      const timestamp = numeric < 1e10 ? numeric * 1000 : numeric
+      const index = internalData.findIndex(item => {
+        const itemTime = Number(item && (item.timestamp ?? item.time))
+        if (!Number.isFinite(itemTime)) return false
+        const normalizedTime = itemTime < 1e10 ? itemTime * 1000 : itemTime
+        return Math.abs(normalizedTime - timestamp) < 1000
+      })
+      return index >= 0 ? index : null
+    }
+
+    const layerEndPoint = (timestamp, value, extendBars, internalData, projection = {}) => {
       const bars = Number(extendBars)
       if (Number.isFinite(bars) && bars > 0) {
-        return { dataIndex: internalData.length - 1 + Math.min(500, Math.floor(bars)), value }
+        const targetIndex = internalData.length - 1 + Math.min(500, Math.floor(bars))
+        const startIndex = normalizeLayerDataIndex(projection.start, internalData, projection.startIndex)
+        const endIndex = normalizeLayerDataIndex(projection.end, internalData, projection.endIndex)
+        const startValue = Number(projection.startValue)
+        const endValue = Number(projection.endValue)
+        let projectedValue = value
+        if (
+          Number.isFinite(startIndex) &&
+          Number.isFinite(endIndex) &&
+          endIndex !== startIndex &&
+          Number.isFinite(startValue) &&
+          Number.isFinite(endValue)
+        ) {
+          const valuePerBar = (endValue - startValue) / (endIndex - startIndex)
+          projectedValue = endValue + valuePerBar * (targetIndex - endIndex)
+        }
+        return { dataIndex: targetIndex, value: projectedValue }
       }
       return { timestamp, value }
     }
@@ -4816,14 +4834,21 @@ registerOverlay({
           const endIndex = layer.endIndex ?? layer.toIndex ?? layer.end ?? lastIndex
           const start = normalizeLayerTimestamp(layer.start ?? layer.from ?? layer.x1, internalData, startIndex)
           const end = normalizeLayerTimestamp(layer.end ?? layer.to ?? layer.x2, internalData, endIndex)
-          const y1 = normalizeLayerPrice(layer.y1, layer.price1, layer.price, layer.level)
-          const y2 = normalizeLayerPrice(layer.y2, layer.price2, layer.price, layer.level)
+          const y1 = normalizeLayerPrice(layer.y1, layer.startPrice, layer.price1, layer.price, layer.level)
+          const y2 = normalizeLayerPrice(layer.y2, layer.endPrice, layer.price2, layer.price, layer.level)
           if (start == null || end == null || y1 == null || y2 == null) return
           pushLayerOverlay({
             name: 'qdIndicatorLine',
             points: [
               { timestamp: start, value: y1 },
-              layerEndPoint(end, y2, layer.extendBars, internalData)
+              layerEndPoint(end, y2, layer.extendBars, internalData, {
+                start: layer.start ?? layer.from ?? layer.x1,
+                end: layer.end ?? layer.to ?? layer.x2,
+                startIndex,
+                endIndex,
+                startValue: y1,
+                endValue: y2
+              })
             ],
             extendData: {
               text: layer.text || layer.name || '',
@@ -4834,6 +4859,7 @@ registerOverlay({
               fontWeight: layer.fontWeight,
               keepTextVisible: layer.keepTextVisible,
               dashed: layer.dashed,
+              extendRight: layer.extendRight,
               fontSize: layer.fontSize,
               textColor: layer.textColor
             },

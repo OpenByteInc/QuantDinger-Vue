@@ -1,9 +1,10 @@
 const enUS = {
-  'quickTrade.liquidityArena.title': 'Order Flow Radar',
+  'quickTrade.liquidityArena.title': 'Order Flow',
   'quickTrade.liquidityArena.info': 'The selected analysis range is fully available in the scrollable ladder. Standard depth adapts to each venue’s public feed limit. Price groups merge available raw levels into true price buckets. Displayed liquidity does not guarantee execution or market direction.',
   'quickTrade.liquidityArena.live': 'Live',
   'quickTrade.liquidityArena.snapshotFeed': 'REST snapshot · {latency} ms',
   'quickTrade.liquidityArena.webSocketFeed': 'WebSocket · {latency} ms',
+  'quickTrade.liquidityArena.liveFeedCompact': 'Live · {latency} ms',
   'quickTrade.liquidityArena.restFallback': 'REST fallback · {latency} ms',
   'quickTrade.liquidityArena.connecting': 'Connecting to live depth…',
   'quickTrade.liquidityArena.reconnecting': 'Live depth reconnecting…',
@@ -64,11 +65,12 @@ const enUS = {
 export default {
   'en-US': enUS,
   'zh-CN': {
-    'quickTrade.liquidityArena.title': '订单流雷达',
+    'quickTrade.liquidityArena.title': '订单流',
     'quickTrade.liquidityArena.info': '所选分析范围会完整显示在可滚动价格梯中；标准深度会根据各交易所公开行情流的上限自动适配，价格聚合会把可用原始盘口真实合并为价格桶。展示流动性不保证成交或市场方向。',
     'quickTrade.liquidityArena.live': '实时',
     'quickTrade.liquidityArena.snapshotFeed': 'REST 快照 · {latency} 毫秒',
     'quickTrade.liquidityArena.webSocketFeed': 'WebSocket 实时流 · {latency} 毫秒',
+    'quickTrade.liquidityArena.liveFeedCompact': '实时 · {latency} ms',
     'quickTrade.liquidityArena.restFallback': 'REST 降级 · {latency} 毫秒',
     'quickTrade.liquidityArena.connecting': '正在连接实时盘口…',
     'quickTrade.liquidityArena.reconnecting': '实时盘口重连中…',
@@ -126,11 +128,12 @@ export default {
     'quickTrade.liquidityArena.expand': '展开订单流雷达'
   },
   'zh-TW': {
-    'quickTrade.liquidityArena.title': '訂單流雷達',
+    'quickTrade.liquidityArena.title': '訂單流',
     'quickTrade.liquidityArena.info': '所選分析範圍會完整顯示在可捲動價格梯中；標準深度會依各交易所公開行情串流上限自動調整，價格聚合會把可用原始委託簿真正合併為價格桶。顯示流動性不保證成交或市場方向。',
     'quickTrade.liquidityArena.live': '即時',
     'quickTrade.liquidityArena.snapshotFeed': 'REST 快照 · {latency} 毫秒',
     'quickTrade.liquidityArena.webSocketFeed': 'WebSocket 即時串流 · {latency} 毫秒',
+    'quickTrade.liquidityArena.liveFeedCompact': '即時 · {latency} ms',
     'quickTrade.liquidityArena.restFallback': 'REST 降級 · {latency} 毫秒',
     'quickTrade.liquidityArena.connecting': '正在連接即時委託簿…',
     'quickTrade.liquidityArena.reconnecting': '即時委託簿重新連線中…',

@@ -17,6 +17,17 @@ const indicatorIdeSource = fs.readFileSync(indicatorIdePath, 'utf8')
 const klineChartSource = fs.readFileSync(klineChartPath, 'utf8')
 const strategyIdeSource = fs.readFileSync(strategyIdePath, 'utf8')
 
+test('editor leading code icon is an accessible collapse button using the existing toggle', () => {
+  const button = indicatorIdeSource.match(/<button\s+[^>]*class="code-panel-icon-toggle"[\s\S]*?<\/button>/)?.[0]
+  assert.ok(button)
+  assert.match(button, /type="button"/)
+  assert.match(button, /:title="\$t\('indicatorIde.hideCode'\)"/)
+  assert.match(button, /:aria-label="\$t\('indicatorIde.hideCode'\)"/)
+  assert.match(button, /:aria-expanded="codeDrawerVisible"/)
+  assert.match(button, /@click="toggleCodeDrawer"/)
+  assert.match(button, /<a-icon type="code"/)
+})
+
 test('indicator workspace exposes a constrained and persistent horizontal resizer', () => {
   assert.match(indicatorIdeSource, /class="ide-workspace-resizer"/)
   assert.match(indicatorIdeSource, /@mousedown="startWorkspaceResize"/)
@@ -44,12 +55,12 @@ test('indicator IDE no longer carries the retired execution-column conversion pr
   assert.doesNotMatch(indicatorIdeSource, /open_long\/open_short/)
 })
 
-test('initial left-edge layout events do not trigger history loading', () => {
+test('history loading uses native scroll direction at the clamped left edge', () => {
   assert.match(
     klineChartSource,
-    /const isScrollingLeft = lastVisibleFrom !== null && lastVisibleFrom > data\.from[\s\S]*?if \(isScrollingLeft && canLoadAgain\)/
+    /subscribeAction\('onScroll',[\s\S]*?Number\(event\.distance\) <= 0[\s\S]*?getVisibleRange\(\)[\s\S]*?range\.from > leftThreshold[\s\S]*?loadMoreHistoryDataForScroll/
   )
-  assert.doesNotMatch(klineChartSource, /isAlreadyAtEdge/)
+  assert.doesNotMatch(klineChartSource, /lastVisibleFrom > data\.from/)
   assert.doesNotMatch(
     klineChartSource,
     /formattedData\.length < visibleNeed[\s\S]*?loadMoreHistoryDataForScroll/

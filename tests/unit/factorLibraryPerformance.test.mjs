@@ -15,8 +15,8 @@ test('factor library renders a virtual window instead of the full catalog', () =
 })
 
 test('factor cards reserve enough height for metadata and keep virtual rows aligned', () => {
-  assert.match(factorLibrarySource, /factorRowHeight: 121/)
-  assert.match(factorLibrarySource, /\.factor-card \{[\s\S]*?display: flex;[\s\S]*?height: 112px;/)
+  assert.match(factorLibrarySource, /factorRowHeight: 84/)
+  assert.match(factorLibrarySource, /\.factor-card \{[\s\S]*?display: flex;[\s\S]*?height: 80px;/)
   assert.match(factorLibrarySource, /\.factor-card__meta \{[\s\S]*?margin-top: auto;/)
 })
 

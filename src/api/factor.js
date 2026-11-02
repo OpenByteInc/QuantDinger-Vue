@@ -1,4 +1,8 @@
-import request from '@/utils/request'
+import request, { AI_GENERATE_TIMEOUT } from '@/utils/request'
+
+export function generateCustomFactor (data) {
+  return request({ url: '/api/factors/custom/generate', method: 'post', data, timeout: AI_GENERATE_TIMEOUT })
+}
 
 export function getFactorCatalog (params = {}) {
   return request({ url: '/api/factors', method: 'get', params })
