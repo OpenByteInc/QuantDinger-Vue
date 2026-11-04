@@ -22,7 +22,7 @@ test('price deviation preserves direction and missing references', () => {
 
 test('execution labels are available in every supported locale', () => {
   for (const locale of Object.values(messages)) {
-    for (const key of ['price', 'reference', 'deviation', 'fillSummary', 'qualitySummary', 'note', 'deviationHint', 'orderId', 'pnlHint', 'gridPnlHint', 'pairPending', 'feesPending', 'entryOrders', 'exitOrder', 'gridPendingSummary', 'exchangePnl', 'systemPnl', 'gridNetPnl', 'exchangePnlHint', 'excluding_fees', 'venue_defined', 'reportPending', 'reportPendingWithSystem', 'reportUnavailable', 'spotPnlNotApplicable', 'orderTotalElsewhere', 'reportSource', 'reportedQuantity', 'systemSummary']) {
+    for (const key of ['price', 'reference', 'deviation', 'fillSummary', 'qualitySummary', 'note', 'deviationHint', 'orderId', 'pnlHint', 'gridPnlHint', 'pairPending', 'feesPending', 'entryOrders', 'exitOrder', 'gridPendingSummary', 'exchangePnl', 'systemPnl', 'gridNetPnl', 'exchangePnlHint', 'excluding_fees', 'venue_defined', 'reportPending', 'reportPendingWithSystem', 'reportUnavailable', 'reportUnsupported', 'spotPnlNotApplicable', 'orderTotalElsewhere', 'reportSource', 'reportedQuantity', 'systemSummary']) {
       assert.ok(locale[`trading-assistant.execution.${key}`])
     }
     for (const key of ['positionCost', 'marketValue', 'averageEntryPrice']) {
@@ -82,6 +82,7 @@ test('unconfirmed grid pairs never fall back to stale stored profit', async () =
   const options = new Function('formatExecutionNumber', 'formatExecutionPrice', 'formatPriceDeviation', 'formatTradeMoney', script)(
     formatExecutionNumber, formatExecutionPrice, formatPriceDeviation, formatTradeMoney)
   const methods = options.methods
+  const showExchangePnlColumn = options.computed.showExchangePnlColumn
   const reportedContext = { $t: key => messages['zh-CN'][key] }
   assert.equal(methods.formatReportedPnl.call(reportedContext, { status: 'reported', amount: -5, currency: 'USDT', fee_basis: 'venue_defined' }), '-5.00 USDT')
   assert.equal(methods.formatReportedPnl.call(reportedContext, { status: 'reported', amount: 0, currency: 'USDT' }), '0.00 USDT')
@@ -90,10 +91,14 @@ test('unconfirmed grid pairs never fall back to stale stored profit', async () =
   assert.equal(methods.formatReportedPnl.call(reportedContext, { status: 'pending' }, { type: 'open_long', profit: 0 }), '待交易所核对')
   assert.equal(methods.formatReportedPnl.call(reportedContext, { status: 'pending' }, { pnl_source: 'grid_exchange_order_pairs', pnl_status: 'unmatched', profit: 1 }), '待交易所核对')
   assert.equal(methods.formatReportedPnl.call(reportedContext, { status: 'not_applicable_spot' }), '现货订单不提供此项')
+  assert.equal(methods.formatReportedPnl.call(reportedContext, { status: 'unsupported' }), '当前交易通道不提供订单级盈亏')
   assert.equal(methods.formatReportedPnl.call(reportedContext, { status: 'order_total_elsewhere' }), '见本订单最新成交行')
   assert.equal(methods.formatExpense(null), '--')
   assert.equal(methods.formatExpense(0.01), '-$0.01')
   assert.equal(methods.formatExpense(-0.01), '+$0.01')
+  assert.equal(showExchangePnlColumn.call({ records: [{ exchange_pnl: { status: 'unsupported' } }] }), false)
+  assert.equal(showExchangePnlColumn.call({ records: [{ exchange_pnl: { status: 'not_applicable' } }, { exchange_pnl: { status: 'not_applicable_spot' } }] }), false)
+  assert.equal(showExchangePnlColumn.call({ records: [{ exchange_pnl: { status: 'unsupported' } }, { exchange_pnl: { status: 'pending' } }] }), true)
   for (const status of ['unmatched', 'fees_pending']) {
     assert.equal(methods.netTradePnl.call({}, { pnl_source: 'grid_exchange_order_pairs', pnl_status: status, profit: 123 }), null)
     assert.ok(methods.formatProfit.call({ $t: key => messages['zh-CN'][key] }, { pnl_status: status }))

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import navigationMessages from '../../src/locales/navigation-overrides.js'
+import strategyRunMessages from '../../src/locales/strategy-run-overrides.js'
 import zhTwProductMessages from '../../src/locales/zh-tw-product-overrides.js'
 
 const supportedLocales = [
@@ -38,6 +39,11 @@ test('desktop navigation has concise reviewed labels in every supported locale',
       assert.ok(value.length <= 18, `${locale}.${key} should stay concise`)
     }
   }
+})
+
+test('Simplified Chinese strategy run menu uses the compact label', () => {
+  assert.equal(strategyRunMessages['zh-CN']['menu.dashboard.strategyCenter'], '运行')
+  assert.equal(strategyRunMessages['zh-CN']['strategyCenter.title'], '策略运行')
 })
 
 test('Traditional Chinese navigation uses the compact product terminology', () => {

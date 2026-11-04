@@ -63,7 +63,10 @@ export const postGeneratedOverrideModulePaths = [
   '../src/locales/settings-universe-management-overrides.js',
   '../src/locales/lang/trading-venue-settings.js',
   '../src/locales/lang/indicator-workspace-layout.js',
-  '../src/locales/venue-research-copy-overrides.js'
+  '../src/locales/venue-research-copy-overrides.js',
+  '../src/locales/human-completion-overrides.js',
+  '../src/locales/reviewed-round-two-overrides.js',
+  '../src/locales/reviewed-strategy-review-overrides.js'
 ]
 
 export const overrideModulePaths = [

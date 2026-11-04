@@ -26,8 +26,18 @@ test('backtest center compiles a source manifest before accepting runtime contro
   assert.match(source, /return Boolean\(this\.manifest && this\.manifest\.leverageAllowed\)/)
 })
 
+test('backtest source parameters can be compiled and saved as a new strategy version', () => {
+  assert.match(source, /strategyV2\.backtest\.saveParamDefaults/)
+  assert.match(source, /sourceParamChangedDefinitions/)
+  assert.match(source, /buildScriptCodeWithParamValues\(code, this\.paramDefinitions, this\.params\)/)
+  assert.match(source, /compileScriptSource\(\{ code: nextCode \}\)/)
+  assert.match(source, /updateScriptSource\(sourceId, \{/)
+  assert.match(source, /source\.status === 'running'/)
+  assert.match(source, /!String\(this\.source\.code \|\| ''\)\.trim\(\)/)
+})
+
 test('backtest center visual accents follow the configured system theme color', () => {
-  assert.match(source, /class="theme-ready-tag"/)
+  assert.match(source, /class="[^"]*theme-ready-tag[^"]*"/)
   assert.doesNotMatch(source, /<a-tag v-if="manifest" color="green"/)
   assert.match(source, /primaryColor: state => state\.app\.color/)
   assert.match(source, /color: \[this\.primaryColor, '#94a3b8'\]/)
@@ -68,7 +78,7 @@ test('history loads only the active mode and opens the drawer immediately', () =
 test('backtest center submits the Strategy API V2 contract as an asynchronous job', () => {
   assert.match(source, /startStrategyBacktestJob\(\{[\s\S]*?sourceId: this\.form\.sourceId[\s\S]*?startDate:[\s\S]*?endDate:[\s\S]*?params: this\.params/)
   assert.match(source, /getStrategyBacktestJob\(this\.activeJobId\)/)
-  const runMethod = source.match(/async run \(\) \{([\s\S]*?)\n    \},\n    async runFactorResearch/)
+  const runMethod = source.match(/async run \(\) \{([\s\S]*?)\n {4}\},\n {4}async runFactorResearch/)
   assert.ok(runMethod)
   assert.doesNotMatch(runMethod[1], /this\.result = null/)
   assert.doesNotMatch(source, /strategy_config|script_params|strict_mode|strategy_code/)
@@ -91,10 +101,26 @@ test('backtest workbench keeps execution controls visible and moves history into
   assert.doesNotMatch(source, /class="panel history-panel"/)
 })
 
+test('factor history drawer separates filtering, context and refresh actions', () => {
+  assert.match(source, /class="drawer-history-toolbar"/)
+  assert.match(source, /class="drawer-refresh-button"/)
+  assert.match(source, /<span v-if="mode !== 'factor'">/)
+  assert.match(source, /width="460"/)
+})
+
 test('backtest and factor workspaces open settings by default and align the research date fields', () => {
   assert.match(source, /settingsVisible: true/)
   assert.match(source, /\.date-range-fields \{ display: grid; grid-template-columns: minmax\(0, 1fr\) 18px minmax\(0, 1fr\);/)
   assert.match(source, /class="date-range-arrow"/)
+})
+
+test('backtest configuration steps share one heading system without squeezing factor titles', () => {
+  assert.equal((source.match(/class="panel-heading config-section__heading config-step-heading"/g) || []).length, 4)
+  assert.match(source, /class="toolbar-icon-button"[\s\S]*?icon="control"/)
+  assert.match(source, /\.toolbar-icon-button \{[^}]*align-items: center;[^}]*justify-content: center;/)
+  assert.match(source, /\.config-step-heading h2 \{[^}]*white-space: normal;/)
+  assert.doesNotMatch(source, /<div class="subheading config-section__heading">/)
+  assert.doesNotMatch(source, /<span>\{\{ \$t\('strategyV2\.factorResearch\.universeMode'\) \}\}<\/span>/)
 })
 
 test('sticky research controls use an opaque surface and cover the seam while scrolling', () => {

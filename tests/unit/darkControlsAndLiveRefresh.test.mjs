@@ -15,6 +15,8 @@ test('dark account and live controls keep labels and icons readable', () => {
   assert.match(brokerPanel, /theme-dark \.bp-account-selector > label/)
   assert.match(multiTab, /body\.realdark \.@\{multi-tab-prefix-cls\}[^{]+\.ant-tabs-close-x/)
   assert.match(operations, /master-search ::v-deep \.ant-input-search-icon/)
+  assert.match(operations, /:overlay-class-name="popconfirmClass"/)
+  assert.match(operations, /live-operation-popconfirm--dark[\s\S]*?ant-popover-message-title \{ color: #f2f4f7; \}/)
 })
 
 test('saving a live strategy forces a fresh list and selects the saved instance', () => {
@@ -67,4 +69,20 @@ test('position ownership guidance stays compact and theme aware', () => {
   assert.match(positions, /background: linear-gradient\(135deg, rgba\(217, 169, 40, 0\.1\) 0%, #1b1d20 72%\)/)
   assert.match(positions, /&\.is-dark/)
   assert.doesNotMatch(positions, /class="ownership-risk-alert"/)
+})
+
+test('live status filters and signal position guidance use compact theme-aware layouts', () => {
+  const operations = read('src/views/strategy-center/components/LiveOperationsTable.vue')
+  const positions = read('src/views/strategy-center/components/PositionRecords.vue')
+  const liveRiskLocale = read('src/locales/lang/strategy-live-risk.js')
+
+  assert.match(operations, /class="master-tab__label"/)
+  assert.match(operations, /class="master-tab__count"/)
+  assert.match(operations, /min-height: 54px/)
+  assert.match(positions, /class="virtual-account-note" role="note"/)
+  assert.match(positions, /virtual-account-note__icon/)
+  assert.match(positions, /margin: 10px 0 12px/)
+  assert.match(positions, /&\.theme-dark \.virtual-account-note/)
+  assert.doesNotMatch(positions, /class="virtual-account-alert"/)
+  assert.match(liveRiskLocale, /'strategyCenter\.console\.strategyTotalPnl': 'Total P&L'/)
 })

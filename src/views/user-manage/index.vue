@@ -145,6 +145,37 @@
             </a-button>
           </div>
           <div class="toolbar-right toolbar-filters">
+            <a-select
+              v-model="userRoleFilter"
+              class="toolbar-filter-select"
+              :placeholder="$t('userManage.filterRole')"
+              allowClear
+              @change="handleUserFilterChange"
+            >
+              <a-select-option v-for="role in roles" :key="role.id" :value="role.id">
+                {{ getRoleLabel(role.id) }}
+              </a-select-option>
+            </a-select>
+            <a-select
+              v-model="userStatusFilter"
+              class="toolbar-filter-select"
+              :placeholder="$t('userManage.filterStatus')"
+              allowClear
+              @change="handleUserFilterChange"
+            >
+              <a-select-option value="active">{{ $t('userManage.active') }}</a-select-option>
+              <a-select-option value="disabled">{{ $t('userManage.disabled') }}</a-select-option>
+            </a-select>
+            <a-select
+              v-model="userVipFilter"
+              class="toolbar-filter-select"
+              :placeholder="$t('userManage.filterVip')"
+              allowClear
+              @change="handleUserFilterChange"
+            >
+              <a-select-option value="active">{{ $t('userManage.vipActive') }}</a-select-option>
+              <a-select-option value="inactive">{{ $t('userManage.vipInactive') }}</a-select-option>
+            </a-select>
             <a-input
               v-model="userIdSearch"
               class="toolbar-id-input"
@@ -171,6 +202,15 @@
           </a-tag>
           <a-tag v-if="searchKeyword" closable @close="clearUserKeywordFilter">
             {{ $t('systemOverview.filterKeyword') || 'Keyword' }}: {{ searchKeyword }}
+          </a-tag>
+          <a-tag v-if="userRoleFilter" closable @close="clearUserRoleFilter">
+            {{ $t('userManage.role') }}: {{ getRoleLabel(userRoleFilter) }}
+          </a-tag>
+          <a-tag v-if="userStatusFilter" closable @close="clearUserStatusFilter">
+            {{ $t('userManage.status') }}: {{ userStatusFilter === 'active' ? $t('userManage.active') : $t('userManage.disabled') }}
+          </a-tag>
+          <a-tag v-if="userVipFilter" closable @close="clearUserVipFilter">
+            {{ $t('userManage.filterVip') }}: {{ userVipFilter === 'active' ? $t('userManage.vipActive') : $t('userManage.vipInactive') }}
           </a-tag>
         </div>
 
@@ -1441,6 +1481,11 @@ export default {
       roles: [],
       searchKeyword: '',
       userIdSearch: '',
+      userRoleFilter: undefined,
+      userStatusFilter: undefined,
+      userVipFilter: undefined,
+      userSortBy: '',
+      userSortOrder: 'desc',
       pagination: {
         current: 1,
         pageSize: 10,
@@ -1617,7 +1662,13 @@ export default {
       return `${label}: ${this.formatNumber(y)}`
     },
     hasUserFilters () {
-      return !!(this.normalizePositiveInt(this.userIdSearch) || String(this.searchKeyword || '').trim())
+      return !!(
+        this.normalizePositiveInt(this.userIdSearch) ||
+        String(this.searchKeyword || '').trim() ||
+        this.userRoleFilter ||
+        this.userStatusFilter ||
+        this.userVipFilter
+      )
     },
     selectedCountText () {
       const template = this.$t('userManage.selectedCount') || '{count} selected'
@@ -1688,7 +1739,12 @@ export default {
         {
           title: this.$t('userManage.credits') || 'Credits',
           dataIndex: 'credits',
+          key: 'credits',
           width: 100,
+          sorter: true,
+          sortOrder: this.userSortBy === 'credits'
+            ? (this.userSortOrder === 'asc' ? 'ascend' : 'descend')
+            : false,
           scopedSlots: { customRender: 'credits' }
         },
         {
@@ -2148,6 +2204,14 @@ export default {
       }
       const uid = this.normalizePositiveInt(this.userIdSearch)
       if (uid) params.user_id = uid
+      if (this.userRoleFilter) params.role = this.userRoleFilter
+      if (this.userStatusFilter) params.status = this.userStatusFilter
+      if (this.userVipFilter) params.vip_status = this.userVipFilter
+
+      if (this.userSortBy) {
+        params.sort_by = this.userSortBy
+        params.sort_order = this.userSortOrder
+      }
       return params
     },
 
@@ -2294,6 +2358,9 @@ export default {
     clearUserFilters () {
       this.userIdSearch = ''
       this.searchKeyword = ''
+      this.userRoleFilter = undefined
+      this.userStatusFilter = undefined
+      this.userVipFilter = undefined
       this.pagination.current = 1
       this.loadUsers()
     },
@@ -2308,6 +2375,21 @@ export default {
       this.searchKeyword = ''
       this.pagination.current = 1
       this.loadUsers()
+    },
+
+    clearUserRoleFilter () {
+      this.userRoleFilter = undefined
+      this.handleUserFilterChange()
+    },
+
+    clearUserStatusFilter () {
+      this.userStatusFilter = undefined
+      this.handleUserFilterChange()
+    },
+
+    clearUserVipFilter () {
+      this.userVipFilter = undefined
+      this.handleUserFilterChange()
     },
 
     copyText (text) {
@@ -2775,6 +2857,12 @@ export default {
       this.loadUsers()
     },
 
+    handleUserFilterChange () {
+      this.pagination.current = 1
+      this.clearSelectedUsers()
+      this.loadUsers()
+    },
+
     async loadRoles () {
       try {
         const res = await getRoles()
@@ -2786,8 +2874,19 @@ export default {
       }
     },
 
-    handleTableChange (pagination) {
-      this.pagination.current = pagination.current
+    handleTableChange (pagination, filters, sorter) {
+      const previousSortBy = this.userSortBy
+      const previousSortOrder = this.userSortOrder
+      const sorterKey = sorter && (sorter.columnKey || sorter.field)
+      if (sorterKey === 'credits' && (sorter.order === 'ascend' || sorter.order === 'descend')) {
+        this.userSortBy = 'credits'
+        this.userSortOrder = sorter.order === 'ascend' ? 'asc' : 'desc'
+      } else if (sorterKey === 'credits') {
+        this.userSortBy = ''
+        this.userSortOrder = 'desc'
+      }
+      const sortChanged = previousSortBy !== this.userSortBy || previousSortOrder !== this.userSortOrder
+      this.pagination.current = sortChanged ? 1 : pagination.current
       this.pagination.pageSize = pagination.pageSize
       this.clearSelectedUsers()
       this.loadUsers()
@@ -2960,7 +3059,6 @@ export default {
     getRoleColor (role) {
       const colors = {
         admin: 'red',
-        manager: 'orange',
         user: 'blue',
         viewer: 'default'
       }
@@ -2970,7 +3068,6 @@ export default {
     getRoleLabel (role) {
       const labels = {
         admin: this.$t('userManage.roleAdmin') || 'Admin',
-        manager: this.$t('userManage.roleManager') || 'Manager',
         user: this.$t('userManage.roleUser') || 'User',
         viewer: this.$t('userManage.roleViewer') || 'Viewer'
       }
@@ -3656,6 +3753,11 @@ export default {
 
   .toolbar-id-input {
     width: 120px;
+    max-width: 100%;
+  }
+
+  .toolbar-filter-select {
+    width: 128px;
     max-width: 100%;
   }
 
@@ -4513,6 +4615,7 @@ export default {
     }
 
     .toolbar-search,
+    .toolbar-filter-select,
     .toolbar-select {
       width: 100% !important;
     }

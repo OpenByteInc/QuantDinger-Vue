@@ -10,7 +10,15 @@
     class="indicator-detail-modal"
   >
     <a-spin :spinning="loading">
-      <div v-if="detail" class="detail-container indicator-detail-modal" :class="{ 'is-dark': isDarkTheme }">
+      <div
+        v-if="detail"
+        class="detail-container indicator-detail-modal"
+        :class="{
+          'is-dark': isDarkTheme,
+          'is-indicator-asset': isIndicatorAsset,
+          'is-strategy-asset': isStrategyAsset
+        }"
+      >
         <div v-if="isIndicatorAsset" class="detail-preview">
           <img :src="detailPreviewImage" :alt="detail.name" @error="imageError = true" />
         </div>
@@ -24,123 +32,163 @@
           <div class="header-info">
             <div class="strategy-title-row">
               <h2 class="indicator-name">{{ detail.name }}</h2>
+              <a-tag v-if="detail.vip_free" class="detail-vip-free-tag">
+                {{ $t('community.vipFree') }}
+              </a-tag>
               <a-tag v-if="isStrategyAsset" class="strategy-api-badge">
                 {{ $t('community.strategyApiV2') }}
               </a-tag>
             </div>
-            <div class="indicator-meta">
-              <div class="author-info">
-                <a-avatar :src="detail.author.avatar" :size="32" />
-                <span class="author-name">{{ detail.author.nickname || detail.author.username }}</span>
+            <div class="header-summary">
+              <div class="header-summary__identity">
+                <div class="indicator-meta">
+                  <div class="author-info">
+                    <a-avatar :src="detail.author.avatar" :size="30" />
+                    <span class="author-name">{{ detail.author.nickname || detail.author.username }}</span>
+                  </div>
+                  <div class="publish-time">
+                    {{ $t('community.publishedAt') }}: {{ formatDate(detail.created_at) }}
+                  </div>
+                </div>
+                <div v-if="isIndicatorAsset" class="indicator-essential-tags">
+                  <a-tag><a-icon :type="codeHidden ? 'lock' : 'unlock'" /> {{ codeHidden ? $t('community.codeHidden') : $t('community.codeVisible') }}</a-tag>
+                  <a-tag v-if="parameterCount > 0"><a-icon type="sliders" /> {{ parameterLabel }}</a-tag>
+                </div>
               </div>
-              <div class="publish-time">
-                {{ $t('community.publishedAt') }}: {{ formatDate(detail.created_at) }}
+              <div class="indicator-stats">
+                <a-statistic :title="$t('community.downloads')" :value="detail.purchase_count || 0">
+                  <template #prefix>
+                    <a-icon type="download" />
+                  </template>
+                </a-statistic>
+                <a-statistic :title="$t('community.rating')">
+                  <template #formatter>
+                    <span
+                      role="img"
+                      :aria-label="`${$t('community.rating')}: ${Number(detail.avg_rating || 0).toFixed(1)}`"
+                    >
+                      <a-rate aria-hidden="true" :value="detail.avg_rating" disabled allow-half :style="{ fontSize: '13px' }" />
+                    </span>
+                    <span class="rating-text">({{ detail.rating_count || 0 }})</span>
+                  </template>
+                </a-statistic>
+                <a-statistic :title="$t('community.views')" :value="detail.view_count || 0">
+                  <template #prefix>
+                    <a-icon type="eye" />
+                  </template>
+                </a-statistic>
               </div>
-            </div>
-            <div v-if="isIndicatorAsset" class="indicator-essential-tags">
-              <a-tag><a-icon :type="codeHidden ? 'lock' : 'unlock'" /> {{ codeHidden ? $t('community.codeHidden') : $t('community.codeVisible') }}</a-tag>
-              <a-tag v-if="parameterCount > 0"><a-icon type="sliders" /> {{ parameterLabel }}</a-tag>
-            </div>
-            <div class="indicator-stats">
-              <a-statistic :title="$t('community.downloads')" :value="detail.purchase_count || 0">
-                <template #prefix>
-                  <a-icon type="download" />
-                </template>
-              </a-statistic>
-              <a-statistic :title="$t('community.rating')">
-                <template #formatter>
-                  <span
-                    role="img"
-                    :aria-label="`${$t('community.rating')}: ${Number(detail.avg_rating || 0).toFixed(1)}`"
-                  >
-                    <a-rate aria-hidden="true" :value="detail.avg_rating" disabled allow-half :style="{ fontSize: '14px' }" />
-                  </span>
-                  <span class="rating-text">({{ detail.rating_count || 0 }})</span>
-                </template>
-              </a-statistic>
-              <a-statistic :title="$t('community.views')" :value="detail.view_count || 0">
-                <template #prefix>
-                  <a-icon type="eye" />
-                </template>
-              </a-statistic>
             </div>
           </div>
         </div>
 
         <div class="detail-body">
-          <div class="section">
-            <h3>{{ isStrategyAsset ? $t('community.strategyOverview') : $t('community.description') }}</h3>
-            <p class="description">{{ detail.description || $t('community.noDescription') }}</p>
-          </div>
+          <div class="detail-top-layout">
+            <div class="detail-top-layout__main">
+              <div class="section overview-section">
+                <h3>{{ isStrategyAsset ? $t('community.strategyOverview') : $t('community.description') }}</h3>
+                <p class="description">{{ detail.description || $t('community.noDescription') }}</p>
+              </div>
 
-          <div v-if="isStrategyAsset && strategyContract" class="section strategy-contract-section">
-            <div class="section-heading-row strategy-contract-heading">
-              <h3>{{ $t('community.strategyContract') }}</h3>
-              <div v-if="bindingMode !== 'unknown'" class="section-heading-actions">
-                <a-tag :color="bindingMode === 'parameterized' ? 'green' : 'orange'">
-                  {{ $t(`community.binding.${bindingMode}`) }}
-                </a-tag>
+              <div v-if="isStrategyAsset && strategyContract" class="section strategy-contract-section">
+                <div class="section-heading-row strategy-contract-heading">
+                  <h3>{{ $t('community.strategyContract') }}</h3>
+                  <div v-if="bindingMode !== 'unknown'" class="section-heading-actions">
+                    <a-tag :color="bindingMode === 'parameterized' ? 'green' : 'orange'">
+                      {{ $t(`community.binding.${bindingMode}`) }}
+                    </a-tag>
+                  </div>
+                </div>
+
+                <div v-if="strategyContractItems.length" class="strategy-contract-summary">
+                  <div v-for="item in strategyContractItems" :key="item.key" class="strategy-contract-summary__item">
+                    <span>{{ item.label }}</span>
+                    <strong>{{ item.value }}</strong>
+                  </div>
+                </div>
+
+                <div v-if="hasStrategyContractMetadata" class="strategy-contract-metadata">
+                  <div v-if="strategyDependencies.length" class="strategy-contract-metadata__item">
+                    <span>{{ $t('community.contractSignals') }}</span>
+                    <div class="contract-tags">
+                      <a-tag v-for="name in strategyDependencies" :key="`dep-${name}`">{{ name }}</a-tag>
+                    </div>
+                  </div>
+                  <div v-if="(strategyContract.data_fields || []).length" class="strategy-contract-metadata__item">
+                    <span>{{ $t('community.contractData') }}</span>
+                    <div class="contract-tags">
+                      <a-tag v-for="name in (strategyContract.data_fields || [])" :key="`field-${name}`">{{ name.toUpperCase() }}</a-tag>
+                    </div>
+                  </div>
+                  <div v-if="Number(strategyContract.warmup_bars || 0) > 0" class="strategy-contract-metadata__item strategy-contract-metadata__item--warmup">
+                    <span>{{ $t('community.contractWarmup') }}</span>
+                    <strong>{{ $t('community.contractWarmupBars', { count: strategyContract.warmup_bars || 0 }) }}</strong>
+                  </div>
+                </div>
+
+                <div v-if="strategyParameters.length" class="parameter-panel">
+                  <div class="parameter-panel__head">
+                    <div>
+                      <strong>{{ $t('community.contractParameters') }}</strong>
+                      <span>{{ $t('community.contractParametersHint') }}</span>
+                    </div>
+                    <span class="parameter-count">{{ strategyParameters.length }}</span>
+                  </div>
+                  <div class="parameter-grid">
+                    <div v-for="param in visibleStrategyParameters" :key="param.name" class="parameter-item">
+                      <div class="parameter-item__name">
+                        <strong>{{ parameterName(param) }}</strong>
+                        <code>{{ param.name }}</code>
+                      </div>
+                      <div class="parameter-item__value">
+                        <span>{{ $t('community.parameterDefault') }}</span>
+                        <strong>{{ formatContractValue(param.default, param.type) }}</strong>
+                      </div>
+                      <div class="parameter-item__range">
+                        <span>{{ $t('community.parameterRange') }}</span>
+                        <strong>{{ formatParameterRange(param) }}</strong>
+                      </div>
+                    </div>
+                  </div>
+                  <a-button
+                    v-if="strategyParameters.length > parameterPreviewLimit"
+                    type="link"
+                    class="parameter-toggle"
+                    @click="showAllParameters = !showAllParameters">
+                    {{ showAllParameters ? $t('community.showFewerParameters') : $t('community.showAllParameters', { count: strategyParameters.length }) }}
+                    <a-icon :type="showAllParameters ? 'up' : 'down'" />
+                  </a-button>
+                </div>
               </div>
             </div>
 
-            <div v-if="strategyContractItems.length" class="strategy-contract-summary">
-              <div v-for="item in strategyContractItems" :key="item.key" class="strategy-contract-summary__item">
-                <span>{{ item.label }}</span>
-                <strong>{{ item.value }}</strong>
-              </div>
-            </div>
-
-            <div v-if="hasStrategyContractMetadata" class="strategy-contract-metadata">
-              <div v-if="strategyDependencies.length" class="strategy-contract-metadata__item">
-                <span>{{ $t('community.contractSignals') }}</span>
-                <div class="contract-tags">
-                  <a-tag v-for="name in strategyDependencies" :key="`dep-${name}`">{{ name }}</a-tag>
+            <div class="section listing-assurance-section">
+              <h3>{{ $t('community.purchaseDetails') }}</h3>
+              <div class="listing-assurance-grid">
+                <div class="listing-assurance-item">
+                  <span>{{ $t('community.codeVisibility') }}</span>
+                  <strong :class="codeHidden ? 'status-hidden' : 'status-visible'">
+                    <a-icon :type="codeHidden ? 'lock' : 'unlock'" />
+                    {{ codeHidden ? $t('community.codeHidden') : $t('community.codeVisible') }}
+                  </strong>
+                </div>
+                <div class="listing-assurance-item">
+                  <span>{{ $t('community.usageScope') }}</span>
+                  <strong>{{ $t('community.accountBoundUse') }}</strong>
+                </div>
+                <div class="listing-assurance-item">
+                  <span>{{ $t('community.updatePolicy') }}</span>
+                  <strong>{{ $t('community.manualSyncUpdates') }}</strong>
+                </div>
+                <div class="listing-assurance-item">
+                  <span>{{ $t('community.compatibility') }}</span>
+                  <strong>{{ isStrategyAsset ? $t('community.strategyApiV2') : $t('community.chartIndicatorCompatibility') }}</strong>
+                </div>
+                <div class="listing-assurance-item">
+                  <span>{{ $t('community.lastUpdated') }}</span>
+                  <strong>{{ formatDate(detail.updated_at || detail.created_at) }}</strong>
                 </div>
               </div>
-              <div v-if="(strategyContract.data_fields || []).length" class="strategy-contract-metadata__item">
-                <span>{{ $t('community.contractData') }}</span>
-                <div class="contract-tags">
-                  <a-tag v-for="name in (strategyContract.data_fields || [])" :key="`field-${name}`">{{ name.toUpperCase() }}</a-tag>
-                </div>
-              </div>
-              <div v-if="Number(strategyContract.warmup_bars || 0) > 0" class="strategy-contract-metadata__item strategy-contract-metadata__item--warmup">
-                <span>{{ $t('community.contractWarmup') }}</span>
-                <strong>{{ $t('community.contractWarmupBars', { count: strategyContract.warmup_bars || 0 }) }}</strong>
-              </div>
-            </div>
-
-            <div v-if="strategyParameters.length" class="parameter-panel">
-              <div class="parameter-panel__head">
-                <div>
-                  <strong>{{ $t('community.contractParameters') }}</strong>
-                  <span>{{ $t('community.contractParametersHint') }}</span>
-                </div>
-                <span class="parameter-count">{{ strategyParameters.length }}</span>
-              </div>
-              <div class="parameter-grid">
-                <div v-for="param in visibleStrategyParameters" :key="param.name" class="parameter-item">
-                  <div class="parameter-item__name">
-                    <strong>{{ parameterName(param) }}</strong>
-                    <code>{{ param.name }}</code>
-                  </div>
-                  <div class="parameter-item__value">
-                    <span>{{ $t('community.parameterDefault') }}</span>
-                    <strong>{{ formatContractValue(param.default, param.type) }}</strong>
-                  </div>
-                  <div class="parameter-item__range">
-                    <span>{{ $t('community.parameterRange') }}</span>
-                    <strong>{{ formatParameterRange(param) }}</strong>
-                  </div>
-                </div>
-              </div>
-              <a-button
-                v-if="strategyParameters.length > parameterPreviewLimit"
-                type="link"
-                class="parameter-toggle"
-                @click="showAllParameters = !showAllParameters">
-                {{ showAllParameters ? $t('community.showFewerParameters') : $t('community.showAllParameters', { count: strategyParameters.length }) }}
-                <a-icon :type="showAllParameters ? 'up' : 'down'" />
-              </a-button>
             </div>
           </div>
 
@@ -148,7 +196,7 @@
             <div class="section-heading-row evidence-heading">
               <h3>{{ $t('community.backtestEvidence') }}</h3>
             </div>
-            <div v-if="performance && Number(performance.sample_size || 0) > 0">
+            <div v-if="performance && Number(performance.sample_size || 0) > 0" class="performance-evidence-layout">
               <div v-if="performance.best_run_meta" class="evidence-context">
                 <span class="evidence-context__label">{{ $t('community.representativeRun') }}</span>
                 <div class="evidence-context__tags">
@@ -166,6 +214,32 @@
                     <a-icon :type="Number(performance.live_trade_count || 0) > 0 ? 'check-circle' : 'info-circle'" />
                     {{ Number(performance.live_trade_count || 0) > 0 ? $t('community.liveEvidenceCount', { count: performance.live_trade_count }) : $t('community.noLiveEvidence') }}
                   </span>
+                </div>
+              </div>
+              <div v-if="performance.best_run_meta" class="evidence-meta-grid">
+                <div class="evidence-meta-item">
+                  <span>{{ $t('community.backtestRange') }}</span>
+                  <strong>{{ formatBacktestRange(performance.best_run_meta) }}</strong>
+                </div>
+                <div class="evidence-meta-item">
+                  <span>{{ $t('community.tradeCount') }}</span>
+                  <strong>{{ performance.best_run_meta.trade_count || performance.trade_count || 0 }}</strong>
+                </div>
+                <div class="evidence-meta-item">
+                  <span>{{ $t('community.lastVerified') }}</span>
+                  <strong>{{ formatDate(performance.best_run_meta.verified_at) }}</strong>
+                </div>
+                <div class="evidence-meta-item">
+                  <span>{{ $t('community.dataSource') }}</span>
+                  <strong>{{ formatBacktestDataSource(performance.best_run_meta) }}</strong>
+                </div>
+                <div class="evidence-meta-item">
+                  <span>{{ $t('community.executionCosts') }}</span>
+                  <strong>{{ formatExecutionCosts(performance.best_run_meta) }}</strong>
+                </div>
+                <div class="evidence-meta-item">
+                  <span>{{ $t('community.engineVersion') }}</span>
+                  <strong>{{ performance.best_run_meta.engine_version || '—' }}</strong>
                 </div>
               </div>
               <div class="performance-grid">
@@ -255,7 +329,7 @@
             />
           </div>
 
-          <div class="section">
+          <div class="section reviews-section">
             <h3>{{ $t('community.reviews') }} ({{ comments.total || 0 }})</h3>
             <comment-list
               :comments="comments.items"
@@ -273,30 +347,21 @@
 
         <div class="detail-footer">
           <div class="price-info">
-            <a-tag v-if="detail.vip_free" color="gold" style="margin-right: 8px;">
-              {{ $t('community.vipFree') }}
-            </a-tag>
-            <!--
-              For already-purchased users we show the price the buyer actually
-              paid (your_purchase_price from the API) as the primary number,
-              and mark the current price as a secondary "current price"
-              caption underneath. This avoids the confusing case where the
-              indicator has since been re-priced and the buyer thinks they
-              were charged the wrong amount.
-            -->
             <template v-if="showYourPurchasePrice">
-              <div class="price-line price-line--primary">
-                <span class="price-line__label">{{ $t('community.yourPurchasePrice') }}:</span>
-                <span class="price-badge price-badge--paid">
-                  {{ formatPrice(detail.your_purchase_price) }} {{ $t('community.credits') }}
-                </span>
-              </div>
-              <div
-                v-if="detail.pricing_type !== 'free' && Number(detail.price) > 0"
-                class="price-line price-line--secondary"
-              >
-                <span class="price-line__label">{{ $t('community.currentPrice') }}:</span>
-                <span class="price-current-aside">{{ detail.price }} {{ $t('community.credits') }}</span>
+              <div class="purchase-price-stack">
+                <div class="price-line price-line--primary">
+                  <span class="price-line__label">{{ $t('community.yourPurchasePrice') }}:</span>
+                  <span class="price-badge price-badge--paid">
+                    {{ formatPrice(detail.your_purchase_price) }} {{ $t('community.credits') }}
+                  </span>
+                </div>
+                <div
+                  v-if="detail.pricing_type !== 'free' && Number(detail.price) > 0"
+                  class="price-line price-line--secondary"
+                >
+                  <span class="price-line__label">{{ $t('community.currentPrice') }}:</span>
+                  <span class="price-current-aside">{{ detail.price }} {{ $t('community.credits') }}</span>
+                </div>
               </div>
             </template>
             <template v-else>
@@ -444,7 +509,7 @@ export default {
       return !this.isStrategyAsset
     },
     modalWidth () {
-      return 860
+      return this.isStrategyAsset ? 1120 : 1040
     },
     detailPreviewImage () {
       return this.detail && this.detail.preview_image && !this.imageError
@@ -669,6 +734,9 @@ export default {
         })
         const baseline = ys.length ? ys[0] : 0
         const dark = this.isDarkTheme
+        const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim() || '#52c41a'
+        const areaTopColor = echarts.color.modifyAlpha(primaryColor, dark ? 0.24 : 0.18)
+        const areaBottomColor = echarts.color.modifyAlpha(primaryColor, dark ? 0.015 : 0.025)
         const axisLabelColor = dark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.45)'
         const splitLineColor = dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'
         const axisLineColor = dark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)'
@@ -704,7 +772,7 @@ export default {
             smooth: true,
             showSymbol: false,
             data: ys,
-            lineStyle: { width: 2, color: 'var(--primary-color, #1890ff)' },
+            lineStyle: { width: 2, color: primaryColor },
             areaStyle: {
               color: {
                 type: 'linear',
@@ -713,8 +781,8 @@ export default {
                 x2: 0,
                 y2: 1,
                 colorStops: [
-                  { offset: 0, color: 'rgba(24, 144, 255, 0.32)' },
-                  { offset: 1, color: 'rgba(24, 144, 255, 0.02)' }
+                  { offset: 0, color: areaTopColor },
+                  { offset: 1, color: areaBottomColor }
                 ]
               },
               origin: baseline
@@ -1029,6 +1097,23 @@ export default {
       if (!days || days <= 0) return ''
       return this.$t('community.backtestDurationDays', { days })
     },
+    formatBacktestRange (meta) {
+      const start = meta && meta.start_date
+      const end = meta && meta.end_date
+      if (!start && !end) return '—'
+      return [start || '—', end || '—'].join(' – ')
+    },
+    formatBacktestDataSource (meta) {
+      if (!meta) return '—'
+      return meta.data_source || meta.data_kind || '—'
+    },
+    formatExecutionCosts (meta) {
+      const toPercent = value => `${(Number(value || 0) * 100).toFixed(2)}%`
+      return this.$t('community.executionCostsValue', {
+        commission: toPercent(meta && meta.commission),
+        slippage: toPercent(meta && meta.slippage)
+      })
+    },
     parameterName (param) {
       if (param.label_key && this.$te(param.label_key)) return this.$t(param.label_key)
       return param.label || param.name
@@ -1152,6 +1237,18 @@ export default {
 
         .indicator-name {
           margin-bottom: 0;
+        }
+
+        .detail-vip-free-tag {
+          flex: 0 0 auto;
+          margin: 0;
+          border-color: rgba(250, 173, 20, 0.38);
+          border-radius: 9px;
+          background: rgba(250, 173, 20, 0.16);
+          color: #d48806;
+          font-size: 10px;
+          font-weight: 700;
+          line-height: 18px;
         }
 
         .strategy-api-badge {
@@ -1486,6 +1583,43 @@ export default {
       padding-top: 2px;
     }
 
+    .listing-assurance-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .listing-assurance-item,
+    .evidence-meta-item {
+      min-width: 0;
+      padding: 10px 11px;
+      border: 1px solid rgba(15, 23, 42, 0.07);
+      border-radius: 7px;
+      background: #f8fafc;
+
+      span,
+      strong {
+        display: block;
+      }
+
+      span {
+        margin-bottom: 4px;
+        color: rgba(15, 23, 42, 0.5);
+        font-size: 11px;
+      }
+
+      strong {
+        overflow: hidden;
+        color: rgba(15, 23, 42, 0.86);
+        font-size: 12px;
+        line-height: 1.45;
+        text-overflow: ellipsis;
+      }
+
+      .status-visible { color: #389e0d; }
+      .status-hidden { color: #d48806; }
+    }
+
     .strategy-contract-heading {
       align-items: center;
       margin-bottom: 4px;
@@ -1771,6 +1905,13 @@ export default {
       }
     }
 
+    .evidence-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
     .applicable-row {
       display: flex;
       align-items: center;
@@ -1925,13 +2066,28 @@ export default {
   .detail-footer {
     .price-info {
       display: flex;
-      flex-direction: column;
-      gap: 4px;
+      align-items: center;
+      flex-direction: row;
+      gap: 12px;
+      min-width: 0;
+
+      .vip-price-tag {
+        flex: 0 0 auto;
+        margin: 0;
+      }
+
+      .purchase-price-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+      }
 
       .price-line {
         display: flex;
         align-items: baseline;
-        gap: 8px;
+        gap: 6px;
+        min-width: 0;
 
         &__label {
           font-size: 12px;
@@ -1940,9 +2096,10 @@ export default {
       }
 
       .price-line--primary .price-badge--paid {
-        font-size: 20px;
+        font-size: 18px;
         font-weight: 600;
         color: #f5222d;
+        line-height: 1.2;
       }
 
       .price-line--secondary .price-current-aside {
@@ -2042,6 +2199,17 @@ export default {
     .evidence-context {
       border-color: #363636;
       background: #262626;
+    }
+
+    .listing-assurance-item,
+    .evidence-meta-item {
+      border-color: #363636;
+      background: #262626;
+
+      span { color: rgba(255, 255, 255, 0.46); }
+      strong { color: rgba(255, 255, 255, 0.86); }
+      .status-visible { color: #95de64; }
+      .status-hidden { color: #ffd666; }
     }
 
     .strategy-contract-metadata {
@@ -2253,12 +2421,363 @@ export default {
   }
 }
 
+.indicator-detail-modal {
+  &.detail-container {
+    max-height: 88vh;
+    background: #fff;
+    color: #1f2937;
+    font-size: 14px;
+  }
+
+  &.is-indicator-asset {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(330px, 0.9fr);
+    grid-template-rows: 300px minmax(0, 1fr) auto;
+
+    .detail-preview {
+      grid-column: 1;
+      grid-row: 1;
+      height: 300px;
+    }
+
+    .detail-header {
+      grid-column: 2;
+      grid-row: 1;
+      align-items: center;
+      border-bottom: 0;
+      border-left: 1px solid #e9edf2;
+    }
+
+    .detail-header .header-summary {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .detail-header .indicator-stats {
+      width: 100%;
+      padding-top: 12px;
+      padding-left: 0;
+      border-top: 1px solid #edf0f3;
+      border-left: 0;
+      grid-template-columns: 54px minmax(128px, 1fr) 54px;
+    }
+
+    .detail-body,
+    .detail-footer {
+      grid-column: ~"1 / 3";
+    }
+  }
+
+  .detail-preview {
+    aspect-ratio: auto;
+    border-bottom: 1px solid #e9edf2;
+
+    img {
+      object-fit: cover;
+      object-position: center;
+    }
+  }
+
+  .detail-header {
+    padding: 20px 24px;
+
+    .header-info {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .header-info .strategy-title-row {
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .header-info .indicator-name {
+      color: #182230;
+      font-size: 22px;
+      font-weight: 650;
+      letter-spacing: -0.015em;
+      line-height: 1.3;
+    }
+
+    .header-summary {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .header-summary__identity {
+      min-width: 0;
+    }
+
+    .header-info .indicator-meta {
+      gap: 12px;
+      margin-bottom: 0;
+      color: #667085;
+    }
+
+    .header-info .indicator-meta .author-info .author-name {
+      color: #344054;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .header-info .indicator-meta .publish-time {
+      color: #98a2b3;
+      font-size: 12px;
+    }
+
+    .header-info .indicator-essential-tags {
+      gap: 5px;
+      margin: 9px 0 0;
+
+      .ant-tag {
+        height: 22px;
+        margin: 0;
+        padding: 0 7px;
+        border-color: #e4e7ec;
+        border-radius: 5px;
+        background: #f9fafb;
+        color: #667085;
+        font-size: 11px;
+        line-height: 20px;
+      }
+    }
+
+    .indicator-stats {
+      display: grid;
+      grid-template-columns: 56px minmax(142px, auto) 56px;
+      align-items: end;
+      gap: 12px;
+      flex: 0 0 auto;
+      padding-left: 20px;
+      border-left: 1px solid #edf0f3;
+
+      ::v-deep .ant-statistic {
+        min-width: 0;
+
+        .ant-statistic-title {
+          margin-bottom: 2px;
+          color: #98a2b3;
+          font-size: 11px;
+          line-height: 1.35;
+        }
+
+        .ant-statistic-content {
+          color: #344054;
+          font-size: 14px;
+          line-height: 1.4;
+          white-space: nowrap;
+        }
+      }
+
+      .rating-text {
+        margin-left: 3px;
+        color: #98a2b3;
+        font-size: 11px;
+      }
+    }
+  }
+
+  .detail-body {
+    padding: 20px 24px 26px;
+    background: #fff;
+
+    .section {
+      margin-bottom: 24px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      h3 {
+        margin: 0 0 10px;
+        padding: 0 0 9px;
+        border-color: #eaecf0;
+        color: #182230;
+        font-size: 16px;
+        font-weight: 650;
+        letter-spacing: -0.01em;
+        line-height: 1.4;
+      }
+
+      .description {
+        margin: 0;
+        color: #667085;
+        font-size: 13px;
+        line-height: 1.75;
+      }
+    }
+
+    .strategy-contract-heading {
+      margin-bottom: 0;
+    }
+
+    .listing-assurance-grid {
+      gap: 0;
+      padding: 0 4px;
+      overflow: hidden;
+      border: 1px solid #e7eaf0;
+      border-radius: 10px;
+      background: #f8fafc;
+    }
+
+    .listing-assurance-item {
+      padding: 12px 13px;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+
+      & + .listing-assurance-item {
+        border-left: 1px solid #e7eaf0;
+      }
+
+      span {
+        margin-bottom: 5px;
+        color: #98a2b3;
+        font-size: 10px;
+        letter-spacing: 0.02em;
+      }
+
+      strong {
+        color: #344054;
+        font-size: 12px;
+        font-weight: 600;
+      }
+    }
+
+    .evidence-context {
+      margin-bottom: 10px;
+      padding: 10px 13px;
+      border-color: #e7eaf0;
+      border-radius: 9px;
+      background: #f8fafc;
+    }
+
+    .evidence-meta-grid {
+      gap: 0;
+      margin-bottom: 10px;
+      overflow: hidden;
+      border: 1px solid #e7eaf0;
+      border-radius: 9px;
+      background: #fff;
+    }
+
+    .evidence-meta-item {
+      padding: 11px 13px;
+      border: 0;
+      border-right: 1px solid #edf0f3;
+      border-bottom: 1px solid #edf0f3;
+      border-radius: 0;
+      background: transparent;
+
+      &:nth-child(3n) {
+        border-right: 0;
+      }
+
+      &:nth-child(n + 4) {
+        border-bottom: 0;
+      }
+
+      span {
+        margin-bottom: 4px;
+        color: #98a2b3;
+        font-size: 10px;
+      }
+
+      strong {
+        color: #344054;
+        font-size: 12px;
+        font-weight: 600;
+      }
+    }
+
+    .performance-grid {
+      gap: 8px;
+
+      .perf-item {
+        min-height: 78px;
+        padding: 12px 9px;
+        border: 1px solid #edf0f3;
+        border-radius: 9px;
+        background: #f8fafc;
+
+        .perf-label {
+          margin-bottom: 6px;
+          color: #98a2b3;
+          font-size: 11px;
+        }
+
+        .perf-value {
+          font-size: 19px;
+          font-weight: 650;
+          letter-spacing: -0.01em;
+        }
+      }
+    }
+  }
+
+  .detail-footer {
+    min-height: 64px;
+    padding: 11px 24px;
+    border-color: #e9edf2;
+    background: #fff;
+
+    .price-info {
+      .free-badge,
+      .price-badge,
+      .price-line--primary .price-badge--paid {
+        font-size: 18px;
+      }
+    }
+
+    .action-buttons {
+      gap: 8px;
+
+      .ant-btn {
+        min-width: 92px;
+        height: 36px;
+        border-radius: 7px;
+      }
+    }
+  }
+}
+
 @media (max-width: 760px) {
   .indicator-detail-modal {
+    &.is-indicator-asset {
+      display: flex;
+
+      .detail-preview {
+        width: 100%;
+        height: 220px;
+      }
+
+      .detail-header {
+        border-left: 0;
+        border-bottom: 1px solid #e9edf2;
+      }
+    }
+
     .detail-header {
+      padding: 16px;
+
       .header-cover {
         width: 112px;
         height: 96px;
+      }
+
+      .header-summary {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .indicator-stats {
+        width: 100%;
+        padding-top: 12px;
+        padding-left: 0;
+        border-top: 1px solid #edf0f3;
+        border-left: 0;
       }
 
       .indicator-meta,
@@ -2268,6 +2787,8 @@ export default {
     }
 
     .detail-body {
+      padding: 18px 16px 22px;
+
       .performance-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
@@ -2278,6 +2799,25 @@ export default {
 
       .strategy-contract-summary {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .listing-assurance-grid,
+      .evidence-meta-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .listing-assurance-item + .listing-assurance-item {
+        border-left: 0;
+      }
+
+      .listing-assurance-item:nth-child(even),
+      .evidence-meta-item:nth-child(even) {
+        border-left: 1px solid #e7eaf0;
+      }
+
+      .listing-assurance-item:nth-child(n + 3),
+      .evidence-meta-item:nth-child(n + 3) {
+        border-top: 1px solid #e7eaf0;
       }
 
       .evidence-context {
@@ -2293,6 +2833,759 @@ export default {
 
 </style>
 
+<style lang="less">
+.qd-indicator-detail-modal-wrap {
+  .ant-modal {
+    top: 4vh;
+  }
+
+  .ant-modal-content {
+    border: 1px solid #e5e9ef;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 28px 72px rgba(15, 23, 42, 0.2);
+  }
+
+  .ant-spin-nested-loading,
+  .ant-spin-container {
+    height: 100%;
+  }
+
+  .indicator-detail-modal.detail-container {
+    height: ~"min(820px, 88vh)";
+    max-height: 88vh;
+    overflow: hidden;
+    background: #fff;
+    color: #172033;
+    font-family: Inter, "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  .indicator-detail-modal.is-indicator-asset {
+    display: grid;
+    grid-template-columns: 292px minmax(0, 1fr);
+    grid-template-rows: 216px minmax(0, 1fr) auto;
+
+    .detail-preview {
+      grid-column: 1;
+      grid-row: 1;
+      box-sizing: border-box;
+      width: 100%;
+      height: 216px;
+      padding: 20px 20px 0;
+      border: 0;
+      background: #f6f8fa;
+
+      img {
+        border: 1px solid #e2e7ed;
+        border-radius: 10px;
+        object-fit: cover;
+      }
+    }
+
+    .detail-header {
+      grid-column: 1;
+      grid-row: 2;
+      display: block;
+      min-height: 0;
+      padding: 18px 20px 22px;
+      overflow-y: auto;
+      border: 0;
+      border-right: 1px solid #e6eaf0;
+      background: #f6f8fa;
+    }
+
+    .detail-header .strategy-title-row {
+      margin-bottom: 14px;
+    }
+
+    .detail-header .indicator-name {
+      font-size: 21px;
+      font-weight: 680;
+      line-height: 1.32;
+    }
+
+    .detail-header .header-summary {
+      display: block;
+    }
+
+    .detail-header .indicator-meta {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .detail-header .indicator-essential-tags {
+      margin: 14px 0 0;
+    }
+
+    .detail-header .indicator-stats {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0;
+      width: 100%;
+      margin-top: 18px;
+      padding: 8px 0 0;
+      border: 0;
+      border-top: 1px solid #e3e8ee;
+
+      .ant-statistic {
+        display: grid;
+        grid-template-columns: 84px minmax(0, 1fr);
+        align-items: center;
+        min-height: 42px;
+        border-bottom: 1px solid #e8ecf1;
+      }
+
+      .ant-statistic-title {
+        margin: 0;
+        color: #8994a3;
+        font-size: 11px;
+      }
+
+      .ant-statistic-content {
+        color: #263244;
+        font-size: 13px;
+        text-align: right;
+      }
+    }
+
+    .detail-body {
+      grid-column: 2;
+      grid-row: ~"1 / 3";
+      min-height: 0;
+      padding: 28px 30px 34px;
+      overflow-y: auto;
+      background: #fff;
+    }
+
+    .detail-footer {
+      grid-column: ~"1 / 3";
+      grid-row: 3;
+    }
+  }
+
+  .indicator-detail-modal.is-strategy-asset {
+    .detail-header {
+      padding: 18px 24px 16px;
+      border-bottom: 1px solid #e8ecf1;
+      background: #fff;
+    }
+
+    .detail-header .indicator-name {
+      font-size: 22px;
+      font-weight: 680;
+    }
+
+    .detail-header .header-info .strategy-title-row {
+      margin-bottom: 8px;
+    }
+
+    .detail-header .header-summary {
+      align-items: center;
+    }
+
+    .detail-body {
+      display: block;
+      min-height: 0;
+      padding: 16px 24px 24px;
+      overflow-y: auto;
+      background: #fff;
+    }
+
+    .detail-top-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 260px;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .detail-top-layout__main {
+      min-width: 0;
+    }
+
+    .listing-assurance-section {
+      position: sticky;
+      top: 0;
+      align-self: start;
+      padding: 12px;
+      border: 1px solid #e5e9ef;
+      border-radius: 10px;
+      background: #f7f9fb;
+
+      h3 {
+        margin-bottom: 4px;
+        padding-bottom: 7px;
+      }
+    }
+
+    .listing-assurance-grid {
+      display: block;
+      padding: 0;
+      border: 0;
+      background: transparent;
+    }
+
+    .listing-assurance-item {
+      display: grid;
+      grid-template-columns: 92px minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+      min-height: 36px;
+      padding: 5px 0;
+      border: 0 !important;
+      border-bottom: 1px solid #e5e9ef;
+      background: transparent !important;
+
+      &:last-child {
+        border-bottom: 0;
+      }
+
+      span,
+      strong {
+        margin: 0;
+      }
+
+      strong {
+        text-align: right;
+        white-space: normal;
+      }
+    }
+
+    .listing-assurance-item:last-child {
+      grid-column: ~"1 / 3";
+    }
+
+    .strategy-performance-section,
+    .reviews-section {
+      width: 100%;
+    }
+
+    .strategy-performance-section {
+      margin-top: 0;
+      padding-top: 0;
+    }
+
+    .performance-evidence-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 260px;
+      gap: 10px 16px;
+      align-items: start;
+    }
+
+    .performance-evidence-layout .evidence-context,
+    .performance-evidence-layout .evidence-meta-grid {
+      grid-column: 1;
+    }
+
+    .performance-evidence-layout .performance-grid {
+      grid-column: 2;
+      grid-row: ~"1 / span 2";
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+      padding: 10px;
+      border-radius: 10px;
+      background: #f7f9fb;
+    }
+
+    .performance-grid .perf-item {
+      min-height: 70px;
+      padding: 9px 7px;
+      border: 0;
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: inset 0 0 0 1px #e8ecf1;
+    }
+
+    .performance-grid .perf-item--score {
+      background: #fffaf1;
+    }
+
+    .evidence-context,
+    .evidence-meta-grid {
+      border-color: #e5e9ef;
+      background: #f7f9fb;
+    }
+
+    .evidence-meta-item {
+      background: #fff;
+    }
+
+    .equity-card {
+      margin-top: 12px;
+    }
+
+    .detail-body .section {
+      margin-bottom: 16px;
+    }
+
+    .detail-body .section h3 {
+      margin-bottom: 8px;
+      padding-bottom: 7px;
+    }
+
+    .overview-section {
+      margin-bottom: 14px;
+
+      .description {
+        line-height: 1.6;
+      }
+    }
+
+    .strategy-contract-heading {
+      margin-bottom: 0;
+      padding-bottom: 6px;
+    }
+
+    .strategy-contract-summary {
+      row-gap: 8px;
+      padding: 10px 0 2px;
+    }
+
+    .strategy-contract-metadata {
+      gap: 6px 16px;
+      margin-top: 8px;
+      padding-top: 8px;
+    }
+
+    .parameter-panel {
+      margin-top: 10px;
+      padding-top: 10px;
+
+      &__head {
+        margin-bottom: 8px;
+      }
+    }
+
+    .parameter-grid {
+      gap: 6px;
+    }
+
+    .parameter-item {
+      padding: 8px 10px;
+    }
+
+    .evidence-heading {
+      margin-bottom: 6px;
+    }
+
+    .evidence-context {
+      margin-bottom: 8px;
+      padding: 8px 10px;
+    }
+
+    .evidence-meta-item {
+      padding: 8px 10px;
+    }
+  }
+
+  .indicator-detail-modal .detail-body {
+    scrollbar-width: thin;
+    scrollbar-color: #c8d0da transparent;
+
+    &::-webkit-scrollbar {
+      width: 7px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      border-radius: 999px;
+      background: #c8d0da;
+    }
+
+    .section {
+      margin-bottom: 24px;
+    }
+
+    .section h3 {
+      margin: 0 0 12px;
+      padding: 0 0 10px;
+      border-bottom: 1px solid #e8ecf1;
+      color: #172033;
+      font-size: 16px;
+      font-weight: 680;
+    }
+
+    .description {
+      color: #637083;
+      font-size: 13px;
+      line-height: 1.75;
+    }
+  }
+
+  .indicator-detail-modal .detail-footer {
+    min-height: 58px;
+    padding: 8px 20px;
+    border-top: 1px solid #e5e9ef;
+    background: #fbfcfd;
+
+    .action-buttons .ant-btn {
+      min-width: 96px;
+      height: 36px;
+      border-radius: 7px;
+      box-shadow: none;
+    }
+  }
+}
+
+.qd-indicator-detail-modal-wrap--dark {
+  .ant-modal-content {
+    border-color: #2b2b2b;
+    background: #141414;
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.58);
+  }
+
+  .ant-modal-close {
+    border-color: #323232;
+    background: #191919;
+    color: #929292;
+    backdrop-filter: none;
+
+    &:hover {
+      border-color: #464646;
+      background: #222;
+      color: #f2f2f2;
+    }
+  }
+
+  .indicator-detail-modal.detail-container {
+    background: #141414;
+    color: #ededed;
+  }
+
+  .indicator-detail-modal.is-indicator-asset {
+    .detail-preview,
+    .detail-header {
+      background: #181818 !important;
+    }
+
+    .detail-preview img {
+      border-color: #303030;
+    }
+
+    .detail-header {
+      border-right-color: #2b2b2b !important;
+    }
+
+    .detail-header .indicator-name,
+    .detail-header .author-name {
+      color: #f1f1f1 !important;
+    }
+
+    .detail-header .publish-time,
+    .detail-header .ant-statistic-title {
+      color: #919191 !important;
+    }
+
+    .detail-header .indicator-stats {
+      border-top-color: #2b2b2b;
+    }
+
+    .detail-header .indicator-stats .ant-statistic {
+      border-bottom-color: #2b2b2b;
+    }
+
+    .detail-header .indicator-stats .ant-statistic-content {
+      color: #f1f1f1 !important;
+    }
+  }
+
+  .indicator-detail-modal.is-strategy-asset {
+    .detail-header {
+      border-bottom-color: #2b2b2b !important;
+      background: #181818 !important;
+    }
+
+    .detail-header .indicator-name,
+    .detail-header .author-name {
+      color: #f1f1f1 !important;
+    }
+
+    .detail-header .publish-time {
+      color: #919191 !important;
+    }
+
+    .listing-assurance-section,
+    .performance-evidence-layout .performance-grid {
+      border-color: #303030;
+      background: #1b1b1b;
+    }
+
+    .listing-assurance-item {
+      border: 0 !important;
+      border-bottom: 1px solid #303030 !important;
+      background: transparent !important;
+      background: transparent !important;
+
+      span {
+        color: #929292;
+      }
+
+      strong {
+        color: #e7e7e7;
+      }
+    }
+
+    .performance-grid .perf-item,
+    .performance-grid .perf-item--score {
+      background: #222 !important;
+      box-shadow: inset 0 0 0 1px #333;
+    }
+
+    .performance-grid .perf-item--score .perf-value {
+      color: #f5b84b;
+    }
+
+    .evidence-context,
+    .evidence-meta-grid,
+    .evidence-meta-item,
+    .equity-card {
+      border-color: #303030;
+      background: #1b1b1b !important;
+    }
+  }
+
+  .indicator-detail-modal .detail-body {
+    background: #141414 !important;
+    scrollbar-color: #424242 transparent;
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #424242;
+    }
+
+    .section h3 {
+      border-bottom-color: #2b2b2b;
+      color: #f0f0f0;
+    }
+
+    .description {
+      color: #aaa;
+    }
+
+    .strategy-contract-heading,
+    .strategy-contract-metadata,
+    .parameter-panel {
+      border-color: #2d2d2d;
+    }
+
+    .strategy-contract-summary__item span,
+    .strategy-contract-metadata__item > span,
+    .parameter-item__value span,
+    .parameter-item__range span,
+    .parameter-item__name code,
+    .evidence-meta-item span,
+    .perf-label {
+      color: #929292 !important;
+    }
+
+    .strategy-contract-summary__item strong,
+    .strategy-contract-metadata__item > strong,
+    .parameter-item__name strong,
+    .parameter-item__value strong,
+    .parameter-item__range strong,
+    .evidence-meta-item strong,
+    .equity-card__title {
+      color: #e7e7e7 !important;
+    }
+
+    .parameter-item {
+      border-color: #323232;
+      background: #202020;
+    }
+
+    .perf-value {
+      color: #ededed !important;
+
+      &.positive {
+        color: #6fce7a !important;
+      }
+
+      &.negative {
+        color: #ff7276 !important;
+      }
+    }
+
+    .listing-assurance-item,
+    .listing-assurance-item:nth-child(even),
+    .listing-assurance-item:nth-child(n + 3) {
+      border-top: 0 !important;
+      border-right: 0 !important;
+      border-left: 0 !important;
+      background: transparent !important;
+    }
+
+    .ant-alert-info {
+      border-color: #343434;
+      background: #1d1d1d;
+    }
+  }
+
+  .indicator-detail-modal .detail-footer {
+    border-top-color: #292929;
+    background: #181818 !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .qd-indicator-detail-modal-wrap {
+    .indicator-detail-modal.detail-container {
+      height: 90vh;
+    }
+
+    .indicator-detail-modal.is-indicator-asset {
+      display: flex;
+
+      .detail-preview {
+        width: 100%;
+        height: 220px;
+        padding: 16px 16px 0;
+      }
+
+      .detail-header {
+        width: 100%;
+        overflow: visible;
+        border-right: 0;
+        border-bottom: 1px solid #e5e9ef;
+      }
+
+      .detail-header .indicator-stats {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .detail-header .indicator-stats .ant-statistic {
+        display: block;
+        padding: 8px;
+        border-bottom: 0;
+      }
+    }
+
+    .indicator-detail-modal.is-strategy-asset {
+      .detail-body {
+        display: block;
+      }
+
+      .detail-top-layout {
+        display: block;
+      }
+
+      .listing-assurance-section {
+        position: static;
+      }
+
+      .performance-evidence-layout {
+        display: block;
+      }
+
+      .performance-evidence-layout .performance-grid {
+        margin-top: 12px;
+      }
+    }
+  }
+}
+</style>
+
+<style lang="less">
+.qd-indicator-detail-modal-wrap {
+  .indicator-detail-modal.is-indicator-asset {
+    height: ~"min(700px, 88vh)";
+
+    .listing-assurance-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0;
+      padding: 0;
+      border: 1px solid #e5e9ef;
+      border-radius: 10px;
+      background: #f7f9fb;
+    }
+
+    .listing-assurance-item {
+      display: grid;
+      grid-template-columns: 96px minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+      min-height: 52px;
+      padding: 10px 14px;
+      border: 0 !important;
+      border-bottom: 1px solid #e5e9ef !important;
+      background: transparent;
+
+      &:nth-child(odd):not(:last-child) {
+        border-right: 1px solid #e5e9ef !important;
+      }
+
+      &:last-child {
+        grid-column: ~"1 / -1";
+        border-bottom: 0 !important;
+      }
+
+      span {
+        margin: 0;
+        color: #7d8998;
+        font-size: 12px;
+      }
+
+      strong {
+        color: #334155;
+        font-size: 13px;
+        text-align: right;
+        white-space: normal;
+      }
+    }
+
+    .reviews-section .comment-list {
+      font-size: 13px;
+    }
+  }
+}
+
+.qd-indicator-detail-modal-wrap--dark {
+  .indicator-detail-modal.is-indicator-asset {
+    .listing-assurance-grid {
+      border-color: #303030;
+      background: #1b1b1b;
+    }
+
+    .listing-assurance-item {
+      border-bottom-color: #303030;
+
+      &:nth-child(odd):not(:last-child) {
+        border-right-color: #303030 !important;
+      }
+
+      span {
+        color: #929292;
+      }
+
+      strong {
+        color: #e7e7e7;
+      }
+
+      .status-visible {
+        color: #6fce7a;
+      }
+
+      .status-hidden {
+        color: #e9b654;
+      }
+    }
+  }
+
+  .detail-vip-free-tag {
+    border-color: rgba(250, 173, 20, 0.35) !important;
+    background: rgba(250, 173, 20, 0.14) !important;
+    color: #ffd666 !important;
+  }
+}
+</style>
+
 <!--
   Non-scoped global style block.
 
@@ -2306,6 +3599,43 @@ export default {
   the dark-themed page container).
 -->
 <style lang="less">
+.qd-indicator-detail-modal-wrap {
+  .ant-modal {
+    top: 5vh;
+    padding-bottom: 0;
+  }
+
+  .ant-modal-content {
+    overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 24px 64px rgba(15, 23, 42, 0.2);
+  }
+
+  .ant-modal-close {
+    top: 12px;
+    right: 12px;
+    width: 38px;
+    height: 38px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.9);
+    color: rgba(15, 23, 42, 0.62);
+    backdrop-filter: blur(8px);
+
+    &:hover {
+      background: #fff;
+      color: #182230;
+    }
+  }
+
+  .ant-modal-close-x {
+    width: 36px;
+    height: 36px;
+    font-size: 15px;
+    line-height: 36px;
+  }
+}
+
 .qd-indicator-detail-modal-wrap--dark {
   .ant-modal-content {
     background: #1f1f1f;
@@ -2314,10 +3644,29 @@ export default {
   }
 
   .ant-modal-close {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(20, 20, 20, 0.82);
     color: rgba(255, 255, 255, 0.65);
 
     &:hover {
+      background: rgba(32, 32, 32, 0.96);
       color: rgba(255, 255, 255, 0.92);
+    }
+  }
+
+  .detail-header.detail-header--indicator,
+  .detail-header.detail-header--strategy {
+    border-color: #303030 !important;
+    background: #1f1f1f !important;
+    color: rgba(255, 255, 255, 0.88) !important;
+
+    .indicator-name,
+    .author-name {
+      color: rgba(255, 255, 255, 0.92) !important;
+    }
+
+    .publish-time {
+      color: rgba(255, 255, 255, 0.58) !important;
     }
   }
 
@@ -2551,6 +3900,229 @@ export default {
       color: rgba(255, 255, 255, 0.85);
 
       &::placeholder { color: rgba(255, 255, 255, 0.35); }
+    }
+  }
+}
+</style>
+
+<style lang="less">
+.qd-indicator-detail-modal-wrap--dark {
+  .ant-modal-content {
+    border-color: #2b2b2b;
+    background: #141414;
+    box-shadow: 0 28px 84px rgba(0, 0, 0, 0.68);
+  }
+
+  .ant-modal-close {
+    border-color: #323232;
+    background: #191919;
+    color: #929292;
+
+    &:hover {
+      border-color: #464646;
+      background: #222;
+      color: #f2f2f2;
+    }
+  }
+
+  .indicator-detail-modal.detail-container,
+  .detail-body {
+    background: #141414 !important;
+    color: #ededed;
+  }
+
+  .detail-header.detail-header--indicator,
+  .detail-header.detail-header--strategy,
+  .detail-footer {
+    border-color: #292929 !important;
+    background: #181818 !important;
+  }
+
+  .indicator-detail-modal.is-indicator-asset {
+    height: ~"min(620px, 84vh)";
+
+    .detail-preview,
+    .detail-header {
+      background: #181818 !important;
+    }
+
+    .detail-header {
+      border-right-color: #2b2b2b !important;
+    }
+
+    .detail-preview img {
+      border-color: #303030 !important;
+    }
+
+    .detail-header .indicator-name,
+    .detail-header .author-name,
+    .detail-header .ant-statistic-content {
+      color: #f1f1f1 !important;
+    }
+
+    .detail-header .publish-time,
+    .detail-header .ant-statistic-title {
+      color: #919191 !important;
+    }
+
+    .detail-header .indicator-stats,
+    .detail-header .indicator-stats .ant-statistic {
+      border-color: #2b2b2b !important;
+    }
+
+    .detail-body {
+      padding: 26px 30px 28px;
+    }
+
+    .overview-section {
+      margin-bottom: 22px;
+    }
+
+    .listing-assurance-section {
+      margin-bottom: 22px;
+      padding-top: 20px;
+      border-top: 1px solid #2b2b2b;
+    }
+
+    .reviews-section {
+      margin-bottom: 0;
+      padding-top: 20px;
+      border-top: 1px solid #2b2b2b;
+    }
+
+    .listing-assurance-grid {
+      border-color: #303030 !important;
+      background: #1b1b1b !important;
+    }
+
+    .listing-assurance-item {
+      border-bottom-color: #303030 !important;
+      border-right-color: #303030 !important;
+    }
+  }
+
+  .indicator-detail-modal.is-strategy-asset {
+    .detail-header {
+      border-bottom-color: #2b2b2b !important;
+      background: #181818 !important;
+    }
+
+    .detail-header .indicator-name,
+    .detail-header .author-name,
+    .detail-header .ant-statistic-content {
+      color: #f1f1f1 !important;
+    }
+
+    .detail-header .publish-time,
+    .detail-header .ant-statistic-title {
+      color: #919191 !important;
+    }
+
+    .strategy-contract-section,
+    .strategy-performance-section,
+    .reviews-section {
+      padding-top: 12px;
+      border-top: 1px solid #2b2b2b;
+    }
+
+    .overview-section {
+      margin-bottom: 14px;
+    }
+
+    .listing-assurance-section,
+    .performance-evidence-layout .performance-grid,
+    .evidence-context,
+    .evidence-meta-grid,
+    .evidence-meta-item,
+    .equity-card {
+      border-color: #303030 !important;
+      background: #1b1b1b !important;
+    }
+
+    .listing-assurance-item {
+      border-color: #303030 !important;
+      background: transparent !important;
+    }
+
+    .performance-grid .perf-item,
+    .performance-grid .perf-item--score {
+      border: 0 !important;
+      background: #222 !important;
+      box-shadow: inset 0 0 0 1px #333;
+    }
+
+    .performance-grid .perf-item--score .perf-value {
+      color: #f5b84b !important;
+    }
+  }
+
+  .indicator-detail-modal .detail-body {
+    scrollbar-color: #424242 transparent;
+
+    .section h3 {
+      border-bottom: 0;
+      color: #f0f0f0;
+    }
+
+    .description {
+      color: #aaa;
+    }
+
+    .strategy-contract-heading,
+    .strategy-contract-metadata,
+    .parameter-panel {
+      border-color: #2d2d2d;
+    }
+
+    .strategy-contract-summary__item span,
+    .strategy-contract-metadata__item > span,
+    .parameter-item__value span,
+    .parameter-item__range span,
+    .parameter-item__name code,
+    .evidence-meta-item span,
+    .perf-label,
+    .listing-assurance-item span {
+      color: #929292 !important;
+    }
+
+    .strategy-contract-summary__item strong,
+    .strategy-contract-metadata__item > strong,
+    .parameter-item__name strong,
+    .parameter-item__value strong,
+    .parameter-item__range strong,
+    .evidence-meta-item strong,
+    .equity-card__title,
+    .listing-assurance-item strong {
+      color: #e7e7e7 !important;
+    }
+
+    .parameter-item {
+      border-color: #323232;
+      background: #202020;
+    }
+
+    .contract-tags .ant-tag {
+      background: #292929;
+      color: #d4d4d4;
+    }
+
+    .ant-alert-info {
+      border-color: #343434;
+      background: #1d1d1d;
+    }
+  }
+
+  .comment-list {
+    color: #e8e8e8;
+
+    .empty-comments {
+      padding: 20px 0 6px;
+    }
+
+    .ant-empty-description,
+    .comment-meta,
+    .comment-time {
+      color: #929292 !important;
     }
   }
 }

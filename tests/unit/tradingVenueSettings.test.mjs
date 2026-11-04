@@ -45,6 +45,9 @@ test('settings, broker workspace, and credential modal consume the venue policy'
 
   assert.match(settings, /venue_multiselect/)
   assert.match(settings, /tradingVenueGroups/)
+  assert.match(settings, /market-settings-layout/)
+  assert.match(settings, /trading-venue-notice/)
+  assert.doesNotMatch(settings, /class="trading-venue-alert"/)
   assert.match(brokers, /enabledTradingVenues/)
   assert.match(modal, /normalizeEnabledTradingVenues/)
 })

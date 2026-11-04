@@ -69,3 +69,35 @@ test('factor filters use visible chips and compact themed scrollbars', () => {
   assert.doesNotMatch(factorLibrarySource, /class="factor-library-family-select"/)
   assert.doesNotMatch(factorLibrarySource, /class="factor-library-scope-select"/)
 })
+
+test('dark factor details use dark surfaces and parameter names stay horizontal', () => {
+  assert.match(
+    factorLibrarySource,
+    /factor-library-modal--dark \{[\s\S]*?\.factor-library-tools,[\s\S]*?\.factor-detail__heading,[\s\S]*?\.factor-detail__section \{[\s\S]*?background: #1b1b1b;/
+  )
+  assert.match(factorLibrarySource, /\.factor-param-grid \{[\s\S]*?grid-template-columns: minmax\(0, 1fr\);/)
+  assert.match(
+    factorLibrarySource,
+    /\.factor-param-grid > div \{[\s\S]*?grid-template-columns: minmax\(0, 1fr\) 126px;/
+  )
+  assert.match(factorLibrarySource, /\.factor-param-grid code \{[\s\S]*?white-space: nowrap;/)
+})
+
+test('custom factor editor keeps every nested surface readable in dark mode', () => {
+  assert.match(
+    factorLibrarySource,
+    /custom-factor-modal--dark \{[\s\S]*?\.custom-factor-form,[\s\S]*?\.custom-factor-ai,[\s\S]*?\.custom-factor-example,[\s\S]*?\.custom-factor-rule \{[\s\S]*?background: #1b1b1b;/
+  )
+  assert.match(
+    factorLibrarySource,
+    /custom-factor-modal--dark \{[\s\S]*?\.custom-factor-tabs \.ant-tabs-nav \.ant-tabs-tab-active \{[\s\S]*?background: #2a2a2a;/
+  )
+  assert.match(
+    factorLibrarySource,
+    /custom-factor-form__direction \.ant-radio-button-wrapper-checked:not\(\.ant-radio-button-wrapper-disabled\)[\s\S]*?background: var\(--primary-color/
+  )
+  assert.match(
+    factorLibrarySource,
+    /custom-factor-rule[\s\S]*?summary > \.anticon:first-child \{ color: var\(--primary-color, #52c41a\);/
+  )
+})

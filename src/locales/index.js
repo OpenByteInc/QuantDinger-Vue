@@ -39,6 +39,11 @@ import quickTradeFloatingMessages from './lang/quick-trade-floating'
 import quickTradeLiquidityArenaMessages from './lang/quick-trade-liquidity-arena'
 import quickTradeWorkflowMessages from './lang/quick-trade-workflow'
 import settingsFeatureMessages from './settings-feature-overrides'
+import settingsAiMessages from './settings-ai-overrides'
+import settingsTradingMessages from './settings-trading-overrides'
+import settingsSecurityMessages from './settings-security-overrides'
+import strategyRunMessages from './strategy-run-overrides'
+import agentManagementMessages from './agent-management-overrides'
 import zhTwProductMessages from './zh-tw-product-overrides'
 import navigationMessages from './navigation-overrides'
 import bitgetAccountModeMessages from './lang/bitget-account-mode'
@@ -49,6 +54,10 @@ import settingsUniverseManagementMessages from './settings-universe-management-o
 import tradingVenueSettingsMessages from './lang/trading-venue-settings'
 import indicatorWorkspaceLayoutMessages from './lang/indicator-workspace-layout'
 import venueResearchCopyOverrides from './venue-research-copy-overrides'
+import marketCatalogMessages from './market-catalog-overrides'
+import humanCompletionOverrides from './human-completion-overrides'
+import reviewedRoundTwoOverrides from './reviewed-round-two-overrides'
+import reviewedStrategyReviewOverrides from './reviewed-strategy-review-overrides'
 
 Vue.use(VueI18n)
 
@@ -102,7 +111,16 @@ const messages = {
     ...(settingsUniverseManagementMessages[defaultLang] || {}),
     ...(tradingVenueSettingsMessages[defaultLang] || {}),
     ...(indicatorWorkspaceLayoutMessages[defaultLang] || {}),
-    ...(venueResearchCopyOverrides[defaultLang] || {})
+    ...(venueResearchCopyOverrides[defaultLang] || {}),
+    ...(marketCatalogMessages[defaultLang] || {}),
+    ...(settingsAiMessages[defaultLang] || {}),
+    ...(settingsTradingMessages[defaultLang] || {}),
+    ...(settingsSecurityMessages[defaultLang] || {}),
+    ...(humanCompletionOverrides[defaultLang] || {}),
+    ...(reviewedRoundTwoOverrides[defaultLang] || {}),
+    ...(reviewedStrategyReviewOverrides[defaultLang] || {}),
+    ...(strategyRunMessages[defaultLang] || {}),
+    ...(agentManagementMessages[defaultLang] || {})
   }
 }
 
@@ -215,7 +233,16 @@ function mergeLocaleOverrides (lang) {
     ...(settingsUniverseManagementMessages[lang] || {}),
     ...(tradingVenueSettingsMessages[lang] || {}),
     ...(indicatorWorkspaceLayoutMessages[lang] || {}),
-    ...(venueResearchCopyOverrides[lang] || {})
+    ...(venueResearchCopyOverrides[lang] || {}),
+    ...(marketCatalogMessages[lang] || {}),
+    ...(settingsAiMessages[lang] || {}),
+    ...(settingsTradingMessages[lang] || {}),
+    ...(settingsSecurityMessages[lang] || {}),
+    ...(humanCompletionOverrides[lang] || {}),
+    ...(reviewedRoundTwoOverrides[lang] || {}),
+    ...(reviewedStrategyReviewOverrides[lang] || {}),
+    ...(strategyRunMessages[lang] || {}),
+    ...(agentManagementMessages[lang] || {})
   }
   i18n.setLocaleMessage(lang, {
     ...(i18n.getLocaleMessage(lang) || {}),
@@ -274,12 +301,21 @@ export async function loadLanguageAsync (lang = defaultLang) {
       ...(zhTwProductMessages[lang] || {}),
       ...(navigationMessages[lang] || {}),
       ...(generatedLocaleOverrides[lang] || {}),
+      ...(settingsAiMessages[lang] || {}),
+      ...(settingsTradingMessages[lang] || {}),
+      ...(settingsSecurityMessages[lang] || {}),
       ...(factorResearchUniverseMessages[lang] || {}),
       ...(aiAnalysisWorkbenchMessages[lang] || {}),
       ...(settingsUniverseManagementMessages[lang] || {}),
       ...(tradingVenueSettingsMessages[lang] || {}),
       ...(indicatorWorkspaceLayoutMessages[lang] || {}),
-      ...(venueResearchCopyOverrides[lang] || {})
+      ...(venueResearchCopyOverrides[lang] || {}),
+      ...(marketCatalogMessages[lang] || {}),
+      ...(humanCompletionOverrides[lang] || {}),
+      ...(reviewedRoundTwoOverrides[lang] || {}),
+      ...(reviewedStrategyReviewOverrides[lang] || {}),
+      ...(strategyRunMessages[lang] || {}),
+      ...(agentManagementMessages[lang] || {})
     })
     i18n.setLocaleMessage(lang, locale)
     loadedLanguages.push(lang)

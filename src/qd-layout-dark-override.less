@@ -181,6 +181,53 @@ body.realdark .ant-modal-confirm {
   }
 }
 
+/* Dark modal baseline for portaled dialogs without a component-specific theme. */
+body.dark :where(.ant-modal-wrap .ant-modal-content),
+body.realdark :where(.ant-modal-wrap .ant-modal-content),
+body.dark :where(.ant-modal-wrap .ant-modal-header),
+body.realdark :where(.ant-modal-wrap .ant-modal-header),
+body.dark :where(.ant-modal-wrap .ant-modal-body),
+body.realdark :where(.ant-modal-wrap .ant-modal-body),
+body.dark :where(.ant-modal-wrap .ant-modal-footer),
+body.realdark :where(.ant-modal-wrap .ant-modal-footer) {
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.82);
+  background: #1b1b1b;
+}
+
+body.dark :where(.ant-modal-wrap .ant-modal-title),
+body.realdark :where(.ant-modal-wrap .ant-modal-title),
+body.dark :where(.ant-modal-wrap .ant-modal-close),
+body.realdark :where(.ant-modal-wrap .ant-modal-close),
+body.dark :where(.ant-modal-wrap .ant-form-item-label > label),
+body.realdark :where(.ant-modal-wrap .ant-form-item-label > label) {
+  color: rgba(255, 255, 255, 0.88);
+}
+
+body.dark :where(.ant-modal-wrap .ant-card),
+body.realdark :where(.ant-modal-wrap .ant-card),
+body.dark :where(.ant-modal-wrap .ant-collapse-content),
+body.realdark :where(.ant-modal-wrap .ant-collapse-content),
+body.dark :where(.ant-modal-wrap .ant-descriptions-view),
+body.realdark :where(.ant-modal-wrap .ant-descriptions-view) {
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.82);
+  background: #202020;
+}
+
+body.dark :where(.ant-modal-wrap .ant-input),
+body.realdark :where(.ant-modal-wrap .ant-input),
+body.dark :where(.ant-modal-wrap .ant-input-number),
+body.realdark :where(.ant-modal-wrap .ant-input-number),
+body.dark :where(.ant-modal-wrap .ant-input-number-input),
+body.realdark :where(.ant-modal-wrap .ant-input-number-input),
+body.dark :where(.ant-modal-wrap .ant-select-selection),
+body.realdark :where(.ant-modal-wrap .ant-select-selection) {
+  border-color: rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.82);
+  background: #202020;
+}
+
 /* Keep empty-state copy readable wherever Ant Design renders it, including portals. */
 .basic-layout-wrapper.dark .ant-empty,
 .basic-layout-wrapper.realdark .ant-empty,

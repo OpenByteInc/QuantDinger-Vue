@@ -97,21 +97,7 @@
               <span><strong>{{ $t(`strategyEvolution.method.${method.value}`) }}</strong><small>{{ $t(`strategyEvolution.methodHint.${method.value}`) }}</small></span>
             </button>
           </div>
-          <div class="budget-presets">
-            <button
-              v-for="preset in budgetPresets"
-              :key="preset.value"
-              type="button"
-              :class="{ active: form.trials === preset.trials && form.folds === preset.folds }"
-              @click="applyBudgetPreset(preset)">
-              <strong>{{ $t(`strategyEvolution.budget.${preset.value}`) }}</strong>
-              <small>{{ $t(`strategyEvolution.budgetHint.${preset.value}`, { trials: preset.trials, effective: effectivePresetTrials(preset), folds: preset.folds }) }}</small>
-            </button>
-          </div>
-          <div class="two-col">
-            <a-form-item :label="$t('strategyEvolution.trials')"><a-input-number v-model="form.trials" :min="trialMinimum" :max="trialMaximum" /></a-form-item>
-            <a-form-item :label="$t('strategyEvolution.folds')"><a-input-number v-model="form.folds" :min="4" :max="10" /></a-form-item>
-          </div>
+          <a-form-item :label="$t('strategyEvolution.trials')"><a-input-number v-model="form.trials" :min="trialMinimum" :max="trialMaximum" /></a-form-item>
           <p class="effective-budget">{{ $t('strategyEvolution.effectiveBudget', { effective: estimatedTrials, requested: form.trials }) }}</p>
           <a-alert
             v-if="estimate && !estimate.sampleSufficient"
@@ -146,6 +132,55 @@
             <a-icon type="arrow-right" />
             <label><span>{{ $t('strategyEvolution.endDate') }}</span><a-date-picker v-model="form.endDate" class="full-width" /></label>
           </div>
+          <div
+            v-if="preflightLoading || preflight || preflightError"
+            class="market-preflight"
+            :class="{
+              'market-preflight--ready': preflight && preflight.sufficient,
+              'market-preflight--blocked': preflight && !preflight.sufficient,
+              'market-preflight--error': preflightError
+            }"
+            role="status"
+            aria-live="polite">
+            <template v-if="preflightLoading">
+              <a-icon type="loading" />
+              <div><strong>{{ $t('strategyEvolution.preflightChecking') }}</strong><small>{{ $t('strategyEvolution.preflightCheckingHint') }}</small></div>
+            </template>
+            <template v-else-if="preflightError">
+              <a-icon type="warning" />
+              <div><strong>{{ $t('strategyEvolution.preflightUnavailable') }}</strong><small>{{ preflightError }}</small></div>
+              <a-button type="link" size="small" @click="retryPreflight">{{ $t('strategyEvolution.preflightRetry') }}</a-button>
+            </template>
+            <template v-else-if="preflight && preflight.sufficient">
+              <a-icon type="check-circle" />
+              <div>
+                <strong>{{ $t('strategyEvolution.preflightReady', { actual: formatInteger(preflight.sampleCount), train: formatInteger(preflightSplit.train), validation: formatInteger(preflightSplit.validation), blind: formatInteger(preflightSplit.blind) }) }}</strong>
+                <small>{{ $t('strategyEvolution.preflightReadyHint', { frequency: preflight.frequency, range: preflightObservedRange }) }}</small>
+                <small v-if="preflight.strategyType === 'portfolio' && preflight.symbolCoverageEstimated">{{ $t('strategyEvolution.portfolioCoverageEstimated', { used: formatInteger(preflight.symbolsUsed), checked: formatInteger(preflight.symbolsChecked), total: formatInteger(preflight.universeSize), coverage: formatPercentValue(preflight.symbolCoveragePercent) }) }}</small>
+                <small v-else-if="preflight.strategyType === 'portfolio'">{{ $t('strategyEvolution.portfolioCoverageReady', { used: formatInteger(preflight.symbolsUsed), total: formatInteger(preflight.universeSize), coverage: formatPercentValue(preflight.symbolCoveragePercent) }) }}</small>
+              </div>
+            </template>
+            <template v-else-if="preflight">
+              <a-icon type="warning" />
+              <div v-if="preflight.rangeLimited">
+                <strong>{{ $t('strategyEvolution.preflightRangeBlocked', { requested: formatInteger(preflight.requestedCalendarDays), limit: formatInteger(preflight.rangeLimitCalendarDays) }) }}</strong>
+                <small>{{ $t('strategyEvolution.preflightRangeBlockedHint', { warmup: formatInteger(preflight.warmupBars), days: formatInteger(preflight.warmupCalendarDays) }) }}</small>
+              </div>
+              <div v-else-if="Number(preflight.sampleCount) === 0">
+                <strong>{{ $t('strategyEvolution.preflightNoData') }}</strong>
+                <small>{{ $t('strategyEvolution.preflightNoDataHint') }}</small>
+              </div>
+              <div v-else-if="preflight.strategyType === 'portfolio' && !preflight.symbolCoverageSufficient">
+                <strong>{{ $t('strategyEvolution.portfolioCoverageBlocked', { used: formatInteger(preflight.symbolsUsed), total: formatInteger(preflight.universeSize), coverage: formatPercentValue(preflight.symbolCoveragePercent) }) }}</strong>
+                <small>{{ $t(`strategyEvolution.portfolioCoverageHint.${preflight.universeKind === 'dynamic' ? 'dynamic' : 'static'}`) }}</small>
+              </div>
+              <div v-else>
+                <strong>{{ $t('strategyEvolution.preflightBlocked', { actual: formatInteger(preflight.sampleCount), required: formatInteger(preflight.minimumRequiredBars) }) }}</strong>
+                <small>{{ $t('strategyEvolution.preflightBlockedHint', { shortage: formatInteger(preflight.shortageBars), days: formatInteger(preflight.recommendedCalendarDays) }) }}</small>
+              </div>
+              <a-button v-if="preflight.suggestedStartDate && preflightSuggestionAllowed" type="link" size="small" @click="applySuggestedStartDate">{{ $t('strategyEvolution.preflightApplySuggestion', { date: preflight.suggestedStartDate }) }}</a-button>
+            </template>
+          </div>
           <div class="two-col">
             <a-form-item :label="$t('strategyEvolution.commission')"><a-input-number v-model="form.commission" :min="0" :max="1" :step="0.0001" /></a-form-item>
             <a-form-item :label="$t('strategyEvolution.slippage')"><a-input-number v-model="form.slippage" :min="0" :max="1" :step="0.0001" /></a-form-item>
@@ -155,6 +190,7 @@
       <div class="evolution-runbar">
         <div class="resource-estimate"><span>{{ $t('strategyEvolution.estimatedTrials') }}</span><strong>{{ estimatedTrials }}</strong></div>
         <div class="resource-estimate resource-estimate--runs"><span>{{ $t('strategyEvolution.estimatedRuns') }}</span><strong>{{ estimatedRuns }}</strong></div>
+        <div v-if="estimate && Number(estimate.universeSize) > 1" class="resource-estimate"><span>{{ $t('strategyEvolution.portfolioWorkload') }}</span><strong>{{ formatInteger(estimate.relativeUnits) }}</strong></div>
         <div class="resource-estimate"><span>{{ $t('strategyEvolution.searchSpaceSize') }}</span><strong>{{ searchSpaceSize }}</strong></div>
         <div class="resource-estimate"><span>{{ $t('strategyEvolution.searchCoverage') }}</span><strong>{{ searchCoverage }}</strong></div>
         <p class="estimate-hint">{{ $t(estimateIsUpperBound ? 'strategyEvolution.estimateUpperBound' : 'strategyEvolution.estimateExact') }}</p>
@@ -206,8 +242,22 @@
       <template v-else>
         <header class="result-header">
           <div><span class="eyebrow">{{ $t('strategyEvolution.completed') }}</span><h2>{{ result.source.name }}</h2></div>
-          <a-button :type="recommendBest ? 'primary' : 'default'" :icon="recommendBest ? 'check' : 'experiment'" @click="applyBestParams">{{ $t(recommendBest ? 'strategyEvolution.applyBest' : 'strategyEvolution.applyForReview') }}</a-button>
+          <a-button :type="recommendBest ? 'primary' : 'default'" :icon="recommendBest ? 'check' : 'experiment'" :disabled="!bestCandidateValid" @click="applyBestParams">{{ $t(recommendBest ? 'strategyEvolution.applyBest' : 'strategyEvolution.applyForReview') }}</a-button>
         </header>
+        <a-alert
+          v-if="isLegacyResult"
+          class="legacy-result-alert"
+          type="warning"
+          show-icon
+          :message="$t('strategyEvolution.legacyResultTitle')"
+          :description="$t('strategyEvolution.legacyResultDescription')" />
+        <a-alert
+          v-else-if="result.summary.validationDiscriminationSufficient === false"
+          class="legacy-result-alert"
+          type="warning"
+          show-icon
+          :message="$t(validationActivityInsufficient ? 'strategyEvolution.validationActivityInsufficientTitle' : 'strategyEvolution.validationDiscriminationTitle')"
+          :description="$t(validationActivityInsufficient ? 'strategyEvolution.validationActivityInsufficientDescription' : 'strategyEvolution.validationDiscriminationDescription', { shortlist: result.summary.validationShortlistTrials || 0, behaviors: result.summary.distinctValidationBehaviors || 0, returns: result.summary.distinctValidationReturns || 0, activity: formatNumber(candidateValidationActivity(bestCandidate)) })" />
         <section class="research-verdict" :class="{ 'research-verdict--review': !recommendBest }">
           <div class="research-verdict__icon"><a-icon :type="recommendBest ? 'check' : 'warning'" /></div>
           <div class="research-verdict__copy">
@@ -227,9 +277,11 @@
         </section>
         <div class="study-facts">
           <span v-if="result.plan && result.plan.sampleCount"><b>{{ result.plan.sampleCount }}</b>{{ $t('strategyEvolution.marketBars') }}</span>
-          <span v-if="result.plan && result.plan.effectiveFolds"><b>{{ result.plan.effectiveFolds }}</b>{{ $t('strategyEvolution.effectiveFolds') }}</span>
+          <span v-if="result.plan && result.plan.strategyType === 'portfolio'"><b>{{ result.plan.symbolsUsed }}/{{ result.plan.universeSize }}</b>{{ $t('strategyEvolution.portfolioSymbols') }}</span>
           <span v-if="result.plan && result.plan.blindBars"><b>{{ result.plan.blindBars }}</b>{{ $t('strategyEvolution.blindBars') }}</span>
           <span><b>{{ result.summary.evaluatedTrials || result.summary.completedTrials }}</b>{{ $t('strategyEvolution.evaluatedTrials') }}</span>
+          <span v-if="result.summary.validationShortlistTrials"><b>{{ result.summary.validationShortlistTrials }}</b>{{ $t('strategyEvolution.validationShortlistTrials') }}</span>
+          <span v-if="result.summary.distinctValidationBehaviors"><b>{{ result.summary.distinctValidationBehaviors }}</b>{{ $t('strategyEvolution.distinctValidationBehaviors') }}</span>
           <span v-if="resultCandidateAttempts"><b>{{ resultCandidateAttempts }}</b>{{ $t('strategyEvolution.candidateAttempts') }}</span>
           <span v-if="result.summary.constraintRejectedTrials"><b>{{ result.summary.constraintRejectedTrials }}</b>{{ $t('strategyEvolution.constraintRejectedTrials') }}</span>
           <span v-if="result.summary.overfitRejectedTrials"><b>{{ result.summary.overfitRejectedTrials }}</b>{{ $t('strategyEvolution.overfitRejectedTrials') }}</span>
@@ -242,7 +294,7 @@
           <article><span>{{ $t('strategyEvolution.oosReturn') }}</span><strong>{{ formatPercent(result.summary.oosReturn) }}</strong></article>
           <article><span>{{ $t('strategyEvolution.oosSharpe') }}</span><strong>{{ formatNumber(result.summary.oosSharpe) }}</strong></article>
           <article><span>{{ $t('strategyEvolution.maxDrawdown') }}</span><strong class="negative">-{{ formatPercent(result.summary.maxDrawdown) }}</strong></article>
-          <article><span>{{ $t('strategyEvolution.decay') }}</span><strong>{{ formatPercent(result.summary.decayRate) }}</strong></article>
+          <article><span>{{ $t('strategyEvolution.decay') }}</span><strong>{{ decayDirectionReversed ? $t('strategyEvolution.decayDirectionReversed') : formatPercent(result.summary.decayRate) }}</strong><em v-if="decayDirectionReversed">{{ formatNumber(bestCandidate.components.trainSharpe) }} → {{ formatNumber(bestCandidate.components.oosSharpe) }}</em></article>
           <article><span>{{ $t('strategyEvolution.blindReturn') }}</span><strong :class="{ negative: Number(result.summary.blindReturn) < 0 }">{{ result.summary.blindReturn === null || result.summary.blindReturn === undefined ? '—' : formatPercent(result.summary.blindReturn) }}</strong><em>{{ $t(result.summary.blindPassed ? 'strategyEvolution.blindPassed' : 'strategyEvolution.blindFailed') }}</em></article>
         </div>
         <div class="chart-grid chart-grid--hero">
@@ -250,8 +302,22 @@
           <section class="chart-card"><div class="chart-title"><strong>{{ $t('strategyEvolution.chart.drawdown') }}</strong></div><div ref="drawdownChart" class="chart chart--hero" /></section>
         </div>
         <div class="chart-grid">
-          <section class="chart-card"><div class="chart-title"><strong>{{ $t('strategyEvolution.chart.convergence') }}</strong></div><div ref="convergenceChart" class="chart" /></section>
-          <section class="chart-card"><div class="chart-title"><strong>{{ $t('strategyEvolution.chart.heatmap') }}</strong></div><div ref="heatmapChart" class="chart" /></section>
+          <section class="chart-card"><div class="chart-title"><strong>{{ $t(result.method === 'random' ? 'strategyEvolution.chart.searchProgress' : 'strategyEvolution.chart.convergence') }}</strong><span>{{ $t('strategyEvolution.chart.trainingScoreHint') }}</span></div><div ref="convergenceChart" class="chart chart--analysis" /></section>
+          <section class="chart-card">
+            <div class="chart-title chart-title--surface">
+              <strong>{{ $t('strategyEvolution.chart.heatmap') }}</strong>
+              <div class="surface-axis-controls">
+                <label><span>{{ $t('strategyEvolution.chart.axisX') }}</span><a-select :value="surfaceXAxis" size="small" @change="selectSurfaceAxis('x', $event)"><a-select-option v-for="name in surfaceParameterNames" :key="`x-${name}`" :value="name" :disabled="name === surfaceYAxis">{{ surfaceParameterLabel(name) }}</a-select-option></a-select></label>
+                <label><span>{{ $t('strategyEvolution.chart.axisY') }}</span><a-select :value="surfaceYAxis" size="small" @change="selectSurfaceAxis('y', $event)"><a-select-option v-for="name in surfaceParameterNames" :key="`y-${name}`" :value="name" :disabled="name === surfaceXAxis">{{ surfaceParameterLabel(name) }}</a-select-option></a-select></label>
+              </div>
+            </div>
+            <div v-if="surfaceFixedParameters.length" class="surface-fixed-bar">
+              <span>{{ $t('strategyEvolution.chart.fixedAtBest') }}</span>
+              <code v-for="item in surfaceFixedParameters" :key="item.name">{{ surfaceParameterLabel(item.name) }}={{ formatParameterValue(item.value) }}</code>
+              <small>{{ $t('strategyEvolution.chart.surfaceInteractionHint') }}</small>
+            </div>
+            <div ref="heatmapChart" class="chart chart--analysis" />
+          </section>
           <section class="chart-card"><div class="chart-title"><strong>{{ $t('strategyEvolution.chart.monteCarlo') }}</strong><span>{{ $t('strategyEvolution.chart.monteCarloHint') }}</span></div><div ref="monteCarloChart" class="chart" /></section>
           <section class="chart-card"><div class="chart-title"><strong>{{ $t('strategyEvolution.chart.costStress') }}</strong><span>{{ $t('strategyEvolution.chart.costStressHint') }}</span></div><div ref="costChart" class="chart" /></section>
         </div>
@@ -265,11 +331,19 @@
           </div>
         </section>
         <section class="candidate-card">
-          <div class="chart-title"><strong>{{ $t('strategyEvolution.topCandidates') }}</strong><span>{{ result.summary.completedTrials }} · {{ $t('strategyEvolution.completedTrials') }}</span></div>
+          <div class="chart-title"><strong>{{ $t('strategyEvolution.topCandidates') }}</strong><span>{{ $t('strategyEvolution.rankingScope', { displayed: (result.topCandidates || []).length, shortlist: result.summary.validationShortlistTrials || (result.topCandidates || []).length, searched: result.summary.evaluatedTrials || result.summary.completedTrials || 0 }) }}</span></div>
           <div class="candidate-table">
-            <div class="candidate-table__head"><span>#</span><span>{{ $t('strategyEvolution.rankingReturn') }}</span><span>{{ $t('strategyEvolution.parameters') }}</span><span>{{ $t('strategyEvolution.validationActivity') }}</span><span>{{ $t('strategyEvolution.profitableFolds') }}</span><span>{{ $t('strategyEvolution.maxDrawdown') }}</span></div>
-            <div v-for="item in result.topCandidates" :key="item.number" class="candidate-table__row">
-              <span>{{ item.number }}</span><strong>{{ formatPercent(item.score) }}</strong><code>{{ formatParams(item.params) }}</code><span>{{ formatNumber(item.components.validationActivity) }}</span><span>{{ item.components.positiveValidationFolds }}/{{ item.components.validationFolds }}</span><span>{{ formatPercent(item.components.maxDrawdown) }}</span>
+            <div class="candidate-table__head"><span>#</span><span>{{ $t('strategyEvolution.rankingReturn') }}</span><span>{{ $t('strategyEvolution.parameters') }}</span><span>{{ $t('strategyEvolution.validationActivity') }}</span><span>{{ $t('strategyEvolution.profitableFolds') }}</span><span>{{ $t('strategyEvolution.maxDrawdown') }}</span><span>{{ $t('strategyEvolution.actions') }}</span></div>
+            <div
+              v-for="(item, index) in result.topCandidates"
+              :key="item.number"
+              class="candidate-table__row candidate-table__row--interactive"
+              role="button"
+              tabindex="0"
+              @click="openCandidate(item, index)"
+              @keydown.enter.prevent="openCandidate(item, index)"
+              @keydown.space.prevent="openCandidate(item, index)">
+              <span class="candidate-rank">{{ item.rank || index + 1 }}<small v-if="Number(item.validationTieCount || 0) > 1">{{ $t('strategyEvolution.validationTie', { count: item.validationTieCount }) }}</small></span><strong :class="{ negative: candidateValidationReturn(item) < 0 }">{{ formatPrecisePercent(candidateValidationReturn(item)) }}</strong><code>{{ formatParams(item.params) }}</code><span>{{ formatNumber(candidateValidationActivity(item)) }}</span><span>{{ item.components.positiveValidationFolds }}/{{ item.components.validationFolds }}</span><span>{{ formatPercent(item.components.maxDrawdown) }}</span><span class="candidate-open">{{ $t('strategyEvolution.viewCandidate') }} <a-icon type="right" /></span>
             </div>
           </div>
         </section>
@@ -318,15 +392,75 @@
         <div v-else class="validation-placeholder"><a-icon type="safety-certificate" /><p>{{ $t('strategyEvolution.validationEmpty') }}</p></div>
       </div>
     </aside>
+
+    <a-modal
+      v-model="candidateDetailVisible"
+      :title="$t('strategyEvolution.candidateDetailTitle', { rank: selectedCandidateRank })"
+      :width="680"
+      :mask-closable="!savingCandidate"
+      :closable="!savingCandidate"
+      :footer="null"
+      :wrap-class-name="isDarkTheme ? 'candidate-detail-modal candidate-detail-modal--dark' : 'candidate-detail-modal'">
+      <template v-if="selectedCandidate">
+        <div class="candidate-detail-summary">
+          <div><span>{{ $t('strategyEvolution.trainingReturn') }}</span><strong :class="{ negative: candidateTrainingReturn(selectedCandidate) < 0 }">{{ formatPercent(candidateTrainingReturn(selectedCandidate)) }}</strong></div>
+          <div><span>{{ $t('strategyEvolution.rankingReturn') }}</span><strong :class="{ negative: candidateValidationReturn(selectedCandidate) < 0 }">{{ formatPercent(candidateValidationReturn(selectedCandidate)) }}</strong></div>
+          <div><span>{{ $t('strategyEvolution.validationActivity') }}</span><strong>{{ formatNumber(candidateValidationActivity(selectedCandidate)) }}</strong></div>
+          <div><span>{{ $t('strategyEvolution.profitableFolds') }}</span><strong>{{ selectedCandidate.components.positiveValidationFolds }}/{{ selectedCandidate.components.validationFolds }}</strong></div>
+          <div><span>{{ $t('strategyEvolution.maxDrawdown') }}</span><strong class="negative">{{ formatPercent(selectedCandidate.components.maxDrawdown) }}</strong></div>
+        </div>
+        <section class="candidate-detail-params">
+          <div class="candidate-detail-heading">
+            <strong>{{ $t('strategyEvolution.candidateParams') }}</strong>
+            <span>{{ $t('strategyEvolution.candidateTrialNumber', { number: selectedCandidate.number }) }}</span>
+          </div>
+          <div class="candidate-param-grid">
+            <div v-for="(value, key) in selectedCandidate.params" :key="key">
+              <code>{{ key }}</code>
+              <b>{{ formatCandidateParam(value) }}</b>
+            </div>
+          </div>
+        </section>
+        <a-alert
+          v-if="!selectedCandidateValid"
+          class="candidate-save-alert"
+          type="error"
+          show-icon
+          :message="$t('strategyEvolution.candidateNoValidationActivity')" />
+        <a-alert
+          v-else-if="!candidateSourceCanSave"
+          class="candidate-save-alert"
+          type="warning"
+          show-icon
+          :message="$t('strategyEvolution.candidateSaveUnavailable')" />
+        <div class="candidate-detail-actions">
+          <a-button @click="candidateDetailVisible = false">{{ $t('strategyEvolution.closeCandidate') }}</a-button>
+          <div>
+            <a-button icon="experiment" :disabled="!selectedCandidateValid" @click="applyCandidateToBacktest(selectedCandidate)">{{ $t('strategyEvolution.applyCandidateToBacktest') }}</a-button>
+            <a-popconfirm
+              :title="$t('strategyEvolution.saveCandidateConfirm')"
+              :ok-text="$t('strategyEvolution.saveCandidateConfirmAction')"
+              :cancel-text="$t('strategyEvolution.cancel')"
+              placement="topRight"
+              :disabled="!candidateCanSave || savingCandidate"
+              @confirm="saveCandidateToStrategy(selectedCandidate)">
+              <a-button type="primary" icon="save" :disabled="!candidateCanSave" :loading="savingCandidate">{{ $t('strategyEvolution.saveCandidateToStrategy') }}</a-button>
+            </a-popconfirm>
+          </div>
+        </div>
+      </template>
+    </a-modal>
   </div>
 </template>
 
 <script>
 import * as echarts from 'echarts'
+import 'echarts-gl'
 import moment from 'moment'
 import { mapState } from 'vuex'
-import { cancelStrategyEvolutionJob, compileScriptSource, estimateStrategyEvolution, getScriptSourceList, getScriptSourceDetail, getStrategyEvolutionJob, getStrategyEvolutionJobs, getStrategyEvolutionParameterSpace, runStrategyEvolution } from '@/api/strategy'
+import { cancelStrategyEvolutionJob, compileScriptSource, estimateStrategyEvolution, getScriptSourceList, getScriptSourceDetail, getStrategyEvolutionJob, getStrategyEvolutionJobs, getStrategyEvolutionParameterSpace, preflightStrategyEvolution, runStrategyEvolution, updateScriptSource } from '@/api/strategy'
 import { strategyParameterLabel } from '@/utils/strategyParameterPresentation'
+import { buildScriptCodeWithParamValues } from '@/views/strategy-ide/components/scriptTemplateCatalog'
 
 export default {
   name: 'StrategyEvolution',
@@ -353,20 +487,26 @@ export default {
       estimateLoading: false,
       estimateTimer: null,
       estimateRequestId: 0,
+      preflight: null,
+      preflightLoading: false,
+      preflightError: '',
+      preflightTimer: null,
+      preflightRequestId: 0,
       history: [],
       historyLoading: false,
       historyRequestId: 0,
+      candidateDetailVisible: false,
+      selectedCandidate: null,
+      selectedCandidateRank: 0,
+      savingCandidate: false,
+      surfaceXAxis: '',
+      surfaceYAxis: '',
       searchMethods: [
         { value: 'random', icon: 'swap' },
         { value: 'grid', icon: 'appstore' },
         { value: 'tpe', icon: 'deployment-unit' }
       ],
-      budgetPresets: [
-        { value: 'quick', trials: 32, folds: 4 },
-        { value: 'standard', trials: 64, folds: 5 },
-        { value: 'deep', trials: 160, folds: 6 }
-      ],
-      form: { sourceId: null, method: 'tpe', trials: 64, folds: 5, trainRatio: 0.7, blindRatio: 0.15, autoPrune: false, startDate: end.clone().subtract(2, 'years'), endDate: end, commission: 0.0005, slippage: 0.0005 }
+      form: { sourceId: null, method: 'tpe', trials: 64, trainRatio: 0.7, blindRatio: 0.15, autoPrune: false, startDate: end.clone().subtract(6, 'months'), endDate: end, commission: 0.0005, slippage: 0.0005 }
     }
   },
   computed: {
@@ -377,7 +517,7 @@ export default {
     isDarkTheme () { return this.navTheme === 'dark' || this.navTheme === 'realdark' },
     selectedParameterCount () { return Object.values(this.parameterEnabled).filter(Boolean).length },
     searchableParameterCount () { return this.parameterDefinitions.filter(this.searchableParameter).length },
-    estimatedRuns () { return this.estimatedTrials + 4 },
+    estimatedRuns () { return this.estimate && Number.isFinite(Number(this.estimate.backtestRuns)) ? Number(this.estimate.backtestRuns) : this.estimatedTrials + 4 },
     estimatedTrials () { return this.effectiveTrialCount },
     trialMinimum () { return this.form.method === 'tpe' ? 32 : 1 },
     trialMaximum () { return this.form.method === 'grid' ? 5000 : 500 },
@@ -422,6 +562,35 @@ export default {
       if (this.selectedRangeDays === null || this.selectedRangeDays < 0) return true
       return this.backtestRangeLimitDays !== null && this.selectedRangeDays > this.backtestRangeLimitDays
     },
+    preflightObservedRange () {
+      if (!this.preflight || !this.preflight.observedFrom || !this.preflight.observedTo) return '—'
+      return `${moment(this.preflight.observedFrom).format('YYYY-MM-DD')} – ${moment(this.preflight.observedTo).format('YYYY-MM-DD')}`
+    },
+    preflightSplit () {
+      const plan = (this.preflight && this.preflight.plan) || {}
+      const split = (plan.folds && plan.folds[0]) || {}
+      return {
+        train: Number(split.trainBars || 0),
+        validation: Number(split.validationBars || 0),
+        blind: Number(plan.blindBars || 0)
+      }
+    },
+    preflightSuggestionAllowed () {
+      if (!this.preflight || !this.preflight.suggestedStartDate || !this.form.endDate) return false
+      if (this.backtestRangeLimitDays === null) return true
+      return this.form.endDate.clone().startOf('day').diff(moment(this.preflight.suggestedStartDate).startOf('day'), 'days') <= this.backtestRangeLimitDays
+    },
+    preflightSignature () {
+      return JSON.stringify({
+        loadingSource: this.loadingSource,
+        sourceId: this.form.sourceId,
+        startDate: this.form.startDate && this.form.startDate.format('YYYY-MM-DD'),
+        endDate: this.form.endDate && this.form.endDate.format('YYYY-MM-DD'),
+        trainRatio: this.form.trainRatio,
+        blindRatio: this.form.blindRatio,
+        parameters: this.parameterPayload().map(item => ({ name: item.name, min: item.min, max: item.max, step: item.step }))
+      })
+    },
     parameterRangesValid () {
       return this.parameterDefinitions.every(item => {
         if (!this.parameterEnabled[item.name] || !this.numericParameter(item)) return true
@@ -454,6 +623,37 @@ export default {
       return worst.returnDelta !== undefined ? Number(worst.returnDelta) : Number(worst.return || 0) - Number(rows[0].return || 0)
     },
     bestCandidate () { return this.result && this.result.topCandidates && this.result.topCandidates[0] },
+    surfaceParameterNames () {
+      const trials = ((this.result && this.result.trials) || []).filter(row => !row.pruned && row.params)
+      const names = new Set()
+      trials.forEach(row => Object.entries(row.params).forEach(([name, value]) => {
+        if (typeof value === 'number' && Number.isFinite(value)) names.add(name)
+      }))
+      const varying = [...names].filter(name => new Set(trials.map(row => row.params[name])).size > 1)
+      const legacy = (this.result && this.result.heatmap) || {}
+      if (varying.length < 2) {
+        [legacy.xParameter, legacy.yParameter].filter(Boolean).forEach(name => {
+          if (!varying.includes(name)) varying.push(name)
+        })
+      }
+      return varying
+    },
+    surfaceFixedParameters () {
+      const best = (this.result && this.result.bestParams) || (this.bestCandidate && this.bestCandidate.params) || {}
+      return this.surfaceParameterNames
+        .filter(name => name !== this.surfaceXAxis && name !== this.surfaceYAxis && Number.isFinite(Number(best[name])))
+        .map(name => ({ name, value: Number(best[name]) }))
+    },
+    validationActivityInsufficient () { return this.candidateValidationActivity(this.bestCandidate) < 2 },
+    decayDirectionReversed () {
+      const components = (this.bestCandidate && this.bestCandidate.components) || {}
+      return Number(components.trainSharpe) > 0 && Number(components.oosSharpe) < 0
+    },
+    isLegacyResult () { return Boolean(this.result && Number(this.result.resultVersion || 0) < 3) },
+    candidateSourceCanSave () { return Boolean(this.source && String(this.source.code || '').trim()) },
+    bestCandidateValid () { return this.candidateValidationActivity(this.bestCandidate) > 0 },
+    selectedCandidateValid () { return this.candidateValidationActivity(this.selectedCandidate) > 0 },
+    candidateCanSave () { return this.candidateSourceCanSave && this.selectedCandidateValid },
     resultCandidateAttempts () {
       const summary = (this.result && this.result.summary) || {}
       const evaluated = Number(summary.evaluatedTrials || summary.completedTrials || 0)
@@ -481,12 +681,25 @@ export default {
     resultSampleSufficient () {
       if (!this.result || !this.result.summary) return false
       const summary = this.result.summary
-      if (summary.sampleSufficient !== undefined) return Boolean(summary.sampleSufficient)
-      return Number(summary.evaluatedTrials || summary.completedTrials || 0) >= 32
+      const evaluated = Number(summary.evaluatedTrials || summary.completedTrials || 0)
+      const space = Number(summary.searchSpaceSize || 0)
+      const parameterCount = Object.keys(this.result.bestParams || {}).length
+      const method = String(this.result.method || '')
+      const currentMinimum = method === 'grid'
+        ? Math.min(space || 300, 300)
+        : method === 'random'
+          ? Math.min(space || Math.max(64, parameterCount * 16), Math.max(64, parameterCount * 16))
+          : Math.min(space || Math.max(32, parameterCount * 16), Math.max(32, parameterCount * 16))
+      return evaluated >= currentMinimum
     },
     recommendBest () {
       if (!this.result || !this.result.summary) return false
       if (!this.resultSampleSufficient) return false
+      if (Number(this.result.resultVersion || 0) >= 3) {
+        if (this.result.summary.validationDiscriminationSufficient === false) return false
+        const blindReturn = this.result.summary.blindReturn
+        return Number(this.result.summary.oosReturn) > 0 && (blindReturn === null || blindReturn === undefined || Boolean(this.result.summary.blindPassed))
+      }
       if (this.result.summary.recommended !== undefined) return Boolean(this.result.summary.recommended)
       const blindReturn = this.result.summary.blindReturn
       return Number(this.result.summary.oosReturn) > 0 && (blindReturn === null || blindReturn === undefined || Boolean(this.result.summary.blindPassed))
@@ -495,6 +708,7 @@ export default {
       if (!this.result || !this.result.summary) return 'strategyEvolution.decision.reviewGeneric'
       const summary = this.result.summary
       if (!this.resultSampleSufficient) return 'strategyEvolution.decision.insufficientSample'
+      if (summary.validationDiscriminationSufficient === false) return 'strategyEvolution.decision.insufficientDiscrimination'
       if (Number(summary.oosReturn) <= 0) return 'strategyEvolution.decision.negativeValidation'
       if (summary.blindReturn !== null && summary.blindReturn !== undefined && !summary.blindPassed) return 'strategyEvolution.decision.blindFailed'
       if (Number(summary.positiveValidationFolds || 0) < Math.ceil(Number(summary.validationFolds || 0) / 2)) return 'strategyEvolution.decision.unstableSegments'
@@ -505,7 +719,10 @@ export default {
       const estimate = this.estimate || {}
       const evaluated = Number(summary.evaluatedTrials || summary.completedTrials || 0)
       const space = Number(summary.searchSpaceSize || estimate.searchSpaceSize || 0)
-      const minimum = Number(summary.minimumRecommendedTrials || estimate.minimumRecommendedTrials || 32)
+      const parameterCount = Object.keys((this.result && this.result.bestParams) || {}).length
+      const method = String((this.result && this.result.method) || this.form.method || '')
+      const currentMinimum = method === 'grid' ? Math.min(space || 300, 300) : method === 'random' ? Math.min(space || Math.max(64, parameterCount * 16), Math.max(64, parameterCount * 16)) : Math.min(space || Math.max(32, parameterCount * 16), Math.max(32, parameterCount * 16))
+      const minimum = Number(currentMinimum || summary.minimumRecommendedTrials || estimate.minimumRecommendedTrials || 32)
       const coverage = summary.coveragePercent !== undefined
         ? Number(summary.coveragePercent)
         : (space > 0 ? (evaluated / space) * 100 : 0)
@@ -517,6 +734,9 @@ export default {
         evaluated,
         minimum,
         space: space.toLocaleString(),
+        shortlist: Number(summary.validationShortlistTrials || 0),
+        behaviors: Number(summary.distinctValidationBehaviors || 0),
+        returns: Number(summary.distinctValidationReturns || 0),
         coverage: coverage > 0 && coverage < 0.01 ? '<0.01%' : `${coverage.toFixed(2)}%`
       }
     },
@@ -527,7 +747,7 @@ export default {
         { key: '3m', startDate: end.clone().subtract(3, 'months') },
         { key: '6m', startDate: end.clone().subtract(6, 'months') }
       ]
-      const presets = rows.map(row => {
+      return rows.map(row => {
         const rangeDays = end.diff(row.startDate, 'days')
         return {
           ...row,
@@ -536,28 +756,20 @@ export default {
           active: this.selectedRangeDays === rangeDays
         }
       })
-      if (this.backtestRangeLimitDays !== null) {
-        presets.push({
-          key: 'max',
-          startDate: end.clone().subtract(this.backtestRangeLimitDays, 'days'),
-          label: this.$t('strategyEvolution.quickRange.max', { days: this.backtestRangeLimitDays }),
-          disabled: false,
-          active: this.selectedRangeDays === this.backtestRangeLimitDays
-        })
-      }
-      return presets
     },
-    canRun () { return Boolean(!this.loadingSource && this.form.sourceId && this.selectedParameterCount && this.parameterRangesValid && this.form.startDate && this.form.endDate && !this.backtestRangeExceeded) }
+    canRun () { return Boolean(!this.loadingSource && !this.preflightLoading && !this.preflightError && this.preflight && this.preflight.sufficient && this.form.sourceId && this.selectedParameterCount && this.parameterRangesValid && this.form.startDate && this.form.endDate && !this.backtestRangeExceeded) }
   },
   watch: {
     form: { handler: 'scheduleEstimate', deep: true },
     parameterSpace: { handler: 'scheduleEstimate', deep: true },
     parameterEnabled: { handler: 'scheduleEstimate', deep: true },
+    preflight: { handler: 'scheduleEstimate', deep: true },
+    preflightSignature: 'schedulePreflight',
     isDarkTheme () { this.refreshChartsForTheme() },
     primaryColor () { this.refreshChartsForTheme() }
   },
   mounted () { this.initializeWorkspace(); window.addEventListener('resize', this.resizeCharts) },
-  beforeDestroy () { window.removeEventListener('resize', this.resizeCharts); this.disposeCharts(); this.stopPolling(); this.estimateRequestId += 1; if (this.estimateTimer) window.clearTimeout(this.estimateTimer) },
+  beforeDestroy () { window.removeEventListener('resize', this.resizeCharts); this.disposeCharts(); this.stopPolling(); this.estimateRequestId += 1; this.preflightRequestId += 1; if (this.estimateTimer) window.clearTimeout(this.estimateTimer); if (this.preflightTimer) window.clearTimeout(this.preflightTimer) },
   methods: {
     async initializeWorkspace () {
       const allHistory = await this.fetchHistory()
@@ -630,6 +842,7 @@ export default {
     },
     applyBacktestRangePolicy () {
       if (this.backtestRangeLimitDays === null || !this.form.endDate) return
+      if (this.selectedRangeDays !== null && this.selectedRangeDays <= this.backtestRangeLimitDays) return
       const endDate = this.form.endDate.clone().startOf('day')
       this.form.startDate = endDate.clone().subtract(this.backtestRangeLimitDays, 'days')
     },
@@ -643,11 +856,6 @@ export default {
       this.form.method = method
       if (method === 'tpe' && Number(this.form.trials) < this.trialMinimum) this.form.trials = 64
       if (Number(this.form.trials) > this.trialMaximum) this.form.trials = this.trialMaximum
-    },
-    applyBudgetPreset (preset) {
-      this.form.trials = preset.trials
-      this.form.folds = preset.folds
-      this.form.autoPrune = false
     },
     parameterChoices (item) {
       return (item.choices || item.options || item.values || []).map(value => (value && typeof value === 'object' ? value.value : value))
@@ -683,10 +891,6 @@ export default {
       const tolerance = Math.max(1, Math.abs(minimum), Math.abs(maximum)) * 1e-10
       return regularSteps + 1 + (regularMaximum < maximum - tolerance ? 1 : 0)
     },
-    effectivePresetTrials (preset) {
-      const requested = Math.max(1, Number(preset && preset.trials) || 1)
-      return this.localSearchSpaceSize > 0 ? Math.min(requested, this.localSearchSpaceSize) : requested
-    },
     updateParameterRange (name, boundary, value) {
       this.parameterSpace = { ...this.parameterSpace, [name]: { ...(this.parameterSpace[name] || {}), [boundary]: value } }
     },
@@ -704,7 +908,24 @@ export default {
     },
     parameterPayload () { return this.parameterDefinitions.filter(item => this.parameterEnabled[item.name]).map(item => ({ ...item, ...(this.parameterSpace[item.name] || {}) })) },
     estimatePayload () {
-      return { parameterSpace: this.parameterPayload(), config: { method: this.form.method, trials: this.form.trials, folds: this.form.folds, trainRatio: this.form.trainRatio, blindRatio: this.form.blindRatio, autoPrune: this.form.autoPrune, monteCarloPaths: 1000 } }
+      return {
+        parameterSpace: this.parameterPayload(),
+        universeSize: Math.max(1, Number(this.preflight && this.preflight.universeSize) || 1),
+        config: { method: this.form.method, trials: this.form.trials, trainRatio: this.form.trainRatio, blindRatio: this.form.blindRatio, autoPrune: this.form.autoPrune, monteCarloPaths: 1000 }
+      }
+    },
+    preflightPayload () {
+      return {
+        sourceId: this.form.sourceId,
+        startDate: this.form.startDate && this.form.startDate.format('YYYY-MM-DD'),
+        endDate: this.form.endDate && this.form.endDate.format('YYYY-MM-DD'),
+        initialCapital: 10000,
+        parameterSpace: this.parameterPayload(),
+        config: this.estimatePayload().config
+      }
+    },
+    preflightRequestReady () {
+      return Boolean(!this.loadingSource && this.form.sourceId && this.form.startDate && this.form.endDate && this.selectedParameterCount && this.parameterRangesValid && !this.backtestRangeExceeded)
     },
     scheduleEstimate () {
       const requestId = ++this.estimateRequestId
@@ -725,6 +946,42 @@ export default {
       } finally {
         if (requestId === this.estimateRequestId) this.estimateLoading = false
       }
+    },
+    schedulePreflight () {
+      const requestId = ++this.preflightRequestId
+      if (this.preflightTimer) window.clearTimeout(this.preflightTimer)
+      this.preflight = null
+      this.preflightError = ''
+      this.preflightLoading = this.preflightRequestReady()
+      if (!this.preflightLoading) return
+      this.preflightTimer = window.setTimeout(() => this.refreshPreflight(requestId), 650)
+    },
+    async refreshPreflight (requestId = this.preflightRequestId) {
+      this.preflightTimer = null
+      if (requestId !== this.preflightRequestId || !this.preflightRequestReady()) return
+      try {
+        const response = await preflightStrategyEvolution(this.preflightPayload())
+        if (requestId === this.preflightRequestId) this.preflight = response.data || null
+      } catch (error) {
+        if (requestId === this.preflightRequestId) this.preflightError = (error && error.backendMessage) || this.$t('strategyEvolution.preflightFailed')
+      } finally {
+        if (requestId === this.preflightRequestId) this.preflightLoading = false
+      }
+    },
+    retryPreflight () {
+      this.schedulePreflight()
+    },
+    applySuggestedStartDate () {
+      if (!this.preflight || !this.preflight.suggestedStartDate || !this.preflightSuggestionAllowed) return
+      this.form.startDate = moment(this.preflight.suggestedStartDate).startOf('day')
+    },
+    formatInteger (value) {
+      const number = Number(value)
+      return Number.isFinite(number) ? Math.round(number).toLocaleString() : '—'
+    },
+    formatPercentValue (value) {
+      const number = Number(value)
+      return Number.isFinite(number) ? `${number.toFixed(number >= 99.95 ? 0 : 1)}%` : '—'
     },
     async fetchHistory (sourceId) {
       const params = { limit: 20 }
@@ -749,7 +1006,7 @@ export default {
       if (request.sourceId) this.form.sourceId = request.sourceId
       if (request.startDate) this.form.startDate = moment(request.startDate)
       if (request.endDate) this.form.endDate = moment(request.endDate)
-      ;['method', 'trials', 'folds', 'trainRatio', 'blindRatio', 'autoPrune'].forEach(key => {
+      ;['method', 'trials', 'trainRatio', 'blindRatio', 'autoPrune'].forEach(key => {
         if (config[key] !== undefined) this.form[key] = config[key]
       })
       if (this.form.method === 'tpe' && Number(this.form.trials) < 32) this.form.trials = 32
@@ -801,12 +1058,73 @@ export default {
     formatDateTime (value) { return value ? moment(value).format('YYYY-MM-DD HH:mm') : '—' },
     formatFoldRange (start, end) { return start && end ? `${moment(start).format('YYYY-MM-DD')} – ${moment(end).format('YYYY-MM-DD')}` : '—' },
     applyBestParams () {
+      this.applyCandidateToBacktest(this.bestCandidate || { params: this.result.bestParams })
+    },
+    openCandidate (candidate, index) {
+      this.selectedCandidate = candidate || null
+      this.selectedCandidateRank = Number(candidate && candidate.rank) || Number(index) + 1
+      this.candidateDetailVisible = Boolean(candidate)
+    },
+    formatCandidateParam (value) {
+      if (typeof value === 'boolean') return this.$t(value ? 'strategyEvolution.boolean.true' : 'strategyEvolution.boolean.false')
+      if (value === null || value === undefined || value === '') return '—'
+      return String(value)
+    },
+    candidateTrainingReturn (candidate) {
+      return Number((((candidate || {}).components || {}).trainReturn) || 0)
+    },
+    candidateValidationReturn (candidate) {
+      const components = ((candidate || {}).components || {})
+      if (components.oosReturn !== undefined && components.oosReturn !== null) return Number(components.oosReturn || 0)
+      return this.isLegacyResult ? 0 : Number((candidate || {}).score || 0)
+    },
+    candidateValidationActivity (candidate) {
+      return Number((((candidate || {}).components || {}).validationActivity) || 0)
+    },
+    applyCandidateToBacktest (candidate) {
+      if (this.candidateValidationActivity(candidate) <= 0) return
+      const params = { ...((candidate && candidate.params) || {}) }
+      this.candidateDetailVisible = false
       this.$emit('apply', {
         sourceId: this.form.sourceId,
-        params: this.result.bestParams,
+        params,
         parameterDefinitions: this.parameterDefinitions,
-        recommended: this.recommendBest
+        recommended: candidate === this.bestCandidate && this.recommendBest
       })
+    },
+    async saveCandidateToStrategy (candidate) {
+      if (!candidate || !this.candidateCanSave || this.candidateValidationActivity(candidate) <= 0 || this.savingCandidate) return
+      this.savingCandidate = true
+      try {
+        const sourceResponse = await getScriptSourceDetail(this.form.sourceId)
+        const source = sourceResponse.data || this.source
+        const code = String((source && source.code) || '')
+        if (!code.trim()) throw new Error(this.$t('strategyEvolution.candidateSaveUnavailable'))
+        const candidateParams = candidate.params || {}
+        const candidateDefinitions = this.parameterDefinitions.filter(item => Object.prototype.hasOwnProperty.call(candidateParams, item.name))
+        const nextCode = buildScriptCodeWithParamValues(code, candidateDefinitions, candidateParams)
+        if (nextCode === code) throw new Error(this.$t('strategyEvolution.candidateSaveNoChanges'))
+        await compileScriptSource({ code: nextCode })
+        const response = await updateScriptSource(this.form.sourceId, {
+          name: source.name,
+          description: source.description,
+          code: nextCode,
+          asset_type: source.asset_type,
+          template_key: source.template_key,
+          param_schema: source.param_schema,
+          metadata: source.metadata
+        })
+        this.source = response.data || { ...source, code: nextCode }
+        this.parameterDefinitions = this.parameterDefinitions.map(item => Object.prototype.hasOwnProperty.call(candidate.params || {}, item.name)
+          ? { ...item, default: candidate.params[item.name] }
+          : item)
+        this.$message.success(this.$t('strategyEvolution.candidateSavedToStrategy'))
+        this.candidateDetailVisible = false
+      } catch (error) {
+        this.$message.error((error && (error.backendMessage || error.message)) || this.$t('strategyEvolution.candidateSaveFailed'))
+      } finally {
+        this.savingCandidate = false
+      }
     },
     async runStudy () {
       if (Number(this.form.trials) < this.trialMinimum) {
@@ -815,7 +1133,7 @@ export default {
       }
       this.running = true; this.result = null; this.progress = {}; this.disposeCharts()
       try {
-        const response = await runStrategyEvolution({ sourceId: this.form.sourceId, startDate: this.form.startDate.format('YYYY-MM-DD'), endDate: this.form.endDate.format('YYYY-MM-DD'), initialCapital: 10000, commission: this.form.commission, slippage: this.form.slippage, parameterSpace: this.parameterPayload(), config: { method: this.form.method, trials: this.form.trials, folds: this.form.folds, trainRatio: this.form.trainRatio, blindRatio: this.form.blindRatio, autoPrune: this.form.autoPrune, monteCarloPaths: 1000 } })
+        const response = await runStrategyEvolution({ sourceId: this.form.sourceId, startDate: this.form.startDate.format('YYYY-MM-DD'), endDate: this.form.endDate.format('YYYY-MM-DD'), initialCapital: 10000, commission: this.form.commission, slippage: this.form.slippage, parameterSpace: this.parameterPayload(), config: { method: this.form.method, trials: this.form.trials, trainRatio: this.form.trainRatio, blindRatio: this.form.blindRatio, autoPrune: this.form.autoPrune, monteCarloPaths: 1000 } })
         this.jobId = String((response.data && response.data.jobId) || '')
         if (!this.jobId) throw new Error('strategyEvolution.jobNotCreated')
         await this.loadHistory()
@@ -879,7 +1197,7 @@ export default {
     },
     renderCharts () {
       const palette = this.chartPalette()
-      const { text, grid, accent, accentArea, cyan, red, redArea, tooltipBackground, tooltipText } = palette
+      const { text, grid, accent, accentArea, cyan, red, redArea, chartBackground, tooltipBackground, tooltipText } = palette
       const tooltip = { trigger: 'axis', backgroundColor: tooltipBackground, borderColor: grid, textStyle: { color: tooltipText }, valueFormatter: value => this.chartNumber(value) }
       const curve = this.result.equityCurve || []
       this.makeChart(this.$refs.equityChart, { tooltip, grid: { left: 62, right: 18, top: 30, bottom: 42 }, xAxis: { type: 'category', data: curve.map(row => row.time), axisLabel: { color: text, hideOverlap: true }, axisLine: { lineStyle: { color: grid } } }, yAxis: { type: 'value', scale: true, axisLabel: { color: text, formatter: value => this.chartNumber(value) }, splitLine: { lineStyle: { color: grid } } }, dataZoom: [{ type: 'inside' }], series: [{ type: 'line', data: curve.map(row => row.value), symbol: 'none', lineStyle: { color: accent, width: 2 }, areaStyle: { color: accentArea } }] })
@@ -887,7 +1205,12 @@ export default {
       const convergence = this.result.convergence || []
       this.makeChart(this.$refs.convergenceChart, { tooltip, grid: { left: 45, right: 15, top: 20, bottom: 35 }, xAxis: { type: 'category', data: convergence.map(row => row.trial), axisLabel: { color: text } }, yAxis: { type: 'value', axisLabel: { color: text }, splitLine: { lineStyle: { color: grid } } }, series: [{ type: 'scatter', data: convergence.map(row => row.score), itemStyle: { color: cyan } }, { type: 'line', data: convergence.map(row => row.best), symbol: 'none', lineStyle: { color: accent } }] })
       const heat = this.result.heatmap || { points: [] }
-      this.makeChart(this.$refs.heatmapChart, { tooltip, grid: { left: 55, right: 20, top: 20, bottom: 45 }, xAxis: { type: 'value', name: heat.xParameter, nameTextStyle: { color: text }, axisLabel: { color: text }, splitLine: { lineStyle: { color: grid } } }, yAxis: { type: 'value', name: heat.yParameter, nameTextStyle: { color: text }, axisLabel: { color: text }, splitLine: { lineStyle: { color: grid } } }, visualMap: { min: 0, max: 100, show: false, inRange: { color: [red, '#c9951a', accent] } }, series: [{ type: 'scatter', symbolSize: 16, data: heat.points }] })
+      const heatScores = (heat.points || []).map(row => Number(row[2])).filter(Number.isFinite)
+      const heatMinimum = Number.isFinite(Number(heat.scoreMin)) ? Number(heat.scoreMin) : Math.min(...heatScores, 0)
+      const heatMaximum = Number.isFinite(Number(heat.scoreMax)) ? Number(heat.scoreMax) : Math.max(...heatScores, 0)
+      const heatRange = Math.max(1e-6, heatMaximum - heatMinimum)
+      const heatColors = heatRange <= 1e-6 ? [accent, accent] : [red, '#c9951a', accent]
+      this.renderParameterSurface(heat, { text, grid, accent, heatMinimum, heatRange, heatColors, chartBackground, tooltipBackground, tooltipText })
       const histogram = (((this.result.validation || {}).monteCarlo || {}).terminalReturns) || []
       this.makeChart(this.$refs.monteCarloChart, { title: histogram.length ? undefined : this.emptyChartTitle(text), tooltip, grid: { left: 54, right: 18, top: 30, bottom: 42 }, xAxis: { type: 'category', data: histogram.map(row => row.value), axisLabel: { color: text, interval: 4, formatter: value => this.chartNumber(value) }, axisLine: { lineStyle: { color: grid } } }, yAxis: { type: 'value', axisLabel: { color: text }, splitLine: { lineStyle: { color: grid } } }, series: [{ type: 'bar', data: histogram.map(row => row.count), itemStyle: { color: cyan } }] })
       const costs = ((this.result.validation || {}).costStress) || []
@@ -904,6 +1227,7 @@ export default {
         cyan: read('--evo-chart-secondary', '#20c8c8'),
         red: read('--evo-danger', '#ff5a5f'),
         redArea: read('--evo-chart-danger-area', this.isDarkTheme ? 'rgba(255,90,95,.14)' : 'rgba(255,90,95,.1)'),
+        chartBackground: read('--evo-chart-background', this.isDarkTheme ? '#111111' : '#ffffff'),
         tooltipBackground: read('--evo-tooltip-bg', this.isDarkTheme ? '#181818' : '#ffffff'),
         tooltipText: read('--evo-tooltip-text', this.isDarkTheme ? '#f4f7f5' : '#1f2937')
       }
@@ -915,10 +1239,193 @@ export default {
         this.renderCharts()
       })
     },
-    makeChart (element, option) { if (!element) return; const chart = echarts.init(element); chart.setOption(option); this.charts.push(chart) },
+    surfaceParameterLabel (name) {
+      const definition = this.parameterDefinitions.find(item => item.name === name)
+      return definition ? this.parameterLabel(definition) : name
+    },
+    selectSurfaceAxis (axis, name) {
+      if (!name) return
+      if (axis === 'x') {
+        const previous = this.surfaceXAxis
+        if (name === this.surfaceYAxis) this.surfaceYAxis = previous
+        this.surfaceXAxis = name
+      } else {
+        const previous = this.surfaceYAxis
+        if (name === this.surfaceXAxis) this.surfaceXAxis = previous
+        this.surfaceYAxis = name
+      }
+      this.refreshChartsForTheme()
+    },
+    ensureSurfaceAxes (heat) {
+      const names = this.surfaceParameterNames
+      if (names.length < 2) return { x: heat.xParameter || '', y: heat.yParameter || '' }
+      let x = names.includes(this.surfaceXAxis) ? this.surfaceXAxis : (names.includes(heat.xParameter) ? heat.xParameter : names[0])
+      let y = names.includes(this.surfaceYAxis) ? this.surfaceYAxis : (names.includes(heat.yParameter) ? heat.yParameter : names.find(name => name !== x))
+      if (x === y) y = names.find(name => name !== x)
+      if (!x || !y) [x, y] = names.slice(0, 2)
+      this.surfaceXAxis = x
+      this.surfaceYAxis = y
+      return { x, y }
+    },
+    surfaceSamples (heat, axes) {
+      const names = this.surfaceParameterNames
+      const samples = ((this.result && this.result.trials) || [])
+        .filter(row => !row.pruned && row.params)
+        .map(row => ({ params: Object.fromEntries(names.map(name => [name, Number(row.params[name])])), score: Number(row.searchScore !== undefined ? row.searchScore : row.score) }))
+        .filter(row => Number.isFinite(row.score) && names.every(name => Number.isFinite(row.params[name])))
+      if (samples.length) return samples
+      return (heat.points || []).map(row => ({ params: { [axes.x]: Number(row[0]), [axes.y]: Number(row[1]) }, score: Number(row[2]) })).filter(row => Object.values(row.params).every(Number.isFinite) && Number.isFinite(row.score))
+    },
+    surfaceReferenceParams (samples) {
+      const best = (this.result && this.result.bestParams) || (this.bestCandidate && this.bestCandidate.params) || {}
+      return Object.fromEntries(this.surfaceParameterNames.map(name => {
+        const bestValue = Number(best[name])
+        if (Number.isFinite(bestValue)) return [name, bestValue]
+        const values = samples.map(row => row.params[name]).filter(Number.isFinite).sort((left, right) => left - right)
+        return [name, values[Math.floor(values.length / 2)]]
+      }))
+    },
+    renderParameterSurface (heat, palette) {
+      const axes = this.ensureSurfaceAxes(heat)
+      const samples = this.surfaceSamples(heat, axes)
+      const points = samples.map(row => [row.params[axes.x], row.params[axes.y], row.score])
+      const xValues = new Set(points.map(row => row[0]))
+      const yValues = new Set(points.map(row => row[1]))
+      if (points.length < 6 || xValues.size < 2 || yValues.size < 2) {
+        this.renderParameterScatter(axes, points, palette)
+        return
+      }
+      const reference = this.surfaceReferenceParams(samples)
+      const fixedNames = this.surfaceParameterNames.filter(name => name !== axes.x && name !== axes.y)
+      const surface = this.interpolateParameterSurface(samples, axes, reference)
+      const sampledPoints = samples.map(row => [row.params[axes.x], row.params[axes.y], row.score])
+      const conditionedPoints = samples
+        .filter(row => fixedNames.every(name => Math.abs(row.params[name] - reference[name]) <= Math.max(1, Math.abs(reference[name])) * 1e-9))
+        .map(row => [row.params[axes.x], row.params[axes.y], row.score])
+      const axis = name => ({
+        type: 'value',
+        name: this.surfaceParameterLabel(name),
+        nameTextStyle: { color: palette.text, fontSize: 10 },
+        axisLabel: { color: palette.text, fontSize: 9 },
+        axisLine: { lineStyle: { color: palette.grid } },
+        splitLine: { lineStyle: { color: palette.grid, opacity: 0.55 } },
+        axisPointer: { show: false }
+      })
+      const option = {
+        backgroundColor: palette.chartBackground,
+        tooltip: {
+          backgroundColor: palette.tooltipBackground,
+          borderColor: palette.grid,
+          textStyle: { color: palette.tooltipText },
+          formatter: params => this.surfaceTooltip(params, axes)
+        },
+        visualMap: { min: palette.heatMinimum, max: palette.heatMinimum + palette.heatRange, show: false, dimension: 2, seriesIndex: [0, 1], inRange: { color: palette.heatColors } },
+        xAxis3D: axis(axes.x),
+        yAxis3D: axis(axes.y),
+        zAxis3D: axis(this.$t('strategyEvolution.chart.trainingScore')),
+        grid3D: {
+          left: 6,
+          right: 6,
+          top: 4,
+          bottom: 2,
+          boxWidth: 105,
+          boxDepth: 82,
+          boxHeight: 56,
+          environment: palette.chartBackground,
+          light: { main: { intensity: 1.15, shadow: false }, ambient: { intensity: 0.55 } },
+          viewControl: { alpha: 24, beta: 38, distance: 170, autoRotate: false, rotateSensitivity: 1.2, zoomSensitivity: 1.1, panSensitivity: 0.8 }
+        },
+        series: [
+          { type: 'surface', name: this.$t('strategyEvolution.chart.responseSurface'), shading: 'lambert', silent: true, data: surface, itemStyle: { opacity: 0.58 }, wireframe: { show: true, lineStyle: { color: palette.grid, width: 0.5, opacity: 0.5 } } },
+          { type: 'scatter3D', name: this.$t('strategyEvolution.chart.sampledCandidates'), data: sampledPoints, symbolSize: 6, itemStyle: { opacity: 0.82, borderColor: palette.chartBackground, borderWidth: 0.5 } },
+          { type: 'scatter3D', name: this.$t('strategyEvolution.chart.conditionedCandidates'), data: conditionedPoints, symbolSize: 10, itemStyle: { color: palette.accent, opacity: 1, borderColor: palette.tooltipText, borderWidth: 1.5 } }
+        ]
+      }
+      try {
+        this.makeChart(this.$refs.heatmapChart, option)
+      } catch (error) {
+        this.renderParameterScatter(axes, points, palette)
+      }
+    },
+    interpolateParameterSurface (samples, axes, reference, resolution = 25) {
+      const names = this.surfaceParameterNames
+      const domains = Object.fromEntries(names.map(name => {
+        const values = samples.map(row => row.params[name])
+        return [name, { minimum: Math.min(...values), maximum: Math.max(...values) }]
+      }))
+      const xs = samples.map(row => row.params[axes.x])
+      const ys = samples.map(row => row.params[axes.y])
+      const xMin = Math.min(...xs)
+      const xMax = Math.max(...xs)
+      const yMin = Math.min(...ys)
+      const yMax = Math.max(...ys)
+      const xRange = xMax - xMin
+      const yRange = yMax - yMin
+      const surface = []
+      for (let yIndex = 0; yIndex < resolution; yIndex += 1) {
+        const y = yMin + (yRange * yIndex / (resolution - 1))
+        for (let xIndex = 0; xIndex < resolution; xIndex += 1) {
+          const x = xMin + (xRange * xIndex / (resolution - 1))
+          const target = { ...reference, [axes.x]: x, [axes.y]: y }
+          const nearest = samples.map(row => {
+            const distance = names.reduce((total, name) => {
+              const range = domains[name].maximum - domains[name].minimum
+              if (range <= 0) return total
+              const delta = (target[name] - row.params[name]) / range
+              return total + delta * delta
+            }, 0)
+            return { row, distance }
+          }).sort((left, right) => left.distance - right.distance).slice(0, 12)
+          const exact = nearest.find(item => item.distance < 1e-12)
+          let z = exact && exact.row.score
+          if (!Number.isFinite(z)) {
+            let weighted = 0
+            let weights = 0
+            nearest.forEach(item => {
+              const weight = 1 / Math.pow(item.distance + 0.0025, 1.25)
+              weighted += item.row.score * weight
+              weights += weight
+            })
+            z = weighted / weights
+          }
+          surface.push([x, y, z])
+        }
+      }
+      return surface
+    },
+    surfaceTooltip (params, axes) {
+      const value = (params && params.value) || []
+      return [
+        `${this.surfaceParameterLabel(axes.x)}: ${this.chartNumber(value[0])}`,
+        `${this.surfaceParameterLabel(axes.y)}: ${this.chartNumber(value[1])}`,
+        `${this.$t('strategyEvolution.chart.trainingScore')}: ${this.chartNumber(value[2])}`
+      ].join('<br>')
+    },
+    renderParameterScatter (axes, points, palette) {
+      const tooltip = {
+        backgroundColor: palette.tooltipBackground,
+        borderColor: palette.grid,
+        textStyle: { color: palette.tooltipText },
+        formatter: params => this.surfaceTooltip(params, axes)
+      }
+      this.makeChart(this.$refs.heatmapChart, { tooltip, grid: { left: 55, right: 20, top: 20, bottom: 45 }, xAxis: { type: 'value', name: this.surfaceParameterLabel(axes.x), nameTextStyle: { color: palette.text }, axisLabel: { color: palette.text }, splitLine: { lineStyle: { color: palette.grid } } }, yAxis: { type: 'value', name: this.surfaceParameterLabel(axes.y), nameTextStyle: { color: palette.text }, axisLabel: { color: palette.text }, splitLine: { lineStyle: { color: palette.grid } } }, visualMap: { min: palette.heatMinimum, max: palette.heatMinimum + palette.heatRange, show: false, dimension: 2, inRange: { color: palette.heatColors } }, series: [{ type: 'scatter', symbolSize: 16, data: points }] })
+    },
+    makeChart (element, option) {
+      if (!element) return null
+      const chart = echarts.init(element)
+      try {
+        chart.setOption(option)
+        this.charts.push(chart)
+        return chart
+      } catch (error) {
+        chart.dispose()
+        throw error
+      }
+    },
     disposeCharts () { this.charts.forEach(chart => chart.dispose()); this.charts = [] },
     resizeCharts () { this.charts.forEach(chart => chart.resize()) },
     formatPercent (value) { return `${Number(value || 0).toFixed(2)}%` },
+    formatPrecisePercent (value) { return `${Number(value || 0).toFixed(4)}%` },
     formatNumber (value) { return Number(value || 0).toFixed(2) },
     formatDuration (value) {
       const seconds = Math.max(0, Math.round(Number(value) || 0))
@@ -958,6 +1465,7 @@ export default {
   --evo-shadow: rgba(35, 49, 60, .09);
   --evo-chart-text: #667085;
   --evo-chart-grid: #e5e9ed;
+  --evo-chart-background: #ffffff;
   --evo-chart-secondary: #20aeb5;
   --evo-chart-accent-area: color-mix(in srgb, var(--evo-accent) 12%, transparent);
   --evo-chart-danger-area: rgba(229, 72, 77, .10);
@@ -994,6 +1502,7 @@ export default {
   --evo-shadow: rgba(0, 0, 0, .24);
   --evo-chart-text: #8b949e;
   --evo-chart-grid: #2d2d2d;
+  --evo-chart-background: #111111;
   --evo-chart-secondary: #20c8c8;
   --evo-chart-accent-area: color-mix(in srgb, var(--evo-accent) 13%, transparent);
   --evo-chart-danger-area: rgba(255, 90, 95, .14);
@@ -1066,13 +1575,6 @@ export default {
 .method-card--active { border-color: var(--evo-accent); color: var(--evo-accent); background: color-mix(in srgb, var(--evo-accent) 9%, var(--evo-panel)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--evo-accent) 14%, transparent); }
 .method-card--active strong { color: var(--evo-heading); }
 .method-card--active small { color: color-mix(in srgb, var(--evo-accent) 74%, var(--evo-muted)); }
-.budget-presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 8px; }
-.budget-presets button { min-width: 0; min-height: 48px; padding: 7px 4px; border: 1px solid var(--evo-border); border-radius: 8px; color: var(--evo-muted); background: var(--evo-panel); cursor: pointer; }
-.budget-presets strong, .budget-presets small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.budget-presets strong { color: var(--evo-text); font-size: 11px; }
-.budget-presets small { margin-top: 3px; color: var(--evo-muted); font-size: 10px; line-height: 1.35; white-space: normal; }
-.budget-presets button.active { border-color: var(--evo-accent); background: color-mix(in srgb, var(--evo-accent) 9%, var(--evo-panel)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--evo-accent) 14%, transparent); }
-.budget-presets button.active strong { color: var(--evo-accent); }
 .effective-budget { margin: 5px 0 0; color: var(--evo-muted); font-size: 10px; line-height: 1.45; }
 .sample-alert { margin-top: 8px; }
 .sample-alert /deep/ .ant-alert-message { font-size: 11px; line-height: 1.45; }
@@ -1084,6 +1586,18 @@ export default {
 .date-range-fields > label { min-width: 0; }
 .date-range-fields > label > span { display: block; margin-bottom: 4px; color: var(--evo-muted); font-size: 10px; }
 .date-range-fields > i { display: grid; place-items: center; height: 34px; color: var(--evo-faint); font-size: 9px; }
+.market-preflight { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 8px; align-items: start; margin: 10px 0 8px; padding: 10px; border: 1px solid var(--evo-border); border-left: 3px solid var(--evo-faint); border-radius: 8px; color: var(--evo-muted); background: var(--evo-panel); }
+.market-preflight > i { margin-top: 2px; color: var(--evo-faint); font-size: 14px; }
+.market-preflight > div { display: flex; min-width: 0; flex-direction: column; gap: 3px; }
+.market-preflight strong { color: var(--evo-heading); font-size: 11px; line-height: 1.4; font-variant-numeric: tabular-nums; }
+.market-preflight small { color: var(--evo-muted); font-size: 10px; line-height: 1.45; }
+.market-preflight > button { grid-column: 2; justify-self: start; height: auto; padding: 0; font-size: 10px; line-height: 1.4; white-space: normal; text-align: left; }
+.market-preflight--ready { border-left-color: var(--evo-accent); background: color-mix(in srgb, var(--evo-accent) 5%, var(--evo-panel)); }
+.market-preflight--ready > i { color: var(--evo-accent); }
+.market-preflight--blocked { border-left-color: var(--evo-warning); background: color-mix(in srgb, var(--evo-warning) 6%, var(--evo-panel)); }
+.market-preflight--blocked > i, .market-preflight--blocked > button { color: var(--evo-warning); }
+.market-preflight--error { border-left-color: var(--evo-danger); }
+.market-preflight--error > i, .market-preflight--error > button { color: var(--evo-danger); }
 .evolution-runbar { z-index: 2; flex: 0 0 auto; padding: 11px 14px 13px; border-top: 1px solid var(--evo-border); background: var(--evo-panel); box-shadow: 0 -10px 22px var(--evo-shadow); }
 .resource-estimate { display: flex; justify-content: space-between; margin-bottom: 4px; color: var(--evo-faint); font-size: 11px; }
 .resource-estimate strong { color: var(--evo-text); }
@@ -1101,14 +1615,17 @@ export default {
 .empty-flow > i { color: var(--evo-faint); }
 .running-spinner { color: var(--evo-accent); font-size: 42px; }
 .evolution-progress { width: 80%; max-width: 520px; margin-top: 16px; }
+.evolution-progress /deep/ .ant-progress-text { color: var(--evo-text) !important; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.evolution-progress /deep/ .ant-progress-inner { background: var(--evo-surface-strong); }
+.evolution-progress /deep/ .ant-progress-bg { background: var(--evo-accent); }
 .result-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 13px; }
 .result-header h2 { margin: 3px 0 0; color: var(--evo-heading); }
 .eyebrow { color: var(--evo-accent); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
-.metric-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 10px; }
-.metric-grid article { position: relative; min-width: 0; padding: 12px; border: 1px solid var(--evo-border); border-radius: 9px; background: var(--evo-surface); }
-.metric-grid span { display: block; color: var(--evo-faint); font-size: 10px; }
-.metric-grid strong { display: block; margin-top: 5px; color: var(--evo-heading); font-size: 21px; }
-.metric-grid em { position: absolute; top: 12px; right: 12px; color: var(--evo-accent); font-style: normal; font-weight: 700; }
+.metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
+.metric-grid article { display: grid; grid-template-rows: minmax(28px, auto) auto minmax(16px, auto); align-content: start; min-width: 0; min-height: 112px; padding: 12px; overflow: hidden; border: 1px solid var(--evo-border); border-radius: 9px; background: var(--evo-surface); }
+.metric-grid span { display: block; min-width: 0; color: var(--evo-faint); font-size: 10px; line-height: 1.4; overflow-wrap: anywhere; }
+.metric-grid strong { display: block; min-width: 0; margin-top: 5px; color: var(--evo-heading); font-size: 20px; line-height: 1.2; overflow-wrap: anywhere; }
+.metric-grid em { align-self: end; min-width: 0; margin-top: 7px; color: var(--evo-accent); font-size: 10px; font-style: normal; font-weight: 700; line-height: 1.35; overflow-wrap: anywhere; }
 .negative { color: var(--evo-danger) !important; }
 .research-verdict { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: 12px; align-items: center; min-height: 76px; margin-bottom: 10px; padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--evo-accent) 34%, var(--evo-border)); border-left: 3px solid var(--evo-accent); border-radius: 9px; background: linear-gradient(100deg, color-mix(in srgb, var(--evo-accent) 8%, var(--evo-panel)), var(--evo-surface-strong) 62%); box-shadow: 0 4px 16px var(--evo-shadow); }
 .research-verdict--review { border-color: color-mix(in srgb, var(--evo-warning) 30%, var(--evo-border)); border-left-color: var(--evo-warning); background: linear-gradient(100deg, color-mix(in srgb, var(--evo-warning) 7%, var(--evo-panel)), var(--evo-surface-strong) 62%); }
@@ -1133,13 +1650,65 @@ export default {
 .chart-title { display: flex; align-items: center; justify-content: space-between; height: 42px; padding: 0 13px; border-bottom: 1px solid var(--evo-border-soft); }
 .chart-title strong { color: var(--evo-text); font-size: 12px; }
 .chart-title span { color: var(--evo-faint); font-size: 10px; }
+.chart-title--surface { display: grid; grid-template-columns: minmax(110px, 1fr) auto; gap: 10px; height: auto; min-height: 52px; padding-top: 7px; padding-bottom: 7px; }
+.surface-axis-controls { display: flex; align-items: center; gap: 8px; }
+.surface-axis-controls label { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.surface-axis-controls /deep/ .ant-select { width: 112px; }
+.surface-axis-controls /deep/ .ant-select-selection { border-color: var(--evo-border); color: var(--evo-text); background: var(--evo-surface-strong); }
+.surface-axis-controls /deep/ .ant-select-arrow { color: var(--evo-faint); }
+.surface-fixed-bar { display: flex; min-height: 32px; align-items: center; gap: 7px; overflow-x: auto; padding: 5px 12px; border-bottom: 1px solid var(--evo-border-soft); color: var(--evo-faint); background: var(--evo-surface-strong); font-size: 9px; white-space: nowrap; }
+.surface-fixed-bar code { padding: 2px 5px; border: 1px solid var(--evo-border); border-radius: 4px; color: var(--evo-text); background: var(--evo-panel); }
+.surface-fixed-bar small { margin-left: auto; color: var(--evo-faint); font-size: 9px; }
 .chart { height: 220px; }
+.chart--analysis { height: 280px; }
 .chart--hero { height: 270px; }
+@media (max-width: 1120px) {
+  .chart-title--surface { grid-template-columns: 1fr; }
+  .surface-axis-controls { width: 100%; }
+  .surface-axis-controls label { flex: 1; }
+  .surface-axis-controls /deep/ .ant-select { width: 100%; }
+}
 .candidate-card { margin-top: 10px; }
-.candidate-table__head, .candidate-table__row { display: grid; grid-template-columns: 45px 75px minmax(240px, 1fr) 85px 100px 100px; align-items: center; gap: 12px; min-height: 38px; padding: 0 13px; border-bottom: 1px solid var(--evo-border-soft); color: var(--evo-muted); font-size: 11px; }
+.candidate-table { overflow-x: auto; }
+.candidate-table__head, .candidate-table__row { display: grid; grid-template-columns: 64px 82px minmax(220px, 1fr) 85px 100px 100px 72px; align-items: center; gap: 12px; min-width: 866px; min-height: 38px; padding: 0 13px; border-bottom: 1px solid var(--evo-border-soft); color: var(--evo-muted); font-size: 11px; }
 .candidate-table__head { color: var(--evo-faint); background: var(--evo-surface-strong); }
 .candidate-table__row strong { color: var(--evo-accent); }
 .candidate-table__row code { overflow: hidden; color: var(--evo-muted); text-overflow: ellipsis; white-space: nowrap; }
+.candidate-table__row--interactive { cursor: pointer; transition: background-color .18s ease; }
+.candidate-table__row--interactive:hover, .candidate-table__row--interactive:focus { outline: none; background: color-mix(in srgb, var(--evo-accent) 7%, var(--evo-panel)); }
+.candidate-rank { display: flex; gap: 4px; align-items: center; }
+.candidate-rank small { color: var(--evo-warning); font-size: 9px; white-space: nowrap; }
+.candidate-open { color: var(--evo-accent); font-weight: 600; white-space: nowrap; }
+.candidate-open .anticon { margin-left: 3px; font-size: 9px; }
+.legacy-result-alert { margin: 0 0 10px; border: 1px solid color-mix(in srgb, var(--evo-warning) 34%, var(--evo-border)); border-left: 3px solid var(--evo-warning); border-radius: 10px; background: linear-gradient(100deg, color-mix(in srgb, var(--evo-warning) 7%, var(--evo-panel)), var(--evo-surface-strong) 68%); box-shadow: 0 4px 14px var(--evo-shadow); }
+.legacy-result-alert.ant-alert-with-description { padding: 12px 14px 12px 50px; }
+.legacy-result-alert /deep/ .ant-alert-icon { top: 14px; left: 14px; display: grid; place-items: center; width: 26px; height: 26px; border: 1px solid color-mix(in srgb, var(--evo-warning) 48%, var(--evo-border)); border-radius: 50%; color: var(--evo-warning); background: color-mix(in srgb, var(--evo-warning) 9%, var(--evo-panel)); font-size: 13px; }
+.legacy-result-alert /deep/ .ant-alert-message { margin-bottom: 3px; color: var(--evo-heading); font-size: 13px; font-weight: 700; line-height: 1.4; }
+.legacy-result-alert /deep/ .ant-alert-description { color: var(--evo-muted); font-size: 10px; line-height: 1.55; }
+.candidate-detail-summary { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+.candidate-detail-summary > div { padding: 14px; border: 1px solid #e8eaed; border-radius: 8px; background: #fafafa; }
+.candidate-detail-summary span, .candidate-detail-heading span { display: block; color: #8c8c8c; font-size: 12px; }
+.candidate-detail-summary strong { display: block; margin-top: 6px; color: #52c41a; font-size: 20px; font-variant-numeric: tabular-nums; }
+.candidate-detail-summary strong.negative { color: #ff4d4f; }
+.candidate-detail-params { margin-top: 18px; }
+.candidate-detail-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.candidate-detail-heading strong { color: #262626; font-size: 15px; }
+.candidate-param-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: hidden; border: 1px solid #e8eaed; border-radius: 8px; }
+.candidate-param-grid > div { display: flex; align-items: center; justify-content: space-between; min-height: 48px; padding: 0 14px; border-right: 1px solid #e8eaed; border-bottom: 1px solid #e8eaed; }
+.candidate-param-grid > div:nth-child(2n) { border-right: 0; }
+.candidate-param-grid > div:nth-last-child(-n + 2):nth-child(odd), .candidate-param-grid > div:last-child:nth-child(even) { border-bottom: 0; }
+.candidate-param-grid code { color: #697386; }
+.candidate-param-grid b { color: #262626; font-variant-numeric: tabular-nums; }
+.candidate-save-alert { margin-top: 14px; }
+.candidate-detail-actions { display: flex; align-items: center; justify-content: space-between; margin-top: 20px; padding-top: 16px; border-top: 1px solid #e8eaed; }
+.candidate-detail-actions > div { display: flex; gap: 8px; }
+/deep/ .candidate-detail-modal--dark .ant-modal-content, /deep/ .candidate-detail-modal--dark .ant-modal-header { color: #e8e8e8; border-color: #343434; background: #181818; }
+/deep/ .candidate-detail-modal--dark .ant-modal-title, /deep/ .candidate-detail-modal--dark .candidate-detail-heading strong, /deep/ .candidate-detail-modal--dark .candidate-param-grid b { color: #f0f0f0; }
+/deep/ .candidate-detail-modal--dark .candidate-detail-summary > div { border-color: #343434; background: #202020; }
+/deep/ .candidate-detail-modal--dark .candidate-param-grid { border-color: #343434; }
+/deep/ .candidate-detail-modal--dark .candidate-param-grid > div, /deep/ .candidate-detail-modal--dark .candidate-detail-actions { border-color: #343434; }
+/deep/ .candidate-detail-modal--dark .candidate-param-grid code { color: #a6a6a6; }
+@media (max-width: 720px) { .candidate-detail-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .fold-table { overflow-x: auto; }
 .fold-table__head, .fold-table__row { display: grid; grid-template-columns: 45px 1.25fr 1.25fr 95px 105px 85px; align-items: center; gap: 12px; min-width: 780px; min-height: 38px; padding: 0 13px; border-bottom: 1px solid var(--evo-border-soft); color: var(--evo-muted); font-size: 11px; }
 .fold-table__head { color: var(--evo-faint); background: var(--evo-surface-strong); }

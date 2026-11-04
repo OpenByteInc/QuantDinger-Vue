@@ -39,6 +39,7 @@ const api = {
   strategyBacktestGet: '/api/backtest/get',
   strategyEvolutionRun: '/api/strategy-evolution/run',
   strategyEvolutionEstimate: '/api/strategy-evolution/estimate',
+  strategyEvolutionPreflight: '/api/strategy-evolution/preflight',
   strategyEvolutionParameterSpace: '/api/strategy-evolution/parameter-space',
   strategyEvolutionJobs: '/api/strategy-evolution/jobs',
   scriptSources: '/api/strategies/script-sources',
@@ -416,6 +417,15 @@ export function estimateStrategyEvolution (data) {
     url: api.strategyEvolutionEstimate,
     method: 'post',
     data
+  })
+}
+
+export function preflightStrategyEvolution (data) {
+  return request({
+    url: api.strategyEvolutionPreflight,
+    method: 'post',
+    data,
+    timeout: 120000
   })
 }
 

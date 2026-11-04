@@ -219,7 +219,7 @@
           </a-tab-pane>
 
           <!-- My Agent Token -->
-          <a-tab-pane key="agentTokens">
+          <a-tab-pane v-if="agentGatewayEnabled" key="agentTokens">
             <span slot="tab"><a-icon type="api" />{{ $t('profile.agentTokens.tab') || '我的 Agent Token' }}</span>
             <profile-agent-tokens :is-dark-theme="isDarkTheme" />
           </a-tab-pane>
@@ -985,6 +985,9 @@ export default {
     billingEnabled () {
       return this.$store.state.features.config.billing_enabled !== false
     },
+    agentGatewayEnabled () {
+      return this.$store.state.features.config.agent_gateway_enabled !== false
+    },
     profileTabsPosition () {
       return this.profileViewportWidth >= 960 ? 'left' : 'top'
     },
@@ -1251,7 +1254,8 @@ export default {
     // Whitelist of tabs we accept from ``?tab=xxx``. Anything else is a no-op
     // so a malformed link can't put the page in a weird state.
     applyTabFromQuery (rawTab) {
-      const allowed = ['basic', 'agentTokens', 'password', 'security', 'notifications', 'loginLogs']
+      const allowed = ['basic', 'password', 'security', 'notifications', 'loginLogs']
+      if (this.agentGatewayEnabled) allowed.push('agentTokens')
       if (this.billingEnabled) allowed.push('credits', 'referrals')
       if (rawTab && allowed.includes(rawTab) && this.activeTab !== rawTab) {
         this.activeTab = rawTab
@@ -1531,7 +1535,6 @@ export default {
     getRoleColor (role) {
       const colors = {
         admin: 'red',
-        manager: 'orange',
         user: 'blue',
         viewer: 'default'
       }
@@ -1541,7 +1544,6 @@ export default {
     getRoleLabel (role) {
       const labels = {
         admin: this.$t('userManage.roleAdmin') || 'Admin',
-        manager: this.$t('userManage.roleManager') || 'Manager',
         user: this.$t('userManage.roleUser') || 'User',
         viewer: this.$t('userManage.roleViewer') || 'Viewer'
       }

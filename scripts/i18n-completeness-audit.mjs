@@ -12,6 +12,8 @@ import generatedOverrides, {
 } from '../src/locales/generated-locale-overrides.js'
 import { verifiedSameUiMessages } from '../src/locales/reviewed-ui-overrides.js'
 import { verifiedSameSettingsMessages } from '../src/locales/settings-research-overrides.js'
+import { verifiedSameHumanMessages } from '../src/locales/human-completion-overrides.js'
+import { verifiedSameStrategyReviewMessages } from '../src/locales/reviewed-strategy-review-overrides.js'
 
 const root = resolve(process.cwd())
 const langDir = join(root, 'src', 'locales', 'lang')
@@ -53,7 +55,9 @@ for (const localeName of localesToAudit) {
   const verifiedSame = new Set([
     ...(verifiedSameTranslations[localeName] || []),
     ...verifiedSameUiMessages,
-    ...verifiedSameSettingsMessages
+    ...verifiedSameSettingsMessages,
+    ...verifiedSameStrategyReviewMessages,
+    ...(verifiedSameHumanMessages[localeName] || [])
   ])
   const missing = []
   const placeholderMismatches = []

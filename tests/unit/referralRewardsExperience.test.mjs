@@ -31,6 +31,50 @@ test('referral rate settings expose and enforce the three-level limit', () => {
   assert.match(settingsSource, /color: var\(--qd-text-muted, #6b7280\) !important/)
 })
 
+test('billing settings keep receiving addresses editable and hide fixed token identifiers', () => {
+  const start = settingsSource.indexOf('billingSectionDefinitions ()')
+  const end = settingsSource.indexOf('dataSourceSectionDefinitions ()', start)
+  const block = settingsSource.slice(start, end)
+
+  for (const key of [
+    'USDT_TRC20_ADDRESS',
+    'USDT_BEP20_ADDRESS',
+    'USDT_ERC20_ADDRESS',
+    'USDT_SOL_ADDRESS',
+    'USDC_ERC20_ADDRESS',
+    'USDC_SOL_ADDRESS'
+  ]) {
+    assert.match(block, new RegExp(key))
+  }
+  for (const key of [
+    'USDT_TRC20_CONTRACT',
+    'USDT_BEP20_CONTRACT',
+    'USDT_ERC20_CONTRACT',
+    'USDT_SOL_MINT',
+    'USDC_ERC20_CONTRACT',
+    'USDC_SOL_MINT'
+  ]) {
+    assert.doesNotMatch(block, new RegExp(key))
+  }
+  assert.match(settingsSource, /fixedTokenIdentifierKeys/)
+  assert.match(settingsSource, /!fixedTokenIdentifierKeys\.has\(item\.key\)/)
+  assert.match(settingsSource, /if \(item\.readonly\) continue/)
+  assert.match(settingsSource, /:disabled="entry\.item\.readonly"/)
+})
+
+test('brand identity shows every field without an advanced fold', () => {
+  assert.match(settingsSource, /if \(this\.activeGroupKey === 'brand'\)/)
+  assert.match(settingsSource, /key: `brand-\$\{item\.key\}`/)
+  assert.match(settingsSource, /background: #121212/)
+  assert.doesNotMatch(settingsSource, /background: #11151a/)
+})
+
+test('referral activity reveals dependent settings only when enabled', () => {
+  assert.match(settingsSource, /v-if="referralProgramEnabled"/)
+  assert.match(settingsSource, /@change="referralProgramEnabled = \$event"/)
+  assert.match(settingsSource, /settings\.referralActivity\.disabledHint/)
+})
+
 test('persisted membership plans use the delete endpoint', () => {
   assert.match(settingsSource, /deleteAdminMembershipPlan\(plan\.code\)/)
   assert.match(billingApiSource, /method: 'delete'/)

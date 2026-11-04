@@ -261,7 +261,15 @@ export default {
   }
 
   .empty-comments {
-    padding: 40px 0;
+    padding: 18px 0 10px;
+
+    ::v-deep .ant-empty {
+      margin: 0;
+    }
+
+    ::v-deep .ant-empty-image {
+      height: 48px;
+    }
   }
 
   .comments {

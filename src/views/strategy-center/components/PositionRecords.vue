@@ -21,13 +21,10 @@
           {{ $t('strategyCenter.positionOwnership.openRepair') }}
         </a-button>
       </div>
-      <a-alert
-        v-else-if="executionMode === 'signal'"
-        class="virtual-account-alert"
-        type="info"
-        show-icon
-        :message="$t('strategyCenter.console.virtualPositionsHint')"
-      />
+      <div v-else-if="executionMode === 'signal'" class="virtual-account-note" role="note">
+        <span class="virtual-account-note__icon"><a-icon type="experiment" /></span>
+        <span class="virtual-account-note__copy">{{ $t('strategyCenter.console.virtualPositionsHint') }}</span>
+      </div>
       <div v-if="portfolio && positions.length" class="portfolio-position-summary">
         <div>
           <span>{{ $t('strategyCenter.console.currentPositions') }}</span>
@@ -713,9 +710,43 @@ export default {
     border-color: rgba(255, 255, 255, 0.08);
   }
 
-  .position-reconciliation-alert,
-  .virtual-account-alert {
+  .position-reconciliation-alert {
     margin-bottom: 12px;
+  }
+
+  .virtual-account-note {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin: 10px 0 12px;
+    padding: 8px 11px;
+    border: 1px solid color-mix(in srgb, var(--primary-color, #1890ff) 18%, #e2e8f0);
+    border-radius: 7px;
+    color: #586579;
+    background: color-mix(in srgb, var(--primary-color, #1890ff) 3%, #fff);
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .virtual-account-note__icon {
+    display: inline-flex;
+    flex: 0 0 24px;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    color: var(--primary-color, #1890ff);
+    background: color-mix(in srgb, var(--primary-color, #1890ff) 10%, transparent);
+    font-size: 12px;
+  }
+
+  .virtual-account-note__copy { min-width: 0; }
+
+  &.theme-dark .virtual-account-note {
+    border-color: color-mix(in srgb, var(--primary-color, #52c41a) 22%, #30343a);
+    color: #aeb7c4;
+    background: color-mix(in srgb, var(--primary-color, #52c41a) 5%, #16181b);
   }
 
   .ownership-toolbar {

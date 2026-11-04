@@ -836,4 +836,59 @@ for (const [locale, values] of Object.entries(paymentSettingValues)) {
   })
 }
 
+const billingSettingsCopy = {
+  'settings.billing.section.usdt': 'USDT collection',
+  'settings.billing.section.usdtDesc': 'Choose the accepted networks and configure the receiving address for each network.',
+  'settings.billing.section.usdc': 'USDC collection',
+  'settings.billing.section.usdcDesc': 'Configure native USDC collection on Ethereum and Solana. Empty addresses reuse the matching USDT address.',
+  'settings.billing.section.stripe': 'Card payments',
+  'settings.billing.section.stripeDesc': 'Stripe credentials, webhook verification, and checkout return destinations.',
+  'settings.billing.section.chainAccess': 'Blockchain data access',
+  'settings.billing.section.chainAccessDesc': 'Optional explorer and RPC credentials used to verify on-chain payments.',
+  'settings.billing.section.runtime': 'Payment processing',
+  'settings.billing.section.runtimeDesc': 'Order matching, confirmation delay, expiration, and worker polling behavior.',
+  'settings.billing.section.credits': 'Credits and usage pricing',
+  'settings.billing.section.creditsDesc': 'Credits charged by product features, free-user allowances, and marketplace fees.',
+  'settings.billing.fixed.readonly': 'Read only',
+  'settings.referralActivity.disabledHint': 'Enable the referral activity to configure reward levels, settlement delay, and the withdrawal threshold.'
+}
+
+Object.keys(messages).forEach(locale => {
+  messages[locale] = { ...messages[locale], ...billingSettingsCopy }
+})
+
+Object.assign(messages['zh-CN'], {
+  'settings.billing.section.usdt': 'USDT 收款',
+  'settings.billing.section.usdtDesc': '选择允许使用的网络，并分别配置各网络的收款地址。',
+  'settings.billing.section.usdc': 'USDC 收款',
+  'settings.billing.section.usdcDesc': '配置以太坊与 Solana 原生 USDC 收款；地址留空时复用对应的 USDT 地址。',
+  'settings.billing.section.stripe': '银行卡收款',
+  'settings.billing.section.stripeDesc': '配置 Stripe 密钥、Webhook 验签以及支付完成后的返回地址。',
+  'settings.billing.section.chainAccess': '链上数据访问',
+  'settings.billing.section.chainAccessDesc': '用于核验链上付款的区块浏览器与 RPC 服务，可按需配置。',
+  'settings.billing.section.runtime': '支付处理参数',
+  'settings.billing.section.runtimeDesc': '控制订单金额匹配、确认等待、过期时间与后台扫描频率。',
+  'settings.billing.section.credits': '积分与功能计价',
+  'settings.billing.section.creditsDesc': '配置各项功能的积分消耗、免费用户额度与市场手续费。',
+  'settings.billing.fixed.readonly': '只读',
+  'settings.referralActivity.disabledHint': '开启推荐活动后，才需要配置奖励层级、结算等待时间和最低提现金额。'
+})
+
+Object.assign(messages['zh-TW'], {
+  'settings.billing.section.usdt': 'USDT 收款',
+  'settings.billing.section.usdtDesc': '選擇允許使用的網路，並分別設定各網路的收款地址。',
+  'settings.billing.section.usdc': 'USDC 收款',
+  'settings.billing.section.usdcDesc': '設定 Ethereum 與 Solana 原生 USDC 收款；地址留空時沿用對應的 USDT 地址。',
+  'settings.billing.section.stripe': '卡片收款',
+  'settings.billing.section.stripeDesc': '設定 Stripe 金鑰、Webhook 驗證以及付款完成後的返回網址。',
+  'settings.billing.section.chainAccess': '鏈上資料存取',
+  'settings.billing.section.chainAccessDesc': '用於核驗鏈上付款的區塊瀏覽器與 RPC 服務，可按需設定。',
+  'settings.billing.section.runtime': '付款處理參數',
+  'settings.billing.section.runtimeDesc': '控制訂單金額比對、確認等待、逾期時間與背景掃描頻率。',
+  'settings.billing.section.credits': '積分與功能計價',
+  'settings.billing.section.creditsDesc': '設定各項功能的積分消耗、免費使用者額度與市場手續費。',
+  'settings.billing.fixed.readonly': '唯讀',
+  'settings.referralActivity.disabledHint': '開啟推薦活動後，才需要設定獎勵層級、結算等待時間和最低提領金額。'
+})
+
 export default messages

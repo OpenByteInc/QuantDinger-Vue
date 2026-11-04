@@ -533,6 +533,10 @@ export default {
   background: rgba(248, 251, 255, 0.72);
 }
 
+.install-panel > p {
+  color: #64748b;
+}
+
 .manifest-editor {
   font-family: Consolas, Monaco, monospace;
 }
@@ -576,6 +580,7 @@ export default {
   .page-header .page-desc,
   .stat-card small,
   .stat-card .stat-label,
+  .install-panel > p,
   .tool-card p,
   .tool-meta,
   .skill-name span {
@@ -747,6 +752,8 @@ body.dark .ai-skill-center .stat-card small,
 .basic-layout-wrapper.dark .ai-skill-center .stat-card small,
 body.dark .ai-skill-center .stat-card .stat-label,
 .basic-layout-wrapper.dark .ai-skill-center .stat-card .stat-label,
+body.dark .ai-skill-center .install-panel > p,
+.basic-layout-wrapper.dark .ai-skill-center .install-panel > p,
 body.dark .ai-skill-center .tool-card p,
 .basic-layout-wrapper.dark .ai-skill-center .tool-card p,
 body.dark .ai-skill-center .tool-meta,

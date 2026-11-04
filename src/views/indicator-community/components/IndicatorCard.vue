@@ -22,9 +22,6 @@
           </div>
         </div>
         <div class="cover-badges__right">
-          <div v-if="indicator.vip_free" class="vip-free-tag">
-            {{ $t('community.vipFree') }}
-          </div>
           <div class="price-tag" :class="isPaid ? 'paid' : 'free'">
             {{ isPaid ? `${indicator.price} ${$t('community.credits')}` : $t('community.free') }}
           </div>
@@ -41,14 +38,16 @@
     <div class="card-content">
       <div v-if="isStrategyAsset" class="strategy-card-head">
         <div class="strategy-card-title-row">
-          <h3 class="card-title" :title="indicator.name">{{ indicator.name }}</h3>
+          <div class="strategy-card-title-copy">
+            <h3 class="card-title" :title="indicator.name">{{ indicator.name }}</h3>
+            <span v-if="indicator.vip_free" class="vip-free-tag">{{ $t('community.vipFree') }}</span>
+          </div>
           <div class="strategy-card-badges">
             <a-tooltip v-if="hasScore" :title="scoreTooltip">
               <span class="strategy-score-badge" :class="scoreBadgeClass">
                 <a-icon type="trophy" theme="filled" /> {{ scoreLabel }}
               </span>
             </a-tooltip>
-            <span v-if="indicator.vip_free" class="vip-free-tag">{{ $t('community.vipFree') }}</span>
             <span class="price-tag" :class="isPaid ? 'paid' : 'free'">
               {{ isPaid ? `${indicator.price} ${$t('community.credits')}` : $t('community.free') }}
             </span>
@@ -59,7 +58,10 @@
           <a-icon type="check-circle" /> {{ $t('community.purchased') }}
         </span>
       </div>
-      <h3 v-else class="card-title" :title="indicator.name">{{ indicator.name }}</h3>
+      <div v-else class="indicator-card-title-row">
+        <h3 class="card-title" :title="indicator.name">{{ indicator.name }}</h3>
+        <span v-if="indicator.vip_free" class="vip-free-tag">{{ $t('community.vipFree') }}</span>
+      </div>
       <p class="card-desc">{{ indicator.description || $t('community.noDescription') }}</p>
       <div v-if="isStrategyAsset && hasKpi" class="card-kpi">
         <div class="kpi-cell">
@@ -550,6 +552,33 @@ export default {
         font-size: 16px;
         line-height: 1.35;
       }
+    }
+
+    .strategy-card-title-copy,
+    .indicator-card-title-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+
+      .card-title {
+        min-width: 0;
+        margin-bottom: 0;
+      }
+
+      .vip-free-tag {
+        flex: 0 0 auto;
+        padding: 3px 7px;
+        font-size: 10px;
+      }
+    }
+
+    .strategy-card-title-copy {
+      flex: 1 1 auto;
+    }
+
+    .indicator-card-title-row {
+      margin-bottom: 6px;
     }
 
     .strategy-card-badges {

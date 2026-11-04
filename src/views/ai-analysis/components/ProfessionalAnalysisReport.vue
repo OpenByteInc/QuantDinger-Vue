@@ -1045,19 +1045,24 @@ export default {
 .report-footer { display: flex; flex-wrap: wrap; gap: 8px 18px; color: var(--report-muted); font-size: 11px; }
 
 .theme-dark {
-  --report-bg: #16181d;
-  --report-soft: #1d2027;
-  --report-border: #30343d;
+  --report-bg: #121312;
+  --report-soft: #121312;
+  --report-border: rgba(255, 255, 255, 0.11);
   --report-text: #e5e7eb;
   --report-muted: #9ca3af;
-  --report-header-base: #1a1d22;
-  --report-header-end: #14161a;
+  --report-header-base: #121312;
+  --report-header-end: #121312;
   --report-header-text: #f3f4f6;
-  --report-header-muted: #a7afbc;
-  --report-header-shadow: rgba(0, 0, 0, 0.28);
+  --report-header-muted: #a3a3a3;
+  --report-header-shadow: rgba(0, 0, 0, 0.32);
   --report-bullish: #65d9af;
   --report-bearish: #ff9aa8;
   --report-neutral: #f2c45e;
+}
+.theme-dark .report-header,
+.theme-dark .decision-panel,
+.theme-dark .research-loading {
+  background: var(--report-bg);
 }
 .theme-dark .decision-panel { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04); }
 .theme-dark /deep/ .ant-progress-circle .ant-progress-text {

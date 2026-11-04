@@ -53,8 +53,8 @@
       </article>
       <article class="metric-card--leader">
         <span>{{ $t('strategyV2.factorResearch.bestFactor') }}</span>
-        <strong>{{ topFactor.factorId || '-' }}</strong>
-        <em>{{ number(topFactor.score, 1) }} / 100</em>
+        <strong>{{ hasLeader ? topFactor.factorId : $t('strategyV2.factorResearch.noValidatedLeader') }}</strong>
+        <em v-if="hasLeader">{{ number(topFactor.score, 1) }} / 100</em>
       </article>
       <article>
         <span>{{ $t('strategyV2.factorResearch.strongestOosIc') }}</span>
@@ -79,7 +79,7 @@
           <div><span class="section-icon"><a-icon type="trophy" /></span><strong>{{ $t('strategyV2.factorResearch.factorLeader') }}</strong></div>
           <span>{{ $t('strategyV2.factorResearch.factorLeaderHint') }}</span>
         </div>
-        <div class="leader-card__body">
+        <div v-if="hasLeader" class="leader-card__body">
           <div class="leader-score"><span>{{ number(topFactor.score, 1) }}</span><small>/ 100</small></div>
           <div class="leader-copy">
             <div class="leader-copy__title">
@@ -93,6 +93,7 @@
             </div>
           </div>
         </div>
+        <div v-else class="leader-empty"><a-icon type="warning" /><div><strong>{{ $t('strategyV2.factorResearch.noValidatedLeader') }}</strong><span>{{ $t('strategyV2.factorResearch.noValidatedLeaderHint') }}</span></div></div>
       </section>
 
       <section class="analysis-card validation-card">
@@ -144,12 +145,12 @@
               <thead><tr><th>#</th><th>{{ $t('strategyV2.factorResearch.factor') }}</th><th>{{ $t('strategyV2.factorResearch.classification') }}</th><th>{{ $t('strategyV2.factorResearch.score') }}</th><th>{{ $t('strategyV2.factorResearch.icStability') }}</th><th>{{ $t('strategyV2.factorResearch.oosRetention') }}</th><th>{{ $t('strategyV2.factorResearch.significance') }}</th><th>{{ $t('strategyV2.factorResearch.coverage') }}</th></tr></thead>
               <tbody>
                 <tr v-for="row in rankings" :key="row.factorId">
-                  <td><span class="rank-badge" :class="{ 'rank-badge--top': row.rank === 1 }">{{ row.rank }}</span></td>
+                  <td><span class="rank-badge" :class="{ 'rank-badge--top': hasLeader && row.factorId === topFactor.factorId }">{{ row.rank }}</span></td>
                   <td><div class="factor-identity"><strong>{{ row.factorId }}</strong><code>{{ factorParams(row.factorParams) }}</code></div></td>
                   <td><span class="classification-pill" :class="classificationClass(row.classification)">{{ classificationLabel(row.classification) }}</span></td>
                   <td><div class="score-cell"><strong>{{ number(row.score, 1) }}</strong><span><i :style="{ width: `${clamp(row.score, 0, 100)}%` }" /></span></div></td>
                   <td><div class="ic-comparison"><span><small>{{ $t('strategyV2.factorResearch.trainShort') }}</small><b :class="metricTone(row.trainRankIc)">{{ signedNumber(row.trainRankIc, 4) }}</b></span><i><a-icon type="arrow-right" /></i><span><small>{{ $t('strategyV2.factorResearch.testShort') }}</small><b :class="metricTone(row.testRankIc)">{{ signedNumber(row.testRankIc, 4) }}</b></span></div></td>
-                  <td><div class="compact-progress"><strong>{{ percent(row.oosRetention) }}</strong><span><i :style="{ width: `${clamp(Number(row.oosRetention) * 100, 0, 100)}%` }" /></span></div></td>
+                  <td><div class="compact-progress"><strong>{{ percent(row.oosRetention) }}</strong><span><i :style="{ width: `${row.oosRetention == null ? 0 : clamp(Number(row.oosRetention) * 100, 0, 100)}%` }" /></span></div></td>
                   <td><div class="significance-cell"><strong>{{ number(row.qValue, 4) }}</strong><span :class="{ pass: significancePassed(row), fail: !significancePassed(row) }">{{ $t(significancePassed(row) ? 'strategyV2.factorResearch.thresholdPass' : 'strategyV2.factorResearch.thresholdFail') }}</span></div></td>
                   <td><div class="coverage-cell"><strong>{{ percent(row.coverage) }}</strong><span><i :style="{ width: `${clamp(Number(row.coverage) * 100, 0, 100)}%` }" /></span></div></td>
                 </tr>
@@ -214,7 +215,12 @@ export default {
     validatedCount () { return this.count('alive') + this.count('reversed') },
     validatedRate () { return this.requestedFactorCount ? this.validatedCount / this.requestedFactorCount : 0 },
     verdictReady () { return this.validatedCount > 0 },
-    topFactor () { return this.rankings[0] || {} },
+    topFactor () {
+      const factorId = this.summary.bestFactorId
+      if (!factorId) return {}
+      return this.rankings.find(item => item.factorId === factorId && ['alive', 'reversed', 'candidate'].includes(item.classification)) || {}
+    },
+    hasLeader () { return Boolean(this.topFactor.factorId) },
     strongestOosFactor () { return this.rankings.slice(1).reduce((strongest, item) => Math.abs(Number(item.testRankIc || 0)) > Math.abs(Number(strongest.testRankIc || 0)) ? item : strongest, this.rankings[0] || {}) },
     positiveOosCount () { return this.rankings.filter(item => Number(item.testRankIc) > 0).length },
     negativeOosCount () { return this.rankings.filter(item => Number(item.testRankIc) < 0).length },
@@ -237,7 +243,7 @@ export default {
     clamp (value, minimum, maximum) { return Math.min(maximum, Math.max(minimum, Number(value) || 0)) },
     number (value, digits = 3) { const parsed = Number(value); return Number.isFinite(parsed) ? parsed.toFixed(digits) : '—' },
     signedNumber (value, digits = 3) { const parsed = Number(value); return Number.isFinite(parsed) ? `${parsed > 0 ? '+' : ''}${parsed.toFixed(digits)}` : '—' },
-    percent (value) { const parsed = Number(value); return Number.isFinite(parsed) ? `${(parsed * 100).toFixed(1)}%` : '—' },
+    percent (value) { if (value === null || value === undefined || value === '') return '—'; const parsed = Number(value); return Number.isFinite(parsed) ? `${(parsed * 100).toFixed(1)}%` : '—' },
     metricTone (value) { const parsed = Number(value); return !Number.isFinite(parsed) || parsed === 0 ? 'neutral' : (parsed > 0 ? 'positive' : 'negative') },
     errorMessage (value) {
       const raw = String(value || '')
@@ -274,6 +280,7 @@ export default {
 .metric-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }.metric-grid article { position: relative; min-width: 0; min-height: 78px; padding: 12px; border: 1px solid var(--fb-border); border-radius: 9px; background: var(--fb-surface); box-shadow: 0 1px 2px var(--fb-shadow); }.metric-grid article > span { display: block; overflow: hidden; color: var(--fb-faint); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }.metric-grid article > strong { display: block; overflow: hidden; margin-top: 6px; color: var(--fb-heading); font-size: 21px; line-height: 1.1; text-overflow: ellipsis; white-space: nowrap; }.metric-grid article > em { position: absolute; top: 12px; right: 11px; color: var(--fb-muted); font-size: 9px; font-style: normal; }.metric-grid .metric-card--positive > strong, .metric-grid .metric-card--positive > em { color: var(--fb-positive); }.metric-grid .metric-card--leader { border-color: color-mix(in srgb, var(--fb-accent) 30%, var(--fb-border)); background: linear-gradient(145deg, var(--fb-accent-soft), var(--fb-surface) 60%); }.metric-grid .metric-card--leader > strong { color: var(--fb-accent); font-size: 15px; }.positive { color: var(--fb-positive) !important; }.negative { color: var(--fb-danger) !important; }.neutral { color: var(--fb-muted) !important; }
 .analysis-grid { display: grid; grid-template-columns: 1.35fr 1fr 1fr; gap: 8px; }.analysis-card, .research-detail { overflow: hidden; border: 1px solid var(--fb-border); border-radius: 9px; background: var(--fb-panel); box-shadow: 0 1px 2px var(--fb-shadow); }.analysis-card__heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 42px; padding: 0 12px; border-bottom: 1px solid var(--fb-border-soft); }.analysis-card__heading > div { display: flex; align-items: center; gap: 7px; }.analysis-card__heading strong { color: var(--fb-text); font-size: 11px; }.analysis-card__heading > span { color: var(--fb-faint); font-size: 9px; }.section-icon { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; color: var(--fb-accent); background: var(--fb-accent-soft); }
 .leader-card__body { display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 12px; align-items: center; padding: 13px; }.leader-score { display: flex; width: 72px; height: 72px; align-items: baseline; justify-content: center; border: 1px solid color-mix(in srgb, var(--fb-accent) 45%, var(--fb-border)); border-radius: 50%; color: var(--fb-accent); background: radial-gradient(circle, var(--fb-accent-soft), transparent 70%); box-shadow: inset 0 0 0 5px var(--fb-surface); }.leader-score span { align-self: center; font-size: 23px; font-weight: 800; }.leader-score small { align-self: center; margin: 9px 0 0 2px; color: var(--fb-faint); font-size: 8px; }.leader-copy { min-width: 0; }.leader-copy__title { display: flex; align-items: center; gap: 8px; }.leader-copy__title > strong { overflow: hidden; color: var(--fb-heading); font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }.leader-copy p { margin: 5px 0 8px; color: var(--fb-muted); font-size: 9px; line-height: 1.5; }.evidence-bars { display: grid; gap: 5px; }.evidence-bars > div { display: grid; grid-template-columns: 48px 52px 1fr; align-items: center; gap: 6px; font-size: 9px; }.evidence-bars span { color: var(--fb-faint); }.evidence-bars b { color: var(--fb-text); font-variant-numeric: tabular-nums; }.evidence-bars i { height: 4px; overflow: hidden; border-radius: 999px; background: var(--fb-border-soft); }.evidence-bars em { display: block; height: 100%; border-radius: inherit; }
+.leader-empty { display: flex; min-height: 98px; align-items: center; justify-content: center; gap: 10px; padding: 16px; color: var(--fb-warning); text-align: left; }.leader-empty strong, .leader-empty span { display: block; }.leader-empty strong { color: var(--fb-heading); font-size: 11px; }.leader-empty span { margin-top: 3px; color: var(--fb-muted); font-size: 9px; line-height: 1.45; }
 .classification-pill { display: inline-flex; align-items: center; width: fit-content; padding: 3px 7px; border: 1px solid var(--fb-border); border-radius: 999px; color: var(--fb-muted); background: var(--fb-surface); font-size: 9px; font-weight: 700; white-space: nowrap; }.classification-pill--alive { border-color: color-mix(in srgb, var(--fb-positive) 36%, var(--fb-border)); color: var(--fb-positive); background: color-mix(in srgb, var(--fb-positive) 8%, var(--fb-panel)); }.classification-pill--reversed { border-color: color-mix(in srgb, var(--fb-cyan) 38%, var(--fb-border)); color: var(--fb-cyan); background: color-mix(in srgb, var(--fb-cyan) 8%, var(--fb-panel)); }.classification-pill--candidate { border-color: color-mix(in srgb, var(--fb-accent) 38%, var(--fb-border)); color: var(--fb-accent); background: var(--fb-accent-soft); }.classification-pill--decaying { border-color: color-mix(in srgb, var(--fb-warning) 40%, var(--fb-border)); color: var(--fb-warning); background: color-mix(in srgb, var(--fb-warning) 8%, var(--fb-panel)); }.classification-pill--dead { border-color: color-mix(in srgb, var(--fb-danger) 36%, var(--fb-border)); color: var(--fb-danger); background: color-mix(in srgb, var(--fb-danger) 7%, var(--fb-panel)); }
 .sample-split { padding: 14px 13px 9px; }.sample-split__bar { display: flex; height: 11px; overflow: hidden; border-radius: 3px; background: var(--fb-border-soft); }.sample-split__train { background: var(--fb-accent); }.sample-split__test { background: var(--fb-cyan); }.sample-split__labels { display: flex; justify-content: space-between; gap: 10px; margin-top: 8px; color: var(--fb-muted); font-size: 9px; }.sample-split__labels span { display: flex; align-items: center; gap: 5px; }.sample-split__labels i { width: 6px; height: 6px; border-radius: 2px; }.sample-split__labels b { color: var(--fb-text); }.train-dot { background: var(--fb-accent); }.test-dot { background: var(--fb-cyan); }.validation-thresholds { display: grid; grid-template-columns: repeat(3, 1fr); margin: 0; border-top: 1px solid var(--fb-border-soft); }.validation-thresholds div { min-width: 0; padding: 10px; text-align: center; }.validation-thresholds div + div { border-left: 1px solid var(--fb-border-soft); }.validation-thresholds dt { overflow: hidden; color: var(--fb-faint); font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }.validation-thresholds dd { margin: 4px 0 0; color: var(--fb-heading); font-size: 12px; font-weight: 700; }
 .distribution-card { padding-bottom: 10px; }.distribution-bar { display: flex; height: 11px; overflow: hidden; margin: 18px 13px 13px; border-radius: 3px; background: var(--fb-border-soft); }.distribution-bar span { min-width: 2px; }.distribution-bar__positive, .legend-positive { background: var(--fb-positive); }.distribution-bar__candidate, .legend-candidate { background: var(--fb-accent); }.distribution-bar__warning, .legend-warning { background: var(--fb-warning); }.distribution-bar__danger, .legend-danger { background: var(--fb-danger); }.distribution-bar__muted, .legend-muted { background: var(--fb-faint); }.distribution-legend { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 10px; padding: 0 13px; }.distribution-legend span { display: grid; grid-template-columns: 6px minmax(0, 1fr) auto; align-items: center; gap: 5px; overflow: hidden; color: var(--fb-muted); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }.distribution-legend i { width: 6px; height: 6px; border-radius: 2px; }.distribution-legend b { color: var(--fb-heading); }

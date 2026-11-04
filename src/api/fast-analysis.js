@@ -17,3 +17,10 @@ export function fastAnalyze (params) {
     timeout: 300000 // 300s (5 minutes) timeout for analysis
   })
 }
+
+export function getProfessionalReportDataSources () {
+  return request({
+    url: `${BASE_URL}/data-sources`,
+    method: 'get'
+  })
+}

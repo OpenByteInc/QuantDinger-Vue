@@ -16,6 +16,7 @@ import {
 } from '../src/locales/generated-locale-overrides.js'
 import { verifiedSameUiMessages } from '../src/locales/reviewed-ui-overrides.js'
 import { verifiedSameSettingsMessages } from '../src/locales/settings-research-overrides.js'
+import { verifiedSameHumanMessages } from '../src/locales/human-completion-overrides.js'
 
 const root = resolve(process.cwd())
 const langDir = join(root, 'src', 'locales', 'lang')
@@ -74,10 +75,18 @@ function restoreText(value, protectedValues) {
   let restored = value
   protectedValues.forEach((original, index) => {
     const token = `__QD${String(index).padStart(6, '0')}__`
-    if (!restored.includes(token)) {
+    const tokenDigits = index === 0 ? '0+' : `0*${index}`
+    const flexibleToken = new RegExp(
+      `(?:__|＿＿)?\\s*QD\\s*${tokenDigits}\\s*(?:__|＿＿)?`,
+      'i'
+    )
+    if (restored.includes(token)) {
+      restored = restored.split(token).join(original)
+    } else if (flexibleToken.test(restored)) {
+      restored = restored.replace(flexibleToken, original)
+    } else {
       throw new Error(`Translation response lost protected token ${token}`)
     }
-    restored = restored.split(token).join(original)
   })
   return restored.trim()
 }
@@ -330,7 +339,7 @@ $body = @{
 $response = Invoke-WebRequest -UseBasicParsing -Method Post -Uri 'https://translate.googleapis.com/translate_a/single' -ContentType 'application/x-www-form-urlencoded;charset=UTF-8' -Body $body -TimeoutSec 60
 $response.Content
 `
-  return new Promise((resolvePromise, rejectPromise) => {
+  return new Promise((resolve, reject) => {
     const child = spawn(
       'powershell.exe',
       ['-NoProfile', '-NonInteractive', '-Command', script],
@@ -348,10 +357,10 @@ $response.Content
     child.stderr.setEncoding('utf8')
     child.stdout.on('data', chunk => { stdout += chunk })
     child.stderr.on('data', chunk => { stderr += chunk })
-    child.on('error', rejectPromise)
+    child.on('error', reject)
     child.on('close', code => {
       if (code !== 0) {
-        rejectPromise(new Error((stderr || stdout || 'PowerShell transport failed').trim()))
+        reject(new Error((stderr || stdout || 'PowerShell transport failed').trim()))
         return
       }
       try {
@@ -362,9 +371,9 @@ $response.Content
         if (!translated) {
           throw new Error('Google translation response did not contain translated text')
         }
-        resolvePromise(translated)
+        resolve(translated)
       } catch (error) {
-        rejectPromise(error)
+        reject(error)
       }
     })
     child.stdin.end(text, 'utf8')
@@ -417,10 +426,18 @@ async function requestGoogleTranslationMatrix(values, targetLanguages) {
             'retrying individually'
           )
           const retried = await requestGoogleText(item.text, targetLanguage)
-          matrix[item.index][targetLanguage] = restoreText(
-            retried,
-            item.protectedValues
-          )
+          try {
+            matrix[item.index][targetLanguage] = restoreText(
+              retried,
+              item.protectedValues
+            )
+          } catch (error) {
+            console.error(
+              `${targetLanguage}: protected-token retry failed for ` +
+              `${JSON.stringify(item.text)} -> ${JSON.stringify(retried)}`
+            )
+            throw error
+          }
         }
       }
       await sleep(requestDelayMs)
@@ -736,7 +753,8 @@ const verifiedSame = Object.fromEntries(
     new Set([
       ...(existingVerifiedSameTranslations[localeName] || []),
       ...verifiedSameUiMessages,
-      ...verifiedSameSettingsMessages
+      ...verifiedSameSettingsMessages,
+      ...(verifiedSameHumanMessages[localeName] || [])
     ])
   ])
 )

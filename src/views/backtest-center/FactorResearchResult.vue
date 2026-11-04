@@ -1,29 +1,33 @@
 <template>
   <div class="factor-result" :class="{ 'theme-dark': isDark }">
-    <div class="metrics-grid">
-      <div v-for="item in metrics" :key="item.key" class="metric-card">
-        <span>{{ item.label }}</span>
-        <strong :class="item.tone">{{ item.value }}</strong>
+    <section class="factor-summary-panel">
+      <div class="metrics-grid">
+        <div v-for="item in metrics" :key="item.key" class="metric-card" :class="{ 'metric-card--featured': item.featured }">
+          <span class="metric-card__label">{{ item.label }}</span>
+          <strong :class="item.tone">{{ item.value }}</strong>
+          <i class="metric-card__accent" aria-hidden="true" />
+        </div>
       </div>
-    </div>
+    </section>
     <a-alert
       v-if="sampleWarning"
-      class="sample-alert"
+      class="sample-alert sample-quality-banner"
       type="warning"
       show-icon
       :message="sampleWarning.title"
       :description="sampleWarning.description" />
-    <section class="chart-card">
+    <section class="chart-card factor-analysis-card">
       <div class="chart-heading">
-        <div><h3>{{ $t('strategyV2.factorResearch.dashboard') }}</h3><span>{{ $t('strategyV2.factorResearch.pointInTimeHint') }}</span></div>
+        <div class="chart-heading__copy"><h3>{{ $t('strategyV2.factorResearch.dashboard') }}</h3><span>{{ $t('strategyV2.factorResearch.pointInTimeHint') }}</span></div>
         <div class="chart-tags">
           <a-tag v-if="groupsAdjusted" color="orange">{{ $t('strategyV2.factorResearch.groupsAdjusted', { requested: result.requestedGroups, effective: result.effectiveGroups }) }}</a-tag>
           <a-tag :color="result.neutralized ? 'green' : 'default'">{{ result.neutralized ? $t('strategyV2.factorResearch.neutralized') : $t('strategyV2.factorResearch.rawFactor') }}</a-tag>
+          <a-tag>{{ $t('strategyV2.factorResearch.longShortConvention', { exposure: longShortGrossExposure }) }}</a-tag>
         </div>
       </div>
       <div ref="chart" class="factor-chart" />
     </section>
-    <a-tabs class="factor-tabs" default-active-key="overview">
+    <a-tabs class="factor-tabs factor-detail-tabs" default-active-key="overview">
       <a-tab-pane key="overview" :tab="$t('strategyV2.backtest.tabs.overview')">
         <div class="overview-grid">
           <div class="overview-card"><span>{{ $t('strategyV2.factorResearch.firstHalfIc') }}</span><strong>{{ formatNumber(stability.firstHalfIc, 4) }}</strong></div>
@@ -44,7 +48,10 @@
           <div v-for="factor in correlation.factors || []" :key="`head-${factor}`" class="correlation-head">{{ factor }}</div>
           <template v-for="(row, rowIndex) in correlation.matrix || []">
             <div :key="`label-${rowIndex}`" class="correlation-head">{{ correlation.factors[rowIndex] }}</div>
-            <div v-for="(value, columnIndex) in row" :key="`${rowIndex}-${columnIndex}`" class="correlation-cell" :style="correlationCellStyle(value)">{{ formatNumber(value, 3) }}</div>
+            <div v-for="(value, columnIndex) in row" :key="`${rowIndex}-${columnIndex}`" class="correlation-cell" :style="correlationCellStyle(value)">
+              <strong>{{ formatNumber(value, 3) }}</strong>
+              <small v-if="correlationObservation(rowIndex, columnIndex)">{{ $t('strategyV2.factorResearch.correlationObservations', { count: correlationObservation(rowIndex, columnIndex) }) }}</small>
+            </div>
           </template>
         </div>
       </a-tab-pane>
@@ -76,6 +83,9 @@ export default {
     stability () { return this.result.stability || {} },
     correlation () { return this.result.factorCorrelation || {} },
     sampleDiagnostics () { return this.result.sampleDiagnostics || {} },
+    executionAssumptions () { return this.result.executionAssumptions || {} },
+    longShortGrossExposure () { return this.formatNumber(this.executionAssumptions.longShortGrossExposure || 2, 1) },
+    isExploratory () { return this.sampleDiagnostics.quality === 'insufficient' },
     groupsAdjusted () { return Number(this.result.effectiveGroups || 0) < Number(this.result.requestedGroups || 0) },
     sampleWarning () {
       const warnings = this.sampleDiagnostics.warnings || []
@@ -95,14 +105,14 @@ export default {
     correlationStyle () { return { gridTemplateColumns: `minmax(120px, 1.3fr) repeat(${(this.correlation.factors || []).length}, minmax(90px, 1fr))` } },
     metrics () {
       return [
-        { key: 'ic', label: this.$t('strategyV2.factorResearch.rankIc'), value: this.formatNumber(this.result.rankIc, 4), tone: this.tone(this.result.rankIc) },
-        { key: 'icir', label: this.$t('strategyV2.factorResearch.icir'), value: this.formatNumber(this.result.icir, 3), tone: this.tone(this.result.icir) },
+        { key: 'ic', label: this.$t('strategyV2.factorResearch.rankIc'), value: this.formatNumber(this.result.rankIc, 4), tone: this.isExploratory ? '' : this.tone(this.result.rankIc), featured: true },
+        { key: 'icir', label: this.$t('strategyV2.factorResearch.icir'), value: this.formatNumber(this.result.icir, 3), tone: this.isExploratory ? '' : this.tone(this.result.icir), featured: true },
         { key: 'positive', label: this.$t('strategyV2.factorResearch.icPositiveRate'), value: this.formatRate(this.result.icPositiveRate), tone: '' },
-        { key: 'monotonicity', label: this.$t('strategyV2.factorResearch.monotonicity'), value: this.formatNumber(this.result.monotonicity, 3), tone: this.tone(this.result.monotonicity) },
+        { key: 'monotonicity', label: this.$t('strategyV2.factorResearch.monotonicity'), value: Number(this.result.effectiveGroups) < 3 ? this.$t('strategyV2.factorResearch.notApplicable') : this.formatNumber(this.result.monotonicity, 3), tone: Number(this.result.effectiveGroups) < 3 ? '' : this.tone(this.result.monotonicity) },
         { key: 'coverage', label: this.$t('strategyV2.factorResearch.coverage'), value: this.formatRate(this.result.coverage), tone: '' },
         { key: 'missing', label: this.$t('strategyV2.factorResearch.missingRate'), value: this.formatRate(this.result.missingRate), tone: Number(this.result.missingRate) > 0.2 ? 'negative' : '' },
         { key: 'turnover', label: this.$t('strategyV2.factorResearch.turnover'), value: this.formatRate(this.result.averageTurnover), tone: '' },
-        { key: 'longShort', label: this.$t('strategyV2.factorResearch.netLongShort'), value: this.formatRate(this.result.netLongShortReturn), tone: this.tone(this.result.netLongShortReturn) }
+        { key: 'longShort', label: this.$t('strategyV2.factorResearch.netLongShort'), value: this.formatRate(this.result.netLongShortReturn), tone: this.tone(this.result.netLongShortReturn), featured: true }
       ]
     },
     groupSummary () {
@@ -179,9 +189,9 @@ export default {
         dataZoom: [{ type: 'inside', xAxisIndex: [0, 1] }, { type: 'slider', xAxisIndex: [0, 1], height: 20, bottom: 4, showDetail: false }],
         series: [
           ...groupSeries,
-          { name: longShortName, type: 'line', data: longShort, showSymbol: false, xAxisIndex: 0, yAxisIndex: 0, lineStyle: { width: 2.6, type: 'dashed' } },
-          { name: rankIcName, type: 'bar', data: ic, xAxisIndex: 1, yAxisIndex: 1, itemStyle: { color: params => Number(params.value[1]) >= 0 ? '#52c41a' : '#ff4d4f' } },
-          { name: rollingIcName, type: 'line', data: rolling, showSymbol: false, xAxisIndex: 1, yAxisIndex: 1, lineStyle: { width: 2 } }
+          { name: longShortName, type: 'line', data: longShort, showSymbol: false, xAxisIndex: 0, yAxisIndex: 0, lineStyle: { width: 2.8, type: 'dashed' }, areaStyle: { opacity: this.isDark ? 0.08 : 0.05 } },
+          { name: rankIcName, type: 'bar', data: ic, xAxisIndex: 1, yAxisIndex: 1, barMaxWidth: 12, itemStyle: { borderRadius: [3, 3, 0, 0], color: params => Number(params.value[1]) >= 0 ? '#52c41a' : '#ff4d4f' } },
+          { name: rollingIcName, type: 'line', data: rolling, showSymbol: false, xAxisIndex: 1, yAxisIndex: 1, lineStyle: { width: 2.4 }, areaStyle: { opacity: this.isDark ? 0.06 : 0.04 } }
         ]
       }, true)
     },
@@ -197,13 +207,15 @@ export default {
     },
     resizeChart () { if (this.chart) this.chart.resize() },
     formatDate (value) { return value ? moment(value).format('YYYY-MM-DD') : '-' },
-    formatNumber (value, digits = 2) { const number = Number(value || 0); return Number.isFinite(number) ? number.toFixed(digits) : '-' },
-    formatRate (value) { return `${(Number(value || 0) * 100).toFixed(2)}%` },
-    tone (value) { const number = Number(value || 0); return number > 0 ? 'positive' : number < 0 ? 'negative' : '' },
+    formatNumber (value, digits = 2) { if (value === null || value === undefined || value === '') return '—'; const number = Number(value); return Number.isFinite(number) ? number.toFixed(digits) : '—' },
+    formatRate (value) { if (value === null || value === undefined || value === '') return '—'; const number = Number(value); return Number.isFinite(number) ? `${(number * 100).toFixed(2)}%` : '—' },
+    tone (value) { if (value === null || value === undefined || value === '') return ''; const number = Number(value); return number > 0 ? 'positive' : number < 0 ? 'negative' : '' },
+    correlationObservation (rowIndex, columnIndex) { const rows = Array.isArray(this.correlation.observations) ? this.correlation.observations : []; const count = rows[rowIndex] && rows[rowIndex][columnIndex]; return Number.isFinite(Number(count)) ? Number(count) : 0 },
     signedCell (value, digits = 2) { return this.$createElement('span', { class: this.tone(value) }, `${Number(value) > 0 ? '+' : ''}${this.formatNumber(value, digits)}`) },
     percentCell (value) { return this.$createElement('span', { class: this.tone(value) }, `${Number(value) > 0 ? '+' : ''}${this.formatRate(value)}`) },
     correlationCellStyle (value) {
-      const number = Number(value || 0)
+      if (value === null || value === undefined || value === '') return { background: 'var(--factor-surface)', color: 'var(--factor-muted)' }
+      const number = Number(value)
       const intensity = Math.abs(number)
       const alpha = this.isDark
         ? Math.min(0.8, intensity * 0.75 + 0.08)
@@ -220,36 +232,64 @@ export default {
 </script>
 
 <style lang="less" scoped>
-.metrics-grid { display: grid; grid-template-columns: repeat(8, minmax(105px, 1fr)); gap: 8px; }
-.sample-alert { margin-top: 10px; }
-.metric-card, .overview-card { padding: 12px; border: 1px solid #edf0f4; border-radius: 8px; background: #f8fafc; }
-.metric-card { display: flex; flex-direction: column; gap: 3px; }
-.metric-card span, .overview-card span { color: #7c8ca1; font-size: 11px; }
-.metric-card strong { color: #20324a; font-size: 18px; }
+.factor-result { --factor-border: #e7ecf2; --factor-surface: #fff; --factor-surface-soft: #f7f9fc; --factor-text: #20324a; --factor-muted: #718096; }
+.factor-summary-panel { padding: 10px; border: 1px solid var(--factor-border); border-radius: 12px; background: var(--factor-surface-soft); }
+.metrics-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; }
+.sample-alert { margin-top: 12px; }
+.metric-card, .overview-card { position: relative; overflow: hidden; padding: 13px 14px; border: 1px solid var(--factor-border); border-radius: 9px; background: var(--factor-surface); }
+.metric-card { display: flex; min-width: 0; min-height: 76px; flex-direction: column; justify-content: space-between; gap: 8px; }
+.metric-card__label, .overview-card span { color: var(--factor-muted); font-size: 11px; line-height: 1.35; }
+.metric-card strong { color: var(--factor-text); font-size: 20px; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.metric-card__accent { position: absolute; right: 12px; bottom: 0; left: 12px; height: 2px; border-radius: 2px 2px 0 0; background: #d8dee8; }
+.metric-card--featured { border-color: color-mix(in srgb, var(--primary-color, #52c41a) 24%, var(--factor-border)); box-shadow: 0 5px 18px rgba(15, 23, 42, .035); }
+.metric-card--featured .metric-card__accent { background: var(--primary-color, #52c41a); }
+.sample-quality-banner { border: 1px solid #f1d48a; border-left: 4px solid #d99b12; border-radius: 10px; background: #fffbeb; }
+.sample-quality-banner /deep/ .ant-alert-icon { color: #d99b12; }
+.sample-quality-banner /deep/ .ant-alert-message { color: #4a3a12; font-weight: 700; }
+.sample-quality-banner /deep/ .ant-alert-description { color: #735f2d; font-size: 12px; line-height: 1.6; }
 .positive { color: #16a34a !important; }
 .negative { color: #dc2626 !important; }
-.chart-card { margin-top: 12px; padding: 13px; border: 1px solid #edf0f4; border-radius: 8px; }
+.chart-card { margin-top: 12px; padding: 15px; border: 1px solid var(--factor-border); border-radius: 12px; background: var(--factor-surface); box-shadow: 0 8px 24px rgba(15, 23, 42, .025); }
 .chart-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.chart-heading__copy { min-width: 0; padding-left: 10px; border-left: 3px solid var(--primary-color, #52c41a); }
 .chart-tags { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
-.chart-heading h3 { margin: 0; color: #26364c; font-size: 14px; }
-.chart-heading span { color: #7c8ca1; font-size: 11px; }
-.factor-chart { width: 100%; height: 590px; margin-top: 8px; }
-.factor-tabs { margin-top: 12px; }
+.chart-tags /deep/ .ant-tag { margin: 0; border-radius: 6px; font-size: 10px; line-height: 22px; }
+.chart-heading h3 { margin: 0; color: var(--factor-text); font-size: 14px; }
+.chart-heading span { color: var(--factor-muted); font-size: 11px; }
+.factor-chart { width: 100%; height: 560px; margin-top: 8px; }
+.factor-tabs { margin-top: 14px; }
+.factor-detail-tabs { padding: 0 14px 14px; border: 1px solid var(--factor-border); border-radius: 12px; background: var(--factor-surface); }
+.factor-detail-tabs /deep/ .ant-tabs-bar { margin: 0 -14px 14px; padding: 0 14px; border-bottom-color: var(--factor-border); border-radius: 12px 12px 0 0; background: var(--factor-surface-soft); }
+.factor-detail-tabs /deep/ .ant-tabs-tab { padding: 13px 2px 11px; color: var(--factor-muted); font-weight: 600; }
 .overview-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.overview-card { display: flex; min-height: 76px; flex-direction: column; justify-content: space-between; }
+.overview-card { display: flex; min-height: 84px; flex-direction: column; justify-content: space-between; }
+.overview-card strong { color: var(--factor-text); font-size: 14px; }
 .correlation-grid { display: grid; gap: 1px; overflow: auto; border: 1px solid #e2e8f0; border-radius: 8px; background: #e2e8f0; }
 .correlation-head, .correlation-cell, .correlation-corner { display: flex; min-height: 48px; align-items: center; justify-content: center; padding: 8px; background: #fff; }
 .correlation-head, .correlation-corner { background: #f8fafc; }
 .correlation-head { color: #475569; font-size: 11px; font-weight: 700; }
 .correlation-cell { color: #1f2937; font-variant-numeric: tabular-nums; }
-.factor-result.theme-dark .metric-card, .factor-result.theme-dark .overview-card { border-color: rgba(255,255,255,.1); background: #0d0d0d; }
-.factor-result.theme-dark .metric-card strong, .factor-result.theme-dark .overview-card strong, .factor-result.theme-dark .chart-heading h3 { color: #e5e7eb; }
-.factor-result.theme-dark .chart-card { border-color: rgba(255,255,255,.1); }
+.correlation-cell { flex-direction: column; gap: 2px; }
+.correlation-cell strong { font-size: 12px; }
+.correlation-cell small { color: currentColor; font-size: 9px; opacity: .72; }
+.factor-result.theme-dark { --factor-border: #2d2d2d; --factor-surface: #111; --factor-surface-soft: #151515; --factor-text: #f1f5f9; --factor-muted: rgba(255,255,255,.5); }
+.factor-result.theme-dark .factor-summary-panel { background: #0d0d0d; }
+.factor-result.theme-dark .metric-card, .factor-result.theme-dark .overview-card { background: #151515; }
+.factor-result.theme-dark .metric-card--featured { border-color: color-mix(in srgb, var(--primary-color, #52c41a) 34%, #2d2d2d); box-shadow: none; }
+.factor-result.theme-dark .metric-card__accent { background: #343434; }
+.factor-result.theme-dark .metric-card--featured .metric-card__accent { background: var(--primary-color, #52c41a); }
+.factor-result.theme-dark .sample-quality-banner { border-color: #5c4515; border-left-color: #d99b12; background: #201b0e; }
+.factor-result.theme-dark .sample-quality-banner /deep/ .ant-alert-message { color: #f5d879; }
+.factor-result.theme-dark .sample-quality-banner /deep/ .ant-alert-description { color: rgba(255,255,255,.58); }
+.factor-result.theme-dark .chart-tags /deep/ .ant-tag { border-color: #3a3a3a; color: rgba(255,255,255,.76); background: #1b1b1b; }
+.factor-result.theme-dark .chart-tags /deep/ .ant-tag-orange { border-color: #765b1a; color: #f5d879; background: #2b230f; }
+.factor-result.theme-dark .chart-tags /deep/ .ant-tag-green { border-color: color-mix(in srgb, var(--primary-color, #52c41a) 40%, #303030); color: var(--primary-color, #52c41a); background: color-mix(in srgb, var(--primary-color, #52c41a) 9%, #111); }
 .factor-result.theme-dark .correlation-grid { border-color: #303030; background: #303030; }
 .factor-result.theme-dark .correlation-head, .factor-result.theme-dark .correlation-corner { color: #a3a3a3; background: #111; }
 ::v-deep .factor-tooltip { min-width: 190px; }
 ::v-deep .factor-tooltip-date { margin-bottom: 5px; color: #8c8c8c; font-weight: 600; }
 ::v-deep .factor-tooltip-row { display: grid; grid-template-columns: 14px minmax(90px, 1fr) auto; align-items: center; gap: 5px; line-height: 24px; }
 ::v-deep .factor-tooltip-row strong { margin-left: 14px; font-variant-numeric: tabular-nums; }
-@media (max-width: 1500px) { .metrics-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 1050px) { .metrics-grid, .overview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .metrics-grid, .overview-grid { grid-template-columns: 1fr; } .chart-heading { flex-direction: column; } .chart-tags { justify-content: flex-start; } }
 </style>

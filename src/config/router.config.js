@@ -66,7 +66,7 @@ export const asyncRouterMap = [
         path: '/broker-accounts',
         name: 'BrokerAccounts',
         component: () => import('@/views/broker-accounts'),
-        meta: { title: 'menu.dashboard.brokerAccounts', keepAlive: true, icon: 'bank', permission: ['dashboard'] }
+        meta: { title: 'menu.dashboard.brokerAccounts', keepAlive: true, icon: 'bank', permission: ['dashboard'], capability: 'broker_accounts_enabled' }
       },
       // Legacy chart route.
       {
@@ -121,12 +121,12 @@ export const asyncRouterMap = [
         component: () => import('@/views/user-manage'),
         meta: { title: 'menu.userManage', keepAlive: false, icon: 'team', permission: ['admin'] }
       },
-      // Agent token management.
+      // Agent management.
       {
         path: '/agent-tokens',
         name: 'AgentTokens',
         component: () => import('@/views/agent-tokens'),
-        meta: { title: 'menu.agentTokens', keepAlive: false, icon: 'api', permission: ['admin'] }
+        meta: { title: 'menu.agentTokens', keepAlive: false, icon: 'api', permission: ['admin'], capability: 'agent_gateway_enabled' }
       },
       {
         path: '/ai-skills',

@@ -25,29 +25,76 @@
       <a-empty v-if="!report" class="review-empty" :description="$t('strategyReviewV2.empty')" />
       <template v-else>
         <section class="review-verdict" :class="verdictTone" aria-live="polite">
-          <div class="verdict-heading"><span class="eyebrow">{{ $t('strategyReviewV2.window', { days: report.lookback_days }) }}</span><span class="status-label">{{ $t('strategyReviewV2.' + aiStatus) }}</span></div>
-          <h3>{{ $t('strategyReviewV2.' + (isV2 ? evidence.verdict : 'legacy')) }}</h3>
-          <p>{{ ai.summary || $t('strategyReviewV2.summaryFallback') }}</p>
-          <div class="verdict-meta"><span>{{ (report.strategy || {}).name }}</span><span>{{ (report.strategy || {}).symbol }} · {{ (report.strategy || {}).timeframe }}</span><span>{{ $t('strategyReviewV2.generated', { time: formatTime(report.generated_at || report.created_at) }) }}</span></div>
+          <div class="verdict-label">{{ $t('strategyReviewV2.reportConclusion') }}</div>
+          <div class="verdict-content">
+            <div class="verdict-heading">
+              <h3>{{ $t('strategyReviewV2.' + (isV2 ? evidence.verdict : 'legacy')) }}</h3>
+              <span class="ai-status" :class="'is-' + aiStatus"><i />{{ $t('strategyReviewV2.' + aiStatus) }}</span>
+            </div>
+            <p>{{ reportSummary }}</p>
+          </div>
         </section>
         <template v-if="isV2">
-          <section class="cost-section">
-            <div class="section-heading"><h3>{{ $t('strategyReviewV2.costTitle') }}</h3><span class="muted">{{ quoteCurrency }}</span></div>
-            <div v-if="facts.before_commission_pnl != null" class="cost-equation">
-              <div><span>{{ $t('strategyReviewV2.before') }}</span><strong :class="numberTone(facts.before_commission_pnl)">{{ formatNumber(facts.before_commission_pnl) }}</strong></div><span class="operator" aria-hidden="true">−</span>
-              <div><span>{{ $t('strategyReviewV2.fee') }}</span><strong class="cost-value">{{ formatNumber(facts.commission) }}</strong></div><span class="operator" aria-hidden="true">=</span>
-              <div><span>{{ $t('strategyReviewV2.net') }}</span><strong :class="numberTone(facts.window_net_pnl)">{{ formatNumber(facts.window_net_pnl) }}</strong></div>
-            </div>
-            <a-alert v-else type="warning" show-icon :message="$t(facts.closed_fill_count ? 'strategyReviewV2.costUnavailable' : 'strategyReviewV2.noTrades')" />
-            <p class="muted note">{{ $t('strategyReviewV2.costNote') }}</p>
-            <div class="metric-strip">
-              <div><span>{{ $t('strategyReviewV2.closed') }}</span><b>{{ facts.closed_fill_count }}</b></div><div><span>{{ $t('strategyReviewV2.profitFactor') }}</span><b>{{ profitFactorText }}</b></div>
-              <div><span>{{ $t('strategyReviewV2.payoff') }}</span><b>{{ formatNumber(facts.payoff_ratio) }}</b></div><div><span>{{ $t('strategyReviewV2.average') }}</span><b :class="numberTone(facts.avg_net_per_close)">{{ formatNumber(facts.avg_net_per_close) }}</b></div>
-            </div>
-            <p v-if="facts.median_holding_seconds != null" class="muted">{{ $t('strategyReviewV2.holding') }}: {{ formatNumber(facts.median_holding_seconds, 0) }} · {{ $t('strategyReviewV2.holdingNote') }}</p>
+          <section class="overview-metrics" :aria-label="$t('strategyReviewV2.reportMetrics')">
+            <div><span>{{ $t('strategyReviewV2.net') }}</span><b :class="numberTone(facts.window_net_pnl)">{{ formatNumber(facts.window_net_pnl) }}</b></div>
+            <div><span>{{ $t('strategyReviewV2.before') }}</span><b :class="numberTone(facts.before_commission_pnl)">{{ formatNumber(facts.before_commission_pnl) }}</b></div>
+            <div><span>{{ $t('strategyReviewV2.fee') }}</span><b class="cost-value">{{ formatNumber(facts.commission) }}</b></div>
+            <div><span>{{ $t('strategyReviewV2.closed') }}</span><b>{{ formatNumber(facts.closed_fill_count, 0) }}</b></div>
+            <div><span>{{ $t('strategyReviewV2.profitFactor') }}</span><b>{{ profitFactorText }}</b></div>
           </section>
-          <section v-if="charts.length" class="evidence-charts" :aria-label="$t('strategyReviewV2.chartTitle')">
-            <figure v-for="chart in charts" :key="chart.code" class="evidence-chart">
+          <div class="report-grid">
+            <section class="report-panel loss-breakdown">
+              <div class="section-heading"><h3>{{ $t('strategyReviewV2.lossBreakdown') }}</h3><span class="muted">{{ quoteCurrency }}</span></div>
+              <template v-if="costChart && costChart.rows.length">
+                <div v-for="row in costChart.rows" :key="row.code" class="loss-row">
+                  <div class="loss-row-label"><span>{{ row.label }}</span><b :class="numberTone(row.value)">{{ formatNumber(row.value) }}</b></div>
+                  <svg viewBox="0 0 1000 18" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+                    <line x1="0" x2="1000" y1="17" y2="17" class="chart-baseline" />
+                    <line :x1="chartX(costChart, 0)" :x2="chartX(costChart, 0)" y1="0" y2="18" class="chart-zero" />
+                    <rect
+                      :x="Math.min(chartX(costChart, 0), chartX(costChart, row.value))"
+                      :width="Math.abs(chartX(costChart, row.value) - chartX(costChart, 0))"
+                      y="3"
+                      height="11"
+                      rx="2"
+                      :class="row.value < 0 ? 'bar-negative' : 'bar-positive'" />
+                  </svg>
+                </div>
+                <p class="muted report-caption">{{ costInterpretation }}</p>
+              </template>
+              <a-alert v-else type="warning" show-icon :message="$t(facts.closed_fill_count ? 'strategyReviewV2.costUnavailable' : 'strategyReviewV2.noTrades')" />
+            </section>
+            <section class="report-panel diagnosis-panel">
+              <div class="section-heading"><h3>{{ $t('strategyReviewV2.coreDiagnosis') }}</h3></div>
+              <div class="diagnosis-table" role="table" :aria-label="$t('strategyReviewV2.coreDiagnosis')">
+                <div class="diagnosis-table-head" role="row"><span>{{ $t('strategyReviewV2.diagnosisItem') }}</span><span>{{ $t('strategyReviewV2.diagnosisConclusion') }}</span><span>{{ $t('strategyReviewV2.diagnosisStatus') }}</span></div>
+                <div v-for="row in diagnosticRows" :key="row.code" class="diagnosis-table-row" role="row">
+                  <strong>{{ row.label }}</strong><span :class="row.tone">{{ row.conclusion }}</span><span>{{ row.status }}</span>
+                </div>
+              </div>
+            </section>
+          </div>
+          <section class="optimization-report report-panel">
+            <div class="section-heading"><h3>{{ $t('strategyReviewV2.optimizationDirections') }}</h3><span class="muted">{{ $t(hasAiAdvice ? 'strategyReviewV2.aiAdviceHint' : 'strategyReviewV2.optimizationHint') }}</span></div>
+            <ol :class="{ 'has-ai-advice': hasAiAdvice }">
+              <li v-for="(direction, index) in optimizationDirections" :key="direction.code || direction.title">
+                <span>{{ index + 1 }}</span>
+                <div class="direction-content">
+                  <b>{{ direction.title }}</b>
+                  <template v-if="direction.ai">
+                    <p class="ai-interpretation">{{ direction.interpretation }}</p>
+                    <dl>
+                      <div><dt>{{ $t('strategyReviewV2.change') }}</dt><dd>{{ direction.proposedChange }}</dd></div>
+                      <div><dt>{{ $t('strategyReviewV2.tradeoff') }}</dt><dd>{{ direction.tradeoff }}</dd></div>
+                    </dl>
+                  </template>
+                  <p v-else>{{ direction.body }}</p>
+                </div>
+              </li>
+            </ol>
+          </section>
+          <section v-if="supportCharts.length" class="support-evidence">
+            <figure v-for="chart in supportCharts" :key="chart.code" class="evidence-chart">
               <figcaption><h4>{{ $t('strategyReviewV2.chart.' + chart.code) }}</h4><span class="muted">{{ quoteCurrency }}</span></figcaption>
               <div v-for="row in chart.rows" :key="row.code" class="chart-row">
                 <div class="chart-label"><span>{{ row.label }} <small v-if="row.count != null">{{ $t('strategyReviewV2.chartCount', { count: row.count, known: row.known }) }}</small></span><b :class="numberTone(row.value)">{{ formatNumber(row.value) }}</b></div>
@@ -67,51 +114,18 @@
               <p class="muted chart-note">{{ $t('strategyReviewV2.chartNote.' + chart.code) }}</p>
             </figure>
           </section>
-          <section class="investigations">
-            <div class="section-heading"><div><h3>{{ $t('strategyReviewV2.questions') }}</h3><p class="muted">{{ $t('strategyReviewV2.questionsHint') }}</p></div><a-button :aria-expanded="showTrades" aria-controls="review-trades" @click="showTrades = !showTrades">{{ $t('strategyReviewV2.samples') }}<a-icon type="arrow-down" /></a-button></div>
-            <article v-for="(issue, index) in issues" :key="issue.code" class="investigation">
-              <div class="issue-number">{{ String(index + 1).padStart(2, '0') }}</div>
-              <div class="issue-body">
-                <div class="issue-heading"><h4>{{ $t('strategyReviewV2.issue.' + issue.code + '.title') }}</h4></div>
-                <div class="qa-problem"><span class="qa-label">{{ $t('strategyReviewV2.problem') }}</span><p>{{ annotation(issue).interpretation || $t(issue.finding ? 'strategyReviewV2.finding.' + issue.finding : 'strategyReviewV2.issue.' + issue.code + '.why') }}</p></div>
-                <div class="evidence-chips"><span class="muted">{{ $t('strategyReviewV2.evidence') }}</span><span v-for="key in issue.evidence_keys" :key="key">{{ factLabel(key) }} <b>{{ factValue(key) }}</b></span></div>
-                <div class="adjustment"><span>{{ $t('strategyReviewV2.optimize') }}</span><p>{{ annotation(issue).proposed_change || adjustmentText(issue) }}</p></div>
-                <p class="muted safeguard"><b>{{ $t('strategyReviewV2.safeguard') }}</b> {{ annotation(issue).tradeoff || $t('strategyReviewV2.experiment.' + issue.experiment + '.risk') }}</p>
-                <p v-if="issue.code === 'frequency_check'" class="muted note">{{ $t('strategyReviewV2.frequencyNote') }}</p>
-                <p v-if="issue.code === 'risk_check'" class="muted note">{{ $t('strategyReviewV2.riskNote') }}</p>
-                <details v-if="issue.code === 'exits_check'" class="exit-breakdown">
-                  <summary>{{ $t('strategyReviewV2.exitBreakdown') }}</summary>
-                  <p class="muted">{{ $t('strategyReviewV2.exitNote') }}</p>
-                  <div class="table-scroll" tabindex="0" :aria-label="$t('strategyReviewV2.exitBreakdown')">
-                    <table><thead><tr><th>{{ $t('strategyReviewV2.exitReason') }}</th><th>{{ $t('strategyReviewV2.closed') }}</th><th>{{ $t('strategyReviewV2.pnlCount') }}</th><th>{{ $t('strategyReviewV2.pnl') }}</th></tr></thead><tbody>
-                      <tr v-for="group in evidence.exit_groups || []" :key="group.code"><td>{{ $t('strategyReviewV2.exit.' + group.code) }}</td><td>{{ group.count }}</td><td>{{ group.pnl_count }}</td><td :class="numberTone(group.net_pnl)">{{ formatNumber(group.net_pnl) }}</td></tr>
-                    </tbody></table>
-                  </div>
-                </details>
-              </div>
-            </article>
-          </section>
-          <section v-if="showTrades" id="review-trades" class="trade-evidence">
-            <h3>{{ $t('strategyReviewV2.samples') }}</h3><p class="muted">{{ $t('strategyReviewV2.samplesNote') }}</p>
-            <div class="table-scroll" tabindex="0" :aria-label="$t('strategyReviewV2.samples')">
-              <table><thead><tr><th scope="col">{{ $t('strategyReviewV2.time') }}</th><th scope="col">{{ $t('strategyReviewV2.type') }}</th><th scope="col">{{ $t('strategyReviewV2.price') }}</th><th scope="col">{{ $t('strategyReviewV2.pnl') }}</th></tr></thead>
-                <tbody><tr v-for="(trade, i) in evidence.trade_samples" :key="String(trade.id) + ':' + i"><td>{{ formatTime(trade.created_at) }}</td><td>{{ trade.type }}</td><td>{{ formatNumber(trade.price, 6) }}</td><td :class="numberTone(trade.profit)">{{ formatNumber(trade.profit) }}</td></tr></tbody>
-              </table><p v-if="!evidence.trade_samples.length" class="muted">{{ $t('strategyReviewV2.noTrades') }}</p>
+          <section class="report-boundary report-panel">
+            <div class="section-heading"><h3>{{ $t('strategyReviewV2.reportBoundary') }}</h3></div>
+            <p>{{ $t('strategyReviewV2.reportBoundaryText') }}</p>
+            <div v-if="coverageRows.length" class="coverage-summary">
+              <div v-for="row in coverageRows" :key="row.code"><span>{{ row.label }}</span><b>{{ row.value }}</b></div>
             </div>
-          </section>
-          <details class="report-details">
-            <summary>{{ $t('strategyReviewV2.limitations') }}<span>{{ evidence.coverage.gaps.length }}</span></summary>
-            <p>{{ $t(evidence.source.available ? 'strategyReviewV2.source' : 'strategyReviewV2.sourceMissing') }} <span v-if="evidence.source.version_id">· {{ $t('strategyReviewV2.version', { id: evidence.source.version_id }) }}</span></p>
-            <code v-if="evidence.source.hash">{{ evidence.source.hash }}</code>
-            <template v-if="evidence.checks">
-              <h4>{{ $t('strategyReviewV2.settingsTitle') }}</h4><p>{{ $t('strategyReviewV2.settingsNote') }}</p>
-              <div class="evidence-chips"><span v-for="(setting, i) in evidence.current_settings || []" :key="i"><code>{{ setting.key }}</code> <b>{{ formatNumber(setting.value, 4) }}</b> · {{ $t('strategyReviewV2.origin.' + setting.origin) }}</span></div>
-              <p v-if="!(evidence.current_settings || []).length">{{ $t('strategyReviewV2.settingsMissing') }}</p>
+            <template v-if="coverageGaps.length">
+              <strong class="gap-heading">{{ $t('strategyReviewV2.missingEvidence') }}</strong>
+              <ul><li v-for="gap in coverageGaps" :key="gap">{{ $t('strategyReviewV2.gap.' + gap) }}</li></ul>
             </template>
-            <ul><li v-for="gap in evidence.coverage.gaps" :key="gap">{{ $t('strategyReviewV2.gap.' + gap) }}</li></ul>
-            <h4>{{ $t('strategyReviewV2.fullHistory') }}</h4><p>{{ $t('strategyReviewV2.return') }} {{ formatNumber(metrics.performance_total_return_pct) }}% · {{ $t('strategyReviewV2.drawdown') }} {{ formatNumber(metrics.performance_max_drawdown_pct) }}%</p>
-            <p v-if="ai.model" class="muted">{{ ai.provider }} · {{ ai.model }} · {{ ai.elapsed_ms }} ms</p>
-          </details>
+            <p v-else class="coverage-complete">{{ $t('strategyReviewV2.coverageComplete') }}</p>
+          </section>
         </template>
         <section v-else class="legacy-report">
           <a-alert type="info" show-icon :message="$t('strategyReviewV2.legacyHint')" />
@@ -134,10 +148,39 @@ export default {
     isV2 () { return this.report && this.report.schema_version === 2 && !!this.report.evidence },
     evidence () { return (this.report && this.report.evidence) || {} },
     facts () { return this.evidence.facts || {} },
+    coverage () { return this.evidence.coverage || {} },
+    coverageGaps () { return Array.isArray(this.coverage.gaps) ? this.coverage.gaps : [] },
+    coverageRows () {
+      const fraction = (included, total) => this.$t('strategyReviewV2.coverageFraction', { included: this.formatNumber(included, 0), total: this.formatNumber(total, 0) })
+      const present = value => Number.isFinite(Number(value))
+      const rows = []
+      if (present(this.coverage.trade_rows_included) || present(this.coverage.trade_rows_total)) rows.push({ code: 'trades', label: this.$t('strategyReviewV2.coverageTrades'), value: fraction(this.coverage.trade_rows_included, this.coverage.trade_rows_total) })
+      if (present(this.coverage.exit_reason_rows) || present(this.coverage.closed_rows_total)) {
+        const base = fraction(this.coverage.exit_reason_rows, this.coverage.closed_rows_total)
+        const inferred = Number(this.coverage.exit_reason_inferred_rows || 0)
+        const recorded = Number(this.coverage.exit_reason_recorded_rows || 0)
+        const value = inferred > 0
+          ? this.$t('strategyReviewV2.coverageExitReasonDetail', { classified: base, recorded: this.formatNumber(recorded, 0), inferred: this.formatNumber(inferred, 0) })
+          : base
+        rows.push({ code: 'exits', label: this.$t('strategyReviewV2.coverageExitReasons'), value })
+      }
+      if (present(this.coverage.log_rows_included) || present(this.coverage.log_rows_total)) rows.push({ code: 'logs', label: this.$t('strategyReviewV2.coverageLogs'), value: fraction(this.coverage.log_rows_included, this.coverage.log_rows_total) })
+      if (present(this.coverage.current_position_rows)) rows.push({ code: 'positions', label: this.$t('strategyReviewV2.coveragePositions'), value: this.$t('strategyReviewV2.coverageCurrentSnapshot', { count: this.formatNumber(this.coverage.current_position_rows, 0) }) })
+      if (typeof this.coverage.source_available === 'boolean') rows.push({ code: 'source', label: this.$t('strategyReviewV2.coverageSource'), value: this.$t(this.coverage.source_available ? 'strategyReviewV2.coverageCurrentSource' : 'strategyReviewV2.sourceMissing') })
+      return rows
+    },
     issues () { return (this.evidence.checks && this.evidence.checks.length ? this.evidence.checks : this.evidence.issues) || [] },
     metrics () { return (this.report && this.report.metrics) || {} },
     ai () { return (this.report && this.report.ai) || {} },
-    aiStatus () { return this.ai.status === 'ok' ? 'ready' : this.ai.status === 'fallback' ? 'fallback' : 'skipped' },
+    aiAdvice () {
+      if (this.ai.status !== 'ok' || !Array.isArray(this.ai.issues)) return []
+      return this.ai.issues.filter(item => item && typeof item.code === 'string' && ['interpretation', 'proposed_change', 'tradeoff'].every(key => typeof item[key] === 'string' && item[key].trim()))
+    },
+    aiStatus () {
+      if (this.ai.status === 'ok' && typeof this.ai.summary === 'string' && this.ai.summary.trim() && this.aiAdvice.length) return 'ready'
+      return this.ai.status === 'fallback' || this.ai.status === 'ok' ? 'fallback' : 'skipped'
+    },
+    hasAiAdvice () { return this.aiStatus === 'ready' },
     verdictTone () { return this.evidence.verdict === 'review_required' ? 'needs-review' : '' },
     quoteCurrency () {
       const symbol = String((this.report && this.report.strategy && this.report.strategy.symbol) || '').toUpperCase().split('@')[0]
@@ -145,6 +188,88 @@ export default {
       return ['USDT', 'USDC', 'USD', 'BTC', 'ETH'].find(unit => symbol.endsWith(unit)) || ''
     },
     profitFactorText () { return this.facts.profit_factor_state === 'no_losses' ? this.$t('strategyReviewV2.noLosses') : this.formatNumber(this.facts.profit_factor) },
+    reportSummary () {
+      if (this.aiStatus === 'ready') return this.ai.summary.trim()
+      const finite = value => value != null && Number.isFinite(Number(value))
+      if (finite(this.facts.window_net_pnl) && finite(this.facts.before_commission_pnl) && finite(this.facts.closed_fill_count)) {
+        const key = Number(this.facts.exit_reason_coverage_pct) === 0 ? 'reportSummaryMissingExits' : 'reportSummary'
+        return this.$t('strategyReviewV2.' + key, {
+          net: this.formatNumber(this.facts.window_net_pnl),
+          before: this.formatNumber(this.facts.before_commission_pnl),
+          closed: this.formatNumber(this.facts.closed_fill_count, 0)
+        })
+      }
+      return this.ai.summary || this.$t('strategyReviewV2.summaryFallback')
+    },
+    costChart () { return this.charts.find(chart => chart.code === 'cost') || null },
+    supportCharts () { return this.charts.filter(chart => chart.code !== 'cost') },
+    costInterpretation () {
+      const commission = Number(this.facts.commission)
+      const net = Number(this.facts.window_net_pnl)
+      if (Number.isFinite(commission) && Number.isFinite(net) && net !== 0) {
+        return this.$t('strategyReviewV2.costShare', { share: this.formatNumber(Math.abs(commission / net) * 100, 1) })
+      }
+      return this.$t('strategyReviewV2.costNote')
+    },
+    diagnosticRows () {
+      const finite = value => value != null && Number.isFinite(Number(value))
+      const issue = code => this.issues.find(item => item.code === code) || {}
+      const observed = item => item.status === 'observed'
+      const reviewable = item => item.status === 'observed' || item.status === 'review'
+      const confirmed = this.$t('strategyReviewV2.diagnosisConfirmed')
+      const insufficient = this.$t('strategyReviewV2.diagnosisInsufficient')
+      return [
+        {
+          code: 'earning',
+          label: this.$t('strategyReviewV2.diagnosisEarning'),
+          conclusion: finite(this.facts.before_commission_pnl) && Number(this.facts.before_commission_pnl) < 0 ? this.$t('strategyReviewV2.diagnosisWeak') : this.$t('strategyReviewV2.diagnosisUnknown'),
+          status: finite(this.facts.before_commission_pnl) ? confirmed : insufficient,
+          tone: finite(this.facts.before_commission_pnl) && Number(this.facts.before_commission_pnl) < 0 ? 'negative-diagnosis' : 'warning-diagnosis'
+        },
+        {
+          code: 'cost',
+          label: this.$t('strategyReviewV2.diagnosisCost'),
+          conclusion: finite(this.facts.commission) && Number(this.facts.commission) > 0 ? this.$t('strategyReviewV2.diagnosisDrag') : this.$t('strategyReviewV2.diagnosisUnknown'),
+          status: finite(this.facts.commission) && (this.evidence.coverage || {}).cost_usable !== false ? confirmed : insufficient,
+          tone: finite(this.facts.commission) && Number(this.facts.commission) > 0 ? 'negative-diagnosis' : 'warning-diagnosis'
+        },
+        {
+          code: 'exits',
+          label: this.$t('strategyReviewV2.diagnosisExits'),
+          conclusion: reviewable(issue('exits_check')) ? this.$t('strategyReviewV2.diagnosisExitClassified') : this.$t('strategyReviewV2.diagnosisUnknown'),
+          status: reviewable(issue('exits_check')) ? this.$t('strategyReviewV2.checkStatus.review') : insufficient,
+          tone: 'warning-diagnosis'
+        },
+        {
+          code: 'risk',
+          label: this.$t('strategyReviewV2.diagnosisRisk'),
+          conclusion: observed(issue('risk_check')) ? this.$t('strategyReviewV2.diagnosisReview') : this.$t('strategyReviewV2.diagnosisUnknown'),
+          status: observed(issue('risk_check')) ? confirmed : insufficient,
+          tone: observed(issue('risk_check')) ? '' : 'warning-diagnosis'
+        }
+      ]
+    },
+    optimizationDirections () {
+      if (this.hasAiAdvice) {
+        return this.aiAdvice.slice(0, 4).map((item, index) => {
+          const titleKey = 'strategyReviewV2.issue.' + item.code + '.title'
+          const translatedTitle = this.$t(titleKey)
+          return {
+            ai: true,
+            code: item.code,
+            title: translatedTitle === titleKey ? this.$t('strategyReviewV2.aiFinding', { index: index + 1 }) : translatedTitle,
+            interpretation: item.interpretation,
+            proposedChange: item.proposed_change,
+            tradeoff: item.tradeoff
+          }
+        })
+      }
+      return [1, 2, 3].map(index => ({
+        ai: false,
+        title: this.$t('strategyReviewV2.direction' + index + 'Title'),
+        body: this.$t('strategyReviewV2.direction' + index + 'Body')
+      }))
+    },
     charts () {
       const finite = value => value != null && Number.isFinite(Number(value))
       const chart = (code, rows) => {
@@ -220,6 +345,10 @@ export default {
       } finally { if (seq === this.requestSequence) this.loading = false }
     },
     annotation (issue) { return (Array.isArray(this.ai.issues) && this.ai.issues.find(item => item.code === issue.code)) || {} },
+    issueStatusText (issue) {
+      const status = ['observed', 'review', 'insufficient'].includes(issue && issue.status) ? issue.status : null
+      return this.$t(status ? 'strategyReviewV2.checkStatus.' + status : 'strategyReviewV2.hypothesis')
+    },
     adjustmentText (issue) {
       return this.$t(issue.finding ? 'strategyReviewV2.action.' + issue.finding : 'strategyReviewV2.experiment.' + issue.experiment + '.change')
     },
@@ -283,29 +412,63 @@ h4 { color: var(--review-heading); font-size: 14px; font-weight: 650; line-heigh
 .ai-consent ::v-deep .ant-checkbox-wrapper { color: var(--review-text); font-size: 12px; }
 .theme-dark ::v-deep .ant-btn:not(.ant-btn-primary), .theme-dark ::v-deep .ant-select-selection { color: var(--review-text); background: var(--review-surface); border-color: var(--review-line); }
 .theme-dark ::v-deep .ant-select-arrow, .theme-dark ::v-deep .ant-select-selection__placeholder { color: var(--review-muted); }
-.review-verdict { padding: 14px 16px; border: 1px solid var(--review-line); border-left: 2px solid var(--primary-color, #52c41a); border-radius: var(--sc-radius-md, 8px); background: var(--review-surface); }
-.review-verdict.needs-review { border-left-color: var(--review-warning); }
-.eyebrow, .status-label, .hypothesis-label { color: var(--review-muted); font-size: 11px; line-height: 1.35; }
-.status-label { padding: 2px 6px; border: 1px solid var(--review-line); border-radius: 999px; background: var(--sc-surface, #fff); }
-.review-verdict h3 { margin: 6px 0 5px; font-size: 16px; letter-spacing: -.01em; }
-.review-verdict p { max-width: 1120px; color: var(--review-text); line-height: 1.58; white-space: pre-wrap; overflow-wrap: anywhere; }
-.verdict-meta { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 9px; color: var(--review-muted); font-size: 11px; }
-.cost-section { margin-top: 12px; padding: 14px 0 12px; border-top: 1px solid var(--review-line-soft); border-bottom: 1px solid var(--review-line-soft); }
-.section-heading { margin-bottom: 8px; }
-.cost-equation { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr); align-items: stretch; gap: 8px; padding: 0 0 8px; }
-.cost-equation > div { display: flex; flex-direction: column; justify-content: center; gap: 3px; min-width: 0; padding: 10px 12px; border: 1px solid var(--review-line-soft); border-radius: var(--sc-radius-sm, 6px); background: var(--review-surface); }
-.cost-equation > div > span { overflow: hidden; color: var(--review-muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
-.cost-equation strong { overflow: hidden; font-size: 18px; font-weight: 650; font-variant-numeric: tabular-nums; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
-.operator { align-self: center; color: var(--review-muted); font-size: 16px; }
-.cost-value { color: var(--review-warning); }
-.negative { color: var(--review-negative); }
-.positive { color: var(--review-positive); }
-.note { max-width: 1120px; margin: 4px 0 10px; line-height: 1.5; }
-.metric-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; overflow: hidden; border: 1px solid var(--review-line-soft); border-radius: var(--sc-radius-sm, 6px); background: var(--review-line-soft); }
-.metric-strip > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 9px 11px; background: var(--sc-surface, #fff); }
-.metric-strip span { overflow: hidden; color: var(--review-muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
-.metric-strip b { overflow: hidden; font-size: 16px; font-weight: 650; font-variant-numeric: tabular-nums; text-overflow: ellipsis; white-space: nowrap; }
-.evidence-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr)); gap: 10px; margin: 12px 0 0; }
+.review-verdict { display: grid; grid-template-columns: 104px minmax(0, 1fr); margin-top: 2px; border: 1px solid var(--review-line); border-radius: var(--sc-radius-md, 8px); background: var(--sc-surface, #fff); }
+.review-verdict.needs-review { border-color: color-mix(in srgb, var(--review-warning) 36%, var(--review-line)); }
+.verdict-label { display: flex; align-items: center; min-height: 74px; padding: 14px; border-left: 3px solid var(--primary-color, #52c41a); border-right: 1px solid var(--review-line-soft); border-radius: 8px 0 0 8px; color: var(--review-heading); background: var(--review-surface); font-size: 12px; font-weight: 650; line-height: 1.45; }
+.needs-review .verdict-label { border-left-color: var(--review-warning); }
+.verdict-content { min-width: 0; padding: 13px 16px; }
+.review-verdict h3 { margin-bottom: 4px; font-size: 15px; letter-spacing: -.01em; }
+.verdict-heading { align-items: flex-start; margin-bottom: 4px; }
+.verdict-heading h3 { margin-bottom: 0; }
+.ai-status { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 6px; padding: 2px 8px; border: 1px solid var(--review-line); border-radius: 999px; color: var(--review-muted); background: var(--review-surface); font-size: 10px; font-weight: 600; line-height: 1.5; }
+.ai-status i { width: 6px; height: 6px; border-radius: 50%; background: var(--review-muted); }
+.ai-status.is-ready { color: var(--review-positive); border-color: color-mix(in srgb, var(--review-positive) 35%, var(--review-line)); }
+.ai-status.is-ready i { background: var(--review-positive); }
+.ai-status.is-fallback { color: var(--review-warning); border-color: color-mix(in srgb, var(--review-warning) 35%, var(--review-line)); }
+.ai-status.is-fallback i { background: var(--review-warning); }
+.review-verdict p { max-width: 1120px; color: var(--review-text); font-size: 12px; line-height: 1.58; white-space: pre-wrap; overflow-wrap: anywhere; }
+.overview-metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px; overflow: hidden; margin-top: 10px; border: 1px solid var(--review-line); border-radius: var(--sc-radius-md, 8px); background: var(--review-line); }
+.overview-metrics > div { display: flex; flex-direction: column; gap: 3px; min-width: 0; padding: 10px 12px; background: var(--sc-surface, #fff); }
+.overview-metrics span { overflow: hidden; color: var(--review-muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.overview-metrics b { overflow: hidden; color: var(--review-heading); font-size: 16px; font-weight: 650; font-variant-numeric: tabular-nums; text-overflow: ellipsis; white-space: nowrap; }
+.overview-metrics .negative, .negative { color: var(--review-negative); }
+.overview-metrics .positive, .positive { color: var(--review-positive); }
+.overview-metrics .cost-value, .cost-value { color: var(--review-warning); }
+.report-grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: 10px; margin-top: 10px; }
+.report-panel { min-width: 0; padding: 13px 14px; border: 1px solid var(--review-line); border-radius: var(--sc-radius-md, 8px); background: var(--sc-surface, #fff); }
+.section-heading { align-items: flex-start; margin-bottom: 9px; }
+.loss-row + .loss-row { margin-top: 10px; }
+.loss-row-label { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; color: var(--review-text); font-size: 12px; }
+.loss-row-label b { flex: 0 0 auto; font-variant-numeric: tabular-nums; }
+.loss-row svg { display: block; width: 100%; height: 18px; margin-top: 4px; overflow: visible; }
+.report-caption { margin-top: 10px; line-height: 1.5; }
+.diagnosis-table { overflow: hidden; border: 1px solid var(--review-line-soft); border-radius: var(--sc-radius-sm, 6px); }
+.diagnosis-table-head, .diagnosis-table-row { display: grid; grid-template-columns: minmax(90px, .9fr) minmax(90px, .95fr) minmax(105px, 1.15fr); gap: 10px; align-items: center; min-height: 35px; padding: 7px 10px; }
+.diagnosis-table-head { color: var(--review-muted); background: var(--review-surface); font-size: 10px; font-weight: 600; }
+.diagnosis-table-row { border-top: 1px solid var(--review-line-soft); font-size: 11px; line-height: 1.4; }
+.diagnosis-table-row strong { color: var(--review-heading); font-weight: 600; }
+.diagnosis-table-row > span:last-child { color: var(--review-muted); }
+.negative-diagnosis { color: var(--review-negative); }
+.warning-diagnosis { color: var(--review-warning); }
+.optimization-report { margin-top: 10px; }
+.optimization-report ol { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; margin: 0; padding: 0; list-style: none; }
+.optimization-report li { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 9px; min-width: 0; padding: 3px 14px; }
+.optimization-report li:first-child { padding-left: 0; }
+.optimization-report li + li { border-left: 1px solid var(--review-line-soft); }
+.optimization-report li > span { display: inline-flex; width: 22px; height: 22px; align-items: center; justify-content: center; border: 1px solid var(--review-line); border-radius: 50%; color: var(--review-muted); background: var(--review-surface); font-size: 10px; font-weight: 650; }
+.direction-content { min-width: 0; }
+.optimization-report li p { color: var(--review-muted); font-size: 11px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.optimization-report li b { display: block; margin-bottom: 2px; color: var(--review-heading); font-size: 12px; font-weight: 650; }
+.optimization-report .has-ai-advice { grid-template-columns: 1fr; }
+.optimization-report .has-ai-advice li { padding: 10px 0; }
+.optimization-report .has-ai-advice li:first-child { padding-top: 2px; }
+.optimization-report .has-ai-advice li + li { border-top: 1px solid var(--review-line-soft); border-left: 0; }
+.ai-interpretation { margin-bottom: 7px !important; color: var(--review-text) !important; }
+.direction-content dl { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 8px; margin: 0; }
+.direction-content dl > div { min-width: 0; padding: 7px 9px; border-radius: var(--sc-radius-sm, 6px); background: var(--review-surface); }
+.direction-content dt { margin-bottom: 2px; color: var(--review-muted); font-size: 10px; font-weight: 600; }
+.direction-content dd { margin: 0; color: var(--review-text); font-size: 11px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.support-evidence { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr)); gap: 10px; margin-top: 10px; }
 .evidence-chart { min-width: 0; margin: 0; padding: 13px 14px; border: 1px solid var(--review-line); border-radius: var(--sc-radius-md, 8px); background: var(--sc-surface, #fff); }
 .evidence-chart figcaption { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
 .chart-row { margin-top: 9px; }
@@ -319,50 +482,36 @@ h4 { color: var(--review-heading); font-size: 14px; font-weight: 650; line-heigh
 .bar-positive { fill: var(--review-positive); }
 .chart-axis { display: flex; justify-content: space-between; margin-top: 5px; color: var(--review-muted); font-size: 10px; font-variant-numeric: tabular-nums; }
 .chart-note { margin-top: 9px; font-size: 11px; line-height: 1.5; }
-.investigations { padding-top: 16px; }
-.investigations > .section-heading { padding-bottom: 8px; border-bottom: 1px solid var(--review-line-soft); }
-.qa-label { display: block; margin-bottom: 3px; color: var(--review-muted); font-size: 11px; font-weight: 600; }
-.qa-problem p { max-width: 1120px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
-.safeguard { margin-bottom: 6px; }
-.investigation { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 10px; padding: 14px 0; border-bottom: 1px solid var(--review-line-soft); }
-.issue-number { display: inline-flex; width: 24px; height: 24px; align-items: center; justify-content: center; border: 1px solid var(--review-line); border-radius: 50%; color: var(--review-muted); font-size: 10px; font-variant-numeric: tabular-nums; }
-.issue-body { min-width: 0; }
-.issue-heading { margin-bottom: 6px; flex-wrap: wrap; gap: 6px; }
-.issue-body > p { max-width: 1120px; overflow-wrap: anywhere; }
-.adjustment { margin: 9px 0; padding: 9px 11px; border: 1px solid color-mix(in srgb, var(--review-warning) 24%, var(--review-line)); border-radius: var(--sc-radius-sm, 6px); background: color-mix(in srgb, var(--review-warning) 5%, var(--review-surface)); }
-.adjustment > span { display: block; margin-bottom: 3px; color: var(--review-warning); font-size: 11px; font-weight: 650; }
-.adjustment p { max-width: 1120px; line-height: 1.55; overflow-wrap: anywhere; }
-.exit-breakdown { margin: 8px 0; }
-.evidence-chips { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; margin: 8px 0; color: var(--review-muted); font-size: 11px; }
-.evidence-chips b { margin-left: 4px; color: var(--review-text); font-weight: 650; }
-summary { padding: 7px 0; font-weight: 600; cursor: pointer; }
-summary > span { margin-left: 10px; color: var(--review-muted); font-size: 11px; font-weight: 400; }
-summary:focus-visible, .table-scroll:focus-visible { outline: 2px solid var(--primary-color, #52c41a); outline-offset: 3px; }
-.trade-evidence { padding: 16px 0; }
-.table-scroll { margin-top: 10px; overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
-th, td { padding: 8px 12px; border-bottom: 1px solid var(--review-line-soft); white-space: nowrap; }
-th { color: var(--review-muted); font-weight: 500; }
-.report-details { margin-top: 14px; color: var(--review-muted); font-size: 12px; }
-.report-details li { padding: 3px 0; }
-.report-details code { font-size: 11px; overflow-wrap: anywhere; }
-.report-details h4 { margin-top: 14px; }
+.report-boundary { margin-top: 10px; color: var(--review-muted); font-size: 11px; line-height: 1.5; }
+.coverage-summary { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px; overflow: hidden; margin-top: 10px; border: 1px solid var(--review-line-soft); border-radius: var(--sc-radius-sm, 6px); background: var(--review-line-soft); }
+.coverage-summary > div { display: flex; min-width: 0; flex-direction: column; gap: 2px; padding: 7px 9px; background: var(--review-surface); }
+.coverage-summary span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.coverage-summary b { color: var(--review-heading); font-size: 11px; font-weight: 650; }
+.gap-heading { display: block; margin-top: 10px; color: var(--review-heading); font-size: 11px; }
+.report-boundary ul { margin: 5px 0 0; padding-left: 18px; }
+.report-boundary li + li { margin-top: 3px; }
+.coverage-complete { margin-top: 9px; color: var(--review-positive); }
 .legacy-report { padding: 16px 0; }
 .legacy-report h3 { margin-top: 16px; }
 .review-empty { padding: 40px 0; }
 @media (max-width: 1100px) {
   .review-toolbar { align-items: flex-start; flex-direction: column; }
   .review-actions { justify-content: flex-start; }
+  .report-grid { grid-template-columns: 1fr; }
+  .optimization-report ol { grid-template-columns: 1fr; }
+  .optimization-report li { padding: 8px 0; }
+  .optimization-report li + li { border-top: 1px solid var(--review-line-soft); border-left: 0; }
+  .direction-content dl { grid-template-columns: 1fr; }
+  .coverage-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 640px) {
   .review-actions { width: 100%; }
   .history-select { width: 100%; }
-  .review-verdict { padding: 12px; }
-  .cost-equation { grid-template-columns: 1fr; gap: 6px; }
-  .cost-equation > div { flex-direction: row; align-items: center; justify-content: space-between; }
-  .operator { display: none; }
-  .metric-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .investigation { grid-template-columns: 22px minmax(0, 1fr); gap: 8px; }
-  .section-heading, .plan-footer, .verdict-heading { align-items: flex-start; }
+  .review-verdict { grid-template-columns: 1fr; }
+  .verdict-label { min-height: auto; padding: 9px 12px; border-right: 0; border-bottom: 1px solid var(--review-line-soft); border-radius: 8px 8px 0 0; }
+  .verdict-content { padding: 11px 12px; }
+  .overview-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .diagnosis-table-head, .diagnosis-table-row { grid-template-columns: minmax(80px, .8fr) minmax(90px, 1fr) minmax(95px, 1.15fr); gap: 7px; padding: 7px 8px; }
+  .section-heading { align-items: flex-start; }
 }
 </style>

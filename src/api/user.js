@@ -7,7 +7,7 @@ import request from '@/utils/request'
 
 /**
  * Get user list (admin only)
- * @param {Object} params - { page, page_size, search }
+ * @param {Object} params - Pagination, filters, and optional credits sorting
  */
 export function getUserList (params) {
   return request({
@@ -19,7 +19,7 @@ export function getUserList (params) {
 
 /**
  * Export user list (admin only)
- * @param {Object} params - { search }
+ * @param {Object} params - Filters and optional credits sorting
  */
 export function exportUsers (params) {
   return request({

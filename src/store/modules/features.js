@@ -3,7 +3,10 @@ import { getPublicSettingsConfig } from '@/api/settings'
 const DEFAULT_CONFIG = Object.freeze({
   billing_enabled: false,
   marketplace_enabled: false,
-  registration_enabled: true
+  registration_enabled: true,
+  broker_accounts_enabled: true,
+  live_trading_enabled: true,
+  agent_gateway_enabled: true
 })
 
 const features = {

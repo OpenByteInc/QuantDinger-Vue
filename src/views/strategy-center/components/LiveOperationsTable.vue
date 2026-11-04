@@ -40,7 +40,8 @@
             :class="{ active: statusTab === tab.key }"
             @click="statusTab = tab.key"
           >
-            <span>{{ tab.label }}</span><b>{{ tab.count }}</b>
+            <span class="master-tab__label">{{ tab.label }}</span>
+            <b class="master-tab__count">{{ tab.count }}</b>
           </button>
         </nav>
         <a-input-search
@@ -132,6 +133,7 @@
               :title="$t('strategyCenter.console.settleVirtualPositionsConfirm')"
               :ok-text="$t('strategyCenter.console.settleVirtualPositions')"
               :cancel-text="$t('common.cancel')"
+              :overlay-class-name="popconfirmClass"
               ok-type="danger"
               @confirm="$emit('stop', selectedStrategy, { closePositions: true })"
             >
@@ -144,6 +146,7 @@
                 :title="$t('strategyCenter.console.pauseConfirm')"
                 :ok-text="$t('strategyCenter.console.pauseOnly')"
                 :cancel-text="$t('common.cancel')"
+                :overlay-class-name="popconfirmClass"
                 @confirm="$emit('stop', selectedStrategy, { closePositions: false })"
               >
                 <a-button icon="pause" :loading="controlLoadingId === selectedStrategy.id">
@@ -154,6 +157,7 @@
                 :title="$t('strategyCenter.console.stopAndCloseConfirm')"
                 :ok-text="$t('strategyCenter.console.stopAndClose')"
                 :cancel-text="$t('common.cancel')"
+                :overlay-class-name="popconfirmClass"
                 ok-type="danger"
                 @confirm="$emit('stop', selectedStrategy, { closePositions: true })"
               >
@@ -167,6 +171,7 @@
               :title="$t('trading-assistant.messages.deleteConfirmWithName', { name: selectedStrategy.strategy_name || '-' })"
               :ok-text="$t('trading-assistant.deleteStrategy')"
               :cancel-text="$t('common.cancel')"
+              :overlay-class-name="popconfirmClass"
               ok-type="danger"
               :disabled="isRunning(selectedStrategy)"
               @confirm="$emit('delete', selectedStrategy)"
@@ -396,6 +401,11 @@ export default {
     }
   },
   computed: {
+    popconfirmClass () {
+      return this.dark
+        ? 'live-operation-popconfirm live-operation-popconfirm--dark'
+        : 'live-operation-popconfirm'
+    },
     selectedStrategy () {
       return this.strategies.find(item => item.id === this.selectedId) || null
     },
@@ -1014,9 +1024,37 @@ export default {
   border-color: var(--sc-border, #e1e6ec);
   background: var(--sc-surface-muted, #f1f4f7);
 }
-.master-tabs button { color: var(--sc-muted, #667085); font-size: 12px; font-weight: 550; }
+.master-tabs button {
+  min-height: 54px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--sc-muted, #667085);
+  font-size: 12px;
+  font-weight: 550;
+  line-height: 1.2;
+  text-align: center;
+}
+.master-tab__label {
+  display: flex;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  overflow-wrap: anywhere;
+}
+.master-tabs .master-tab__count {
+  min-width: 0;
+  height: auto;
+  padding: 0;
+  color: var(--sc-subtle, #8a94a3);
+  background: transparent;
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1;
+}
 .master-tabs button.active { background: var(--sc-surface, #fff); color: var(--primary-color, #1890ff); }
-.master-tabs b { background: var(--sc-border-soft, #ebeff3); color: var(--sc-muted, #667085); font-size: 10px; }
+.master-tabs button.active .master-tab__count { color: currentColor; opacity: .82; }
 .master-columns { color: var(--sc-subtle, #8a94a3); font-size: 11px; }
 .strategy-list { border-color: var(--sc-border, #e1e6ec); background: var(--sc-surface, #fff); }
 .strategy-row { border-color: var(--sc-border-soft, #ebeff3); }
@@ -1095,7 +1133,8 @@ export default {
   .strategy-master { border-color: var(--sc-border); background: var(--sc-page); }
   .master-tabs { border-color: var(--sc-border); background: var(--sc-surface); }
   .master-tabs button.active { background: var(--sc-surface-muted); }
-  .master-tabs b { background: var(--sc-surface-muted); color: var(--sc-muted); }
+  .master-tabs .master-tab__count { color: var(--sc-subtle); background: transparent; }
+  .master-tabs button.active .master-tab__count { color: currentColor; }
   .master-health { color: var(--sc-positive); }
   .master-health small { color: var(--sc-subtle); }
   .strategy-list { border-color: var(--sc-border); background: var(--sc-surface); }
@@ -1126,4 +1165,29 @@ export default {
 }
 @media (max-width: 1080px) { .operations-workspace { grid-template-columns: 290px minmax(0, 1fr); }.financial-strip,.performance-strip { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 760px) { .operations-workspace { display: block; height: auto; }.strategy-master { max-height: 430px; border-right: 0; border-bottom: 1px solid #e4e8ee; }.strategy-detail { overflow: visible; padding: 14px; }.detail-header { flex-direction: column; }.detail-actions { width: 100%; }.detail-actions .ant-btn { flex: 1; }.pause-actions { width: 100%; }.financial-strip,.performance-strip { grid-template-columns: repeat(2, 1fr); }.metric-section-head { align-items: flex-start; flex-direction: column; gap: 2px; }.equity-chart { height: 240px; } }
+</style>
+
+<style lang="less">
+.live-operation-popconfirm--dark {
+  .ant-popover-inner {
+    border: 1px solid #343941;
+    background: #1b1d20;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, .42);
+  }
+  .ant-popover-message-title { color: #f2f4f7; }
+  .ant-popover-message > .anticon { color: #e6a817; }
+  .ant-popover-buttons .ant-btn:not(.ant-btn-primary) {
+    border-color: #454b55;
+    background: #25282d;
+    color: #e7e9ed;
+  }
+  .ant-popover-buttons .ant-btn:not(.ant-btn-primary):hover {
+    border-color: #6a727e;
+    color: #fff;
+  }
+  .ant-popover-arrow {
+    border-color: #1b1d20 !important;
+    background: #1b1d20;
+  }
+}
 </style>

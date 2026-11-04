@@ -168,8 +168,12 @@
                 <span>{{ $t(model.executionMode === 'live' ? 'strategyV2.liveSourceHint' : 'strategyV2.signalSourceHint') }}</span>
               </div>
             </div>
-            <a-radio-group v-model="model.executionMode" class="execution-mode-grid">
+            <a-radio-group
+              v-model="model.executionMode"
+              class="execution-mode-grid"
+              :class="{ 'is-single': !liveTradingEnabled }">
               <a-radio
+                v-if="liveTradingEnabled"
                 value="live"
                 :disabled="!supportsLive"
                 class="execution-mode-card"
@@ -531,6 +535,9 @@ export default {
       return this.navTheme === 'dark' || this.navTheme === 'realdark'
     },
     isEdit () { return this.mode === 'edit' },
+    liveTradingEnabled () {
+      return this.$store.state.features.config.live_trading_enabled !== false
+    },
     modalTitle () {
       return this.$t(this.isEdit ? 'trading-assistant.editStrategy' : 'trading-assistant.createStrategy')
     },
@@ -662,7 +669,7 @@ export default {
       return (capital * (1 + ratio)).toLocaleString(undefined, { maximumFractionDigits: 2 })
     },
     supportsLive () {
-      return supportsLiveExecutionMode(this.strategyManifest)
+      return this.liveTradingEnabled && supportsLiveExecutionMode(this.strategyManifest)
     },
     requiresDirectionMode () {
       if (this.marketCategory !== 'Crypto') return false
@@ -784,7 +791,7 @@ export default {
         equityStopLossPct: 0.3,
         equityTakeProfitEnabled: false,
         equityTakeProfitPct: 0.5,
-        executionMode: 'live',
+        executionMode: this.liveTradingEnabled ? 'live' : 'signal',
         credentialId: undefined,
         directionMode: '',
         disclaimer: false,
@@ -1470,6 +1477,7 @@ export default {
   .execution-panel__head > div > span { display: block; margin-top: 2px; color: #7d8794; font-size: 11px; line-height: 1.45; white-space: normal; overflow-wrap: anywhere; }
   .execution-panel__status { flex: 0 0 auto; margin: 0 0 0 auto; }
   .execution-mode-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; width: 100%; }
+  .execution-mode-grid.is-single { grid-template-columns: minmax(0, 1fr); }
   .execution-mode-card { display: flex; align-items: flex-start; min-width: 0; margin: 0 !important; padding: 12px; border: 1px solid #e1e6ed; border-radius: 7px; background: #fafbfc; white-space: normal; transition: border-color .18s ease, background .18s ease, box-shadow .18s ease; }
   .execution-mode-card:hover { border-color: color-mix(in srgb, var(--primary-color, #faad14) 48%, #e1e6ed); }
   .execution-mode-card.is-selected { border-color: var(--primary-color, #faad14); background: color-mix(in srgb, var(--primary-color, #faad14) 7%, #fff); box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color, #faad14) 10%, transparent); }

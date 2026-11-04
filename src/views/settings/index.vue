@@ -206,19 +206,22 @@
                       </a-checkbox-group>
                     </template>
                     <template v-else-if="entry.item.type === 'venue_multiselect'">
-                      <a-alert
-                        class="trading-venue-alert"
-                        type="info"
-                        show-icon
-                        :message="$t('settings.venues.title')"
-                        :description="$t('settings.venues.description')"
-                      />
+                      <div class="trading-venue-notice" role="note">
+                        <span class="trading-venue-notice-icon"><a-icon type="safety-certificate" /></span>
+                        <span class="trading-venue-notice-copy">
+                          <strong>{{ $t('settings.venues.title') }}</strong>
+                          <small>{{ $t('settings.venues.description') }}</small>
+                        </span>
+                      </div>
                       <a-checkbox-group
                         v-decorator="[entry.item.key, { initialValue: getCsvListValue(entry.groupKey, entry.item.key, entry.item.default) }]"
                         class="trading-venue-selector"
                       >
                         <section v-for="group in tradingVenueGroups(entry.item)" :key="group.key" class="trading-venue-group">
-                          <h4>{{ group.title }}</h4>
+                          <div class="trading-venue-group-header">
+                            <h4>{{ group.title }}</h4>
+                            <span class="trading-venue-group-line" />
+                          </div>
                           <div class="trading-venue-grid">
                             <label v-for="venue in group.items" :key="venue.id" class="trading-venue-card">
                               <a-checkbox :value="venue.id" />
@@ -252,69 +255,60 @@
             <a-card
               v-if="activeGroupKey === 'billing'"
               class="billing-plan-manager"
-              :title="tOr('settings.billingPlans.title', 'Membership plans')"
+              :title="$t('settings.billingPlans.title')"
               :bordered="false"
             >
               <template #extra>
-                <a-button size="small" @click="addBillingPlan"><a-icon type="plus" /> {{ tOr('settings.billingPlans.add', 'Add plan') }}</a-button>
+                <a-button size="small" @click="addBillingPlan"><a-icon type="plus" /> {{ $t('settings.billingPlans.add') }}</a-button>
               </template>
-              <a-alert
-                type="info"
-                show-icon
-                :message="tOr('settings.billingPlans.hint', 'Plans are rendered dynamically on PC and mobile. Stripe Price ID is optional; leave it blank to use the plan USD price.')"
-              />
-              <div class="billing-plan-table-wrap">
-                <table class="billing-plan-table">
-                  <thead>
-                    <tr>
-                      <th>{{ tOr('settings.billingPlans.code', 'Code') }}</th>
-                      <th>{{ tOr('settings.billingPlans.name', 'Name / Description') }}</th>
-                      <th>{{ tOr('settings.billingPlans.price', 'USD price') }}</th>
-                      <th>{{ tOr('settings.billingPlans.days', 'Days') }}</th>
-                      <th>{{ tOr('settings.billingPlans.onceCredits', 'One-time credits') }}</th>
-                      <th>{{ tOr('settings.billingPlans.monthlyCredits', 'Monthly credits') }}</th>
-                      <th>{{ $t('settings.billingPlans.strategyLimit') }}</th>
-                      <th>{{ tOr('settings.billingPlans.stripePrice', 'Stripe Price ID') }}</th>
-                      <th>{{ tOr('settings.billingPlans.flags', 'Flags') }}</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="(plan, index) in billingPlans" :key="plan._key">
-                      <td><a-input :ref="`billingPlanCode-${plan._key}`" v-model="plan.code" size="small" :disabled="!!plan.persisted" placeholder="plan_code" /></td>
-                      <td class="plan-copy-cell">
-                        <a-input v-model="plan.name" size="small" :placeholder="tOr('settings.billingPlans.name', 'Name')" />
-                        <a-textarea v-model="plan.description" :auto-size="{ minRows: 1, maxRows: 4 }" :placeholder="tOr('settings.billingPlans.description', 'Description')" />
-                      </td>
-                      <td><a-input-number v-model="plan.price_usd" size="small" :min="0" :precision="2" /></td>
-                      <td><a-input-number v-model="plan.duration_days" size="small" :min="0" :disabled="plan.is_lifetime" /></td>
-                      <td><a-input-number v-model="plan.credits_once" size="small" :min="0" /></td>
-                      <td><a-input-number v-model="plan.credits_monthly" size="small" :min="0" /></td>
-                      <td><a-input-number v-model="plan.strategy_limit" size="small" :min="1" /></td>
-                      <td><a-input v-model="plan.stripe_price_id" size="small" placeholder="price_..." /></td>
-                      <td class="plan-flags">
-                        <a-checkbox v-model="plan.is_active">{{ tOr('settings.billingPlans.active', 'Active') }}</a-checkbox>
-                        <a-checkbox v-model="plan.is_lifetime">{{ tOr('settings.billingPlans.lifetime', 'Lifetime') }}</a-checkbox>
-                        <a-checkbox v-model="plan.is_popular">{{ tOr('settings.billingPlans.popular', 'Popular') }}</a-checkbox>
-                        <a-checkbox v-model="plan.referral_eligible">{{ $t('settings.billingPlans.referralEligible') }}</a-checkbox>
-                      </td>
-                      <td>
-                        <a-tooltip :title="$t('settings.billingPlans.delete')">
-                          <a-button
-                            type="link"
-                            class="plan-remove"
-                            :loading="billingPlanDeletingCode === plan.code"
-                            @click="removeBillingPlan(index)"
-                          ><a-icon type="delete" /></a-button>
-                        </a-tooltip>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+              <p class="billing-card-description">{{ $t('settings.billingPlans.hint') }}</p>
+              <div class="billing-plan-grid">
+                <article v-for="(plan, index) in billingPlans" :key="plan._key" class="billing-plan-card">
+                  <header class="billing-plan-card-head">
+                    <a-input
+                      :ref="`billingPlanCode-${plan._key}`"
+                      v-model="plan.code"
+                      class="billing-plan-code"
+                      size="small"
+                      :disabled="!!plan.persisted"
+                      placeholder="plan_code"
+                    />
+                    <div class="billing-plan-card-badges">
+                      <a-tag v-if="plan.is_active" color="green">{{ $t('settings.billingPlans.active') }}</a-tag>
+                      <a-tag v-if="plan.is_popular" color="orange">{{ $t('settings.billingPlans.popular') }}</a-tag>
+                    </div>
+                    <a-tooltip :title="$t('settings.billingPlans.delete')">
+                      <a-button
+                        type="link"
+                        class="plan-remove"
+                        :loading="billingPlanDeletingCode === plan.code"
+                        @click="removeBillingPlan(index)"
+                      ><a-icon type="delete" /></a-button>
+                    </a-tooltip>
+                  </header>
+                  <div class="billing-plan-copy">
+                    <a-input v-model="plan.name" size="small" :placeholder="$t('settings.billingPlans.name')" />
+                    <a-textarea v-model="plan.description" :auto-size="{ minRows: 2, maxRows: 4 }" :placeholder="$t('settings.billingPlans.description')" />
+                  </div>
+                  <div class="billing-plan-metrics">
+                    <label><span>{{ $t('settings.billingPlans.price') }}</span><a-input-number v-model="plan.price_usd" size="small" :min="0" :precision="2" /></label>
+                    <label><span>{{ $t('settings.billingPlans.days') }}</span><a-input-number v-model="plan.duration_days" size="small" :min="0" :disabled="plan.is_lifetime" /></label>
+                    <label><span>{{ $t('settings.billingPlans.onceCredits') }}</span><a-input-number v-model="plan.credits_once" size="small" :min="0" /></label>
+                    <label><span>{{ $t('settings.billingPlans.monthlyCredits') }}</span><a-input-number v-model="plan.credits_monthly" size="small" :min="0" /></label>
+                    <label><span>{{ $t('settings.billingPlans.strategyLimit') }}</span><a-input-number v-model="plan.strategy_limit" size="small" :min="1" /></label>
+                    <label><span>{{ $t('settings.billingPlans.stripePrice') }}</span><a-input v-model="plan.stripe_price_id" size="small" placeholder="price_..." /></label>
+                  </div>
+                  <div class="billing-plan-flags">
+                    <a-checkbox v-model="plan.is_active">{{ $t('settings.billingPlans.active') }}</a-checkbox>
+                    <a-checkbox v-model="plan.is_lifetime">{{ $t('settings.billingPlans.lifetime') }}</a-checkbox>
+                    <a-checkbox v-model="plan.is_popular">{{ $t('settings.billingPlans.popular') }}</a-checkbox>
+                    <a-checkbox v-model="plan.referral_eligible">{{ $t('settings.billingPlans.referralEligible') }}</a-checkbox>
+                  </div>
+                </article>
               </div>
               <div class="billing-plan-actions">
                 <a-button type="primary" :loading="billingPlansSaving" @click="saveBillingPlanCatalog">
-                  <a-icon type="save" /> {{ tOr('settings.billingPlans.save', 'Save plans') }}
+                  <a-icon type="save" /> {{ $t('settings.billingPlans.save') }}
                 </a-button>
               </div>
             </a-card>
@@ -325,99 +319,146 @@
               :title="$t('settings.referralActivity.title')"
               :bordered="false"
             >
-              <a-alert type="info" show-icon :message="$t('settings.referralActivity.hint')" />
+              <p class="billing-card-description">{{ $t('settings.referralActivity.hint') }}</p>
               <a-form :form="form" layout="vertical" class="referral-settings-form">
                 <a-row :gutter="24">
                   <a-col :xs="24" :md="12">
                     <a-form-item :label="$t('settings.field.REFERRAL_PROGRAM_ENABLED')">
-                      <a-switch v-decorator="['REFERRAL_PROGRAM_ENABLED', { valuePropName: 'checked', initialValue: getBoolValue('billing', 'REFERRAL_PROGRAM_ENABLED', false) }]" />
-                    </a-form-item>
-                  </a-col>
-                  <a-col :xs="24" :md="12">
-                    <a-form-item>
-                      <template #label>
-                        <span>{{ $t('settings.field.REFERRAL_REWARD_RATES') }}</span>
-                        <a-tag class="referral-level-cap">{{ $t('settings.referralActivity.maxThreeLevels') }}</a-tag>
-                      </template>
-                      <a-input
-                        v-decorator="['REFERRAL_REWARD_RATES', {
-                          initialValue: getFieldValue('billing', 'REFERRAL_REWARD_RATES') || '10,5,3',
-                          rules: [{ validator: validateReferralRewardRates }]
-                        }]"
-                        :placeholder="$t('settings.referralActivity.ratesPlaceholder')"
-                        :maxLength="24"
-                        @input="limitReferralRewardRates"
+                      <a-switch
+                        v-decorator="['REFERRAL_PROGRAM_ENABLED', { valuePropName: 'checked', initialValue: getBoolValue('billing', 'REFERRAL_PROGRAM_ENABLED', false) }]"
+                        @change="referralProgramEnabled = $event"
                       />
-                      <div class="field-default referral-rate-help">
-                        <a-icon type="info-circle" />
-                        {{ $t('settings.referralActivity.ratesHelpCompact') }}
-                      </div>
-                    </a-form-item>
-                  </a-col>
-                  <a-col :xs="24" :md="12">
-                    <a-form-item :label="$t('settings.field.REFERRAL_REWARD_HOLD_DAYS')">
-                      <a-input-number v-decorator="['REFERRAL_REWARD_HOLD_DAYS', { initialValue: getNumberValue('billing', 'REFERRAL_REWARD_HOLD_DAYS', 7) }]" :min="0" :max="365" style="width: 100%" />
-                    </a-form-item>
-                  </a-col>
-                  <a-col :xs="24" :md="12">
-                    <a-form-item :label="$t('settings.field.REFERRAL_MIN_WITHDRAWAL_USD')">
-                      <a-input-number v-decorator="['REFERRAL_MIN_WITHDRAWAL_USD', { initialValue: getNumberValue('billing', 'REFERRAL_MIN_WITHDRAWAL_USD', 10) }]" :min="0.01" :precision="2" style="width: 100%" />
                     </a-form-item>
                   </a-col>
                 </a-row>
+                <div v-if="referralProgramEnabled" class="referral-dependent-settings">
+                  <a-row :gutter="24">
+                    <a-col :xs="24" :md="12">
+                      <a-form-item>
+                        <template #label>
+                          <span>{{ $t('settings.field.REFERRAL_REWARD_RATES') }}</span>
+                          <a-tag class="referral-level-cap">{{ $t('settings.referralActivity.maxThreeLevels') }}</a-tag>
+                        </template>
+                        <a-input
+                          v-decorator="['REFERRAL_REWARD_RATES', {
+                            initialValue: getFieldValue('billing', 'REFERRAL_REWARD_RATES') || '10,5,3',
+                            rules: [{ validator: validateReferralRewardRates }]
+                          }]"
+                          :placeholder="$t('settings.referralActivity.ratesPlaceholder')"
+                          :maxLength="24"
+                          @input="limitReferralRewardRates"
+                        />
+                        <div class="field-default referral-rate-help">
+                          <a-icon type="info-circle" />
+                          {{ $t('settings.referralActivity.ratesHelpCompact') }}
+                        </div>
+                      </a-form-item>
+                    </a-col>
+                    <a-col :xs="24" :md="12">
+                      <a-form-item :label="$t('settings.field.REFERRAL_REWARD_HOLD_DAYS')">
+                        <a-input-number v-decorator="['REFERRAL_REWARD_HOLD_DAYS', { initialValue: getNumberValue('billing', 'REFERRAL_REWARD_HOLD_DAYS', 7) }]" :min="0" :max="365" style="width: 100%" />
+                      </a-form-item>
+                    </a-col>
+                    <a-col :xs="24" :md="12">
+                      <a-form-item :label="$t('settings.field.REFERRAL_MIN_WITHDRAWAL_USD')">
+                        <a-input-number v-decorator="['REFERRAL_MIN_WITHDRAWAL_USD', { initialValue: getNumberValue('billing', 'REFERRAL_MIN_WITHDRAWAL_USD', 10) }]" :min="0.01" :precision="2" style="width: 100%" />
+                      </a-form-item>
+                    </a-col>
+                  </a-row>
+                </div>
+                <div v-else class="referral-disabled-note"><a-icon type="info-circle" /> {{ $t('settings.referralActivity.disabledHint') }}</div>
               </a-form>
             </a-card>
 
             <div v-if="activeGroupKey === 'market_catalog'" class="market-catalog-panel">
-              <div class="catalog-action-row">
-                <div>
+              <div class="catalog-action-row catalog-page-header">
+                <div class="catalog-heading-copy">
                   <h4>{{ $t('settings.marketCatalog.overviewTitle') }}</h4>
                   <p>{{ $t('settings.marketCatalog.description') }}</p>
                 </div>
-                <a-button type="primary" :loading="catalogSyncing" @click="handleCatalogSync">
-                  <a-icon type="sync" />
-                  {{ catalogRunning ? $t('settings.marketCatalog.syncing') : $t('settings.marketCatalog.syncNow') }}
-                </a-button>
-              </div>
-              <a-alert v-if="catalogLatest" showIcon :type="catalogStatusType" :message="catalogStatusLabel" :description="catalogStatusDescription" />
-              <a-spin :spinning="catalogLoading">
-                <a-row :gutter="16" class="catalog-stats">
-                  <a-col :xs="12" :md="12"><a-statistic :title="$t('settings.marketCatalog.activeRecords')" :value="catalogMetric('active')" /></a-col>
-                  <a-col :xs="12" :md="12"><a-statistic :title="$t('settings.marketCatalog.uniqueSymbols')" :value="catalogMetric('symbols')" /></a-col>
-                </a-row>
-                <a-row :gutter="16" class="catalog-stats catalog-product-stats">
-                  <a-col :xs="12" :md="6"><a-statistic :title="$t('settings.marketCatalog.ordinarySpot')" :value="catalogMetric('ordinary_spot')" /></a-col>
-                  <a-col :xs="12" :md="6"><a-statistic :title="$t('settings.marketCatalog.tokenizedEquity')" :value="catalogMetric('tokenized_equity')" /></a-col>
-                  <a-col :xs="12" :md="6"><a-statistic :title="$t('settings.marketCatalog.directEquity')" :value="catalogMetric('direct_equity')" /></a-col>
-                  <a-col :xs="12" :md="6"><a-statistic :title="$t('settings.marketCatalog.stockPerpetual')" :value="catalogMetric('stock_perpetual')" /></a-col>
-                </a-row>
-                <div class="catalog-section-title">{{ $t('settings.marketCatalog.venueCoverage') }}</div>
-                <div class="catalog-table-wrap">
-                  <table class="catalog-table">
-                    <thead><tr><th>{{ $t('settings.marketCatalog.exchange') }}</th><th>{{ $t('settings.marketCatalog.ordinarySpot') }}</th><th>{{ $t('settings.marketCatalog.tokenizedEquity') }}</th><th>{{ $t('settings.marketCatalog.directEquity') }}</th><th>{{ $t('settings.marketCatalog.stockPerpetual') }}</th><th>{{ $t('settings.marketCatalog.syncResult') }}</th></tr></thead>
-                    <tbody>
-                      <tr v-for="venue in catalogVenueRows" :key="venue.exchange">
-                        <td>{{ venue.label }}</td><td>{{ venue.ordinarySpot }}</td><td>{{ venue.tokenizedEquity }}</td><td>{{ venue.directEquity }}</td><td>{{ venue.stockPerpetual }}</td>
-                        <td><a-tag :color="venue.statusColor">{{ venue.statusLabel }}</a-tag></td>
-                      </tr>
-                    </tbody>
-                  </table>
+                <div class="catalog-header-actions">
+                  <div class="catalog-last-sync">
+                    <span>{{ $t('settings.marketCatalog.lastCompleted') }}</span>
+                    <strong>{{ formatCatalogTime(catalogLatest && catalogLatest.finished_at) }}</strong>
+                  </div>
+                  <a-button type="primary" :loading="catalogSyncing" @click="handleCatalogSync">
+                    <a-icon type="sync" />
+                    {{ catalogRunning ? $t('settings.marketCatalog.syncing') : $t('settings.marketCatalog.syncNow') }}
+                  </a-button>
                 </div>
-                <a-collapse v-if="catalogFailures.length" class="catalog-failures">
-                  <a-collapse-panel key="failures" :header="$t('settings.marketCatalog.failureDetails')">
+              </div>
+              <a-spin :spinning="catalogLoading">
+                <section class="catalog-health-card" :class="`is-${catalogStatusType}`">
+                  <div class="catalog-health-summary">
+                    <span class="catalog-health-icon"><a-icon :type="catalogStatusIcon" :spin="catalogRunning" /></span>
+                    <div>
+                      <strong>{{ catalogStatusLabel }}</strong>
+                      <p>{{ catalogStatusDescription || $t('settings.marketCatalog.neverDescription') }}</p>
+                    </div>
+                  </div>
+                  <div class="catalog-health-metrics">
+                    <div><span>{{ $t('settings.marketCatalog.sourcesHealthy') }}</span><strong>{{ catalogSyncSummary.success }} / {{ catalogSyncSummary.total }}</strong></div>
+                    <div :class="{ 'has-failures': catalogSyncSummary.failed > 0 }"><span>{{ $t('settings.marketCatalog.sourcesFailed') }}</span><strong>{{ catalogSyncSummary.failed }}</strong></div>
+                    <div><span>{{ $t('settings.marketCatalog.recordsWritten') }}</span><strong>{{ catalogSyncSummary.rows.toLocaleString() }}</strong></div>
+                  </div>
+                </section>
+
+                <section class="catalog-content-section">
+                  <div class="catalog-section-heading">
+                    <div><h5>{{ $t('settings.marketCatalog.catalogCoverageTitle') }}</h5><p>{{ $t('settings.marketCatalog.catalogCoverageDesc') }}</p></div>
+                  </div>
+                  <div class="catalog-summary-grid">
+                    <div class="catalog-summary-item catalog-summary-item-primary"><span>{{ $t('settings.marketCatalog.activeRecords') }}</span><strong>{{ catalogMetric('active').toLocaleString() }}</strong></div>
+                    <div class="catalog-summary-item catalog-summary-item-primary"><span>{{ $t('settings.marketCatalog.uniqueSymbols') }}</span><strong>{{ catalogMetric('symbols').toLocaleString() }}</strong></div>
+                    <div class="catalog-summary-item"><span>{{ $t('settings.marketCatalog.ordinarySpot') }}</span><strong>{{ catalogMetric('ordinary_spot').toLocaleString() }}</strong></div>
+                    <div class="catalog-summary-item"><span>{{ $t('settings.marketCatalog.tokenizedEquity') }}</span><strong>{{ catalogMetric('tokenized_equity').toLocaleString() }}</strong></div>
+                    <div class="catalog-summary-item"><span>{{ $t('settings.marketCatalog.directEquity') }}</span><strong>{{ catalogMetric('direct_equity').toLocaleString() }}</strong></div>
+                    <div class="catalog-summary-item"><span>{{ $t('settings.marketCatalog.stockPerpetual') }}</span><strong>{{ catalogMetric('stock_perpetual').toLocaleString() }}</strong></div>
+                  </div>
+                </section>
+
+                <section class="catalog-content-section">
+                  <div class="catalog-section-heading">
+                    <div><h5>{{ $t('settings.marketCatalog.venueCoverage') }}</h5><p>{{ $t('settings.marketCatalog.venueCoverageDesc') }}</p></div>
+                  </div>
+                  <div class="catalog-table-wrap">
+                    <table class="catalog-table">
+                      <thead><tr><th>{{ $t('settings.marketCatalog.exchange') }}</th><th>{{ $t('settings.marketCatalog.ordinarySpot') }}</th><th>{{ $t('settings.marketCatalog.tokenizedEquity') }}</th><th>{{ $t('settings.marketCatalog.directEquity') }}</th><th>{{ $t('settings.marketCatalog.stockPerpetual') }}</th><th>{{ $t('settings.marketCatalog.syncResult') }}</th></tr></thead>
+                      <tbody>
+                        <tr v-for="venue in catalogVenueRows" :key="venue.exchange">
+                          <td><strong>{{ venue.label }}</strong></td><td>{{ venue.ordinarySpot }}</td><td>{{ venue.tokenizedEquity }}</td><td>{{ venue.directEquity }}</td><td>{{ venue.stockPerpetual }}</td>
+                          <td><a-tag :color="venue.statusColor">{{ venue.statusLabel }}</a-tag></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+
+                <section v-if="catalogFailures.length" class="catalog-failure-panel">
+                  <div class="catalog-section-heading">
+                    <div><h5><a-icon type="warning" /> {{ $t('settings.marketCatalog.failureTitle') }}</h5><p>{{ $t('settings.marketCatalog.failureDescription') }}</p></div>
+                    <a-tag color="orange">{{ catalogFailures.length }}</a-tag>
+                  </div>
+                  <div class="catalog-failure-grid">
                     <div v-for="item in catalogFailures" :key="`${item.exchange}-${item.market_type}`" class="catalog-failure-item">
                       <strong>{{ item.exchange }} · {{ item.market_type === 'spot' ? $t('settings.marketCatalog.spot') : $t('settings.marketCatalog.swap') }}</strong>
                       <span>{{ cleanCatalogError(item.error) }}</span>
                     </div>
-                  </a-collapse-panel>
-                </a-collapse>
-                <div class="catalog-section-title">{{ $t('settings.marketCatalog.marketOverview') }}</div>
-                <div class="catalog-market-grid">
-                  <div v-for="market in catalogMarkets" :key="market.market" class="catalog-market-item">
-                    <span>{{ market.market }}</span><strong>{{ Number(market.active || 0).toLocaleString() }}</strong>
                   </div>
-                </div>
-                <a-divider />
+                </section>
+
+                <section class="catalog-content-section">
+                  <div class="catalog-section-heading">
+                    <div><h5>{{ $t('settings.marketCatalog.marketOverview') }}</h5><p>{{ $t('settings.marketCatalog.marketOverviewDesc') }}</p></div>
+                  </div>
+                  <div class="catalog-market-grid">
+                    <div v-for="market in catalogMarkets" :key="market.market" class="catalog-market-item">
+                      <span>{{ catalogMarketLabel(market.market) }}</span><strong>{{ Number(market.active || 0).toLocaleString() }}</strong>
+                    </div>
+                  </div>
+                </section>
+
+                <div class="catalog-section-divider" />
                 <div class="catalog-action-row universe-sync-header">
                   <div>
                     <h4>{{ $t('settings.universeSync.title') }}</h4>
@@ -544,13 +585,12 @@
 
             <a-form v-if="activeGroupKey !== 'market_catalog'" :form="form" layout="vertical" class="settings-form" autocomplete="off">
               <div v-if="activeGroupKey === 'ai'" class="ai-settings-panel">
-                <a-alert
-                  class="ai-provider-alert"
-                  type="info"
-                  show-icon
-                  :message="aiProviderAlertTitle"
-                  :description="aiProviderAlertDesc"
-                />
+                <div class="ai-provider-status" role="status">
+                  <span class="ai-provider-status-icon"><a-icon type="check" /></span>
+                  <strong>{{ $t('settings.llm.currentProviderLabel') }}</strong>
+                  <a-tag color="blue">{{ currentLlmProviderLabel }}</a-tag>
+                  <span class="ai-provider-status-copy">{{ aiProviderAlertDesc }}</span>
+                </div>
 
                 <section
                   v-for="section in aiSections"
@@ -562,9 +602,18 @@
                       <h4>{{ section.title }}</h4>
                       <p v-if="section.description">{{ section.description }}</p>
                     </div>
-                    <a-tag v-if="section.badge" :color="section.badgeColor || 'blue'">
-                      {{ section.badge }}
-                    </a-tag>
+                    <div class="ai-section-actions">
+                      <template v-if="section.switchItem">
+                        <span>{{ getItemLabel(activeGroupKey, section.switchItem) }}</span>
+                        <a-switch
+                          v-decorator="[section.switchItem.key, { valuePropName: 'checked', initialValue: getBoolValue(activeGroupKey, section.switchItem.key, section.switchItem.default) }]"
+                          @change="onAiSectionSwitchChange(section.switchItem.key, $event)"
+                        />
+                      </template>
+                      <a-tag v-if="section.badge" :color="section.badgeColor || 'blue'">
+                        {{ section.badge }}
+                      </a-tag>
+                    </div>
                   </div>
 
                   <a-row :gutter="24">
@@ -720,19 +769,22 @@
                           </a-checkbox-group>
                         </template>
                         <template v-else-if="entry.item.type === 'venue_multiselect'">
-                          <a-alert
-                            class="trading-venue-alert"
-                            type="info"
-                            show-icon
-                            :message="$t('settings.venues.title')"
-                            :description="$t('settings.venues.description')"
-                          />
+                          <div class="trading-venue-notice" role="note">
+                            <span class="trading-venue-notice-icon"><a-icon type="safety-certificate" /></span>
+                            <span class="trading-venue-notice-copy">
+                              <strong>{{ $t('settings.venues.title') }}</strong>
+                              <small>{{ $t('settings.venues.description') }}</small>
+                            </span>
+                          </div>
                           <a-checkbox-group
                             v-decorator="[entry.item.key, { initialValue: getCsvListValue(activeGroupKey, entry.item.key, entry.item.default) }]"
                             class="trading-venue-selector"
                           >
                             <section v-for="group in tradingVenueGroups(entry.item)" :key="group.key" class="trading-venue-group">
-                              <h4>{{ group.title }}</h4>
+                              <div class="trading-venue-group-header">
+                                <h4>{{ group.title }}</h4>
+                                <span class="trading-venue-group-line" />
+                              </div>
                               <div class="trading-venue-grid">
                                 <label v-for="venue in group.items" :key="venue.id" class="trading-venue-card">
                                   <a-checkbox :value="venue.id" />
@@ -756,30 +808,56 @@
               </div>
 
               <div v-else>
-                <a-alert
-                  v-if="researchSettingsIntro"
-                  class="research-data-intro"
-                  :type="researchSettingsIntro.type"
-                  show-icon
-                  :message="researchSettingsIntro.title"
-                  :description="researchSettingsIntro.description"
-                />
-                <div v-if="activeGroupKey === 'data_source'" class="research-market-map">
-                  <span class="research-market-map-label">{{ tOr('settings.research.marketMap', 'Configure only the markets you use') }}</span>
-                  <div class="research-market-tags">
-                    <a-tag v-for="market in researchMarketGuide" :key="market.key" :color="market.color">
-                      <a-icon :type="market.icon" /> {{ market.label }}
+                <section
+                  v-if="activeGroupKey === 'data_source' && reportDataSourcesLoaded"
+                  class="report-source-status"
+                >
+                  <div class="report-source-status-head">
+                    <div>
+                      <strong>{{ $t('settings.research.status.title') }}</strong>
+                      <p>{{ $t('settings.research.status.description') }}</p>
+                    </div>
+                    <a-tag color="green">{{ $t('settings.research.status.autoTier') }}</a-tag>
+                  </div>
+                  <div class="report-source-metrics">
+                    <div class="report-source-metric">
+                      <span>
+                        {{ $t('settings.research.status.community') }}
+                        <small>{{ $t('settings.research.status.communityHint') }}</small>
+                      </span>
+                      <strong>{{ reportDataSourceSummary.community.ready }} / {{ reportDataSourceSummary.community.total }}</strong>
+                    </div>
+                    <div class="report-source-metric">
+                      <span>
+                        {{ $t('settings.research.status.professional') }}
+                        <small>{{ $t('settings.research.status.professionalHint') }}</small>
+                      </span>
+                      <strong>{{ reportDataSourceSummary.professional.ready }} / {{ reportDataSourceSummary.professional.total }}</strong>
+                    </div>
+                  </div>
+                  <div v-if="reportDataSourceSummary.readyProviders.length" class="report-source-provider-list">
+                    <a-tag
+                      v-for="provider in reportDataSourceSummary.readyProviders"
+                      :key="provider.key"
+                      :color="provider.tier === 'professional' ? 'purple' : 'green'"
+                    >
+                      {{ provider.name }}
                     </a-tag>
                   </div>
-                </div>
-                <a-row :gutter="24">
+                </section>
+                <a-row :gutter="24" :class="{ 'market-settings-layout': activeGroupKey === 'market_modules' }">
                   <a-col
                     v-for="entry in currentDisplayEntries"
                     :key="entry.key"
                     :xs="24"
                     :sm="24"
                     :md="entry.type !== 'field' ? 24 : 12"
-                    :lg="entry.type !== 'field' ? 24 : 12"
+                    :lg="entry.type !== 'field' ? 24 : (activeGroupKey === 'market_modules' ? 24 : 12)"
+                    :xl="entry.type !== 'field' ? 24 : (activeGroupKey === 'market_modules' ? (entry.item.type === 'market_multiselect' ? 13 : 11) : 12)"
+                    :class="{
+                      'market-modules-column': activeGroupKey === 'market_modules' && entry.type === 'field' && entry.item.type === 'market_multiselect',
+                      'trading-venues-column': activeGroupKey === 'market_modules' && entry.type === 'field' && entry.item.type === 'venue_multiselect'
+                    }"
                   >
                     <div v-if="entry.type === 'heading'" class="settings-subsection-heading" :class="`subsection-${entry.tone || 'default'}`">
                       <div class="settings-subsection-title-row">
@@ -816,6 +894,9 @@
                             <a-icon type="link" />
                             {{ getLinkText(entry.item.link_text) }}
                           </a>
+                          <a-tag v-if="entry.item.readonly" class="deployment-only-tag" color="default">
+                            <a-icon type="lock" /> {{ $t('settings.billing.fixed.readonly') }}
+                          </a-tag>
                         </span>
                       </template>
                       <template v-if="entry.item.type === 'text'">
@@ -828,6 +909,7 @@
                           data-1p-ignore="true"
                           data-bwignore="true"
                           data-form-type="other"
+                          :disabled="entry.item.readonly"
                           allowClear
                         />
                       </template>
@@ -846,6 +928,7 @@
                             data-1p-ignore="true"
                             data-bwignore="true"
                             data-form-type="other"
+                            :disabled="entry.item.readonly"
                             allowClear
                           >
                             <a-icon
@@ -861,18 +944,22 @@
                         <a-input-number
                           v-decorator="[entry.item.key, { initialValue: getNumberValue(activeGroupKey, entry.item.key, entry.item.default) }]"
                           :placeholder="entry.item.default ? `${$t('settings.default')}: ${entry.item.default}` : ''"
+                          :disabled="entry.item.readonly"
                           style="width: 100%"
                         />
                       </template>
                       <template v-else-if="entry.item.type === 'boolean'">
                         <a-switch
                           v-decorator="[entry.item.key, { valuePropName: 'checked', initialValue: getBoolValue(activeGroupKey, entry.item.key, entry.item.default) }]"
+                          :disabled="entry.item.readonly"
                         />
                       </template>
                       <template v-else-if="entry.item.type === 'select'">
                         <a-select
                           v-decorator="[entry.item.key, { initialValue: getFieldValue(activeGroupKey, entry.item.key) || entry.item.default }]"
                           :placeholder="entry.item.default ? `${$t('settings.default')}: ${entry.item.default}` : $t('settings.pleaseSelect')"
+                          :disabled="entry.item.readonly"
+                          @change="onSelectFieldChange(entry.item, $event)"
                         >
                           <a-select-option
                             v-for="opt in getSelectOptions(entry.item)"
@@ -924,19 +1011,22 @@
                         </a-checkbox-group>
                       </template>
                       <template v-else-if="entry.item.type === 'venue_multiselect'">
-                        <a-alert
-                          class="trading-venue-alert"
-                          type="info"
-                          show-icon
-                          :message="$t('settings.venues.title')"
-                          :description="$t('settings.venues.description')"
-                        />
+                        <div class="trading-venue-notice" role="note">
+                          <span class="trading-venue-notice-icon"><a-icon type="safety-certificate" /></span>
+                          <span class="trading-venue-notice-copy">
+                            <strong>{{ $t('settings.venues.title') }}</strong>
+                            <small>{{ $t('settings.venues.description') }}</small>
+                          </span>
+                        </div>
                         <a-checkbox-group
                           v-decorator="[entry.item.key, { initialValue: getCsvListValue(activeGroupKey, entry.item.key, entry.item.default) }]"
                           class="trading-venue-selector"
                         >
                           <section v-for="group in tradingVenueGroups(entry.item)" :key="group.key" class="trading-venue-group">
-                            <h4>{{ group.title }}</h4>
+                            <div class="trading-venue-group-header">
+                              <h4>{{ group.title }}</h4>
+                              <span class="trading-venue-group-line" />
+                            </div>
                             <div class="trading-venue-grid">
                               <label v-for="venue in group.items" :key="venue.id" class="trading-venue-card">
                                 <a-checkbox :value="venue.id" />
@@ -959,31 +1049,21 @@
               </div>
             </a-form>
 
-            <!-- Brand group footer: commercial license notice. Shown only
-                 under "Brand & Identity" so it's visible right where an
-                 operator sets up their fork. -->
-            <div v-if="activeGroupKey === 'brand'" class="commercial-license-notice">
-              <a-alert
-                type="warning"
-                show-icon
-                :message="$t('settings.commercialLicense.title')"
-              >
-                <div slot="description" class="license-body">
-                  <p>{{ $t('settings.commercialLicense.body') }}</p>
-                  <p class="license-contact">
-                    <span class="contact-label">{{ $t('settings.commercialLicense.contactLabel') }}:</span>
-                    <a
-                      href="https://www.quantdinger.com/#license"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="contact-link"
-                    >
-                      <a-icon type="link" /> {{ $t('settings.commercialLicense.applyLink') }}
-                    </a>
-                  </p>
-                </div>
-              </a-alert>
-            </div>
+            <section v-if="activeGroupKey === 'brand'" class="commercial-license-notice">
+              <a-icon type="safety-certificate" class="license-icon" />
+              <div class="license-body">
+                <strong>{{ $t('settings.commercialLicense.title') }}</strong>
+                <p>{{ $t('settings.commercialLicense.body') }}</p>
+                <a
+                  href="https://www.quantdinger.com/#license"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="contact-link"
+                >
+                  <a-icon type="link" /> {{ $t('settings.commercialLicense.applyLink') }}
+                </a>
+              </div>
+            </section>
           </div>
         </section>
       </div>
@@ -1065,6 +1145,7 @@
 <script>
 import { getSettingsSchema, getSettingsValues, saveSettings, getOpenRouterBalance, getMarketCatalogOverview, syncMarketCatalog } from '@/api/settings'
 import { getMarketModules } from '@/api/marketModules'
+import { getProfessionalReportDataSources } from '@/api/fast-analysis'
 import {
   createSystemUniverse,
   deleteSystemUniverse,
@@ -1098,6 +1179,8 @@ export default {
       searchKeyword: '',
       passwordVisible: {},
       marketModules: [],
+      reportDataSources: [],
+      reportDataSourcesLoaded: false,
       showRestartTip: false,
       balanceLoading: false,
       openrouterBalance: null,
@@ -1126,6 +1209,10 @@ export default {
         memberText: ''
       },
       selectedLlmProvider: '',
+      selectedSearchProvider: 'tavily',
+      jevEnabled: true,
+      ensembleEnabled: false,
+      referralProgramEnabled: false,
       billingPlans: [],
       billingPlansSaving: false,
       billingPlanDeletingCode: '',
@@ -1163,12 +1250,12 @@ export default {
         {
           key: 'core',
           title: this.tOr('settings.nav.core', 'Core setup'),
-          keys: ['features', 'auth', 'ai', 'trading', 'market_modules']
+          keys: ['features', 'auth', 'ai', 'trading', 'market_modules', 'market_catalog']
         },
         {
           key: 'research',
           title: this.tOr('settings.nav.research', 'AI research'),
-          keys: ['data_source', 'search', 'agent', 'market_catalog']
+          keys: ['data_source', 'macro_tools', 'market_intelligence', 'search', 'agent']
         },
         {
           key: 'operations',
@@ -1218,10 +1305,36 @@ export default {
           'REFERRAL_REWARD_HOLD_DAYS',
           'REFERRAL_MIN_WITHDRAWAL_USD'
         ])
-        items = items.filter(item => !referralKeys.has(item.key))
+        const fixedTokenIdentifierKeys = new Set([
+          'USDT_TRC20_CONTRACT',
+          'USDT_BEP20_CONTRACT',
+          'USDT_ERC20_CONTRACT',
+          'USDT_SOL_MINT',
+          'USDC_ERC20_CONTRACT',
+          'USDC_SOL_MINT'
+        ])
+        items = items.filter(item => !referralKeys.has(item.key) && !fixedTokenIdentifierKeys.has(item.key))
+        return this.buildCategorizedEntries(items, this.billingSectionDefinitions(), 'billing')
+      }
+      if (this.activeGroupKey === 'brand') {
+        return items.map(item => ({
+          type: 'field',
+          key: `brand-${item.key}`,
+          item
+        }))
       }
       if (this.activeGroupKey === 'data_source') {
         return this.buildCategorizedEntries(items, this.dataSourceSectionDefinitions(), 'data_source')
+      }
+      if (this.activeGroupKey === 'macro_tools') {
+        return this.buildCategorizedEntries(items, this.macroToolSectionDefinitions(), 'macro_tools')
+      }
+      if (this.activeGroupKey === 'market_intelligence') {
+        return items.map(item => ({
+          type: 'field',
+          key: `market-intelligence-${item.key}`,
+          item
+        }))
       }
       if (this.activeGroupKey === 'search') {
         return this.buildCategorizedEntries(items, this.searchSectionDefinitions(), 'search')
@@ -1229,41 +1342,28 @@ export default {
       if (this.activeGroupKey === 'agent') {
         return this.buildCategorizedEntries(items, this.agentSectionDefinitions(), 'agent')
       }
+      if (this.activeGroupKey === 'trading') {
+        return this.buildCategorizedEntries(items, this.tradingSectionDefinitions(), 'trading')
+      }
+      if (this.activeGroupKey === 'security') {
+        return this.buildCategorizedEntries(items, this.securitySectionDefinitions(), 'security')
+      }
       return this.buildSettingEntries(items, this.activeGroupKey)
     },
-    researchSettingsIntro () {
-      if (this.activeGroupKey === 'data_source') {
+    reportDataSourceSummary () {
+      const active = this.reportDataSources.filter(source => source.integration_status === 'active')
+      const summarize = tier => {
+        const sources = active.filter(source => source.tier === tier)
         return {
-          type: 'success',
-          title: this.tOr('settings.research.zeroConfigTitle', 'The base report works without extra data API keys'),
-          description: this.tOr('settings.research.zeroConfigDesc', 'Built-in public sources cover the base workflow. Configure shared settings, then only the markets you use.')
+          total: sources.length,
+          ready: sources.filter(source => source.configured).length
         }
       }
-      if (this.activeGroupKey === 'search') {
-        return {
-          type: 'info',
-          title: this.tOr('settings.search.sharedTitle', 'Search is shared by every market'),
-          description: this.tOr('settings.search.sharedDesc', 'Choose one provider. US stocks, Hong Kong stocks, crypto, futures and FX all reuse it.')
-        }
+      return {
+        community: summarize('community'),
+        professional: summarize('professional'),
+        readyProviders: active.filter(source => source.configured)
       }
-      if (this.activeGroupKey === 'agent') {
-        return {
-          type: 'info',
-          title: this.tOr('settings.agent.optionalTitle', 'Agent and calibration are optional'),
-          description: this.tOr('settings.agent.optionalDesc', 'Self-hosted users can keep the defaults until enough validated reports exist for calibration.')
-        }
-      }
-      return null
-    },
-    researchMarketGuide () {
-      return [
-        { key: 'shared', icon: 'share-alt', color: 'blue', label: this.tOr('settings.research.market.shared', 'Shared') },
-        { key: 'us', icon: 'stock', color: 'geekblue', label: this.tOr('settings.research.market.us', 'US stocks') },
-        { key: 'hk', icon: 'bank', color: 'cyan', label: this.tOr('settings.research.market.hk', 'Hong Kong stocks') },
-        { key: 'crypto', icon: 'block', color: 'purple', label: this.tOr('settings.research.market.crypto', 'Crypto') },
-        { key: 'futures', icon: 'line-chart', color: 'orange', label: this.tOr('settings.research.market.futures', 'Futures') },
-        { key: 'forex', icon: 'swap', color: 'green', label: this.tOr('settings.research.market.forex', 'FX') }
-      ]
     },
     // Flattened, filtered search hits. Match is case-insensitive against the
     // localized label, the localized description and the raw ENV key, so
@@ -1346,7 +1446,28 @@ export default {
       if (status === 'success') return 'success'
       if (status === 'running') return 'info'
       if (status === 'partial') return 'warning'
-      return 'error'
+      if (status === 'failed') return 'error'
+      return 'neutral'
+    },
+    catalogStatusIcon () {
+      const icons = {
+        success: 'check-circle',
+        running: 'sync',
+        partial: 'warning',
+        failed: 'close-circle'
+      }
+      return icons[(this.catalogLatest && this.catalogLatest.status) || 'never'] || 'clock-circle'
+    },
+    catalogSyncSummary () {
+      const result = (this.catalogLatest && this.catalogLatest.result) || {}
+      const total = Number(result.contexts_total || 0)
+      const success = Number(result.contexts_succeeded || 0)
+      return {
+        success,
+        total,
+        failed: Math.max(total - success, 0),
+        rows: Number(result.upserted || 0)
+      }
     },
     catalogStatusLabel () {
       const status = (this.catalogLatest && this.catalogLatest.status) || 'never'
@@ -1402,24 +1523,24 @@ export default {
       const contexts = ((this.catalogLatest && this.catalogLatest.result && this.catalogLatest.result.contexts) || [])
       return contexts.filter(item => !item.ok)
     },
-    aiProviderAlertTitle () {
-      return this.tOr('settings.llm.currentProviderTitle', 'Current provider: {provider}')
-        .replace('{provider}', this.currentLlmProviderLabel)
-    },
     aiProviderAlertDesc () {
-      return this.tOr(
-        'settings.llm.currentProviderDesc',
-        'Switching providers keeps the other provider settings saved; switch back anytime to edit them.'
-      )
+      return this.$t('settings.llm.currentProviderDesc')
     },
     aiSections () {
       const providerSelection = this.aiItems.filter(item => item.key === 'LLM_PROVIDER')
       const providerItems = this.aiItems.filter(item => item.group === this.currentLlmProvider)
-      const jevItems = this.aiItems.filter(item => String(item.key || '').startsWith('JEV_'))
-      const commonItems = this.aiItems.filter(item => {
-        if (item.key === 'LLM_PROVIDER' || item.group || String(item.key || '').startsWith('JEV_') || this.isSearchSetting(item)) return false
-        return true
-      })
+      const jevSwitch = this.aiItems.find(item => item.key === 'JEV_ENABLED')
+      const ensembleSwitch = this.aiItems.find(item => item.key === 'ENABLE_AI_ENSEMBLE')
+      const decisionItems = this.aiItems.filter(item => (
+        (String(item.key || '').startsWith('JEV_') && item.key !== 'JEV_ENABLED') ||
+        item.key === 'AI_DECISION_TIMEOUT_SECONDS'
+      ))
+      const codeItems = this.aiItems.filter(item => ['AI_CODE_GEN_MODEL', 'OPENROUTER_TEMPERATURE'].includes(item.key))
+      const analysisItems = this.aiItems.filter(item => item.key === 'AI_ANALYSIS_CONSENSUS_TIMEFRAMES')
+      const ensembleItems = this.ensembleEnabled
+        ? this.aiItems.filter(item => item.key === 'AI_ENSEMBLE_MODELS')
+        : []
+      const runtimeItems = this.aiItems.filter(item => item.key === 'LLM_MAX_TOKENS')
       return [
         {
           key: 'provider',
@@ -1438,19 +1559,43 @@ export default {
         {
           key: 'jev',
           title: this.$t('aiDecisionFilter.title'),
-          description: this.$t('settings.desc.JEV_API_KEY'),
-          badge: 'JEV',
-          badgeColor: 'cyan',
-          items: jevItems
+          description: this.$t('settings.desc.JEV_ENABLED'),
+          badge: this.jevEnabled
+            ? this.$t('settings.llm.jevEnabledBadge')
+            : this.$t('settings.llm.jevDisabledBadge'),
+          badgeColor: this.jevEnabled ? 'cyan' : 'blue',
+          switchItem: jevSwitch,
+          items: decisionItems
         },
         {
-          key: 'common',
-          title: this.tOr('settings.llm.commonSection', 'Common AI parameters'),
-          description: this.tOr('settings.llm.commonSectionDesc', 'Shared behavior used across providers.'),
-          items: commonItems
+          key: 'codeGeneration',
+          title: this.$t('settings.llm.codeSection'),
+          description: this.$t('settings.llm.codeSectionDesc'),
+          items: codeItems
+        },
+        {
+          key: 'analysis',
+          title: this.$t('settings.llm.analysisSection'),
+          description: this.$t('settings.llm.analysisSectionDesc'),
+          items: analysisItems
+        },
+        {
+          key: 'ensemble',
+          title: this.$t('settings.agent.section.quality'),
+          description: this.$t('settings.agent.section.qualityDesc'),
+          badge: this.$t('settings.research.badge.optional'),
+          badgeColor: 'purple',
+          switchItem: ensembleSwitch,
+          items: ensembleItems
+        },
+        {
+          key: 'runtime',
+          title: this.$t('settings.llm.runtimeSection'),
+          description: this.$t('settings.llm.runtimeSectionDesc'),
+          items: runtimeItems
         }
       ]
-        .filter(section => section.items.length > 0)
+        .filter(section => section.items.length > 0 || section.switchItem)
         .map(section => ({
           ...section,
           entries: this.buildSettingEntries(section.items, `ai:${section.key}`)
@@ -1863,6 +2008,9 @@ export default {
       const text = String(value || '').replace(/\s+/g, ' ').trim()
       return text.length > 180 ? `${text.slice(0, 180)}…` : text
     },
+    catalogMarketLabel (value) {
+      return this.tOr(`settings.marketCatalog.market.${value}`, value)
+    },
     async refreshCatalogOverview () {
       this.catalogLoading = !this.catalogOverview
       try {
@@ -1983,6 +2131,112 @@ export default {
       }
       return hits
     },
+    billingSectionDefinitions () {
+      return [
+        {
+          key: 'usdt',
+          title: this.$t('settings.billing.section.usdt'),
+          description: this.$t('settings.billing.section.usdtDesc'),
+          badge: 'USDT',
+          badgeColor: 'green',
+          icon: 'wallet',
+          tone: 'shared',
+          keys: [
+            'USDT_PAY_ENABLED',
+            'USDT_PAY_ENABLED_CHAINS',
+            'USDT_TRC20_ADDRESS',
+            'USDT_BEP20_ADDRESS',
+            'USDT_ERC20_ADDRESS',
+            'USDT_SOL_ADDRESS'
+          ]
+        },
+        {
+          key: 'usdc',
+          title: this.$t('settings.billing.section.usdc'),
+          description: this.$t('settings.billing.section.usdcDesc'),
+          badge: 'USDC',
+          badgeColor: 'blue',
+          icon: 'wallet',
+          tone: 'macro',
+          keys: [
+            'USDC_PAY_ENABLED',
+            'USDC_PAY_ENABLED_CHAINS',
+            'USDC_ERC20_ADDRESS',
+            'USDC_SOL_ADDRESS'
+          ]
+        },
+        {
+          key: 'stripe',
+          title: this.$t('settings.billing.section.stripe'),
+          description: this.$t('settings.billing.section.stripeDesc'),
+          badge: 'Stripe',
+          badgeColor: 'purple',
+          icon: 'credit-card',
+          tone: 'us',
+          keys: [
+            'STRIPE_PAY_ENABLED',
+            'STRIPE_SECRET_KEY',
+            'STRIPE_WEBHOOK_SECRET',
+            'STRIPE_PRODUCT_TAX_CODE',
+            'STRIPE_SUCCESS_URL',
+            'STRIPE_CANCEL_URL'
+          ]
+        },
+        {
+          key: 'chainAccess',
+          title: this.$t('settings.billing.section.chainAccess'),
+          description: this.$t('settings.billing.section.chainAccessDesc'),
+          badge: this.$t('settings.research.badge.optional'),
+          badgeColor: 'cyan',
+          icon: 'api',
+          tone: 'crypto',
+          keys: [
+            'TRONGRID_API_KEY',
+            'TRONGRID_BASE_URL',
+            'ETHERSCAN_API_KEY',
+            'ETHERSCAN_V2_BASE_URL',
+            'BSC_RPC_URLS',
+            'ETH_RPC_URLS',
+            'SOLANA_RPC_URL',
+            'BEP20_PREFER_EXPLORER',
+            'ERC20_PREFER_EXPLORER'
+          ]
+        },
+        {
+          key: 'runtime',
+          title: this.$t('settings.billing.section.runtime'),
+          description: this.$t('settings.billing.section.runtimeDesc'),
+          icon: 'clock-circle',
+          tone: 'futures',
+          keys: [
+            'USDT_AMOUNT_SUFFIX_DECIMALS',
+            'USDT_PAY_CONFIRM_SECONDS',
+            'USDT_PAY_EXPIRE_MINUTES',
+            'USDT_WORKER_POLL_INTERVAL'
+          ]
+        },
+        {
+          key: 'credits',
+          title: this.$t('settings.billing.section.credits'),
+          description: this.$t('settings.billing.section.creditsDesc'),
+          icon: 'thunderbolt',
+          tone: 'hk',
+          keys: [
+            'BILLING_COST_BACKTEST',
+            'BILLING_COST_AI_REVIEW',
+            'BILLING_COST_AI_ANALYSIS',
+            'BILLING_COST_AI_CODE_GEN',
+            'BILLING_COST_AI_COPILOT_CHAT',
+            'BILLING_COST_AI_COPILOT_IMAGE',
+            'BILLING_COST_AI_DECISION_FILTER',
+            'MARKETPLACE_PLATFORM_FEE_RATE',
+            'CREDITS_REGISTER_BONUS',
+            'CREDITS_REFERRAL_BONUS',
+            'FREE_USER_STRATEGY_LIMIT'
+          ]
+        }
+      ]
+    },
     dataSourceSectionDefinitions () {
       return [
         {
@@ -1994,7 +2248,6 @@ export default {
           icon: 'share-alt',
           tone: 'shared',
           keys: [
-            'PROFESSIONAL_REPORT_DATA_TIER',
             'PROFESSIONAL_REPORT_RISK_BUDGET_PCT',
             'FAST_ANALYSIS_INCLUDE_GLOBAL_NEWS'
           ],
@@ -2002,28 +2255,16 @@ export default {
         },
         {
           key: 'macro',
-          title: this.tOr('settings.research.market.macro', 'Shared macro and event data'),
-          description: this.tOr('settings.research.market.macroDesc', 'Optional shared inputs for equities, futures and FX. Configure only services you already use.'),
+          title: this.$t('settings.research.market.macro'),
+          description: this.$t('settings.research.market.macroDesc'),
           badge: this.tOr('settings.research.badge.optional', 'Optional'),
           badgeColor: 'blue',
           icon: 'global',
           tone: 'macro',
-          keys: [
-            'TRADING_ECONOMICS_CLIENT',
-            'TRADING_ECONOMICS_KEY',
-            'FRED_API_KEY',
-            'BLS_API_KEY',
-            'BEA_API_KEY'
-          ],
+          keys: ['FRED_API_KEY'],
           advancedKeys: [
-            'TRADING_ECONOMICS_BASE_URL',
-            'TRADING_ECONOMICS_TIMEOUT',
             'FRED_BASE_URL',
-            'FRED_TIMEOUT',
-            'BLS_BASE_URL',
-            'BLS_TIMEOUT',
-            'BEA_BASE_URL',
-            'BEA_TIMEOUT'
+            'FRED_TIMEOUT'
           ]
         },
         {
@@ -2040,24 +2281,23 @@ export default {
             'ALPHA_VANTAGE_API_KEY'
           ],
           advancedKeys: [
+            'FINNHUB_TIMEOUT',
+            'SEC_USER_AGENT',
             'ALPHA_VANTAGE_BASE_URL',
             'ALPHA_VANTAGE_TIMEOUT',
-            'ALPHA_VANTAGE_NEWS_LIMIT',
-            'ADANOS_API_KEY',
-            'ADANOS_SENTIMENT_SOURCE',
-            'ADANOS_API_BASE_URL'
+            'ALPHA_VANTAGE_NEWS_LIMIT'
           ]
         },
         {
-          key: 'hk',
-          title: this.tOr('settings.research.market.hk', 'Hong Kong stock data'),
-          description: this.tOr('settings.research.market.hkDesc', 'Twelve Data is an optional K-line enhancement. Built-in public sources remain available.'),
+          key: 'cross_market',
+          title: this.$t('settings.research.market.cross'),
+          description: this.$t('settings.research.market.crossDesc'),
           badge: this.tOr('settings.research.badge.keyOptional', 'API key optional'),
           badgeColor: 'cyan',
-          icon: 'bank',
+          icon: 'swap',
           tone: 'hk',
-          keys: ['TWELVE_DATA_API_KEY'],
-          advancedKeys: []
+          keys: ['TWELVE_DATA_API_KEY', 'TIINGO_API_KEY'],
+          advancedKeys: ['TIINGO_TIMEOUT', 'AKSHARE_TIMEOUT']
         },
         {
           key: 'crypto',
@@ -2072,7 +2312,7 @@ export default {
             'COINGLASS_API_KEY',
             'CRYPTOQUANT_API_KEY'
           ],
-          advancedKeys: []
+          advancedKeys: ['CRYPTO_PUBLIC_TIMEOUT']
         },
         {
           key: 'futures',
@@ -2094,89 +2334,303 @@ export default {
           badgeColor: 'green',
           icon: 'swap',
           tone: 'forex',
-          keys: ['TIINGO_API_KEY'],
-          advancedKeys: []
+          keys: [],
+          advancedKeys: [],
+          alwaysVisible: true
         }
       ]
     },
     searchSectionDefinitions () {
-      return [
+      const selected = this.selectedSearchProvider || 'tavily'
+      const providerSections = [
         {
-          key: 'primary',
-          title: this.tOr('settings.search.section.primary', 'Recommended search'),
-          description: this.tOr('settings.search.section.primaryDesc', 'Choose one primary provider. Keyless fallbacks remain available.'),
-          badge: this.tOr('settings.research.section.community', 'Free / simple setup'),
-          badgeColor: 'green',
+          key: 'tavily',
+          title: 'Tavily',
+          description: this.$t('settings.search.provider.tavilyDesc'),
           icon: 'search',
           tone: 'shared',
-          keys: ['SEARCH_PROVIDER', 'TAVILY_API_KEYS'],
+          keys: ['TAVILY_API_KEYS'],
+          advancedKeys: []
+        },
+        {
+          key: 'searxng',
+          title: 'SearXNG',
+          description: this.$t('settings.search.provider.searxngDesc'),
+          icon: 'global',
+          tone: 'shared',
+          keys: ['SEARCH_SEARXNG_BASE_URL'],
           advancedKeys: [
-            'SEARCH_MAX_RESULTS',
-            'SEARCH_TIMEOUT',
-            'SEARCH_SEARXNG_BASE_URL',
-            'SEARCH_GDELT_BASE_URL',
-            'SEARCH_DDG_BASE_URL'
+            'SEARCH_SEARXNG_ENGINES',
+            'SEARCH_SEARXNG_CATEGORIES',
+            'SEARCH_SEARXNG_LANGUAGE',
+            'SEARCH_SEARXNG_TIMEOUT'
           ]
         },
         {
-          key: 'optional',
-          title: this.tOr('settings.search.section.optional', 'Optional news providers'),
-          description: this.tOr('settings.search.section.optionalDesc', 'Add only the service you already use.'),
+          key: 'gdelt',
+          title: 'GDELT',
+          description: this.$t('settings.search.provider.gdeltDesc'),
           icon: 'read',
           tone: 'macro',
-          keys: [
-            'SERPAPI_KEYS',
-            'SEARCH_GOOGLE_API_KEY',
-            'SEARCH_GOOGLE_CX',
-            'SEARCH_BING_API_KEY'
-          ],
+          keys: ['GDELT_BASE_URL'],
+          advancedKeys: ['GDELT_TIMEOUT', 'GDELT_MAX_RESULTS']
+        },
+        {
+          key: 'serpapi',
+          title: 'SerpAPI',
+          description: this.$t('settings.search.provider.serpapiDesc'),
+          icon: 'search',
+          tone: 'shared',
+          keys: ['SERPAPI_KEYS'],
           advancedKeys: []
+        },
+        {
+          key: 'alpha_vantage',
+          title: 'Alpha Vantage',
+          description: this.$t('settings.search.provider.alphaVantageDesc'),
+          icon: 'link',
+          tone: 'macro',
+          keys: [],
+          advancedKeys: [],
+          alwaysVisible: true,
+          linked: true
+        },
+        {
+          key: 'google',
+          title: 'Google',
+          description: this.$t('settings.search.provider.googleDesc'),
+          icon: 'search',
+          tone: 'shared',
+          keys: ['SEARCH_GOOGLE_API_KEY', 'SEARCH_GOOGLE_CX'],
+          advancedKeys: [],
+          legacy: true
+        },
+        {
+          key: 'duckduckgo',
+          title: 'DuckDuckGo',
+          description: this.$t('settings.search.provider.duckduckgoDesc'),
+          icon: 'global',
+          tone: 'shared',
+          keys: [],
+          advancedKeys: [],
+          alwaysVisible: true,
+          keyless: true
+        }
+      ]
+      const orderedProviders = providerSections
+        .filter(section => section.key !== selected)
+      const selectedSection = providerSections.find(section => section.key === selected)
+      if (selectedSection) orderedProviders.unshift(selectedSection)
+
+      const disabled = selected === 'none'
+      orderedProviders.forEach(section => {
+        if (disabled) {
+          section.badge = this.$t('settings.search.badge.inactive')
+          section.badgeColor = 'default'
+        } else if (section.key === selected) {
+          section.badge = this.$t('settings.search.badge.primary')
+          section.badgeColor = 'green'
+        } else if (section.legacy) {
+          section.badge = this.$t('settings.search.badge.legacy')
+          section.badgeColor = 'orange'
+        } else if (section.linked) {
+          section.badge = this.$t('settings.search.badge.linked')
+          section.badgeColor = 'blue'
+        } else if (section.keyless) {
+          section.badge = this.$t('settings.search.badge.keyless')
+          section.badgeColor = 'green'
+        } else {
+          section.badge = this.$t('settings.search.badge.fallback')
+          section.badgeColor = 'blue'
+        }
+      })
+
+      return [
+        {
+          key: 'routing',
+          title: this.$t('settings.search.section.routing'),
+          description: this.$t('settings.search.section.routingDesc'),
+          badge: disabled
+            ? this.$t('settings.search.badge.disabled')
+            : this.$t('settings.search.badge.fallbackChain'),
+          badgeColor: disabled ? 'default' : 'green',
+          icon: 'branches',
+          tone: 'shared',
+          keys: ['SEARCH_PROVIDER', 'SEARCH_MAX_RESULTS'],
+          advancedKeys: []
+        },
+        ...orderedProviders
+      ]
+    },
+    macroToolSectionDefinitions () {
+      return [
+        {
+          key: 'tradingEconomics',
+          title: this.$t('settings.macroTools.tradingEconomicsTitle'),
+          description: this.$t('settings.macroTools.tradingEconomicsDesc'),
+          badge: this.tOr('settings.research.badge.optional', 'Optional'),
+          badgeColor: 'blue',
+          icon: 'global',
+          tone: 'shared',
+          keys: ['TRADING_ECONOMICS_CLIENT', 'TRADING_ECONOMICS_KEY'],
+          advancedKeys: ['TRADING_ECONOMICS_BASE_URL', 'TRADING_ECONOMICS_TIMEOUT']
+        },
+        {
+          key: 'bls',
+          title: this.$t('settings.macroTools.blsTitle'),
+          description: this.$t('settings.macroTools.blsDesc'),
+          badge: this.tOr('settings.research.badge.optional', 'Optional'),
+          badgeColor: 'cyan',
+          icon: 'bank',
+          tone: 'macro',
+          keys: ['BLS_API_KEY'],
+          advancedKeys: ['BLS_BASE_URL', 'BLS_TIMEOUT']
         }
       ]
     },
     agentSectionDefinitions () {
       return [
         {
-          key: 'deployment',
-          title: this.tOr('settings.agent.section.deployment', 'Deployment and permissions'),
-          description: this.tOr('settings.agent.section.deploymentDesc', 'Self-hosted is the safe default. Live trading remains off unless explicitly enabled.'),
-          badge: this.tOr('settings.agent.badge.shared', 'Cross-market'),
-          badgeColor: 'blue',
-          icon: 'deployment-unit',
-          tone: 'shared',
-          keys: ['QUANTDINGER_DEPLOYMENT_MODE', 'AGENT_LIVE_TRADING_ENABLED'],
-          advancedKeys: ['AGENT_JOBS_MAX_WORKERS']
-        },
-        {
-          key: 'quality',
-          title: this.tOr('settings.agent.section.quality', 'Analysis stability'),
-          description: this.tOr('settings.agent.section.qualityDesc', 'Multi-model voting can improve stability but increases latency and LLM cost.'),
-          badge: this.tOr('settings.research.badge.optional', 'Optional'),
-          badgeColor: 'purple',
-          icon: 'cluster',
-          tone: 'crypto',
-          keys: ['ENABLE_AI_ENSEMBLE', 'AI_ENSEMBLE_MODELS'],
-          advancedKeys: []
-        },
-        {
-          key: 'calibration',
-          title: this.tOr('settings.agent.section.calibration', 'Validation and calibration'),
-          description: this.tOr('settings.agent.section.calibrationDesc', 'Enable only after enough historical reports have matured and can be validated.'),
+          key: 'validation',
+          title: this.tOr('settings.agent.section.validation', 'Historical result validation'),
+          description: this.tOr('settings.agent.section.validationDesc', 'Periodically compares matured analysis decisions with actual returns and stores the outcome.'),
           badge: this.tOr('settings.agent.badge.needsSamples', 'Requires samples'),
           badgeColor: 'orange',
           icon: 'experiment',
           tone: 'futures',
-          keys: [
-            'ENABLE_REFLECTION_WORKER',
-            'ENABLE_CONFIDENCE_CALIBRATION',
-            'AI_CALIBRATION_MARKETS'
-          ],
+          keys: ['ENABLE_REFLECTION_WORKER'],
           advancedKeys: [
             'REFLECTION_WORKER_INTERVAL_SEC',
             'REFLECTION_MIN_AGE_DAYS',
-            'REFLECTION_VALIDATE_LIMIT',
+            'REFLECTION_VALIDATE_LIMIT'
+          ]
+        },
+        {
+          key: 'calibration',
+          title: this.tOr('settings.agent.section.calibration', 'Confidence calibration'),
+          description: this.tOr('settings.agent.section.calibrationDesc', 'Uses validated historical samples to adjust confidence. Until enough samples exist, raw confidence is retained.'),
+          badge: this.tOr('settings.agent.badge.needsSamples', 'Requires samples'),
+          badgeColor: 'purple',
+          icon: 'dashboard',
+          tone: 'crypto',
+          keys: ['ENABLE_CONFIDENCE_CALIBRATION', 'AI_CALIBRATION_MARKETS'],
+          advancedKeys: [
             'AI_CALIBRATION_LOOKBACK_DAYS',
             'AI_CALIBRATION_MIN_SAMPLES'
+          ]
+        }
+      ]
+    },
+    tradingSectionDefinitions () {
+      return [
+        {
+          key: 'agentPermission',
+          title: this.$t('settings.trading.agentPermissionSection'),
+          description: this.$t('settings.trading.agentPermissionSectionDesc'),
+          badge: this.$t('settings.trading.agentPermissionBadge'),
+          badgeColor: 'orange',
+          icon: 'safety-certificate',
+          tone: 'futures',
+          keys: ['AGENT_LIVE_TRADING_ENABLED'],
+          advancedKeys: []
+        },
+        {
+          key: 'makerDefaults',
+          title: this.$t('settings.trading.executionSection'),
+          description: this.$t('settings.trading.executionSectionDesc'),
+          badge: this.$t('settings.trading.executionBadge'),
+          badgeColor: 'blue',
+          icon: 'swap',
+          tone: 'shared',
+          keys: ['MAKER_WAIT_SEC', 'MAKER_OFFSET_BPS'],
+          advancedKeys: []
+        }
+      ]
+    },
+    securitySectionDefinitions () {
+      return [
+        {
+          key: 'mfa',
+          title: this.$t('settings.security.section.mfa'),
+          description: this.$t('settings.security.section.mfaDesc'),
+          badge: this.$t('settings.security.badge.userOptIn'),
+          badgeColor: 'green',
+          icon: 'safety-certificate',
+          tone: 'shared',
+          keys: ['MFA_ENABLED', 'MFA_RISK_LOGIN_ONLY'],
+          advancedKeys: ['MFA_CHALLENGE_EXPIRE_MINUTES', 'MFA_MAX_ATTEMPTS']
+        },
+        {
+          key: 'turnstile',
+          title: this.$t('settings.security.section.turnstile'),
+          description: this.$t('settings.security.section.turnstileDesc'),
+          badge: this.$t('settings.research.badge.optional'),
+          badgeColor: 'cyan',
+          icon: 'robot',
+          tone: 'macro',
+          keys: ['TURNSTILE_SITE_KEY', 'TURNSTILE_SECRET_KEY'],
+          advancedKeys: []
+        },
+        {
+          key: 'redirects',
+          title: this.$t('settings.security.section.redirects'),
+          description: this.$t('settings.security.section.redirectsDesc'),
+          icon: 'link',
+          tone: 'shared',
+          keys: ['FRONTEND_URL'],
+          advancedKeys: ['OAUTH_ALLOWED_REDIRECTS', 'OAUTH_STATE_TTL_MINUTES']
+        },
+        {
+          key: 'google',
+          title: this.$t('settings.security.section.google'),
+          description: this.$t('settings.security.section.googleDesc'),
+          badge: this.$t('settings.research.badge.optional'),
+          badgeColor: 'blue',
+          icon: 'google',
+          tone: 'us',
+          keys: ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'],
+          advancedKeys: ['GOOGLE_REDIRECT_URI']
+        },
+        {
+          key: 'github',
+          title: this.$t('settings.security.section.github'),
+          description: this.$t('settings.security.section.githubDesc'),
+          badge: this.$t('settings.research.badge.optional'),
+          badgeColor: 'default',
+          icon: 'github',
+          tone: 'default',
+          keys: ['GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET'],
+          advancedKeys: ['GITHUB_REDIRECT_URI']
+        },
+        {
+          key: 'loginProtection',
+          title: this.$t('settings.security.section.loginProtection'),
+          description: this.$t('settings.security.section.loginProtectionDesc'),
+          badge: this.$t('settings.research.badge.recommended'),
+          badgeColor: 'green',
+          icon: 'lock',
+          tone: 'futures',
+          keys: ['SECURITY_IP_MAX_ATTEMPTS', 'SECURITY_ACCOUNT_MAX_ATTEMPTS'],
+          advancedKeys: [
+            'SECURITY_IP_WINDOW_MINUTES',
+            'SECURITY_IP_BLOCK_MINUTES',
+            'SECURITY_ACCOUNT_WINDOW_MINUTES',
+            'SECURITY_ACCOUNT_BLOCK_MINUTES'
+          ]
+        },
+        {
+          key: 'verificationCodes',
+          title: this.$t('settings.security.section.verificationCodes'),
+          description: this.$t('settings.security.section.verificationCodesDesc'),
+          badge: this.$t('settings.research.badge.recommended'),
+          badgeColor: 'green',
+          icon: 'mail',
+          tone: 'crypto',
+          keys: ['VERIFICATION_CODE_EXPIRE_MINUTES', 'VERIFICATION_CODE_RATE_LIMIT'],
+          advancedKeys: [
+            'VERIFICATION_CODE_IP_HOURLY_LIMIT',
+            'VERIFICATION_CODE_MAX_ATTEMPTS',
+            'VERIFICATION_CODE_LOCK_MINUTES'
           ]
         }
       ]
@@ -2299,6 +2753,17 @@ export default {
       if (item && item.key === 'LLM_PROVIDER') {
         this.selectedLlmProvider = value || 'openrouter'
       }
+      if (item && item.key === 'SEARCH_PROVIDER') {
+        this.selectedSearchProvider = value || 'tavily'
+      }
+    },
+    onAiSectionSwitchChange (key, value) {
+      if (key === 'JEV_ENABLED') {
+        this.jevEnabled = value
+      }
+      if (key === 'ENABLE_AI_ENSEMBLE') {
+        this.ensembleEnabled = value
+      }
     },
     normalizeRouteSection (value) {
       const key = String(value || '').toLowerCase()
@@ -2348,10 +2813,11 @@ export default {
     async loadSettings () {
       this.loading = true
       try {
-        const [schemaRes, valuesRes, marketModulesRes] = await Promise.all([
+        const [schemaRes, valuesRes, marketModulesRes, reportSourcesRes] = await Promise.all([
           getSettingsSchema(),
           getSettingsValues(),
-          getMarketModules().catch(() => null)
+          getMarketModules().catch(() => null),
+          getProfessionalReportDataSources().catch(() => null)
         ])
 
         if (schemaRes.code === 1) {
@@ -2361,10 +2827,19 @@ export default {
         if (valuesRes.code === 1) {
           this.values = valuesRes.data
           this.selectedLlmProvider = (this.values.ai && this.values.ai.LLM_PROVIDER) || 'openrouter'
+          this.selectedSearchProvider = (this.values.search && this.values.search.SEARCH_PROVIDER) || 'tavily'
+          this.jevEnabled = this.getBoolValue('ai', 'JEV_ENABLED', true)
+          this.ensembleEnabled = this.getBoolValue('ai', 'ENABLE_AI_ENSEMBLE', false)
+          this.referralProgramEnabled = this.getBoolValue('billing', 'REFERRAL_PROGRAM_ENABLED', false)
         }
 
         if (marketModulesRes && marketModulesRes.code === 1 && marketModulesRes.data) {
           this.marketModules = marketModulesRes.data.markets || []
+        }
+
+        if (reportSourcesRes && reportSourcesRes.code === 1 && reportSourcesRes.data) {
+          this.reportDataSources = reportSourcesRes.data.items || []
+          this.reportDataSourcesLoaded = true
         }
 
         // After a fresh load: if no group has been picked yet (first mount)
@@ -2408,7 +2883,7 @@ export default {
         contact: 'customer-service',
         social: 'team',
         legal: 'safety-certificate',
-        auth: 'lock',
+        auth: 'user',
         email: 'mail',
         sms: 'phone',
         network: 'global',
@@ -2418,6 +2893,8 @@ export default {
         strategy_runtime: 'cluster',
         market_modules: 'appstore',
         data_source: 'database',
+        macro_tools: 'global',
+        market_intelligence: 'radar-chart',
         search: 'search',
         agent: 'experiment',
         security: 'safety',
@@ -2655,6 +3132,7 @@ export default {
             data[groupKey] = {}
             const group = this.schema[groupKey]
             for (const item of group.items) {
+              if (item.readonly) continue
               if (item.key in formValues) {
                 let value = formValues[item.key]
                 if (item.type === 'password' && !value && this.isSecretConfigured(groupKey, item.key)) {
@@ -2680,7 +3158,14 @@ export default {
               this.showRestartTip = true
             }
             this.loadSettings()
-            const featureKeys = ['BILLING_ENABLED', 'MARKETPLACE_ENABLED', 'ENABLE_REGISTRATION']
+            const featureKeys = [
+              'BILLING_ENABLED',
+              'MARKETPLACE_ENABLED',
+              'ENABLE_REGISTRATION',
+              'BROKER_ACCOUNTS_ENABLED',
+              'LIVE_TRADING_ENABLED',
+              'AGENT_GATEWAY_ENABLED'
+            ]
             const updatedKeys = (res.data && res.data.updated_keys) || []
             if (updatedKeys.some(key => featureKeys.includes(key))) {
               await this.$store.dispatch('LoadFeatureConfig', { force: true }).catch(() => {})
@@ -2908,34 +3393,76 @@ export default {
       &.subsection-forex { border-left-color: #52c41a; }
     }
 
-    .research-data-intro {
-      margin-bottom: 18px;
-      border-radius: 8px;
+    .report-source-status {
+      margin-bottom: 20px;
+      padding: 16px;
+      border: 1px solid #d9f7be;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #f6ffed 0%, #fff 62%);
     }
 
-    .research-market-map {
+    .report-source-status-head {
       display: flex;
-      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+
+      strong {
+        color: #1f2937;
+        font-size: 14px;
+      }
+
+      p {
+        margin: 4px 0 0;
+        color: #64748b;
+        font-size: 12px;
+        line-height: 1.6;
+      }
+    }
+
+    .report-source-metrics {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .report-source-metric {
+      display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 10px 16px;
-      margin-bottom: 18px;
-      padding: 12px 14px;
+      gap: 12px;
+      padding: 10px 12px;
       border: 1px solid #e2e8f0;
       border-radius: 8px;
-      background: #fff;
+      background: rgba(255, 255, 255, 0.78);
+
+      span {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        color: #64748b;
+        font-size: 12px;
+
+        small {
+          margin-top: 2px;
+          color: #94a3b8;
+          font-size: 10px;
+          line-height: 1.4;
+        }
+      }
+
+      strong {
+        color: #0f766e;
+        font-size: 15px;
+      }
     }
 
-    .research-market-map-label {
-      color: #334155;
-      font-size: 13px;
-      font-weight: 600;
-    }
-
-    .research-market-tags {
+    .report-source-provider-list {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
+      margin-top: 12px;
 
       .ant-tag {
         margin: 0;
@@ -2966,32 +3493,36 @@ export default {
   }
 
   .commercial-license-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
     margin-top: 24px;
+    padding: 16px 18px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #fafafa;
+
+    .license-icon {
+      margin-top: 3px;
+      color: #6b7280;
+      font-size: 18px;
+    }
 
     .license-body {
-      margin-top: 4px;
-      line-height: 1.7;
-      color: #5c4a16;
+      min-width: 0;
+      color: #6b7280;
+      line-height: 1.65;
+
+      strong {
+        display: block;
+        margin-bottom: 4px;
+        color: #252525;
+        font-size: 14px;
+      }
 
       p {
-        margin: 0 0 8px 0;
+        margin: 0 0 6px;
       }
-
-      p:last-child {
-        margin-bottom: 0;
-      }
-    }
-
-    .license-contact {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 8px;
-      font-size: 13px;
-    }
-
-    .contact-label {
-      font-weight: 600;
     }
 
     .contact-link {
@@ -3056,9 +3587,44 @@ export default {
   }
 
   .ai-settings-panel {
-    .ai-provider-alert {
+    .ai-provider-status {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-height: 42px;
       margin-bottom: 20px;
-      border-radius: 8px;
+      padding: 9px 12px;
+      border: 1px solid #dbeafe;
+      border-radius: 9px;
+      background: #f8fbff;
+      color: #334155;
+      font-size: 13px;
+
+      .ai-provider-status-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 22px;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #e6f7ff;
+        color: #08979c;
+      }
+
+      strong {
+        color: #1e3a5f;
+        white-space: nowrap;
+      }
+
+      .ant-tag {
+        margin: 0;
+      }
+
+      .ai-provider-status-copy {
+        min-width: 0;
+        color: #64748b;
+      }
     }
 
     .ai-settings-section {
@@ -3077,6 +3643,7 @@ export default {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
+      flex-wrap: wrap;
       gap: 16px;
       margin-bottom: 14px;
       padding-bottom: 12px;
@@ -3191,20 +3758,23 @@ export default {
       width: 100%;
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
+      gap: 10px;
     }
 
     .market-module-row {
-      min-height: 132px;
-      padding: 14px;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-      background: #f8fafc;
-      transition: border-color 0.2s, background 0.2s;
+      min-height: 136px;
+      padding: 14px 15px;
+      border: 1px solid #e7e7e7;
+      border-radius: 10px;
+      background: #fff;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.025);
+      transition: border-color 0.2s, background 0.2s, box-shadow 0.2s, transform 0.2s;
 
       &:hover {
-        border-color: rgba(24, 144, 255, 0.45);
-        background: #ffffff;
+        border-color: rgba(19, 194, 194, 0.46);
+        background: #fdfefe;
+        box-shadow: 0 7px 18px rgba(15, 23, 42, 0.055);
+        transform: translateY(-1px);
       }
     }
 
@@ -3217,7 +3787,7 @@ export default {
     }
 
     .market-module-label {
-      color: #1e3a5f;
+      color: #1f2937;
       font-weight: 700;
     }
 
@@ -3233,7 +3803,7 @@ export default {
       flex-wrap: wrap;
       gap: 8px;
       margin-top: 8px;
-      color: #475569;
+      color: #6b7280;
       font-size: 12px;
     }
 
@@ -3272,8 +3842,65 @@ export default {
       }
     }
 
-    .trading-venue-alert {
-      margin-bottom: 14px;
+    .market-settings-layout {
+      align-items: flex-start;
+    }
+
+    .market-modules-column,
+    .trading-venues-column {
+      ::v-deep .ant-form-item-label {
+        padding-bottom: 9px;
+      }
+
+      ::v-deep .ant-form-item-label > label {
+        color: #374151;
+        font-size: 13px;
+        font-weight: 700;
+      }
+    }
+
+    .trading-venue-notice {
+      display: flex;
+      align-items: flex-start;
+      gap: 11px;
+      margin-bottom: 18px;
+      padding: 12px 14px;
+      border: 1px solid #e7e7e7;
+      border-left: 3px solid #13c2c2;
+      border-radius: 8px;
+      background: #fafafa;
+    }
+
+    .trading-venue-notice-icon {
+      display: inline-flex;
+      width: 28px;
+      height: 28px;
+      flex: 0 0 28px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      color: #08979c;
+      background: rgba(19, 194, 194, 0.1);
+      font-size: 14px;
+    }
+
+    .trading-venue-notice-copy {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      gap: 3px;
+
+      strong {
+        color: #27313d;
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      small {
+        color: #687386;
+        font-size: 11px;
+        line-height: 1.55;
+      }
     }
 
     .trading-venue-selector {
@@ -3281,14 +3908,28 @@ export default {
     }
 
     .trading-venue-group + .trading-venue-group {
-      margin-top: 18px;
+      margin-top: 20px;
+    }
+
+    .trading-venue-group-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
     }
 
     .trading-venue-group h4 {
-      margin: 0 0 10px;
+      margin: 0;
       color: #334155;
       font-size: 13px;
       font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .trading-venue-group-line {
+      height: 1px;
+      flex: 1;
+      background: #ececec;
     }
 
     .trading-venue-grid {
@@ -3300,20 +3941,22 @@ export default {
     .trading-venue-card {
       display: flex;
       min-width: 0;
-      min-height: 76px;
+      min-height: 78px;
       align-items: center;
       gap: 11px;
-      padding: 12px;
-      border: 1px solid #e2e8f0;
+      padding: 12px 13px;
+      border: 1px solid #e7e7e7;
       border-radius: 10px;
-      background: #f8fafc;
+      background: #fff;
       cursor: pointer;
-      transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.025);
+      transition: border-color 0.2s, background 0.2s, box-shadow 0.2s, transform 0.2s;
 
       &:hover {
-        border-color: color-mix(in srgb, var(--primary-color, #1890ff) 48%, #e2e8f0);
-        background: #fff;
-        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+        border-color: rgba(19, 194, 194, 0.46);
+        background: #fdfefe;
+        box-shadow: 0 7px 18px rgba(15, 23, 42, 0.055);
+        transform: translateY(-1px);
       }
     }
 
@@ -3336,6 +3979,20 @@ export default {
         color: #64748b;
         font-size: 11px;
         line-height: 1.4;
+      }
+    }
+
+    .ai-section-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 9px;
+      flex: 0 0 auto;
+      color: #64748b;
+      font-size: 12px;
+
+      .ant-tag {
+        margin: 0;
       }
     }
   }
@@ -3370,12 +4027,18 @@ export default {
     }
 
     .commercial-license-notice {
+      border-color: rgba(255, 255, 255, 0.1);
+      background: #1b1b1b;
+
+      .license-icon { color: #8c8c8c; }
       .license-body {
-        color: #f0d97a;
+        color: #a3a3a3;
+
+        strong { color: #e5e5e5; }
       }
       .contact-link {
-        color: #69c0ff;
-        &:hover { color: #91d5ff; }
+        color: var(--primary-color, #13c2c2);
+        &:hover { color: var(--primary-color-active, #36cfc9); }
       }
     }
 
@@ -3458,13 +4121,36 @@ export default {
         }
       }
 
-      .research-market-map {
-        border-color: rgba(255, 255, 255, 0.1);
-        background: #202020;
+      .report-source-status {
+        border-color: rgba(82, 196, 26, 0.24);
+        background: linear-gradient(135deg, rgba(82, 196, 26, 0.1) 0%, #202020 62%);
       }
 
-      .research-market-map-label {
-        color: #c9d1d9;
+      .report-source-status-head {
+        strong {
+          color: #e6edf3;
+        }
+
+        p {
+          color: #8b949e;
+        }
+      }
+
+      .report-source-metric {
+        border-color: rgba(255, 255, 255, 0.1);
+        background: rgba(20, 20, 20, 0.72);
+
+        span {
+          color: #8b949e;
+
+          small {
+            color: #6e7681;
+          }
+        }
+
+        strong {
+          color: #7ee787;
+        }
       }
 
       .advanced-settings-toggle {
@@ -3478,6 +4164,25 @@ export default {
     }
 
     .ai-settings-panel {
+      .ai-provider-status {
+        border-color: rgba(24, 144, 255, 0.28);
+        background: rgba(24, 144, 255, 0.08);
+        color: #c9d1d9;
+
+        .ai-provider-status-icon {
+          background: rgba(19, 194, 194, 0.16);
+          color: #5cdbd3;
+        }
+
+        strong {
+          color: #e0e6ed;
+        }
+
+        .ai-provider-status-copy {
+          color: #8b949e;
+        }
+      }
+
       .ai-settings-section {
         background: #141414;
         border-color: #2a2a2a;
@@ -3494,6 +4199,10 @@ export default {
           color: #8b949e;
         }
       }
+
+      .ai-section-actions {
+        color: #8b949e;
+      }
     }
 
     ::v-deep .ant-alert-info {
@@ -3505,20 +4214,6 @@ export default {
     ::v-deep .ant-alert-info .ant-alert-message,
     ::v-deep .ant-alert-info .ant-alert-description {
       color: rgba(255, 255, 255, 0.82) !important;
-    }
-
-    ::v-deep .research-data-intro.ant-alert-success {
-      border-color: rgba(82, 196, 26, 0.34) !important;
-      background: rgba(82, 196, 26, 0.09) !important;
-    }
-
-    ::v-deep .research-data-intro.ant-alert-success .ant-alert-icon,
-    ::v-deep .research-data-intro.ant-alert-success .ant-alert-message {
-      color: #7ee787 !important;
-    }
-
-    ::v-deep .research-data-intro.ant-alert-success .ant-alert-description {
-      color: #a9cdb8 !important;
     }
 
     .settings-form {
@@ -3594,12 +4289,14 @@ export default {
       }
 
       .market-module-row {
-        background: #161b22;
-        border-color: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.09);
+        background: #141414;
+        box-shadow: none;
 
         &:hover {
-          border-color: color-mix(in srgb, var(--primary-color, #1890ff) 45%, transparent);
-          background: #1f2630;
+          border-color: rgba(19, 194, 194, 0.48);
+          background: #171919;
+          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.22);
         }
       }
 
@@ -3634,18 +4331,46 @@ export default {
         }
       }
 
+      .market-modules-column,
+      .trading-venues-column {
+        ::v-deep .ant-form-item-label > label {
+          color: #d6d9de;
+        }
+      }
+
+      .trading-venue-notice {
+        border-color: rgba(255, 255, 255, 0.09);
+        border-left-color: #13c2c2;
+        background: #141414;
+      }
+
+      .trading-venue-notice-icon {
+        color: #36cfc9;
+        background: rgba(19, 194, 194, 0.12);
+      }
+
+      .trading-venue-notice-copy {
+        strong { color: #e4e7eb; }
+        small { color: #8f98a5; }
+      }
+
       .trading-venue-group h4 {
-        color: #c9d1d9;
+        color: #cfd4da;
+      }
+
+      .trading-venue-group-line {
+        background: rgba(255, 255, 255, 0.08);
       }
 
       .trading-venue-card {
         border-color: rgba(255, 255, 255, 0.09);
-        background: #161b22;
+        background: #141414;
+        box-shadow: none;
 
         &:hover {
-          border-color: color-mix(in srgb, var(--primary-color, #1890ff) 48%, transparent);
-          background: #1f2630;
-          box-shadow: none;
+          border-color: rgba(19, 194, 194, 0.48);
+          background: #171919;
+          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.22);
         }
       }
 
@@ -3684,6 +4409,10 @@ export default {
       grid-template-columns: 1fr;
     }
 
+    .market-module-grid {
+      grid-template-columns: 1fr;
+    }
+
     .settings-detail {
       padding: 16px;
     }
@@ -3708,25 +4437,112 @@ export default {
     h4 { margin: 0 0 6px; font-size: 16px; color: #1f2937; }
     p { margin: 0; color: #8c8c8c; }
   }
-
-  .catalog-stats {
-    margin: 20px 0 24px;
-
-    ::v-deep .ant-statistic {
-      min-height: 96px;
-      padding: 14px 16px;
-      background: #f8fafc;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-    }
+  .catalog-page-header { align-items: center; margin-bottom: 20px; }
+  .catalog-heading-copy { max-width: 720px; }
+  .catalog-header-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 16px; }
+  .catalog-last-sync {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    span { color: #8c8c8c; font-size: 11px; }
+    strong { color: #4b5563; font-size: 12px; font-weight: 600; }
   }
-  .catalog-section-title { margin: 22px 0 10px; font-weight: 600; }
+  .catalog-health-card {
+    display: grid;
+    grid-template-columns: minmax(260px, 1.4fr) minmax(360px, 1fr);
+    gap: 24px;
+    padding: 18px 20px;
+    border: 1px solid #dbe3ed;
+    border-left: 4px solid #94a3b8;
+    border-radius: 10px;
+    background: #f8fafc;
+  }
+  .catalog-health-card.is-success { border-left-color: #22a06b; background: #f5fbf7; }
+  .catalog-health-card.is-info { border-left-color: #1677ff; background: #f5f9ff; }
+  .catalog-health-card.is-warning { border-left-color: #d97706; background: #fffaf0; }
+  .catalog-health-card.is-error { border-left-color: #dc2626; background: #fff7f7; }
+  .catalog-health-summary { display: flex; min-width: 0; align-items: flex-start; gap: 13px; }
+  .catalog-health-summary > div { min-width: 0; }
+  .catalog-health-summary strong { display: block; margin: 1px 0 4px; color: #1f2937; font-size: 15px; }
+  .catalog-health-summary p { margin: 0; color: #667085; font-size: 12px; line-height: 1.6; }
+  .catalog-health-icon {
+    display: inline-flex;
+    width: 34px;
+    height: 34px;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #e2e8f0;
+    color: #64748b;
+    font-size: 17px;
+  }
+  .is-success .catalog-health-icon { background: #dcfce7; color: #15803d; }
+  .is-info .catalog-health-icon { background: #dbeafe; color: #1677ff; }
+  .is-warning .catalog-health-icon { background: #fef3c7; color: #b45309; }
+  .is-error .catalog-health-icon { background: #fee2e2; color: #dc2626; }
+  .catalog-health-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: center;
+    gap: 10px;
+  }
+  .catalog-health-metrics > div {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 3px;
+    padding-left: 14px;
+    border-left: 1px solid #dbe3ed;
+  }
+  .catalog-health-metrics span { overflow: hidden; color: #7b8794; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+  .catalog-health-metrics strong { color: #1f2937; font-size: 19px; line-height: 1.2; }
+  .catalog-health-metrics .has-failures strong { color: #d97706; }
+  .catalog-content-section {
+    margin-top: 18px;
+    padding: 18px;
+    border: 1px solid #e5eaf0;
+    border-radius: 10px;
+    background: #fff;
+  }
+  .catalog-section-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 14px;
+    h5 { margin: 0 0 4px; color: #1f2937; font-size: 14px; }
+    p { margin: 0; color: #8c8c8c; font-size: 12px; }
+  }
+  .catalog-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .catalog-summary-item {
+    display: flex;
+    min-width: 0;
+    min-height: 82px;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 13px 14px;
+    border: 1px solid #edf0f4;
+    border-radius: 8px;
+    background: #fafbfc;
+    span { color: #7b8794; font-size: 11px; }
+    strong { color: #243247; font-size: 20px; line-height: 1; }
+  }
+  .catalog-summary-item-primary { background: #f5f9ff; border-color: #d8e7fb; }
   .catalog-table-wrap { overflow-x: auto; }
   .catalog-table {
     width: 100%;
     border-collapse: collapse;
-    th, td { padding: 11px 14px; text-align: left; border-bottom: 1px solid #f0f0f0; }
-    th { color: #8c8c8c; font-weight: 500; background: #fafafa; }
+    th, td { padding: 11px 12px; text-align: left; border-bottom: 1px solid #edf0f4; }
+    th { color: #7b8794; font-size: 11px; font-weight: 600; background: #f8fafc; white-space: nowrap; }
+    td { color: #4b5563; font-size: 12px; }
+    tbody tr:last-child td { border-bottom: 0; }
   }
   .catalog-market-grid {
     display: grid;
@@ -3737,18 +4553,34 @@ export default {
     display: flex;
     justify-content: space-between;
     padding: 12px 14px;
-    border: 1px solid #f0f0f0;
-    border-radius: 6px;
-    background: #fff;
+    border: 1px solid #e5eaf0;
+    border-radius: 8px;
+    background: #fafbfc;
+    span { color: #667085; }
+    strong { color: #1f2937; }
   }
-  .catalog-failures { margin-top: 12px; }
+  .catalog-failure-panel {
+    margin-top: 18px;
+    padding: 17px 18px;
+    border: 1px solid #f3d09a;
+    border-radius: 10px;
+    background: #fffbf3;
+    .catalog-section-heading h5 { color: #92400e; }
+  }
+  .catalog-failure-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .catalog-failure-item {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    padding: 8px 0;
+    min-width: 0;
+    padding: 10px 12px;
+    border: 1px solid #f5dfbb;
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.7);
+    strong { color: #78350f; font-size: 12px; text-transform: capitalize; }
     span { color: #8c8c8c; word-break: break-word; }
   }
+  .catalog-section-divider { height: 1px; margin: 26px 0 20px; background: #edf0f4; }
   .universe-sync-list { display: flex; width: 100%; flex-direction: column; gap: 8px; }
   .universe-sync-capacity { margin-top: 4px; color: #8c8c8c; font-size: 12px; }
   .universe-sync-actions {
@@ -3802,14 +4634,37 @@ export default {
   color: #e6edf3;
 
   .catalog-action-row h4,
-  .catalog-section-title,
+  .catalog-section-heading h5,
   .catalog-table td,
   .catalog-market-item,
   .catalog-market-item strong,
-  .catalog-failure-item strong {
+  .catalog-health-summary strong,
+  .catalog-health-metrics strong,
+  .catalog-summary-item strong {
     color: #e6edf3;
   }
-
+  .catalog-last-sync strong { color: #c4ccd6; }
+  .catalog-health-card,
+  .catalog-health-card.is-success,
+  .catalog-health-card.is-info,
+  .catalog-health-card.is-warning,
+  .catalog-health-card.is-error {
+    border-color: rgba(255, 255, 255, 0.11);
+    border-left-color: #65758b;
+    background: #17191c;
+  }
+  .catalog-health-card.is-success { border-left-color: #3fb950; }
+  .catalog-health-card.is-info { border-left-color: #58a6ff; }
+  .catalog-health-card.is-warning { border-left-color: #d29922; }
+  .catalog-health-card.is-error { border-left-color: #f85149; }
+  .catalog-health-summary p,
+  .catalog-health-metrics span,
+  .catalog-summary-item span,
+  .catalog-section-heading p { color: #8b949e; }
+  .catalog-health-metrics > div { border-left-color: rgba(255, 255, 255, 0.1); }
+  .catalog-content-section { border-color: rgba(255, 255, 255, 0.1); background: #121416; }
+  .catalog-summary-item { border-color: rgba(255, 255, 255, 0.08); background: #181b1f; }
+  .catalog-summary-item-primary { border-color: rgba(88, 166, 255, 0.22); background: #141c25; }
   .catalog-table th {
     color: #9da7b3;
     background: #181818;
@@ -3820,58 +4675,18 @@ export default {
   .catalog-market-item { border-color: rgba(255, 255, 255, 0.1); }
   .catalog-market-item { background: #141414; }
   .catalog-action-row p { color: #8b949e; }
-  .catalog-failure-item span { color: #9da7b3; }
+  .catalog-failure-panel { border-color: rgba(210, 153, 34, 0.35); background: #211c12; }
+  .catalog-failure-panel .catalog-section-heading h5,
+  .catalog-failure-item strong { color: #e3b341; }
+  .catalog-failure-item { border-color: rgba(210, 153, 34, 0.24); background: #181713; }
+  .catalog-failure-item span { color: #b7aa8a; }
+  .catalog-section-divider { background: rgba(255, 255, 255, 0.1); }
   .universe-sync-row { border-color: rgba(255, 255, 255, 0.1); background: #141414; }
   .universe-sync-row strong { color: #e6edf3; }
   .universe-sync-row span { color: #8b949e; }
   .universe-sync-capacity,
   .universe-sync-actions label > span { color: #8b949e; }
 
-  ::v-deep .catalog-stats .ant-statistic {
-    background: #141414;
-    border-color: rgba(255, 255, 255, 0.1);
-  }
-  ::v-deep .catalog-stats .ant-statistic-title { color: #9da7b3; }
-  ::v-deep .catalog-stats .ant-statistic-content { color: #f0f3f6; }
-
-  ::v-deep .ant-alert-warning {
-    background: #2b2517;
-    border-color: #66501d;
-  }
-  ::v-deep .ant-alert-warning .ant-alert-icon { color: #f0b429; }
-  ::v-deep .ant-alert-warning .ant-alert-message { color: #f6d675; }
-  ::v-deep .ant-alert-warning .ant-alert-description { color: #c9bd98; }
-  ::v-deep .ant-alert-success {
-    background: #132a20;
-    border-color: #245c3c;
-  }
-  ::v-deep .ant-alert-success .ant-alert-message { color: #7ee2a8; }
-  ::v-deep .ant-alert-success .ant-alert-description { color: #a9cdb8; }
-  ::v-deep .ant-alert-error {
-    background: #301a1c;
-    border-color: #713339;
-  }
-  ::v-deep .ant-alert-error .ant-alert-message { color: #ff9aa2; }
-  ::v-deep .ant-alert-error .ant-alert-description { color: #d8a4a8; }
-  ::v-deep .ant-alert-info {
-    background: #142536;
-    border-color: #28547a;
-  }
-  ::v-deep .ant-alert-info .ant-alert-message { color: #79c0ff; }
-  ::v-deep .ant-alert-info .ant-alert-description { color: #a9c7df; }
-
-  ::v-deep .catalog-failures.ant-collapse {
-    color: #e6edf3;
-    background: #141414;
-    border-color: rgba(255, 255, 255, 0.1);
-  }
-  ::v-deep .catalog-failures .ant-collapse-item { border-color: rgba(255, 255, 255, 0.1); }
-  ::v-deep .catalog-failures .ant-collapse-header { color: #d8dee4; }
-  ::v-deep .catalog-failures .ant-collapse-content {
-    color: #d8dee4;
-    background: #101010;
-    border-color: rgba(255, 255, 255, 0.1);
-  }
   ::v-deep .system-universe-form label > span { color: #b8c0cc; }
 }
 
@@ -3879,8 +4694,13 @@ export default {
   .market-catalog-panel {
     .catalog-action-row { flex-direction: column; }
     .catalog-action-row .ant-btn { width: 100%; }
+    .catalog-header-actions { width: 100%; flex-direction: column; align-items: stretch; }
+    .catalog-last-sync { align-items: flex-start; }
+    .catalog-health-card { grid-template-columns: 1fr; }
+    .catalog-health-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .catalog-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .catalog-failure-grid { grid-template-columns: 1fr; }
     .universe-sync-actions { width: 100%; align-items: stretch; flex-direction: column; }
-    .catalog-stats ::v-deep .ant-statistic { margin-bottom: 12px; }
     .universe-sync-row { grid-template-columns: 24px minmax(0, 1fr) auto; }
     .universe-sync-row > div:not(.universe-sync-name):not(.universe-row-actions) { display: none; }
     .system-universe-form .system-universe-form-grid { grid-template-columns: 1fr; }
@@ -3889,33 +4709,91 @@ export default {
 
 .billing-plan-manager {
   margin-bottom: 20px;
-  background: color-mix(in srgb, var(--primary-color, #1890ff) 3%, #fff);
+  background: #fff;
 
-  .billing-plan-table-wrap {
-    overflow-x: auto;
+  .billing-card-description {
+    margin: 0 0 16px;
+    color: var(--qd-text-muted, #6b7280);
+    line-height: 1.6;
+  }
+  .billing-plan-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
     margin-top: 14px;
   }
-  .billing-plan-table {
-    width: 100%;
-    min-width: 1120px;
-    border-collapse: collapse;
-    th, td { padding: 8px 6px; border-bottom: 1px solid #edf0f4; vertical-align: top; }
-    th { color: #697386; font-size: 12px; font-weight: 600; text-align: left; }
-    .ant-input-number { width: 112px; }
+  .billing-plan-card {
+    min-width: 0;
+    padding: 16px;
+    border: 1px solid #e7ebf0;
+    border-radius: 10px;
+    background: #fafafa;
   }
-  .plan-flags {
-    min-width: 100px;
-    .ant-checkbox-wrapper { display: block; margin: 0 0 4px; }
+  .billing-plan-card-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
   }
-  .plan-copy-cell {
-    min-width: 180px;
-    .ant-input + .ant-input { margin-top: 6px; }
+  .billing-plan-code { width: 150px; }
+  .billing-plan-card-badges {
+    display: flex;
+    flex: 1;
+    flex-wrap: wrap;
+    gap: 4px;
+    min-width: 0;
+  }
+  .billing-plan-copy {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .billing-plan-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+
+    label { min-width: 0; }
+    label > span {
+      display: block;
+      min-height: 34px;
+      margin-bottom: 5px;
+      color: #697386;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    .ant-input,
+    .ant-input-number { width: 100%; }
+  }
+  .billing-plan-flags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid #edf0f4;
+
+    .ant-checkbox-wrapper { margin-left: 0; }
   }
   .plan-remove { color: #ff4d4f; }
   .billing-plan-actions { display: flex; justify-content: flex-end; margin-top: 14px; }
 }
 
 .referral-settings-form { margin-top: 16px; }
+.referral-dependent-settings {
+  padding-top: 14px;
+  border-top: 1px solid var(--qd-border-color, #edf0f4);
+}
+.referral-disabled-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--primary-color, #1890ff) 5%, transparent);
+  color: var(--qd-text-muted, #6b7280);
+}
+.deployment-only-tag { margin-left: 8px; }
 .referral-level-cap {
   margin-left: 8px;
   border-color: color-mix(in srgb, var(--primary-color, #1890ff) 30%, transparent);
@@ -3937,7 +4815,7 @@ export default {
 }
 
 .theme-dark .billing-plan-manager {
-  background: #171a1f;
+  background: #181818;
   color: #e6edf3;
 
   ::v-deep .ant-card-head {
@@ -3952,7 +4830,7 @@ export default {
   ::v-deep .ant-input,
   ::v-deep .ant-input-number {
     color: #e6edf3;
-    background: #101318;
+    background: #151515;
     border-color: rgba(255, 255, 255, 0.16);
   }
   ::v-deep .ant-input-number-input {
@@ -3966,7 +4844,7 @@ export default {
   ::v-deep .ant-input[disabled],
   ::v-deep .ant-input-number-disabled {
     color: #8b949e;
-    background: #20242a;
+    background: #242424;
   }
   ::v-deep .ant-alert-info {
     background: color-mix(in srgb, var(--primary-color, #1890ff) 9%, #11151a);
@@ -3978,9 +4856,32 @@ export default {
   .referral-rate-help {
     color: #9da7b3 !important;
   }
-  .billing-plan-table {
-    th { color: #9da7b3; }
-    td { border-color: rgba(255, 255, 255, 0.1); }
+  .billing-card-description,
+  .billing-plan-metrics label > span,
+  .referral-disabled-note { color: #9da7b3; }
+  .billing-plan-card {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: #121212;
+  }
+  .billing-plan-flags,
+  .referral-dependent-settings {
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  .referral-disabled-note {
+    background: rgba(255, 255, 255, 0.04);
+  }
+}
+
+@media (max-width: 1180px) {
+  .billing-plan-manager {
+    .billing-plan-grid { grid-template-columns: 1fr; }
+  }
+}
+
+@media (max-width: 640px) {
+  .billing-plan-manager {
+    .billing-plan-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .billing-plan-code { width: 120px; }
   }
 }
 

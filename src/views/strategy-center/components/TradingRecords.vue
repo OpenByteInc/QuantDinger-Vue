@@ -201,6 +201,14 @@ export default {
     hasCostSummary () {
       return !!this.costSummary
     },
+    showExchangePnlColumn () {
+      if (!this.records.length) return true
+      const hiddenStatuses = new Set(['not_applicable', 'not_applicable_spot', 'unsupported'])
+      return !this.records.every(record => {
+        const status = record && record.exchange_pnl && record.exchange_pnl.status
+        return hiddenStatuses.has(String(status || '').toLowerCase())
+      })
+    },
     costSummaryItems () {
       const summary = this.costSummary || {}
       const funding = Number(summary.funding_payment || 0)
@@ -279,30 +287,30 @@ export default {
           scopedSlots: { customRender: 'grid_matched_profit' }
         })
       }
-      cols.push(
-        {
+      cols.push({
           title: this.$t('trading-assistant.table.commission'),
           dataIndex: 'commission',
           key: 'commission',
           width: 120,
           scopedSlots: { customRender: 'commission' }
-        },
-        {
+        })
+      if (this.showExchangePnlColumn) {
+        cols.push({
           title: this.$t('trading-assistant.execution.exchangePnl'),
           dataIndex: 'exchange_pnl',
           key: 'exchange_pnl',
           className: 'pnl-column',
           width: 170,
           scopedSlots: { customRender: 'exchange_pnl' }
-        },
-        {
+        })
+      }
+      cols.push({
           title: this.$t('trading-assistant.execution.qualitySummary'),
           dataIndex: 'reference_price',
           key: 'execution_quality',
           width: 160,
           scopedSlots: { customRender: 'execution_quality' }
-        }
-      )
+        })
       return cols
     }
   },
@@ -333,6 +341,9 @@ export default {
     },
     formatReportedPnl (report, record) {
       if (!report || report.status === 'not_applicable') return '--'
+      if (report.status === 'unsupported') {
+        return this.$t('trading-assistant.execution.reportUnsupported')
+      }
       if (report.status === 'not_applicable_spot') {
         return this.$t('trading-assistant.execution.spotPnlNotApplicable')
       }

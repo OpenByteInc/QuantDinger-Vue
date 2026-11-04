@@ -47,6 +47,7 @@
         <span class="hero-stat"><strong>{{ mode === 'factor' ? totalFactorHistoryCount : history.length }}</strong>{{ mode === 'factor' ? $t('strategyV2.factorResearch.runs') : $t('strategyV2.backtest.runs') }}</span>
         <a-tooltip :title="settingsVisible ? $t('backtestWorkbench.hideSettings') : $t('backtestWorkbench.advancedSettings')">
           <a-button
+            class="toolbar-icon-button"
             icon="control"
             :type="settingsVisible ? 'primary' : 'default'"
             :aria-label="settingsVisible ? $t('backtestWorkbench.hideSettings') : $t('backtestWorkbench.advancedSettings')"
@@ -68,12 +69,12 @@
         <section v-show="settingsVisible" class="panel config-panel">
           <div class="config-scroll">
             <section class="config-section config-section--source">
-              <div class="panel-heading config-section__heading">
+              <div class="panel-heading config-section__heading config-step-heading">
                 <div>
                   <span class="step-badge">1</span>
                   <h2>{{ mode === 'factor' ? $t('strategyV2.factorResearch.universeTitle') : $t('strategyV2.sourceTitle') }}</h2>
                 </div>
-                <a-tag v-if="mode === 'factor' ? selectedUniverse : manifest" class="theme-ready-tag">{{ $t('strategyV2.backtest.ready') }}</a-tag>
+                <a-tag v-if="mode === 'factor' ? selectedUniverse : manifest" class="theme-ready-tag config-step-heading__meta">{{ $t('strategyV2.backtest.ready') }}</a-tag>
               </div>
               <a-radio-group
                 v-if="mode === 'portfolio'"
@@ -161,7 +162,7 @@
             </section>
             <a-form layout="vertical">
               <section class="config-section config-section--runtime">
-                <div class="panel-heading config-section__heading">
+                <div class="panel-heading config-section__heading config-step-heading">
                   <div>
                     <span class="step-badge">2</span>
                     <h2>{{ mode === 'factor' ? $t('strategyV2.factorResearch.runtimeTitle') : $t('strategyV2.runtimeTitle') }}</h2>
@@ -233,12 +234,12 @@
               </section>
 
               <section v-if="mode === 'portfolio' && paramDefinitions.length" class="config-section params-section">
-                <div class="subheading config-section__heading">
+                <div class="panel-heading config-section__heading config-step-heading">
                   <div>
                     <span class="step-badge">3</span>
-                    <h3>{{ $t('backtest-center.codeParams') }}</h3>
+                    <h2>{{ $t('backtest-center.codeParams') }}</h2>
                   </div>
-                  <span>{{ $t('strategyV2.backtest.paramCount', { count: paramDefinitions.length }) }}</span>
+                  <span class="source-param-count config-step-heading__meta">{{ $t('strategyV2.backtest.paramCount', { count: paramDefinitions.length }) }}</span>
                 </div>
                 <div class="form-grid">
                   <a-form-item v-for="item in paramDefinitions" :key="item.name" :label="parameterLabel(item)">
@@ -272,16 +273,35 @@
                     <div v-if="parameterDescription(item)" class="param-description">{{ parameterDescription(item) }}</div>
                   </a-form-item>
                 </div>
-                <p class="section-hint">{{ $t('strategyBuilder.sourceContractHint') }}</p>
+                <div class="source-param-save-row">
+                  <a-popconfirm
+                    :title="$t('strategyV2.backtest.saveParamDefaultsConfirm', { count: sourceParamChangeCount })"
+                    :disabled="!canSaveSourceParams"
+                    :ok-text="$t('strategyV2.backtest.saveParamDefaultsConfirmAction')"
+                    :cancel-text="$t('common.cancel')"
+                    @confirm="saveSourceParams">
+                    <a-tooltip :title="sourceParamSaveDisabledReason">
+                      <span>
+                        <a-button
+                          type="primary"
+                          icon="save"
+                          :loading="savingSourceParams"
+                          :disabled="!canSaveSourceParams">
+                          {{ $t('strategyV2.backtest.saveParamDefaults') }}
+                        </a-button>
+                      </span>
+                    </a-tooltip>
+                  </a-popconfirm>
+                </div>
+                <p class="section-hint source-param-contract-hint">{{ $t('strategyBuilder.sourceContractHint') }}</p>
               </section>
 
               <section v-if="mode === 'factor'" class="config-section params-section factor-settings">
-                <div class="subheading config-section__heading">
+                <div class="panel-heading config-section__heading config-step-heading">
                   <div>
                     <span class="step-badge">3</span>
-                    <h3>{{ $t('strategyV2.factorResearch.settings') }}</h3>
+                    <h2>{{ $t('strategyV2.factorResearch.settings') }}</h2>
                   </div>
-                  <span>{{ $t('strategyV2.factorResearch.universeMode') }}</span>
                 </div>
                 <div class="factor-contract-note">
                   <a-icon type="info-circle" />
@@ -499,27 +519,37 @@
       :visible="historyVisible"
       :title="historyDrawerTitle"
       placement="right"
-      width="430"
+      width="460"
       :wrap-class-name="isDarkTheme ? 'backtest-history-drawer theme-dark' : 'backtest-history-drawer'"
       :destroy-on-close="false"
       @close="historyVisible = false"
     >
-      <a-radio-group
-        v-if="mode === 'factor'"
-        v-model="factorHistoryView"
-        class="factor-history-switch"
-        button-style="solid"
-        data-testid="factor-history-filter"
-      >
-        <a-radio-button value="all">{{ $t('strategyV2.factorResearch.historyAll') }} <b>{{ totalFactorHistoryCount }}</b></a-radio-button>
-        <a-radio-button value="single">{{ $t('strategyV2.factorResearch.historySingle') }} <b>{{ factorHistory.length }}</b></a-radio-button>
-        <a-radio-button value="benchmark">{{ $t('strategyV2.factorResearch.historyBenchmark') }} <b>{{ factorBenchmarkHistory.length }}</b></a-radio-button>
-      </a-radio-group>
-      <div class="drawer-history-header" data-testid="backtest-history">
-        <p>{{ historyDrawerDescription }}</p>
-        <a-button icon="reload" size="small" :loading="historyLoading" @click="refreshCurrentHistory">
-          {{ $t('backtest-center.refreshHistory') }}
-        </a-button>
+      <div class="drawer-history-toolbar" :class="{ 'drawer-history-toolbar--factor': mode === 'factor' }">
+        <a-radio-group
+          v-if="mode === 'factor'"
+          v-model="factorHistoryView"
+          class="factor-history-switch"
+          button-style="solid"
+          data-testid="factor-history-filter"
+        >
+          <a-radio-button value="all">{{ $t('strategyV2.factorResearch.historyAll') }} <b>{{ totalFactorHistoryCount }}</b></a-radio-button>
+          <a-radio-button value="single">{{ $t('strategyV2.factorResearch.historySingle') }} <b>{{ factorHistory.length }}</b></a-radio-button>
+          <a-radio-button value="benchmark">{{ $t('strategyV2.factorResearch.historyBenchmark') }} <b>{{ factorBenchmarkHistory.length }}</b></a-radio-button>
+        </a-radio-group>
+        <div class="drawer-history-header" data-testid="backtest-history">
+          <p>{{ historyDrawerDescription }}</p>
+          <a-tooltip :title="$t('backtest-center.refreshHistory')">
+            <a-button
+              class="drawer-refresh-button"
+              icon="reload"
+              :loading="historyLoading"
+              :aria-label="$t('backtest-center.refreshHistory')"
+              @click="refreshCurrentHistory"
+            >
+              <span v-if="mode !== 'factor'">{{ $t('backtest-center.refreshHistory') }}</span>
+            </a-button>
+          </a-tooltip>
+        </div>
       </div>
       <div v-if="historyDetailLoading" class="drawer-detail-loading" role="status" aria-live="polite">
         <a-icon type="loading" />
@@ -598,7 +628,8 @@ import {
   getStrategyBacktestRun,
   runStrategyFactorResearch,
   runStrategyFactorBenchmark,
-  startStrategyBacktestJob
+  startStrategyBacktestJob,
+  updateScriptSource
 } from '@/api/strategy'
 import PortfolioResult from './PortfolioResult.vue'
 import FactorResearchResult from './FactorResearchResult.vue'
@@ -613,6 +644,7 @@ import {
 import { ratioPercentInputFormatter, ratioPercentInputParser } from '@/utils/numberFormat'
 import { getFactorCatalog } from '@/api/factor'
 import { getUniverses } from '@/api/universe'
+import { buildScriptCodeWithParamValues } from '@/views/strategy-ide/components/scriptTemplateCatalog'
 
 const WORKSPACE_MODE_STORAGE_KEY = 'quantdinger:backtest-center:mode'
 const FACTOR_ID_STORAGE_KEY = 'quantdinger:backtest-center:factor-id'
@@ -672,6 +704,7 @@ export default {
       sourceLoadSequence: 0,
       sourceContractLoading: false,
       appliedParamDefinitions: [],
+      savingSourceParams: false,
       equityChart: null,
       chartResizeObserver: null,
       form: {
@@ -961,6 +994,18 @@ export default {
       const declared = Array.isArray(schema.params) ? schema.params : []
       return declared.length ? declared : this.appliedParamDefinitions
     },
+    sourceParamChangedDefinitions () {
+      return this.paramDefinitions.filter(item => Object.prototype.hasOwnProperty.call(this.params, item.name) && !this.parameterValuesEqual(item, this.params[item.name], item.default))
+    },
+    sourceParamChangeCount () { return this.sourceParamChangedDefinitions.length },
+    sourceParamSaveDisabledReason () {
+      if (!this.source || !String(this.source.code || '').trim()) return this.$t('strategyV2.backtest.saveParamDefaultsUnavailable')
+      if (this.source.status === 'running') return this.$t('strategyV2.backtest.saveParamDefaultsSourceRunning')
+      if (this.running) return this.$t('strategyV2.backtest.saveParamDefaultsBacktestRunning')
+      if (!this.sourceParamChangeCount) return this.$t('strategyV2.backtest.saveParamDefaultsNoChanges')
+      return ''
+    },
+    canSaveSourceParams () { return !this.savingSourceParams && !this.sourceParamSaveDisabledReason },
     hasBenchmarkMetrics () {
       if (!this.result || !['available', 'partial'].includes(this.result.benchmarkStatus)) return false
       return Number.isFinite(Number(this.result.benchmarkTotalReturn)) &&
@@ -1504,6 +1549,54 @@ export default {
     setParam (name, value) {
       this.params = { ...this.params, [name]: value }
     },
+    parameterValuesEqual (definition, left, right) {
+      const type = String((definition && definition.type) || '').toLowerCase()
+      if (['boolean', 'bool'].includes(type)) {
+        const normalize = value => value === true || String(value).toLowerCase() === 'true' || Number(value) === 1
+        return normalize(left) === normalize(right)
+      }
+      if (['integer', 'int', 'number', 'float', 'percent'].includes(type)) {
+        const leftNumber = Number(left)
+        const rightNumber = Number(right)
+        return Number.isFinite(leftNumber) && Number.isFinite(rightNumber) && Math.abs(leftNumber - rightNumber) <= 1e-12
+      }
+      return String(left ?? '') === String(right ?? '')
+    },
+    async saveSourceParams () {
+      if (!this.canSaveSourceParams) return
+      const changedCount = this.sourceParamChangeCount
+      this.savingSourceParams = true
+      try {
+        const sourceId = Number(this.form.sourceId)
+        const detailResponse = await getScriptSourceDetail(sourceId)
+        const source = detailResponse.data || this.source
+        const code = String((source && source.code) || '')
+        if (!code.trim()) throw new Error(this.$t('strategyV2.backtest.saveParamDefaultsUnavailable'))
+        if (source.status === 'running') throw new Error(this.$t('strategyV2.backtest.saveParamDefaultsSourceRunning'))
+        const nextCode = buildScriptCodeWithParamValues(code, this.paramDefinitions, this.params)
+        if (nextCode === code) throw new Error(this.$t('strategyV2.backtest.saveParamDefaultsNoChanges'))
+        const compiled = await compileScriptSource({ code: nextCode })
+        const response = await updateScriptSource(sourceId, {
+          name: source.name,
+          description: source.description,
+          code: nextCode,
+          asset_type: source.asset_type,
+          template_key: source.template_key,
+          param_schema: source.param_schema,
+          metadata: source.metadata
+        })
+        const saved = response.data || {}
+        this.source = { ...source, ...saved, code: nextCode }
+        this.sources = this.sources.map(item => Number(item.id) === sourceId ? { ...item, ...saved } : item)
+        this.manifest = compiled.data && compiled.data.manifest
+        this.backtestRangePolicy = compiled.data && compiled.data.backtestRangePolicy
+        this.$message.success(this.$t('strategyV2.backtest.saveParamDefaultsSuccess', { count: changedCount }))
+      } catch (error) {
+        this.$message.error((error && (error.backendMessage || error.message)) || this.$t('strategyV2.backtest.saveParamDefaultsFailed'))
+      } finally {
+        this.savingSourceParams = false
+      }
+    },
     disabledStartDate (current) {
       if (!current || !this.form.endDate) return false
       const endDate = this.form.endDate.clone().startOf('day')
@@ -1598,17 +1691,29 @@ export default {
         this.runProgress = { ...(job.progress || {}) }
         if (job.status === 'succeeded') {
           const result = job.result || {}
-          this.result = result
-          this.selectedRun = { id: result.runId }
-          const billing = result.billing
-          if (billing && typeof billing.remaining !== 'undefined') {
-            this.$root.$emit('credits-updated', billing.remaining)
+          if (job.kind === 'factor_research' || job.kind === 'factor_benchmark_human') {
+            this.factorResult = result
+            this.selectedRun = {
+              id: job.kind === 'factor_benchmark_human' ? result.benchmarkId : result.runId
+            }
+          } else {
+            this.result = result
+            this.selectedRun = { id: result.runId }
+            const billing = result.billing
+            if (billing && typeof billing.remaining !== 'undefined') {
+              this.$root.$emit('credits-updated', billing.remaining)
+            }
           }
           this.running = false
           this.activeJobId = null
           this.stopRunTimer()
           this.stopJobPolling()
-          await this.loadHistory({ mode: 'portfolio', force: true })
+          await this.loadHistory({
+            mode: job.kind === 'factor_research' || job.kind === 'factor_benchmark_human'
+              ? 'factor'
+              : 'portfolio',
+            force: true
+          })
           return
         }
         if (job.status === 'failed' || job.status === 'cancelled') {
@@ -1703,17 +1808,16 @@ export default {
             factorId: this.factorForm.factorId,
             factorParams: { ...this.factorParams }
           })
-        this.runProgress = { phase: 'completed', percent: 100 }
-        this.factorResult = response.data
-        this.selectedRun = this.factorResearchMode === 'benchmark'
-          ? { id: response.data && response.data.benchmarkId }
-          : { id: response.data && response.data.runId }
-        await this.loadHistory({ mode: 'factor', force: true })
+        this.activeJobId = response.data && response.data.jobId
+        this.runProgress = { ...((response.data && response.data.progress) || this.runProgress) }
+        if (!this.activeJobId) throw new Error(this.$t('strategyV2.factorResearch.runFailed'))
+        this.scheduleJobPoll()
       } catch (error) {
-        this.$message.error((error && error.backendMessage) || this.$t('strategyV2.factorResearch.runFailed'))
-      } finally {
-        this.stopRunTimer()
         this.running = false
+        this.activeJobId = null
+        this.stopRunTimer()
+        this.stopJobPolling()
+        this.$message.error((error && error.backendMessage) || this.$t('strategyV2.factorResearch.runFailed'))
       }
     },
     runActive () {
@@ -1939,6 +2043,8 @@ export default {
 .factor-mode-compact__button.active b { color: #fff; background: var(--primary-color, #52c41a); }
 .section-hint, .history-title-row p { margin: 0; color: var(--workspace-muted); font-size: 12px; line-height: 1.55; }
 .hero-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+.toolbar-icon-button { display: inline-flex; width: 34px; height: 34px; flex: 0 0 34px; align-items: center; justify-content: center; padding: 0; }
+.toolbar-icon-button /deep/ .anticon { display: inline-flex; align-items: center; justify-content: center; width: 1em; height: 1em; margin: 0; line-height: 1; }
 .hero-stat { display: inline-flex; align-items: baseline; gap: 5px; padding: 7px 10px; border-radius: 8px; color: #718096; background: #f7f9fb; font-size: 12px; }
 .source-category-switch { display: flex; width: 100%; overflow: hidden; margin-bottom: 9px; border-radius: 6px; }
 .source-category-switch /deep/ .ant-radio-button-wrapper { flex: 1 1 0; min-width: 0; overflow: hidden; padding: 0 8px; border-radius: 0; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
@@ -1966,9 +2072,20 @@ export default {
 .config-section { margin: 0 0 10px; padding: 12px; border: 1px solid #e5eaf0; border-radius: 10px; background: #fafbfc; }
 .config-section__heading { min-height: 24px; margin-bottom: 10px; }
 .config-section__heading > div { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.config-step-heading { display: grid; min-height: 32px; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; }
+.config-step-heading > div { min-width: 0; justify-content: flex-start; }
 .config-section__heading h2,
 .config-section__heading h3 { overflow: hidden; margin: 0; color: #26364c; font-size: 14px; font-weight: 700; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+.config-step-heading h2 { min-width: 0; overflow: visible; text-overflow: clip; white-space: normal; overflow-wrap: anywhere; }
 .config-section__heading > span:last-child { flex: 0 0 auto; color: var(--workspace-muted); font-size: 11px; }
+.config-step-heading__meta { max-width: 124px; margin: 0; overflow: hidden; line-height: 1.3; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
+.source-param-count { flex: 0 0 auto; color: var(--workspace-muted); font-size: 11px; white-space: nowrap; }
+.source-param-save-row { margin-top: 2px; }
+.source-param-save-row > span,
+.source-param-save-row /deep/ .ant-btn { display: block; width: 100%; }
+.source-param-save-row /deep/ .ant-btn { height: 38px; border-radius: 8px; font-size: 13px; font-weight: 700; box-shadow: 0 5px 14px color-mix(in srgb, var(--primary-color, #52c41a) 20%, transparent); }
+.source-param-save-row /deep/ .ant-btn[disabled] { border-color: #e0e5ea; color: var(--workspace-faint); background: #f2f4f6; box-shadow: none; }
+.source-param-contract-hint { margin-top: 14px; padding-top: 12px; border-top: 1px solid #e5eaf0; }
 .config-section__hint { margin: -2px 0 10px; }
 .config-section /deep/ .ant-form-item-label > label { color: #445269; font-size: 12px; font-weight: 600; }
 .full-width { width: 100%; }
@@ -2015,13 +2132,12 @@ export default {
 .result-heading { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #edf0f4; }
 .result-heading > div { min-width: 0; }
 .result-source-name { overflow: hidden; max-width: 420px; color: #7c8ca1; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
-.factor-settings { position: relative; overflow: hidden; padding: 0; background: #fff; }
-.factor-settings::before { position: absolute; top: 0; left: 0; width: 3px; height: 54px; background: var(--primary-color, #52c41a); content: ''; }
-.factor-settings > .config-section__heading { margin: 0; padding: 13px 13px 10px; border-bottom: 1px solid var(--workspace-border); background: linear-gradient(110deg, color-mix(in srgb, var(--primary-color, #52c41a) 7%, #fff), #fff 62%); }
+.factor-settings { position: relative; overflow: hidden; padding: 12px; background: var(--workspace-surface); }
+.factor-settings > .config-section__heading { margin: 0 0 10px; }
 .factor-settings > .factor-contract-note,
 .factor-settings > .factor-research-mode,
 .factor-settings > .benchmark-selection-summary,
-.factor-settings > .form-grid { margin-right: 12px; margin-left: 12px; }
+.factor-settings > .form-grid { margin-right: 0; margin-left: 0; }
 .factor-contract-note { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 9px; margin-top: 11px; margin-bottom: 10px; padding: 9px; border: 1px solid var(--workspace-border); border-radius: 8px; color: var(--workspace-muted); background: var(--workspace-surface); }
 .factor-contract-note > .anticon { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 7px; color: var(--primary-color, #52c41a); background: color-mix(in srgb, var(--primary-color, #52c41a) 10%, transparent); }
 .factor-contract-note strong, .factor-contract-note span { display: block; }
@@ -2101,12 +2217,19 @@ export default {
 .history-header h3 { margin: 0; color: #26364c; }
 .history-title-row { align-items: flex-start; }
 .history-title-row p { margin-top: 4px; font-size: 12px; }
-.drawer-history-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
-.factor-history-switch { display: flex; width: 100%; margin-bottom: 14px; }
-.factor-history-switch /deep/ .ant-radio-button-wrapper { display: inline-flex; flex: 1 1 0; align-items: center; justify-content: center; gap: 6px; color: #64748b; text-align: center; }
+.drawer-history-toolbar { margin-bottom: 14px; }
+.drawer-history-toolbar--factor { padding: 10px; border: 1px solid #e6eaf0; border-radius: 11px; background: #f8fafc; }
+.drawer-history-header { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 12px; }
+.factor-history-switch { display: flex; width: 100%; margin-bottom: 10px; }
+.factor-history-switch /deep/ .ant-radio-button-wrapper { display: inline-flex; min-width: 0; height: 36px; flex: 1 1 0; align-items: center; justify-content: center; gap: 6px; padding: 0 10px; color: #64748b; text-align: center; }
+.factor-history-switch /deep/ .ant-radio-button-wrapper:first-child { border-radius: 7px 0 0 7px; }
+.factor-history-switch /deep/ .ant-radio-button-wrapper:last-child { border-radius: 0 7px 7px 0; }
 .factor-history-switch /deep/ .ant-radio-button-wrapper b { display: inline-flex; min-width: 18px; height: 18px; align-items: center; justify-content: center; padding: 0 5px; border-radius: 999px; color: inherit; background: rgba(100, 116, 139, .1); font-size: 9px; }
 .factor-history-switch /deep/ .ant-radio-button-wrapper-checked b { background: rgba(255, 255, 255, .2); }
-.drawer-history-header p { margin: 0; color: #718096; font-size: 12px; line-height: 1.55; }
+.drawer-history-header p { min-width: 0; flex: 1; margin: 0; color: #718096; font-size: 11px; line-height: 1.5; }
+.drawer-refresh-button { display: inline-flex; height: 34px; flex: none; align-items: center; justify-content: center; padding: 0 12px; border-color: #dce3eb; border-radius: 8px; color: #526174; background: #fff; box-shadow: 0 2px 8px rgba(15, 23, 42, .05); }
+.drawer-history-toolbar--factor .drawer-refresh-button { width: 34px; padding: 0; }
+.drawer-refresh-button:hover, .drawer-refresh-button:focus { border-color: var(--primary-color, #52c41a); color: var(--primary-color, #52c41a); }
 .drawer-run-list { display: flex; flex-direction: column; gap: 9px; }
 .run-card { display: flex; min-width: 0; flex-direction: column; gap: 6px; padding: 11px; border: 1px solid #e6eaf0; border-radius: 9px; background: #fafbfc; color: inherit; text-align: left; cursor: pointer; transition: 0.16s ease; }
 .run-card:hover, .run-card.active { border-color: color-mix(in srgb, var(--primary-color, #52c41a) 48%, transparent); background: color-mix(in srgb, var(--primary-color, #52c41a) 5%, #fff); transform: translateY(-1px); }
@@ -2188,7 +2311,6 @@ export default {
 .theme-dark .factor-contract-note { border-color: var(--workspace-border); }
 .theme-dark .factor-contract-note strong { color: var(--workspace-text); }
 .theme-dark .factor-settings { background: #151515; }
-.theme-dark .factor-settings > .config-section__heading { border-color: var(--workspace-border); background: linear-gradient(110deg, color-mix(in srgb, var(--primary-color, #52c41a) 8%, #151515), #151515 62%); }
 .theme-dark .factor-contract-note { background: #0d0d0d; }
 .theme-dark .factor-research-mode /deep/ .ant-radio-button-wrapper { border-color: #303030; color: rgba(255,255,255,.58); background: #0d0d0d; }
 .theme-dark .factor-research-mode /deep/ .ant-radio-button-wrapper-checked { border-color: var(--primary-color, #52c41a); color: #fff; background: var(--primary-color, #52c41a); }
@@ -2218,7 +2340,11 @@ export default {
 .backtest-history-drawer.theme-dark .ant-drawer-header { border-color: rgba(255, 255, 255, 0.1); }
 .backtest-history-drawer.theme-dark .ant-drawer-title,
 .backtest-history-drawer.theme-dark .ant-drawer-close { color: rgba(255, 255, 255, 0.88); }
+.backtest-history-drawer.theme-dark .drawer-history-toolbar--factor { border-color: #2d2d2d; background: #151515; }
 .backtest-history-drawer.theme-dark .drawer-history-header p { color: rgba(255, 255, 255, 0.5); }
+.backtest-history-drawer.theme-dark .drawer-refresh-button { border-color: #353535; color: rgba(255, 255, 255, .72); background: #1b1b1b; box-shadow: none; }
+.backtest-history-drawer.theme-dark .drawer-refresh-button:hover,
+.backtest-history-drawer.theme-dark .drawer-refresh-button:focus { border-color: var(--primary-color, #52c41a); color: var(--primary-color, #52c41a); }
 .backtest-history-drawer.theme-dark .factor-history-switch .ant-radio-button-wrapper { border-color: #303030; color: rgba(255, 255, 255, .58); background: #111; }
 .backtest-history-drawer.theme-dark .factor-history-switch .ant-radio-button-wrapper-checked { border-color: var(--primary-color, #52c41a); color: #fff; background: var(--primary-color, #52c41a); box-shadow: -1px 0 0 0 var(--primary-color, #52c41a); }
 .backtest-history-drawer.theme-dark .run-card { border-color: rgba(255, 255, 255, 0.1); background: #0d0d0d; color: rgba(255, 255, 255, 0.72); }

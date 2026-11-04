@@ -65,8 +65,8 @@ test('deployment setup edits only source-declared runtime fields and saves them 
   assert.doesNotMatch(source, /v-model="model\.(symbol|marketType|exchangeId|timeframe)"/)
 })
 
-test('new deployments default to live execution and show it first', () => {
-  assert.match(source, /executionMode: 'live'/)
+test('new deployments prefer live execution when enabled and show it first', () => {
+  assert.match(source, /executionMode: this\.liveTradingEnabled \? 'live' : 'signal'/)
   assert.match(source, /value="live"[\s\S]*value="signal"/)
 })
 

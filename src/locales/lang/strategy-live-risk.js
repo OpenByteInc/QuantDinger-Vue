@@ -94,7 +94,7 @@ const locale = {
   'strategyCenter.console.performanceOverview': 'Runtime performance',
   'strategyCenter.console.winRateSample': '{wins}/{total} profitable',
   'strategyCenter.console.completedTrades': 'Completed trades',
-  'strategyCenter.console.strategyTotalPnl': 'Strategy total P&L',
+  'strategyCenter.console.strategyTotalPnl': 'Total P&L',
   'strategyCenter.console.todayPnlEstimated': 'Opening baseline estimated',
   'strategyCenter.console.todayPnlEstimatedHint': 'No equity snapshot was available near local midnight. This value uses the trade ledger as a temporary opening baseline and becomes exact after continuous snapshots cover a day boundary.',
   'strategyCenter.console.netPnlBasis': 'Realized and unrealized P&L, net of recorded fees',
@@ -184,6 +184,8 @@ const locale = {
   'strategyRuntime.virtualFillNotificationFailed': 'The virtual trade was recorded, but the notification could not be delivered.',
   'strategyRuntime.virtualLimitOrderOpened': 'The virtual limit order is open and will fill only after the market reaches its price.',
   'strategyRuntime.virtualLimitOrderOpenedNotificationFailed': 'The virtual limit order is open, but its notification could not be delivered.',
+  'strategyRuntime.virtualOrderDeferredMarketClosed': 'The virtual order is queued because the market is closed and will be eligible for matching in the next regular session.',
+  'strategyRuntime.virtualOrderDeferredMarketClosedNotificationFailed': 'The virtual order is queued until the next regular session, but its notification could not be delivered.',
   'strategyV2.stopAndCloseQueued': 'Pause and close request accepted; waiting for execution. Positions have not been confirmed closed.',
   'strategyV2.stopFailed': 'Pause could not be confirmed. Check the latest strategy status and logs before retrying.',
   'strategyV2.stopBeforeDelete': 'The strategy is still running or stopping. Pause it and wait for execution to finish before deleting it.',
@@ -259,7 +261,7 @@ const zhCN = {
   ...enUSFallback,
   'trading-assistant.liveDisclaimer.agree': '我已了解实盘风险，仍选择开启实盘交易',
   'trading-assistant.liveDisclaimer.view': '查看《实盘交易免责声明》',
-  'strategyCenter.console.strategyTotalPnl': '策略总盈亏',
+  'strategyCenter.console.strategyTotalPnl': '累计盈亏',
   'strategyRuntime.fillContractMetadataUnavailable': '合约规格暂不可用，成交入账将重试，不会猜测成交数量。',
   'strategyRuntime.unsupportedFillContract': '当前入账模型不支持此合约单位。',
   'strategyRuntime.invalidFillQuantity': '交易所成交数量无效，已暂缓入账。',
@@ -441,6 +443,8 @@ const zhCN = {
   'strategyRuntime.virtualFillNotificationFailed': '虚拟交易已入账，但通知发送失败。',
   'strategyRuntime.virtualLimitOrderOpened': '虚拟限价单已挂出，将在行情触达委托价后成交。',
   'strategyRuntime.virtualLimitOrderOpenedNotificationFailed': '虚拟限价单已挂出，但通知发送失败。',
+  'strategyRuntime.virtualOrderDeferredMarketClosed': '市场当前休市，虚拟订单已排队，将在下一个常规交易时段参与撮合。',
+  'strategyRuntime.virtualOrderDeferredMarketClosedNotificationFailed': '虚拟订单已排队等待下一个常规交易时段，但通知发送失败。',
   'strategyV2.stopAndCloseQueued': '暂停并平仓请求已受理，等待执行，尚未确认平仓完成。',
   'strategyV2.stopFailed': '暂未确认暂停成功，请查看最新策略状态和日志后再重试。',
   'strategyV2.stopBeforeDelete': '策略仍在运行或停止处理中，请先暂停并等待执行完成后再删除。',
@@ -513,7 +517,7 @@ const zhTW = {
   ...zhCN,
   'trading-assistant.liveDisclaimer.agree': '我已瞭解實盤風險，仍選擇開啟實盤交易',
   'trading-assistant.liveDisclaimer.view': '查看《實盤交易免責聲明》',
-  'strategyCenter.console.strategyTotalPnl': '策略總盈虧',
+  'strategyCenter.console.strategyTotalPnl': '累計盈虧',
   'strategyCenter.editor.leverageAutoTitle': '永續合約槓桿',
   'strategyCenter.editor.leverageAutoHint': '可設定 1× 至 {max}×；交易所仍可能依標的、倉位和帳戶限制實際可用倍數。',
   'strategyRuntime.fillContractMetadataUnavailable': '合約規格暫不可用，成交入帳將重試，不會猜測成交數量。',
@@ -526,6 +530,8 @@ const zhTW = {
   'strategyRuntime.virtualFillNotificationFailed': '虛擬交易已入帳，但通知傳送失敗。',
   'strategyRuntime.virtualLimitOrderOpened': '虛擬限價單已掛出，將在行情觸及委託價後成交。',
   'strategyRuntime.virtualLimitOrderOpenedNotificationFailed': '虛擬限價單已掛出，但通知傳送失敗。',
+  'strategyRuntime.virtualOrderDeferredMarketClosed': '市場目前休市，虛擬訂單已排隊，將在下一個常規交易時段參與撮合。',
+  'strategyRuntime.virtualOrderDeferredMarketClosedNotificationFailed': '虛擬訂單已排隊等待下一個常規交易時段，但通知傳送失敗。',
   'strategyV2.stopBeforeDelete': '策略仍在執行或停止處理中，請先暫停並等待執行完成後再刪除。',
   'strategyV2.virtualCloseSettlementFailed': '暫停並平倉時有虛擬持倉未能完成結算。',
   'strategyV2.stoppedAndVirtualCloseCompleted': '策略已暫停，全部虛擬持倉已完成結算',
@@ -638,7 +644,7 @@ const zhTW = {
 
 const ja = {
   ...enUSFallback,
-  'strategyCenter.console.strategyTotalPnl': '戦略累計損益',
+  'strategyCenter.console.strategyTotalPnl': '累計損益',
   'strategyCenter.editor.strategyEquityRiskTitle': '戦略単位の利確・損切り',
   'strategyCenter.editor.equityStopLoss': '累積損失で停止',
   'strategyCenter.editor.equityTakeProfit': '累積利益で停止',
@@ -701,7 +707,7 @@ const ja = {
 
 const ko = {
   ...enUSFallback,
-  'strategyCenter.console.strategyTotalPnl': '전략 총 손익',
+  'strategyCenter.console.strategyTotalPnl': '누적 손익',
   'strategyCenter.editor.strategyEquityRiskTitle': '전략 단위 익절·손절',
   'strategyCenter.editor.equityStopLoss': '누적 손실 시 중지',
   'strategyCenter.editor.equityTakeProfit': '누적 수익 시 중지',
@@ -760,7 +766,7 @@ const ko = {
 
 const de = {
   ...enUSFallback,
-  'strategyCenter.console.strategyTotalPnl': 'Gesamtgewinn/-verlust der Strategie',
+  'strategyCenter.console.strategyTotalPnl': 'Gesamt-P&L',
   'strategyCenter.editor.strategyEquityRiskTitle': 'Gewinn- und Verlustlimits der Strategie',
   'strategyCenter.editor.equityStopLoss': 'Bei kumuliertem Verlust stoppen',
   'strategyCenter.editor.equityTakeProfit': 'Bei kumuliertem Gewinn stoppen',
@@ -790,7 +796,7 @@ const de = {
 
 const fr = {
   ...enUSFallback,
-  'strategyCenter.console.strategyTotalPnl': 'P&L total de la stratégie',
+  'strategyCenter.console.strategyTotalPnl': 'P&L total',
   'strategyCenter.editor.strategyEquityRiskTitle': 'Limites de gain et de perte de la stratégie',
   'strategyCenter.editor.equityStopLoss': 'Arrêt sur perte cumulée',
   'strategyCenter.editor.equityTakeProfit': 'Arrêt sur gain cumulé',
@@ -820,7 +826,7 @@ const fr = {
 
 const ru = {
   ...enUSFallback,
-  'strategyCenter.console.strategyTotalPnl': 'Общая прибыль/убыток стратегии',
+  'strategyCenter.console.strategyTotalPnl': 'Общий P&L',
   'strategyCenter.editor.strategyEquityRiskTitle': 'Лимиты прибыли и убытка стратегии',
   'strategyCenter.editor.equityStopLoss': 'Остановить при совокупном убытке',
   'strategyCenter.editor.equityTakeProfit': 'Остановить при совокупной прибыли',
@@ -850,7 +856,7 @@ const ru = {
 
 const vi = {
   ...enUSFallback,
-  'strategyCenter.console.strategyTotalPnl': 'Tổng lãi/lỗ chiến lược',
+  'strategyCenter.console.strategyTotalPnl': 'Tổng P&L',
   'strategyCenter.editor.strategyEquityRiskTitle': 'Giới hạn lãi và lỗ cấp chiến lược',
   'strategyCenter.editor.equityStopLoss': 'Dừng khi lỗ lũy kế',
   'strategyCenter.editor.equityTakeProfit': 'Dừng khi lãi lũy kế',
@@ -880,7 +886,7 @@ const vi = {
 
 const th = {
   ...enUSFallback,
-  'strategyCenter.console.strategyTotalPnl': 'กำไรขาดทุนรวมของกลยุทธ์',
+  'strategyCenter.console.strategyTotalPnl': 'P&L รวม',
   'strategyCenter.editor.strategyEquityRiskTitle': 'ขีดจำกัดกำไรและขาดทุนระดับกลยุทธ์',
   'strategyCenter.editor.equityStopLoss': 'หยุดเมื่อขาดทุนสะสม',
   'strategyCenter.editor.equityTakeProfit': 'หยุดเมื่อกำไรสะสม',
@@ -910,7 +916,7 @@ const th = {
 
 const ar = {
   ...enUSFallback,
-  'strategyCenter.console.strategyTotalPnl': 'إجمالي ربح وخسارة الاستراتيجية',
+  'strategyCenter.console.strategyTotalPnl': 'إجمالي P&L',
   'strategyCenter.editor.strategyEquityRiskTitle': 'حدود الربح والخسارة على مستوى الاستراتيجية',
   'strategyCenter.editor.equityStopLoss': 'الإيقاف عند الخسارة التراكمية',
   'strategyCenter.editor.equityTakeProfit': 'الإيقاف عند الربح التراكمي',
