@@ -631,7 +631,7 @@
                   />
                 </div>
                 <section
-                  v-if="quickTradeDrawerVisible"
+                  v-if="liveTradingEnabled && quickTradeDrawerVisible"
                   ref="quickTradeFloat"
                   class="ide-quick-float"
                   :class="{
@@ -704,7 +704,7 @@
                   </template>
                 </section>
                 <button
-                  v-else
+                  v-else-if="liveTradingEnabled"
                   type="button"
                   class="ide-quick-float-launcher"
                   :title="$t('indicatorIde.showQuickTrade')"
@@ -1527,6 +1527,9 @@ export default {
     marketplaceEnabled () {
       return this.$store.state.features.config.marketplace_enabled !== false
     },
+    liveTradingEnabled () {
+      return this.$store.state.features.config.live_trading_enabled !== false
+    },
     codeVersionPreviewLines () {
       const code = this.codeVersionPreview && this.codeVersionPreview.code
       return String(code || '').replace(/\r\n/g, '\n').split('\n')
@@ -2026,7 +2029,7 @@ export default {
           this.timeframe = s.timeframe
         }
         if (typeof s.quickTradeDrawerVisible === 'boolean') {
-          this.quickTradeDrawerVisible = s.quickTradeDrawerVisible
+          this.quickTradeDrawerVisible = this.liveTradingEnabled && s.quickTradeDrawerVisible
         }
         if (typeof s.quickTradeMinimized === 'boolean') this.quickTradeMinimized = s.quickTradeMinimized
         if (typeof s.quickTradePinned === 'boolean') this.quickTradePinned = s.quickTradePinned
@@ -2096,7 +2099,7 @@ export default {
         const payload = {
           timeframe: this.timeframe,
           activeIndicators: this.serializeChartIndicators(),
-          quickTradeDrawerVisible: this.quickTradeDrawerVisible,
+          quickTradeDrawerVisible: this.liveTradingEnabled && this.quickTradeDrawerVisible,
           quickTradeMinimized: this.quickTradeMinimized,
           quickTradePinned: this.quickTradePinned,
           quickTradePosition: this.quickTradePosition,
@@ -3915,6 +3918,11 @@ export default {
       return ['Crypto', 'USStock', 'HKStock'].includes(this.market)
     },
     toggleQuickTradeDrawer () {
+      if (!this.liveTradingEnabled) {
+        this.closeQuickTradeFloat()
+        this.$message.warning(this.$t('strategyV2.liveTradingDisabled'))
+        return
+      }
       if (!this.quickTradeDrawerVisible && !this.isQuickTradeMarketSupported()) {
         this.$message.warning(this.$t('quickTrade.unsupportedMarket'))
         return
@@ -4681,6 +4689,12 @@ export default {
 
   },
   watch: {
+    liveTradingEnabled (enabled) {
+      if (!enabled && this.quickTradeDrawerVisible) {
+        this.closeQuickTradeFloat()
+        this.schedulePersistIdeUiState()
+      }
+    },
     activeIndicators: {
       deep: true,
       handler () {

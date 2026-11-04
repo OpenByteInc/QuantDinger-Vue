@@ -739,6 +739,7 @@ export default {
   .execution-reconciliation-alert {
     margin: 4px 0 0;
     padding: 10px 14px;
+    padding-inline-start: 40px;
     border: 1px solid #f5d98d;
     border-radius: 9px;
     background: linear-gradient(90deg, #fffaf0 0%, #fffcf5 100%);
@@ -753,6 +754,7 @@ export default {
       font-size: 12px;
       font-weight: 550;
       line-height: 1.55;
+      overflow-wrap: anywhere;
     }
   }
 

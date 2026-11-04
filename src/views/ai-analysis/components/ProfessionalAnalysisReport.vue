@@ -197,7 +197,7 @@
                 {{ item.status === 'available' ? formatNumber(item.score, 0) : $t('fastAnalysis.insufficientData') }}
               </a-tag>
             </header>
-            <p>{{ cleanNarrative(item.narrative) || $t('fastAnalysis.noNarrative') }}</p>
+            <p>{{ dimensionNarrative(item) || $t('fastAnalysis.noNarrative') }}</p>
             <div v-if="item.missing_data && item.missing_data.length" class="tag-list compact">
               <a-tag v-for="missing in item.missing_data" :key="missing">{{ capabilityLabel(missing) }}</a-tag>
             </div>
@@ -674,6 +674,73 @@ export default {
         .replace(/\bbullish_alignment\b/gi, this.$t('fastAnalysis.trend.bullish_alignment'))
         .replace(/\brevenue_growth\b/gi, this.capabilityLabel('revenue_growth'))
         .replace(/\bGreed\b/g, this.$t('globalMarket.greed'))
+    },
+    dimensionNarrative (item) {
+      const code = item?.narrative_code || (
+        item?.key === 'crypto_market_structure'
+          ? this.legacyCryptoNarrativeCode(item?.narrative)
+          : null
+      )
+      if (item?.key === 'crypto_market_structure' && code && typeof code === 'object') {
+        const parts = ['volume_state', 'bias', 'crowding'].map(group => {
+          const value = String(code[group] || 'unknown').toLowerCase()
+          const summaryGroup = group === 'volume_state'
+            ? 'volume'
+            : group
+          const key = `fastAnalysis.cryptoSummary.${summaryGroup}.${value}`
+          const translated = this.$t(key)
+          return translated === key ? '' : translated
+        }).filter(Boolean)
+        return parts.join(this.narrativeSeparator())
+      }
+      if (item?.key === 'macro' && code && typeof code === 'object') {
+        const facts = !Array.isArray(code.facts)
+          ? []
+          : code.facts.map(fact => {
+          const labelKey = `fastAnalysis.macroSummary.metric.${String(fact?.metric || '')}`
+          const label = this.$t(labelKey)
+          if (!fact || label === labelKey) return ''
+          return `${label} ${fact.value}${fact.unit || ''}`
+        }).filter(Boolean)
+        if (!facts.length) return this.$t('fastAnalysis.macroSummary.unavailable')
+        const contextKey = `fastAnalysis.macroSummary.context.${String(code.context || 'global_risk_assets')}`
+        const context = this.$t(contextKey)
+        return this.$t('fastAnalysis.macroSummary.available', {
+          facts: facts.join(this.narrativeSeparator()),
+          context: context === contextKey ? '' : context
+        })
+      }
+      return this.cleanNarrative(item?.narrative)
+    },
+    legacyCryptoNarrativeCode (narrative) {
+      const text = String(narrative || '')
+      if (!/[\u6574\u9ad4][\u4f53\u9ad4]|\u64c1\u64e0|\u62e5\u6324/.test(text)) return null
+      const volumeState = /\u653e\u5927/.test(text)
+        ? 'expanding'
+        : /\u56de\u843d/.test(text)
+          ? 'shrinking'
+          : /\u7a69[\u5b9a\u5b9a]/.test(text)
+            ? 'stable'
+            : 'unknown'
+      const bias = /\u504f\u591a/.test(text)
+        ? 'bullish'
+        : /\u504f[\u7a7a\u7a7a]/.test(text)
+          ? 'bearish'
+          : 'neutral'
+      const crowding = /(?:\u98a8\u96aa|\u98ce\u9669)\u9ad8/.test(text)
+        ? 'high'
+        : /\u62ac\u5347|\u5347\u9ad8/.test(text)
+          ? 'medium'
+          : /(?:\u98a8\u96aa|\u98ce\u9669)\u4f4e/.test(text)
+            ? 'low'
+            : 'unknown'
+      return { volume_state: volumeState, bias, crowding }
+    },
+    narrativeSeparator () {
+      const locale = String(this.$i18n?.locale || '').toLowerCase()
+      if (locale.startsWith('zh') || locale.startsWith('ja')) return '、'
+      if (locale.startsWith('ar')) return '، '
+      return ', '
     },
     strengthLabel (value) {
       const key = `fastAnalysis.conclusionStrength.${String(value || 'none').toLowerCase()}`

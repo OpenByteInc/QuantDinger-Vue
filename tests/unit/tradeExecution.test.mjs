@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { formatExecutionNumber, formatExecutionPrice, formatPriceDeviation, formatTradeMoney } from '../../src/utils/tradeExecution.js'
 import messages from '../../src/locales/lang/strategy-trade-records.js'
+import reviewedMessages from '../../src/locales/reviewed-round-two-overrides.js'
 
 test('execution values preserve small fills and distinguish unknown from zero', () => {
   assert.equal(formatExecutionNumber(0.00016199), '0.00016199')
@@ -29,6 +30,33 @@ test('execution labels are available in every supported locale', () => {
       assert.ok(locale[`trading-assistant.table.${key}`])
     }
   }
+})
+
+test('reviewed execution labels replace malformed generated translations', () => {
+  const requiredKeys = [
+    'trading-assistant.table.instrument',
+    'trading-assistant.fees.pending',
+    'trading-assistant.execution.systemSummary',
+    'trading-assistant.execution.exchangePnl',
+    'trading-assistant.execution.systemPnl',
+    'trading-assistant.execution.gridNetPnl',
+    'trading-assistant.execution.gridPendingSummary',
+    'strategyCenter.console.winRateSample'
+  ]
+  for (const locale of ['ar-SA', 'de-DE', 'fr-FR', 'ja-JP', 'ko-KR', 'ru-RU', 'th-TH', 'vi-VN']) {
+    for (const key of requiredKeys) {
+      assert.ok(reviewedMessages[locale][key], `${locale} is missing ${key}`)
+    }
+    assert.doesNotMatch(reviewedMessages[locale]['strategyCenter.console.winRateSample'], /\/{3,}/)
+  }
+  assert.equal(reviewedMessages['ja-JP']['trading-assistant.table.instrument'], '銘柄')
+  assert.equal(reviewedMessages['ja-JP']['strategyCenter.console.winRateSample'], '利益 {wins} / 完了 {total}')
+})
+
+test('reconciliation alert reserves space for its icon', async () => {
+  const { readFileSync } = await import('node:fs')
+  const source = readFileSync(new URL('../../src/views/strategy-center/components/TradingRecords.vue', import.meta.url), 'utf8')
+  assert.match(source, /\.execution-reconciliation-alert\s*\{[\s\S]*?padding-inline-start:\s*40px;/)
 })
 
 

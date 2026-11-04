@@ -47,6 +47,7 @@ import agentManagementMessages from './agent-management-overrides'
 import zhTwProductMessages from './zh-tw-product-overrides'
 import navigationMessages from './navigation-overrides'
 import bitgetAccountModeMessages from './lang/bitget-account-mode'
+import binanceTradFiAgreementMessages from './lang/binance-tradfi-agreement'
 import aiSkillsTaxonomyMessages from './lang/ai-skills-taxonomy'
 import factorResearchUniverseMessages from './lang/factor-research-universe'
 import aiAnalysisWorkbenchMessages from './ai-analysis-workbench-overrides'
@@ -58,6 +59,7 @@ import marketCatalogMessages from './market-catalog-overrides'
 import humanCompletionOverrides from './human-completion-overrides'
 import reviewedRoundTwoOverrides from './reviewed-round-two-overrides'
 import reviewedStrategyReviewOverrides from './reviewed-strategy-review-overrides'
+import strategyEvolutionReportMessages from './lang/strategy-evolution-report'
 
 Vue.use(VueI18n)
 
@@ -83,7 +85,6 @@ const messages = {
     ...(uxOverrides[defaultLang] || {}),
     ...(copilotCallsiteOverrides[defaultLang] || {}),
     ...(reviewedUiOverrides[defaultLang] || {}),
-    ...(professionalReportOverrides[defaultLang] || {}),
     ...(backtestRangeOverrides[defaultLang] || {}),
     ...(settingsResearchOverrides[defaultLang] || {}),
     ...(settingsRuntimeOverrides[defaultLang] || {}),
@@ -104,8 +105,10 @@ const messages = {
     ...(zhTwProductMessages[defaultLang] || {}),
     ...(navigationMessages[defaultLang] || {}),
     ...(bitgetAccountModeMessages[defaultLang] || {}),
+    ...(binanceTradFiAgreementMessages[defaultLang] || {}),
     ...(aiSkillsTaxonomyMessages[defaultLang] || {}),
     ...(generatedLocaleOverrides[defaultLang] || {}),
+    ...(professionalReportOverrides[defaultLang] || {}),
     ...(factorResearchUniverseMessages[defaultLang] || {}),
     ...(aiAnalysisWorkbenchMessages[defaultLang] || {}),
     ...(settingsUniverseManagementMessages[defaultLang] || {}),
@@ -120,7 +123,8 @@ const messages = {
     ...(reviewedRoundTwoOverrides[defaultLang] || {}),
     ...(reviewedStrategyReviewOverrides[defaultLang] || {}),
     ...(strategyRunMessages[defaultLang] || {}),
-    ...(agentManagementMessages[defaultLang] || {})
+    ...(agentManagementMessages[defaultLang] || {}),
+    ...(strategyEvolutionReportMessages[defaultLang] || {})
   }
 }
 
@@ -205,7 +209,6 @@ function mergeLocaleOverrides (lang) {
     ...(uxOverrides[lang] || {}),
     ...(copilotCallsiteOverrides[lang] || {}),
     ...(reviewedUiOverrides[lang] || {}),
-    ...(professionalReportOverrides[lang] || {}),
     ...(backtestRangeOverrides[lang] || {}),
     ...(settingsResearchOverrides[lang] || {}),
     ...(settingsRuntimeOverrides[lang] || {}),
@@ -226,8 +229,10 @@ function mergeLocaleOverrides (lang) {
     ...(zhTwProductMessages[lang] || {}),
     ...(navigationMessages[lang] || {}),
     ...(bitgetAccountModeMessages[lang] || {}),
+    ...(binanceTradFiAgreementMessages[lang] || {}),
     ...(aiSkillsTaxonomyMessages[lang] || {}),
     ...(generatedLocaleOverrides[lang] || {}),
+    ...(professionalReportOverrides[lang] || {}),
     ...(factorResearchUniverseMessages[lang] || {}),
     ...(aiAnalysisWorkbenchMessages[lang] || {}),
     ...(settingsUniverseManagementMessages[lang] || {}),
@@ -242,7 +247,8 @@ function mergeLocaleOverrides (lang) {
     ...(reviewedRoundTwoOverrides[lang] || {}),
     ...(reviewedStrategyReviewOverrides[lang] || {}),
     ...(strategyRunMessages[lang] || {}),
-    ...(agentManagementMessages[lang] || {})
+    ...(agentManagementMessages[lang] || {}),
+    ...(strategyEvolutionReportMessages[lang] || {})
   }
   i18n.setLocaleMessage(lang, {
     ...(i18n.getLocaleMessage(lang) || {}),
@@ -281,7 +287,6 @@ export async function loadLanguageAsync (lang = defaultLang) {
       ...(uxOverrides[lang] || {}),
       ...(copilotCallsiteOverrides[lang] || {}),
       ...(reviewedUiOverrides[lang] || {}),
-      ...(professionalReportOverrides[lang] || {}),
       ...(backtestRangeOverrides[lang] || {}),
       ...(settingsResearchOverrides[lang] || {}),
       ...(settingsRuntimeOverrides[lang] || {}),
@@ -300,7 +305,9 @@ export async function loadLanguageAsync (lang = defaultLang) {
       ...(settingsFeatureMessages[lang] || {}),
       ...(zhTwProductMessages[lang] || {}),
       ...(navigationMessages[lang] || {}),
+      ...(binanceTradFiAgreementMessages[lang] || {}),
       ...(generatedLocaleOverrides[lang] || {}),
+      ...(professionalReportOverrides[lang] || {}),
       ...(settingsAiMessages[lang] || {}),
       ...(settingsTradingMessages[lang] || {}),
       ...(settingsSecurityMessages[lang] || {}),
@@ -315,7 +322,8 @@ export async function loadLanguageAsync (lang = defaultLang) {
       ...(reviewedRoundTwoOverrides[lang] || {}),
       ...(reviewedStrategyReviewOverrides[lang] || {}),
       ...(strategyRunMessages[lang] || {}),
-      ...(agentManagementMessages[lang] || {})
+      ...(agentManagementMessages[lang] || {}),
+      ...(strategyEvolutionReportMessages[lang] || {})
     })
     i18n.setLocaleMessage(lang, locale)
     loadedLanguages.push(lang)

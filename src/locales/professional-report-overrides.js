@@ -1,3 +1,5 @@
+import professionalReportCore from './lang/professional-report-core.js'
+
 const english = {
   'fastAnalysis.loadingTitle': 'Building the {target} professional report',
   'fastAnalysis.loadingTitleGeneric': 'Building the professional report',
@@ -1316,15 +1318,15 @@ const localizedResearchUi = {
 }
 
 export default {
-  'en-US': english,
-  'zh-CN': simplifiedChinese,
-  'zh-TW': traditionalChinese,
-  'ar-SA': { ...english, ...localizedResearchUi['ar-SA'] },
-  'de-DE': { ...english, ...localizedResearchUi['de-DE'] },
-  'fr-FR': { ...english, ...localizedResearchUi['fr-FR'] },
-  'ja-JP': { ...english, ...localizedResearchUi['ja-JP'] },
-  'ko-KR': { ...english, ...localizedResearchUi['ko-KR'] },
-  'ru-RU': { ...english, ...localizedResearchUi['ru-RU'] },
-  'th-TH': { ...english, ...localizedResearchUi['th-TH'] },
-  'vi-VN': { ...english, ...localizedResearchUi['vi-VN'] }
+  'en-US': { ...english, ...professionalReportCore['en-US'] },
+  'zh-CN': { ...simplifiedChinese, ...professionalReportCore['zh-CN'] },
+  'zh-TW': { ...traditionalChinese, ...professionalReportCore['zh-TW'] },
+  'ar-SA': { ...english, ...localizedResearchUi['ar-SA'], ...professionalReportCore['ar-SA'] },
+  'de-DE': { ...english, ...localizedResearchUi['de-DE'], ...professionalReportCore['de-DE'] },
+  'fr-FR': { ...english, ...localizedResearchUi['fr-FR'], ...professionalReportCore['fr-FR'] },
+  'ja-JP': { ...english, ...localizedResearchUi['ja-JP'], ...professionalReportCore['ja-JP'] },
+  'ko-KR': { ...english, ...localizedResearchUi['ko-KR'], ...professionalReportCore['ko-KR'] },
+  'ru-RU': { ...english, ...localizedResearchUi['ru-RU'], ...professionalReportCore['ru-RU'] },
+  'th-TH': { ...english, ...localizedResearchUi['th-TH'], ...professionalReportCore['th-TH'] },
+  'vi-VN': { ...english, ...localizedResearchUi['vi-VN'], ...professionalReportCore['vi-VN'] }
 }

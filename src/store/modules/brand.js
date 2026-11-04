@@ -1,6 +1,5 @@
 import { getBrandConfig } from '@/api/brand'
 
-const BUILD_APP_VERSION = typeof APP_VERSION !== 'undefined' ? APP_VERSION : '0.0.0-dev'
 const DEFAULT_COPYRIGHT = 'Copyright 2025-2026 QuantDinger. All rights reserved.'
 
 function normalizeCopyright (value) {
@@ -17,7 +16,6 @@ function normalizeCopyright (value) {
  */
 const DEFAULT_BRAND = {
   app_name: 'QuantDinger',
-  app_version: BUILD_APP_VERSION,
   copyright: DEFAULT_COPYRIGHT,
   logos: {
     light: '',
@@ -70,11 +68,12 @@ function persistBrand (data) {
 
 function normalizeBrand (data) {
   const brand = data && typeof data === 'object' ? data : DEFAULT_BRAND
-  return {
+  const normalized = {
     ...brand,
-    app_version: brand.app_version || BUILD_APP_VERSION,
     copyright: normalizeCopyright(brand.copyright)
   }
+  delete normalized.app_version
+  return normalized
 }
 
 /**
@@ -99,9 +98,7 @@ function applyBrandToDocument (data) {
 }
 
 const cachedBrand = readCachedBrand()
-const initialBrand = normalizeBrand(cachedBrand
-  ? { ...cachedBrand, app_version: BUILD_APP_VERSION }
-  : DEFAULT_BRAND)
+const initialBrand = normalizeBrand(cachedBrand || DEFAULT_BRAND)
 // Apply cached brand to <title>/<favicon> immediately on module load so the
 // browser tab matches the deployment before the brand-config request returns.
 applyBrandToDocument(initialBrand)

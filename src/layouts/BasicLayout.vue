@@ -231,7 +231,6 @@
 </template>
 
 <script>
-/* global APP_VERSION */
 import { updateTheme } from '@/components/SettingDrawer/settingConfig'
 import { i18nRender } from '@/locales'
 import { mapState } from 'vuex'
@@ -347,8 +346,7 @@ export default {
       return this.brandConfig
     },
     appVersion () {
-      const buildVersion = typeof APP_VERSION !== 'undefined' ? APP_VERSION : '0.0.0-dev'
-      return (this.brandConfig && this.brandConfig.app_version) || defaultSettings.appVersion || buildVersion
+      return defaultSettings.appVersion
     },
     brandName () {
       return (this.brandConfig && this.brandConfig.app_name) || defaultSettings.title

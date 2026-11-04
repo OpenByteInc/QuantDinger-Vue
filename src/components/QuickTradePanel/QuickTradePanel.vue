@@ -2642,15 +2642,21 @@ export default {
         } else {
           const hint = res.error_hint ? this.$t(res.error_hint) : ''
           const responseMessage = res.msg && this.$te(res.msg) ? this.$t(res.msg) : res.msg
-          this.tradeFeedback = { type: 'error', text: hint || responseMessage || this.$t('quickTrade.orderFailed') }
+          const agreementError = typeof this.binanceTradFiAgreementError === 'function'
+            ? this.binanceTradFiAgreementError(res, responseMessage || '')
+            : ''
+          this.tradeFeedback = { type: 'error', text: agreementError || hint || responseMessage || this.$t('quickTrade.orderFailed') }
         }
       } catch (e) {
         const rd = (e && e.response && e.response.data) || {}
         const hint = rd.error_hint ? this.$t(rd.error_hint) : ''
+        const agreementError = typeof this.binanceTradFiAgreementError === 'function'
+          ? this.binanceTradFiAgreementError(rd, e.message || '')
+          : ''
         const description = typeof this.friendlyOrderErrorMessage === 'function'
           ? this.friendlyOrderErrorMessage(rd, e.message || '')
           : (rd.msg || e.message || '')
-        this.tradeFeedback = { type: 'error', text: hint || description || this.$t('quickTrade.orderFailed') }
+        this.tradeFeedback = { type: 'error', text: agreementError || hint || description || this.$t('quickTrade.orderFailed') }
       } finally {
         this.submitting = false
         this.submittingSide = ''
@@ -2726,6 +2732,12 @@ export default {
         return this.$t('quickTrade.alpacaBuyingPowerRejected')
       }
       return fallback || (payload && (payload.msg || payload.message || payload.detail)) || this.$t('quickTrade.orderFailed')
+    },
+    binanceTradFiAgreementError (payload, fallback = '') {
+      const raw = [fallback, payload && payload.msg, payload && payload.message, payload && payload.detail, JSON.stringify(payload || {})].filter(Boolean).join(' ')
+      return /(?:^|\D)-4411(?:\D|$)|Please\s+sign\s+TradFi[- ]Perps?\s+agreement/i.test(raw)
+        ? this.$t('quickTrade.errorHints.binanceTradFiAgreement')
+        : ''
     },
     openPositionEditor (pos, mode) {
       this.positionEditor = { side: pos.side, mode, price: mode === 'limit' ? Number(this.currentPrice.toFixed(this.pricePrecision)) : null, kind: 'tp' }
