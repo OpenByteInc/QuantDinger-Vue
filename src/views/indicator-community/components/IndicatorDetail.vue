@@ -3318,7 +3318,6 @@ export default {
       border: 0 !important;
       border-bottom: 1px solid #303030 !important;
       background: transparent !important;
-      background: transparent !important;
 
       span {
         color: #929292;
