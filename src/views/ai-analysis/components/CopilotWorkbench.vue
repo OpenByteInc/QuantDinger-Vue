@@ -515,7 +515,10 @@
                 <strong>{{ item.symbol }}</strong>
                 <em>{{ item.name || marketLabel(item.market) }}</em>
               </span>
-              <em :class="['symbol-market-pill', marketPillClass(item.market)]">{{ marketLabel(item.market) }}</em>
+              <span class="symbol-result-meta">
+                <em :class="['symbol-market-pill', marketPillClass(item.market)]">{{ marketLabel(item.market) }}</em>
+                <em v-if="item.market === 'Crypto'" class="symbol-product-pill">{{ cryptoProductLabel(item) }}</em>
+              </span>
             </button>
           </template>
         </div>
@@ -4202,7 +4205,11 @@ export default {
         exchange_id: item.exchange_id || item.exchangeId || '',
         market_type: item.market_type || item.marketType || (market === 'Crypto' ? 'spot' : ''),
         instrument_id: item.instrument_id || item.instrumentId || '',
-        settle_currency: item.settle_currency || item.settleCurrency || ''
+        settle_currency: item.settle_currency || item.settleCurrency || '',
+        product_type: item.product_type || item.productType || '',
+        api_family: item.api_family || item.apiFamily || '',
+        underlying_market: item.underlying_market || item.underlyingMarket || '',
+        underlying_symbol: item.underlying_symbol || item.underlyingSymbol || ''
       }
     },
     parseSymbolValue (value) {
@@ -4934,6 +4941,18 @@ export default {
     },
     marketPillClass (market) {
       return `market-${String(market || 'default').toLowerCase()}`
+    },
+    cryptoProductLabel (item) {
+      const productType = String((item && item.product_type) || '').trim().toLowerCase()
+      if (productType && productType !== 'crypto') {
+        const productKey = `marketContext.product.${productType}`
+        const productLabel = this.$t ? this.$t(productKey) : productKey
+        if (productLabel && productLabel !== productKey) return productLabel
+      }
+      const marketType = String((item && item.market_type) || 'spot').trim().toLowerCase()
+      const typeKey = `marketContext.${marketType === 'swap' ? 'swap' : 'spot'}`
+      const typeLabel = this.$t ? this.$t(typeKey) : typeKey
+      return typeLabel && typeLabel !== typeKey ? typeLabel : marketType
     },
     monitorSymbol (m) {
       const cfg = m.config || {}
@@ -6660,6 +6679,27 @@ export default {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.symbol-result-meta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.symbol-result-meta em {
+  margin-top: 0;
+}
+
+.symbol-product-pill {
+  padding: 2px 7px;
+  border: 1px solid color-mix(in srgb, var(--qd-accent) 28%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--qd-accent) 9%, transparent);
+  color: var(--qd-accent, #1677ff) !important;
+  font-size: 11px !important;
+  line-height: 18px;
 }
 
 .symbol-result-card em {

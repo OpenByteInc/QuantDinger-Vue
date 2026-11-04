@@ -411,6 +411,7 @@
                     <div class="catalog-summary-item catalog-summary-item-primary"><span>{{ $t('settings.marketCatalog.activeRecords') }}</span><strong>{{ catalogMetric('active').toLocaleString() }}</strong></div>
                     <div class="catalog-summary-item catalog-summary-item-primary"><span>{{ $t('settings.marketCatalog.uniqueSymbols') }}</span><strong>{{ catalogMetric('symbols').toLocaleString() }}</strong></div>
                     <div class="catalog-summary-item"><span>{{ $t('settings.marketCatalog.ordinarySpot') }}</span><strong>{{ catalogMetric('ordinary_spot').toLocaleString() }}</strong></div>
+                    <div class="catalog-summary-item"><span>{{ $t('settings.marketCatalog.swap') }}</span><strong>{{ catalogMetric('ordinary_swap').toLocaleString() }}</strong></div>
                     <div class="catalog-summary-item"><span>{{ $t('settings.marketCatalog.tokenizedEquity') }}</span><strong>{{ catalogMetric('tokenized_equity').toLocaleString() }}</strong></div>
                     <div class="catalog-summary-item"><span>{{ $t('settings.marketCatalog.directEquity') }}</span><strong>{{ catalogMetric('direct_equity').toLocaleString() }}</strong></div>
                     <div class="catalog-summary-item"><span>{{ $t('settings.marketCatalog.stockPerpetual') }}</span><strong>{{ catalogMetric('stock_perpetual').toLocaleString() }}</strong></div>
@@ -423,10 +424,10 @@
                   </div>
                   <div class="catalog-table-wrap">
                     <table class="catalog-table">
-                      <thead><tr><th>{{ $t('settings.marketCatalog.exchange') }}</th><th>{{ $t('settings.marketCatalog.ordinarySpot') }}</th><th>{{ $t('settings.marketCatalog.tokenizedEquity') }}</th><th>{{ $t('settings.marketCatalog.directEquity') }}</th><th>{{ $t('settings.marketCatalog.stockPerpetual') }}</th><th>{{ $t('settings.marketCatalog.syncResult') }}</th></tr></thead>
+                      <thead><tr><th>{{ $t('settings.marketCatalog.exchange') }}</th><th>{{ $t('settings.marketCatalog.ordinarySpot') }}</th><th>{{ $t('settings.marketCatalog.swap') }}</th><th>{{ $t('settings.marketCatalog.tokenizedEquity') }}</th><th>{{ $t('settings.marketCatalog.directEquity') }}</th><th>{{ $t('settings.marketCatalog.stockPerpetual') }}</th><th>{{ $t('settings.marketCatalog.syncResult') }}</th></tr></thead>
                       <tbody>
                         <tr v-for="venue in catalogVenueRows" :key="venue.exchange">
-                          <td><strong>{{ venue.label }}</strong></td><td>{{ venue.ordinarySpot }}</td><td>{{ venue.tokenizedEquity }}</td><td>{{ venue.directEquity }}</td><td>{{ venue.stockPerpetual }}</td>
+                          <td><strong>{{ venue.label }}</strong></td><td>{{ venue.ordinarySpot }}</td><td>{{ venue.ordinarySwap }}</td><td>{{ venue.tokenizedEquity }}</td><td>{{ venue.directEquity }}</td><td>{{ venue.stockPerpetual }}</td>
                           <td><a-tag :color="venue.statusColor">{{ venue.statusLabel }}</a-tag></td>
                         </tr>
                       </tbody>
@@ -1490,9 +1491,10 @@ export default {
       for (const row of ((this.catalogOverview && this.catalogOverview.venues) || [])) {
         const key = String(row.exchange || '').toLowerCase()
         if (!coverage[key]) {
-          coverage[key] = { ordinarySpot: 0, tokenizedEquity: 0, directEquity: 0, stockPerpetual: 0 }
+          coverage[key] = { ordinarySpot: 0, ordinarySwap: 0, tokenizedEquity: 0, directEquity: 0, stockPerpetual: 0 }
         }
         coverage[key].ordinarySpot += Number(row.ordinary_spot || 0)
+        coverage[key].ordinarySwap += Number(row.ordinary_swap || 0)
         coverage[key].tokenizedEquity += Number(row.tokenized_equity || 0)
         coverage[key].directEquity += Number(row.direct_equity || 0)
         coverage[key].stockPerpetual += Number(row.stock_perpetual || 0)
@@ -1511,6 +1513,7 @@ export default {
           exchange,
           label: labels[exchange],
           ordinarySpot: Number((coverage[exchange] && coverage[exchange].ordinarySpot) || 0).toLocaleString(),
+          ordinarySwap: Number((coverage[exchange] && coverage[exchange].ordinarySwap) || 0).toLocaleString(),
           tokenizedEquity: Number((coverage[exchange] && coverage[exchange].tokenizedEquity) || 0).toLocaleString(),
           directEquity: Number((coverage[exchange] && coverage[exchange].directEquity) || 0).toLocaleString(),
           stockPerpetual: Number((coverage[exchange] && coverage[exchange].stockPerpetual) || 0).toLocaleString(),
@@ -4517,7 +4520,7 @@ export default {
   }
   .catalog-summary-grid {
     display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
     gap: 10px;
   }
   .catalog-summary-item {

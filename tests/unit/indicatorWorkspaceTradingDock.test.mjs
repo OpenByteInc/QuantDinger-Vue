@@ -63,6 +63,21 @@ test('indicator workspace keeps account mode balances and records in the trading
   assert.match(source, /background: var\(--primary-color, #52c41a\)/)
 })
 
+test('indicator workspace scopes crypto product identity away from stock data and orders', () => {
+  const source = read('src/components/QuickTradePanel/QuickTradePanel.vue')
+  const workspace = read('src/views/indicator-ide/index.vue')
+
+  assert.match(workspace, /:exchange-id="market === 'Crypto' \? cryptoExchangeId : ''"/)
+  assert.match(workspace, /:market-type="market === 'Crypto' \? cryptoMarketType : 'spot'"/)
+  assert.match(workspace, /:instrument-id="market === 'Crypto' \? currentInstrumentId : ''"/)
+  assert.match(workspace, /:product-type="market === 'Crypto' \? currentProductType : ''"/)
+  assert.match(workspace, /:api-family="market === 'Crypto' \? currentApiFamily : ''"/)
+
+  const stockOrder = source.slice(source.indexOf('async submitStockOrder (side)'), source.indexOf('friendlyOrderErrorMessage', source.indexOf('async submitStockOrder (side)')))
+  assert.match(stockOrder, /\(this\.selectedStockBrokerClient \|\| broker\.alpaca\)\.placeOrder\(payload\)/)
+  assert.doesNotMatch(stockOrder, /instrument_id|product_type|api_family|resolve_product/)
+})
+
 test('quick trade lifecycle and profit labels exist in every desktop locale', () => {
   const requiredKeys = [
     'quickTrade.entryExitPrice',

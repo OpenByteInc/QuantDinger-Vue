@@ -33,6 +33,7 @@
           :runtime-symbol-loading="strategySymbolLoading"
           :runtime-watchlist-count="strategyWatchlistOptions.length"
           :runtime-capabilities="strategyRuntimeContract"
+          :runtime-available-market-types="strategyAvailableMarketTypes"
           side-mode="split"
           @verified="handleStrategyVerified"
           @template-change="handleTemplateChange"
@@ -669,7 +670,7 @@ import IndicatorMarketPicker from '@/views/indicator-ide/components/IndicatorMar
 import { resolveIndicatorStrategyContext } from '@/utils/indicatorStrategyContext'
 import { renderSafeMarkdown } from '@/utils/safeMarkdown'
 import { applyExactCodeEdits, candidateCodeEditOperations } from '@/utils/codeEdits'
-import { getWatchlist, searchSymbols } from '@/api/market'
+import { getSymbolCapabilities, getWatchlist, searchSymbols } from '@/api/market'
 import { CRYPTO_EXCHANGE_IDS, normalizeExchangeId, normalizeMarketType } from '@/utils/marketContext'
 import {
   applyStrategyRuntimeConfigToCode,
@@ -703,6 +704,11 @@ const createDefaultRunConfig = () => ({
   symbol: 'BTC/USDT',
   timeframe: '1m',
   market_type: 'swap',
+  instrument_id: '',
+  product_type: 'crypto',
+  api_family: 'swap',
+  underlying_market: '',
+  underlying_symbol: '',
   trade_direction: 'long',
   initial_capital: 10000,
   leverage: 5
@@ -785,6 +791,8 @@ export default {
       strategySymbolLoading: false,
       strategyWatchlistLoading: false,
       strategySymbolSearchTimer: null,
+      strategyAvailableMarketTypes: ['swap'],
+      strategyProductContexts: [],
       lastSavedSnapshot: ''
     }
   },
@@ -1128,6 +1136,7 @@ export default {
     async initializeStrategyBuilderOptions () {
       await this.loadStrategyWatchlistOptions()
       this.ensureCurrentSymbolOption()
+      await this.refreshStrategySymbolCapabilities()
     },
     async loadStrategyWatchlistOptions () {
       if (this.strategyWatchlistLoading) return
@@ -1165,7 +1174,11 @@ export default {
           symbol,
           exchange_id: this.runConfig.exchange_id,
           market_type: this.runConfig.market_type,
-          instrument_id: this.runConfig.instrument_id
+          instrument_id: this.runConfig.instrument_id,
+          product_type: this.runConfig.product_type,
+          api_family: this.runConfig.api_family,
+          underlying_market: this.runConfig.underlying_market,
+          underlying_symbol: this.runConfig.underlying_symbol
         })
         if (current) this.strategySymbolOptions = [current, ...this.strategySymbolOptions]
       }
@@ -1179,6 +1192,8 @@ export default {
         ? normalizeMarketType(item && (item.market_type || item.marketType), market)
         : 'spot'
       const instrumentId = String((item && (item.instrument_id || item.instrumentId)) || '')
+      const productType = String((item && (item.product_type || item.productType)) || (market === 'Crypto' ? 'crypto' : 'equity')).toLowerCase()
+      const apiFamily = String((item && (item.api_family || item.apiFamily)) || marketType).toLowerCase()
       const name = String((item && (item.name || item.display_name)) || '').trim()
       return {
         value: [market, exchangeId, marketType, instrumentId, symbol].join('|'),
@@ -1188,6 +1203,10 @@ export default {
         exchange_id: exchangeId,
         market_type: marketType,
         instrument_id: instrumentId,
+        product_type: productType,
+        api_family: apiFamily,
+        underlying_market: String((item && (item.underlying_market || item.underlyingMarket)) || ''),
+        underlying_symbol: String((item && (item.underlying_symbol || item.underlyingSymbol)) || ''),
         is_watchlist: isWatchlist
       }
     },
@@ -1205,8 +1224,11 @@ export default {
       this.strategySymbolLoading = true
       try {
         const res = await searchSymbols({
+          market: this.runConfig.market_category,
           keyword: term,
-          limit: 20
+          limit: 20,
+          exchange_id: this.runConfig.market_category === 'Crypto' ? this.runConfig.exchange_id : undefined,
+          market_type: this.runConfig.market_category === 'Crypto' ? this.runConfig.market_type : undefined
         })
         const data = res && res.data
         const list = Array.isArray(data) ? data : ((data && (data.results || data.symbols || data.items)) || [])
@@ -1219,14 +1241,18 @@ export default {
         this.strategySymbolLoading = false
       }
     },
-    handleRuntimeSymbolChange (value) {
+    async handleRuntimeSymbolChange (value) {
       if (!this.strategyRuntimeContract.hasInstrument) return
       const selected = this.strategySymbolOptions.find(option => option.value === value)
       if (!selected) return
       const patch = {
         market_category: selected.market,
         symbol: selected.symbol,
-        instrument_id: selected.instrument_id || ''
+        instrument_id: selected.instrument_id || '',
+        product_type: selected.product_type || '',
+        api_family: selected.api_family || '',
+        underlying_market: selected.underlying_market || '',
+        underlying_symbol: selected.underlying_symbol || ''
       }
       if (selected.market === 'Crypto') {
         patch.market_type = selected.market_type || this.runConfig.market_type || 'spot'
@@ -1238,8 +1264,9 @@ export default {
         patch.leverage = 1
       }
       this.applyRuntimeConfigPatch(patch)
+      await this.refreshStrategySymbolCapabilities()
     },
-    handleRuntimeConfigChange ({ field, value } = {}) {
+    async handleRuntimeConfigChange ({ field, value } = {}) {
       const capabilityByField = {
         exchange_id: 'hasExchange',
         market_type: 'hasProduct',
@@ -1247,7 +1274,16 @@ export default {
         trade_direction: 'hasDirection'
       }
       if (!field || (capabilityByField[field] && !this.strategyRuntimeContract[capabilityByField[field]])) return
+      if (field === 'market_type' && !this.strategyAvailableMarketTypes.includes(normalizeMarketType(value, 'Crypto'))) return
+      const previousExchangeId = this.runConfig.exchange_id
       this.applyRuntimeConfigPatch({ [field]: value }, field)
+      if (['market_category', 'exchange_id', 'market_type'].includes(field)) {
+        const available = await this.refreshStrategySymbolCapabilities()
+        if (!available && field === 'exchange_id') {
+          this.applyRuntimeConfigPatch({ exchange_id: previousExchangeId }, 'exchange_id')
+          await this.refreshStrategySymbolCapabilities()
+        }
+      }
     },
     applyRuntimeConfigPatch (patch = {}, field = '') {
       const next = { ...this.runConfig, ...patch }
@@ -1257,7 +1293,11 @@ export default {
         next.exchange_id = next.market_category === 'Crypto' ? normalizeExchangeId(next.exchange_id || 'binance') : ''
       }
       if (field === 'exchange_id') next.exchange_id = normalizeExchangeId(patch[field])
-      if (field === 'market_type') next.market_type = normalizeMarketType(patch[field], next.market_category)
+      if (field === 'market_type') {
+        next.market_type = normalizeMarketType(patch[field], next.market_category)
+        const context = this.strategyProductContexts.find(item => normalizeMarketType(item.market_type, 'Crypto') === next.market_type)
+        if (context) Object.assign(next, this.strategyProductIdentity(context))
+      }
       if (next.market_category !== 'Crypto' || next.market_type === 'spot') {
         next.trade_direction = 'long'
         next.leverage = 1
@@ -1270,6 +1310,51 @@ export default {
         if (updated !== this.scriptCode) this.scriptCode = updated
       }
       this.scriptVerified = false
+    },
+    strategyProductIdentity (context = {}) {
+      return {
+        instrument_id: String(context.instrument_id || context.instrumentId || ''),
+        product_type: String(context.product_type || context.productType || 'crypto').toLowerCase(),
+        api_family: String(context.api_family || context.apiFamily || context.market_type || this.runConfig.market_type || 'spot').toLowerCase(),
+        underlying_market: String(context.underlying_market || context.underlyingMarket || ''),
+        underlying_symbol: String(context.underlying_symbol || context.underlyingSymbol || '')
+      }
+    },
+    async refreshStrategySymbolCapabilities () {
+      if (this.runConfig.market_category !== 'Crypto' || !this.runConfig.symbol) {
+        this.strategyAvailableMarketTypes = ['spot']
+        this.strategyProductContexts = []
+        return true
+      }
+      const currentType = normalizeMarketType(this.runConfig.market_type, 'Crypto')
+      try {
+        const res = await getSymbolCapabilities({
+          market: 'Crypto',
+          symbol: this.runConfig.symbol,
+          exchange_id: this.runConfig.exchange_id
+        })
+        const data = (res && res.data) || {}
+        const marketTypes = [...new Set((data.market_types || []).map(value => normalizeMarketType(value, 'Crypto')))]
+        const contexts = Array.isArray(data.contexts) ? data.contexts : []
+        if (!marketTypes.length || !contexts.length) {
+          this.strategyAvailableMarketTypes = []
+          this.strategyProductContexts = []
+          return false
+        }
+        this.strategyAvailableMarketTypes = marketTypes
+        this.strategyProductContexts = contexts
+        const nextType = this.strategyAvailableMarketTypes.includes(currentType) ? currentType : this.strategyAvailableMarketTypes[0]
+        const context = contexts.find(item => normalizeMarketType(item.market_type, 'Crypto') === nextType)
+        this.applyRuntimeConfigPatch({
+          market_type: nextType,
+          ...(context ? this.strategyProductIdentity(context) : {})
+        })
+        return true
+      } catch (_) {
+        this.strategyAvailableMarketTypes = []
+        this.strategyProductContexts = []
+        return false
+      }
     },
     renderStrategyAiMessage (messageItem) {
       const legacyCandidateText = 'Candidate generated and validated against the current Strategy API V2 workspace contract.'
@@ -2065,6 +2150,11 @@ export default {
         timeframe: codeTimeframe || cfg.timeframe || '1m',
         tick_interval_sec: 10,
         market_type: marketType,
+        instrument_id: String(cfg.instrument_id || ''),
+        product_type: String(cfg.product_type || (marketCategory === 'Crypto' ? 'crypto' : 'equity')).toLowerCase(),
+        api_family: String(cfg.api_family || marketType).toLowerCase(),
+        underlying_market: String(cfg.underlying_market || ''),
+        underlying_symbol: String(cfg.underlying_symbol || ''),
         trade_direction: tradeDirection,
         initial_capital: investmentAmount,
         investment_amount: investmentAmount,

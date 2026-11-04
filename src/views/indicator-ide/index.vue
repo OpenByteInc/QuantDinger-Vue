@@ -454,6 +454,7 @@
                           </a-select-option>
                         </a-select>
                         <a-select
+                          v-if="canSwitchCryptoMarketType"
                           v-model="cryptoMarketType"
                           size="small"
                           class="ide-toolbar-select ide-toolbar-select--market-type"
@@ -463,6 +464,9 @@
                           <a-select-option value="spot">{{ $t('marketContext.spot') }}</a-select-option>
                           <a-select-option value="swap">{{ $t('marketContext.swap') }}</a-select-option>
                         </a-select>
+                        <span v-else class="ide-market-type-fixed">
+                          {{ currentCryptoMarketTypeLabel }}
+                        </span>
                       </div>
                     </div>
                     <div class="ide-toolbar-group ide-toolbar-group--chart-type">
@@ -611,9 +615,9 @@
                     ref="klineChart"
                     :symbol="symbol"
                     :market="market"
-                    :exchange-id="cryptoExchangeId"
-                    :market-type="cryptoMarketType"
-                    :instrument-id="currentInstrumentId"
+                    :exchange-id="market === 'Crypto' ? cryptoExchangeId : ''"
+                    :market-type="market === 'Crypto' ? cryptoMarketType : 'spot'"
+                    :instrument-id="market === 'Crypto' ? currentInstrumentId : ''"
                     :timeframe="timeframe"
                     :theme="chartTheme"
                     :candle-type="chartCandleType"
@@ -656,6 +660,10 @@
                       :exchange-id="market === 'Crypto' ? cryptoExchangeId : ''"
                       symbol-locked
                       :market-type="market === 'Crypto' ? cryptoMarketType : 'spot'"
+                      :available-market-types="availableCryptoMarketTypes"
+                      :instrument-id="market === 'Crypto' ? currentInstrumentId : ''"
+                      :product-type="market === 'Crypto' ? currentProductType : ''"
+                      :api-family="market === 'Crypto' ? currentApiFamily : ''"
                       :overlay-get-container="ideQtOverlayGetContainer"
                       @order-success="onQuickTradeSuccess"
                       @update:symbol="handleQuickTradeSymbolChange"
@@ -669,7 +677,7 @@
                             <span class="ide-quick-float__brand"><a-icon type="thunderbolt" theme="filled" /> {{ $t('quickTrade.title') }}</span>
                             <span v-if="!quickTradeMinimized" class="ide-quick-float__symbol">{{ market === 'Crypto' ? `${cryptoExchangeId.toUpperCase()} · ${qtSymbol}` : `${qtSymbol} · SPOT` }}</span>
                           </div>
-                          <div v-if="market === 'Crypto' && !quickTradeMinimized" class="ide-quick-float__modes" @mousedown.stop>
+                          <div v-if="market === 'Crypto' && !quickTradeMinimized && consoleState.canSwitchMarketType" class="ide-quick-float__modes" @mousedown.stop>
                             <button type="button" :class="{ active: consoleState.tradeMode === 'spot' }" @click="consoleState.selectTradeMode('spot')">{{ $t('quickTrade.spot') }}</button>
                             <button type="button" :class="{ active: consoleState.tradeMode === 'swap' }" @click="consoleState.selectTradeMode('swap')">{{ $t('quickTrade.contractBadge') }}</button>
                           </div>
@@ -1279,7 +1287,7 @@ import { loadEnabledMarketOptions, firstMarketValue } from '@/utils/marketModule
 import { CRYPTO_EXCHANGE_IDS, marketContextKey, normalizeExchangeId, normalizeMarketType } from '@/utils/marketContext'
 import { getUserInfo } from '@/api/login'
 import { getNotificationSettings } from '@/api/user'
-import { getWatchlist, addWatchlist, searchSymbols } from '@/api/market'
+import { getWatchlist, addWatchlist, getSymbolCapabilities, searchSymbols } from '@/api/market'
 import { getPublicSettingsConfig } from '@/api/settings'
 import { extractIndicatorSignalLabels } from '@/utils/indicatorSignalOptions'
 import { renderSafeMarkdown } from '@/utils/safeMarkdown'
@@ -1372,6 +1380,14 @@ export default {
       cryptoExchangeId: 'binance',
       cryptoMarketType: 'spot',
       currentInstrumentId: '',
+      currentProductType: 'crypto',
+      currentApiFamily: 'spot',
+      currentUnderlyingMarket: '',
+      currentUnderlyingSymbol: '',
+      availableCryptoMarketTypes: ['spot'],
+      cryptoProductContexts: [],
+      cryptoCapabilitiesLoading: false,
+      lastValidCryptoExchangeId: 'binance',
       cryptoExchangeIds: CRYPTO_EXCHANGE_IDS,
       watchlist: [],
       loadingWatchlist: false,
@@ -1599,6 +1615,12 @@ export default {
     klineRealtimeEnabled () {
       return !!(this.symbol && String(this.symbol).trim())
     },
+    canSwitchCryptoMarketType () {
+      return this.market === 'Crypto' && this.availableCryptoMarketTypes.includes('spot') && this.availableCryptoMarketTypes.includes('swap')
+    },
+    currentCryptoMarketTypeLabel () {
+      return this.$t(this.cryptoMarketType === 'swap' ? 'marketContext.swap' : 'marketContext.spot')
+    },
     selectedIndicatorObj () {
       return this.selectedIndicatorId
         ? this.indicators.find(i => Number(i.id) === Number(this.selectedIndicatorId))
@@ -1693,6 +1715,7 @@ export default {
     await this.loadWatchlist()
     this.restoreIdeUiState()
     this.restoreIdeSelectionPreference()
+    await this.refreshCryptoSymbolCapabilities()
     this.applyIndicatorRouteSelection()
     this.autoSelectFirstIndicator()
     this.loadSignalAlertNotificationDefaults()
@@ -2114,6 +2137,8 @@ export default {
             ? normalizeMarketType(saved.marketType || saved.market_type, 'Crypto')
             : this.cryptoMarketType
           this.currentInstrumentId = String(saved.instrumentId || saved.instrument_id || '')
+          const selectedRow = this.watchlist.find(item => this.watchlistContextKey(item) === watchlistKey)
+          if (selectedRow) this.applyCurrentProductContext(selectedRow)
         }
 
         const indicatorId = Number(saved.indicatorId)
@@ -2138,6 +2163,10 @@ export default {
           exchangeId: this.market === 'Crypto' ? this.cryptoExchangeId : '',
           marketType: this.market === 'Crypto' ? this.cryptoMarketType : 'spot',
           instrumentId: this.currentInstrumentId,
+          productType: this.currentProductType,
+          apiFamily: this.currentApiFamily,
+          underlyingMarket: this.currentUnderlyingMarket,
+          underlyingSymbol: this.currentUnderlyingSymbol,
           indicatorId: this.selectedIndicatorId,
           visibleIndicatorIds: this.chartVisibleIndicatorIds
         }))
@@ -2242,8 +2271,9 @@ export default {
           this.cryptoExchangeId = this.normalizeCryptoExchange(row.exchange_id || row.exchangeId)
           this.cryptoMarketType = normalizeMarketType(row.market_type || row.marketType, 'Crypto')
         }
-        this.currentInstrumentId = String(row.instrument_id || row.instrumentId || '')
+        this.applyCurrentProductContext(row)
         this.qtSymbol = this.symbol
+        this.refreshCryptoSymbolCapabilities()
       }
     },
 
@@ -4373,7 +4403,7 @@ export default {
       if (val === '__add__') return true
       return val.includes(input.toLowerCase())
     },
-    handleWatchlistChange (val) {
+    async handleWatchlistChange (val) {
       if (val === '__add__') {
         this.showAddModal = true
         this.$nextTick(() => { this.selectedWatchlistKey = undefined })
@@ -4390,7 +4420,7 @@ export default {
             this.cryptoExchangeId = this.normalizeCryptoExchange(row.exchange_id || row.exchangeId)
             this.cryptoMarketType = normalizeMarketType(row.market_type || row.marketType, 'Crypto')
           }
-          this.currentInstrumentId = String(row.instrument_id || row.instrumentId || '')
+          this.applyCurrentProductContext(row)
         } else {
           const legacyValue = String(val).split('|')[0]
           const i = legacyValue.indexOf(':')
@@ -4404,6 +4434,7 @@ export default {
         this.market = ''
         this.symbol = ''
       }
+      await this.refreshCryptoSymbolCapabilities()
       this.persistIdeSelectionPreference()
     },
     getMarketColor (m) {
@@ -4424,10 +4455,17 @@ export default {
       const translated = this.$t(key)
       return translated !== key ? translated : String(productType || '')
     },
-    handleCryptoExchangeChange (value) {
+    async handleCryptoExchangeChange (value) {
       this.quickTradeChartPositions = []
-      this.cryptoExchangeId = this.normalizeCryptoExchange(value)
+      const previousExchangeId = this.lastValidCryptoExchangeId || this.cryptoExchangeId
+      const nextExchangeId = this.normalizeCryptoExchange(value)
+      this.cryptoExchangeId = nextExchangeId
       this.currentInstrumentId = ''
+      const available = await this.refreshCryptoSymbolCapabilities()
+      if (!available && previousExchangeId !== nextExchangeId) {
+        this.cryptoExchangeId = previousExchangeId
+        await this.refreshCryptoSymbolCapabilities()
+      }
       this.selectedWatchlistKey = marketContextKey({
         market: this.market,
         symbol: this.symbol,
@@ -4444,8 +4482,11 @@ export default {
     },
     handleCryptoMarketTypeChange (value) {
       this.quickTradeChartPositions = []
-      this.cryptoMarketType = normalizeMarketType(value, 'Crypto')
-      this.currentInstrumentId = ''
+      const nextMarketType = normalizeMarketType(value, 'Crypto')
+      if (!this.availableCryptoMarketTypes.includes(nextMarketType)) return
+      this.cryptoMarketType = nextMarketType
+      const context = (this.cryptoProductContexts || []).find(item => item.market_type === nextMarketType)
+      this.applyCurrentProductContext(context || { market_type: nextMarketType })
       this.selectedWatchlistKey = marketContextKey({
         market: this.market,
         symbol: this.symbol,
@@ -4453,6 +4494,58 @@ export default {
         market_type: this.cryptoMarketType
       })
       this.persistCryptoMarketSource()
+    },
+
+    applyCurrentProductContext (context = {}) {
+      const contextExchangeId = this.normalizeCryptoExchange(context.exchange_id || context.exchangeId || this.cryptoExchangeId)
+      if (contextExchangeId) this.lastValidCryptoExchangeId = contextExchangeId
+      this.currentInstrumentId = String(context.instrument_id || context.instrumentId || '')
+      this.currentProductType = String(context.product_type || context.productType || 'crypto').toLowerCase()
+      this.currentApiFamily = String(context.api_family || context.apiFamily || context.market_type || this.cryptoMarketType || 'spot').toLowerCase()
+      this.currentUnderlyingMarket = String(context.underlying_market || context.underlyingMarket || '')
+      this.currentUnderlyingSymbol = String(context.underlying_symbol || context.underlyingSymbol || '')
+    },
+
+    async refreshCryptoSymbolCapabilities () {
+      if (this.market !== 'Crypto' || !this.symbol) {
+        this.availableCryptoMarketTypes = ['spot']
+        this.cryptoProductContexts = []
+        return true
+      }
+      const symbol = String(this.symbol)
+      const exchangeId = this.normalizeCryptoExchange(this.cryptoExchangeId)
+      this.cryptoCapabilitiesLoading = true
+      try {
+        const res = await getSymbolCapabilities({
+          market: 'Crypto',
+          symbol,
+          exchange_id: exchangeId
+        })
+        if (symbol !== this.symbol || exchangeId !== this.normalizeCryptoExchange(this.cryptoExchangeId)) return
+        const data = (res && res.data) || {}
+        const contexts = Array.isArray(data.contexts) ? data.contexts : []
+        const marketTypes = [...new Set((data.market_types || []).map(value => normalizeMarketType(value, 'Crypto')))]
+          .filter(value => ['spot', 'swap'].includes(value))
+        if (!marketTypes.length || !contexts.length) {
+          this.cryptoProductContexts = []
+          this.availableCryptoMarketTypes = []
+          return false
+        }
+        this.cryptoProductContexts = contexts
+        this.availableCryptoMarketTypes = marketTypes
+        if (!this.availableCryptoMarketTypes.includes(this.cryptoMarketType)) {
+          this.cryptoMarketType = this.availableCryptoMarketTypes[0]
+        }
+        const context = contexts.find(item => normalizeMarketType(item.market_type, 'Crypto') === this.cryptoMarketType)
+        if (context) this.applyCurrentProductContext(context)
+        return true
+      } catch (_) {
+        this.cryptoProductContexts = []
+        this.availableCryptoMarketTypes = []
+        return false
+      } finally {
+        this.cryptoCapabilitiesLoading = false
+      }
     },
 
     normalizeCryptoExchange (value) {
@@ -4576,7 +4669,8 @@ export default {
           this.cryptoExchangeId = this.normalizeCryptoExchange(item.exchange_id || this.cryptoExchangeId)
           this.cryptoMarketType = normalizeMarketType(item.market_type || this.cryptoMarketType, 'Crypto')
         }
-        this.currentInstrumentId = String(item.instrument_id || '')
+        this.applyCurrentProductContext(item)
+        await this.refreshCryptoSymbolCapabilities()
         this.showAddModal = false
       } catch (e) {
         this.$message.error(e.message || 'Failed')
@@ -4827,6 +4921,20 @@ export default {
 }
 .ide-toolbar-select--market-type {
   width: 104px;
+}
+.ide-market-type-fixed {
+  display: inline-flex;
+  min-width: 74px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  font-size: 12px;
+  font-weight: 600;
 }
 .ide-toolbar-select--indicator {
   width: 220px;

@@ -30,6 +30,7 @@ const marketApi = {
   GetMarketTypes: '/api/market/types',
   // Symbol search
   SearchSymbols: '/api/market/symbols/search',
+  GetSymbolCapabilities: '/api/market/symbols/capabilities',
   GetHotSymbols: '/api/market/symbols/hot'
 }
 
@@ -279,6 +280,14 @@ export function clearChatSessionMemory (sessionId) {
 export function searchSymbols (parameter) {
   return request({
     url: marketApi.SearchSymbols,
+    method: 'get',
+    params: parameter
+  })
+}
+
+export function getSymbolCapabilities (parameter) {
+  return request({
+    url: marketApi.GetSymbolCapabilities,
     method: 'get',
     params: parameter
   })

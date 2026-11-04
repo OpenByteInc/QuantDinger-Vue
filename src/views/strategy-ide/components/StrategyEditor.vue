@@ -121,10 +121,13 @@
                     class="runtime-field runtime-field--wide"
                   >
                     <span>{{ $t('strategyBuilder.product') }}</span>
-                    <a-radio-group class="runtime-product-switch" :value="runtimeConfig.market_type" button-style="solid" @change="emitRuntimeChange('market_type', $event.target.value)">
+                    <a-radio-group v-if="runtimeProductCanSwitch" class="runtime-product-switch" :value="runtimeConfig.market_type" button-style="solid" @change="emitRuntimeChange('market_type', $event.target.value)">
                       <a-radio-button value="spot">{{ $t('strategyBuilder.spot') }}</a-radio-button>
                       <a-radio-button value="swap">{{ $t('strategyBuilder.swap') }}</a-radio-button>
                     </a-radio-group>
+                    <a-tag v-else class="runtime-product-fixed">
+                      {{ runtimeConfig.market_type === 'swap' ? $t('strategyBuilder.swap') : $t('strategyBuilder.spot') }}
+                    </a-tag>
                   </label>
                   <label v-if="runtimeCapabilities.hasTimeframe" class="runtime-field" :class="{ 'runtime-field--wide': !runtimeCapabilities.hasDirection }">
                     <span>{{ $t('strategyBuilder.timeframe') }}</span>
@@ -521,7 +524,8 @@ export default {
     runtimeSymbolOptions: { type: Array, default: () => [] },
     runtimeSymbolLoading: { type: Boolean, default: false },
     runtimeWatchlistCount: { type: Number, default: 0 },
-    runtimeCapabilities: { type: Object, default: () => ({}) }
+    runtimeCapabilities: { type: Object, default: () => ({}) },
+    runtimeAvailableMarketTypes: { type: Array, default: () => ['spot', 'swap'] }
   },
   data () {
     return {
@@ -553,6 +557,11 @@ export default {
     },
     hasStrategyConfiguration () {
       return this.hasRuntimeControls || !!this.activeParamTemplate
+    },
+    runtimeProductCanSwitch () {
+      return [...new Set((this.runtimeAvailableMarketTypes || []).map(value => String(value || '').toLowerCase()))]
+        .filter(value => value === 'spot' || value === 'swap')
+        .length > 1
     },
     runtimeSymbolValue () {
       const market = String(this.runtimeConfig.market_category || '')
@@ -1826,6 +1835,21 @@ export default {
       box-shadow: 0 1px 3px rgba(15, 23, 42, 0.14);
     }
   }
+}
+
+.runtime-product-fixed {
+  display: inline-flex;
+  width: 100%;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  color: #475467;
+  border-color: #dfe3e8;
+  border-radius: 7px;
+  background: #f8fafc;
+  font-weight: 600;
+  line-height: 32px;
 }
 
 .runtime-field--wide {

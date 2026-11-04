@@ -7,7 +7,14 @@
       class="quick-trade-shell"
       :class="[embedded ? 'quick-trade-embedded' : 'quick-trade-drawer', { 'theme-dark': isDark, 'qt-embedded-ide': embedded && embeddedIde && !floatingConsole, 'qt-embedded-dock': embedded && embeddedDock && !floatingConsole, 'qt-embedded-side-dock': embedded && embeddedDock && sideDock && !floatingConsole, 'qt-console': floatingConsole, 'qt-floating-activity-open': floatingActivityExpanded }]"
     >
-      <slot v-if="floatingConsole" name="console-header" :trade-mode="tradeMode" :select-trade-mode="selectTradeMode" :connected="Boolean(selectedCredentialId)" />
+      <slot
+        v-if="floatingConsole"
+        name="console-header"
+        :trade-mode="tradeMode"
+        :select-trade-mode="selectTradeMode"
+        :can-switch-market-type="canSwitchMarketType"
+        :connected="Boolean(selectedCredentialId)"
+      />
       <div v-show="!floatingConsole || !consoleMinimized" :class="{ 'qt-console-content': floatingConsole }">
       <template v-if="floatingConsole">
         <div class="qtc-account-row">
@@ -247,7 +254,7 @@
           </div>
 
           <div v-if="isCryptoMarket" class="qt-side-trade-controls">
-            <div class="qt-dock-segmented qt-side-market-segmented">
+            <div v-if="canSwitchMarketType" class="qt-dock-segmented qt-side-market-segmented">
               <button type="button" :class="{ active: tradeMode === 'spot' }" @click="selectTradeMode('spot')">{{ $t('quickTrade.spot') }}</button>
               <button type="button" :class="{ active: tradeMode === 'swap' }" @click="selectTradeMode('swap')">{{ $t('quickTrade.contractBadge') }}</button>
             </div>
@@ -303,7 +310,7 @@
             </a-select>
             <a-button class="qt-dock-icon-btn" :title="$t('quickTrade.addAccountInline')" @click="handleAddAccountClick"><a-icon type="plus" /></a-button>
           </div>
-          <div v-if="isCryptoMarket" class="qt-dock-segmented">
+          <div v-if="isCryptoMarket && canSwitchMarketType" class="qt-dock-segmented">
             <button type="button" :class="{ active: tradeMode === 'spot' }" @click="selectTradeMode('spot')">{{ $t('quickTrade.spot') }}</button>
             <button type="button" :class="{ active: tradeMode === 'swap' }" @click="selectTradeMode('swap')">{{ $t('quickTrade.contractBadge') }}</button>
           </div>
@@ -1125,6 +1132,10 @@ export default {
     presetPrice: { type: Number, default: 0 },
     source: { type: String, default: 'manual' }, // ai_radar / ai_analysis / indicator / manual
     marketType: { type: String, default: 'swap' }, // swap / spot
+    availableMarketTypes: { type: Array, default: () => ['spot', 'swap'] },
+    instrumentId: { type: String, default: '' },
+    productType: { type: String, default: '' },
+    apiFamily: { type: String, default: '' },
     market: { type: String, default: 'Crypto' },
     exchangeId: { type: String, default: '' },
     symbolLocked: { type: Boolean, default: false },
@@ -1270,6 +1281,14 @@ export default {
     },
     isSwapMode () {
       return this.isCryptoMarket && this.tradeMode === 'swap'
+    },
+    normalizedAvailableMarketTypes () {
+      const values = [...new Set((this.availableMarketTypes || []).map(value => String(value || '').toLowerCase()))]
+        .filter(value => ['spot', 'swap'].includes(value))
+      return values.length ? values : [String(this.marketType || 'swap').toLowerCase() === 'spot' ? 'spot' : 'swap']
+    },
+    canSwitchMarketType () {
+      return this.isCryptoMarket && this.normalizedAvailableMarketTypes.includes('spot') && this.normalizedAvailableMarketTypes.includes('swap')
     },
     isSpotCashOrder () {
       return this.tradableMarketSupported && !this.isSwapMode
@@ -1558,6 +1577,9 @@ export default {
     marketType () {
       this.syncTradeModeFromProps()
     },
+    availableMarketTypes () {
+      this.syncTradeModeFromProps()
+    },
     exchangeId (val) {
       if (val && this.isCryptoMarket && this.credentials.length) {
         this.syncCredentialToExchange(val)
@@ -1734,7 +1756,13 @@ export default {
       })
     },
     syncTradeModeFromProps () {
-      const nextMode = this.isStockMarket ? 'spot' : (String(this.marketType || '').toLowerCase() === 'spot' ? 'spot' : 'swap')
+      const requestedMode = String(this.marketType || '').toLowerCase() === 'spot' ? 'spot' : 'swap'
+      let nextMode = 'spot'
+      if (!this.isStockMarket) {
+        nextMode = this.normalizedAvailableMarketTypes.includes(requestedMode)
+          ? requestedMode
+          : this.normalizedAvailableMarketTypes[0]
+      }
       if (this.tradeMode !== nextMode) this.tradeMode = nextMode
     },
     syncCredentialToExchange (exchangeId) {
@@ -1757,6 +1785,7 @@ export default {
     },
     selectTradeMode (mode) {
       const nextMode = mode === 'spot' ? 'spot' : 'swap'
+      if (!this.normalizedAvailableMarketTypes.includes(nextMode)) return
       if (this.tradeMode !== nextMode) this.tradeMode = nextMode
       this.$emit('market-type-change', nextMode)
     },
@@ -2100,14 +2129,21 @@ export default {
       const exchangeId = this.isCryptoMarket ? String((this.selectedCredential && this.selectedCredential.exchange_id) || this.exchangeId || '') : ''
       const marketType = this.effectiveMarketType
       try {
+        const params = {
+          market: this.priceMarketParam,
+          symbol
+        }
+        if (this.isCryptoMarket) {
+          Object.assign(params, {
+            exchange_id: exchangeId,
+            market_type: marketType,
+            instrument_id: this.instrumentId || undefined
+          })
+        }
         const res = await request({
           url: '/api/market/price',
           method: 'get',
-          params: {
-            market: this.priceMarketParam,
-            symbol,
-            ...(this.isCryptoMarket ? { exchange_id: exchangeId, market_type: marketType } : {})
-          }
+          params
         })
         if (symbol !== this.currentSymbol || marketType !== this.effectiveMarketType || (this.isCryptoMarket && exchangeId !== String((this.selectedCredential && this.selectedCredential.exchange_id) || this.exchangeId || ''))) return
         if (res && res.code === 1 && res.data) {
@@ -2245,6 +2281,10 @@ export default {
           symbol: this.currentSymbol,
           leverage: this.leverage,
           margin_mode: this.marginMode,
+          instrument_id: this.instrumentId || undefined,
+          product_type: this.productType || undefined,
+          api_family: this.apiFamily || undefined,
+          resolve_product: this.isCryptoMarket ? '1' : undefined,
           refresh: fresh === true ? '1' : undefined
         })
         if (!isCurrent()) return
@@ -2310,7 +2350,16 @@ export default {
           this.currentPositions = matched.map(p => this.normalizePosition({ ...p, side: 'long', leverage: 1 }, { preferComputedPnl: true }))
           return this.currentPositions.length > 0
         }
-        const res = await getQuickTradePosition({ credential_id: credentialId, symbol, market_type: marketType, refresh: fresh === true ? '1' : undefined })
+        const res = await getQuickTradePosition({
+          credential_id: credentialId,
+          symbol,
+          market_type: marketType,
+          instrument_id: this.instrumentId || undefined,
+          product_type: this.productType || undefined,
+          api_family: this.apiFamily || undefined,
+          resolve_product: 'true',
+          refresh: fresh === true ? '1' : undefined
+        })
         if (!isCurrent()) return
         if (res.code === 1 && res.data && Array.isArray(res.data.positions)) {
           this.currentPositions = res.data.positions.map(p => this.normalizePosition(p))
@@ -2566,6 +2615,10 @@ export default {
           sl_price: useSl ? (this.slPrice || 0) : 0,
           source: this.source
         }
+        if (this.instrumentId) payload.instrument_id = this.instrumentId
+        if (this.productType) payload.product_type = this.productType
+        if (this.apiFamily) payload.api_family = this.apiFamily
+        if (this.isCryptoMarket) payload.resolve_product = true
         if (buyByQuantity) payload.quantity = Number(this.buyQuantity)
         if (sellByQuantity) payload.quantity = Number(this.sellQuantity)
         const res = await placeQuickOrder(payload)
@@ -2744,6 +2797,10 @@ export default {
           position_side: leg,
           source: 'manual'
         }
+        if (this.instrumentId) payload.instrument_id = this.instrumentId
+        if (this.productType) payload.product_type = this.productType
+        if (this.apiFamily) payload.api_family = this.apiFamily
+        if (this.isCryptoMarket) payload.resolve_product = true
         const res = await closeQuickTradePosition(payload)
         if (res.code === 1) {
           let closeData = res.data || {}
