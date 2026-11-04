@@ -15,13 +15,18 @@
     </div>
     <a-alert
       v-if="costSummary && costSummary.pnl_pending_count"
+      class="execution-reconciliation-alert"
       type="warning"
       show-icon
       :message="$t('trading-assistant.execution.gridPendingSummary', { count: costSummary.pnl_pending_count })"
     />
-    <p v-if="records.length" class="execution-note">{{ $t('trading-assistant.execution.note') }}</p>
+    <p v-if="records.length" class="execution-note execution-source-note">
+      <a-icon type="info-circle" />
+      <span>{{ $t('trading-assistant.execution.note') }}</span>
+    </p>
     <a-table
       v-if="records.length > 0 || isRecordsLoading"
+      class="execution-records-table"
       :columns="columns"
       :data-source="records"
       :loading="isRecordsLoading"
@@ -688,7 +693,15 @@ export default {
   .ta-pnl.ta-pnl-neg { color: #f6465d !important; }
 }
 
-.execution-note { display: flex; align-items: center; gap: 6px; opacity: 0.7; font-size: 12px; margin: 0 0 12px; }
+.execution-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 12px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.55;
+}
 @primary-color: #1890ff;
 @success-color: #0ecb81;
 @danger-color: #f6465d;
@@ -722,6 +735,42 @@ export default {
   .cost-positive { color: var(--sc-positive, @success-color); }
   .cost-negative { color: var(--sc-negative, @danger-color); }
   .cost-neutral { color: var(--sc-muted, #64748b); }
+
+  .execution-reconciliation-alert {
+    margin: 4px 0 0;
+    padding: 10px 14px;
+    border: 1px solid #f5d98d;
+    border-radius: 9px;
+    background: linear-gradient(90deg, #fffaf0 0%, #fffcf5 100%);
+
+    ::v-deep .ant-alert-icon {
+      top: 13px;
+      color: #d99a00;
+    }
+
+    ::v-deep .ant-alert-message {
+      color: #6f5313;
+      font-size: 12px;
+      font-weight: 550;
+      line-height: 1.55;
+    }
+  }
+
+  .execution-source-note {
+    align-items: flex-start;
+    margin: 8px 0 12px;
+    padding: 8px 12px;
+    border: 1px solid #e7edf4;
+    border-radius: 8px;
+    background: #f8fafc;
+    color: #748196;
+
+    .anticon {
+      flex: 0 0 auto;
+      margin-top: 3px;
+      color: #8da0b8;
+    }
+  }
   &.theme-dark .cost-summary-card {
     background: var(--sc-surface-subtle, #171717);
     border-color: var(--sc-border, rgba(255, 255, 255, 0.1));
@@ -730,6 +779,29 @@ export default {
     .cost-positive { color: var(--sc-positive, #49c292); }
     .cost-negative { color: var(--sc-negative, #ff6b7a); }
     .cost-neutral { color: var(--sc-muted, #8f98a6); }
+  }
+
+  &.theme-dark .execution-reconciliation-alert {
+    border-color: rgba(250, 173, 20, 0.28);
+    background: linear-gradient(90deg, rgba(250, 173, 20, 0.12) 0%, rgba(250, 173, 20, 0.06) 100%);
+
+    ::v-deep .ant-alert-icon {
+      color: #ffc53d;
+    }
+
+    ::v-deep .ant-alert-message {
+      color: #f2d489;
+    }
+  }
+
+  &.theme-dark .execution-source-note {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.035);
+    color: rgba(255, 255, 255, 0.5);
+
+    .anticon {
+      color: rgba(255, 255, 255, 0.38);
+    }
   }
 
   .trade-type-cell {
@@ -1038,6 +1110,67 @@ export default {
     }
   }
 
+  ::v-deep .execution-records-table .ant-table-pagination.ant-pagination {
+    float: none;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 3px;
+    width: fit-content;
+    margin: 14px 10px 10px auto;
+    padding: 5px;
+    border: 1px solid #e5eaf1;
+    border-radius: 10px;
+    background: #f8fafc;
+    box-shadow: 0 3px 10px rgba(15, 23, 42, 0.045);
+
+    .ant-pagination-item,
+    .ant-pagination-prev,
+    .ant-pagination-next {
+      min-width: 30px;
+      height: 30px;
+      margin: 0 !important;
+      line-height: 28px;
+    }
+
+    .ant-pagination-item,
+    .ant-pagination-prev .ant-pagination-item-link,
+    .ant-pagination-next .ant-pagination-item-link {
+      border: 0 !important;
+      border-radius: 7px !important;
+      background: transparent !important;
+      box-shadow: none !important;
+    }
+
+    .ant-pagination-item a,
+    .ant-pagination-prev .ant-pagination-item-link,
+    .ant-pagination-next .ant-pagination-item-link {
+      color: #66758a;
+    }
+
+    .ant-pagination-item:hover,
+    .ant-pagination-prev:hover .ant-pagination-item-link,
+    .ant-pagination-next:hover .ant-pagination-item-link {
+      background: #edf3f9 !important;
+      color: var(--primary-color, #1890ff) !important;
+    }
+
+    .ant-pagination-item-active {
+      background: var(--primary-color, #1890ff) !important;
+      box-shadow: 0 3px 8px rgba(24, 144, 255, 0.24) !important;
+
+      a {
+        color: #fff !important;
+        font-weight: 650;
+      }
+    }
+
+    .ant-pagination-disabled .ant-pagination-item-link {
+      color: #c6ced8 !important;
+      background: transparent !important;
+    }
+  }
+
   &.theme-dark,
   .theme-dark & {
     ::v-deep .ant-table {
@@ -1068,6 +1201,40 @@ export default {
 
     ::v-deep .ant-empty .ant-empty-description {
       color: rgba(255, 255, 255, 0.35);
+    }
+
+    ::v-deep .execution-records-table .ant-table-pagination.ant-pagination {
+      border-color: rgba(255, 255, 255, 0.09);
+      background: #181a1e;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+
+      .ant-pagination-item,
+      .ant-pagination-prev .ant-pagination-item-link,
+      .ant-pagination-next .ant-pagination-item-link {
+        background: transparent !important;
+        border-color: transparent !important;
+      }
+
+      .ant-pagination-item a,
+      .ant-pagination-prev .ant-pagination-item-link,
+      .ant-pagination-next .ant-pagination-item-link {
+        color: #aeb6c2 !important;
+      }
+
+      .ant-pagination-item:hover,
+      .ant-pagination-prev:hover .ant-pagination-item-link,
+      .ant-pagination-next:hover .ant-pagination-item-link {
+        background: rgba(255, 255, 255, 0.07) !important;
+        color: #fff !important;
+      }
+
+      .ant-pagination-item-active {
+        background: var(--primary-color, #1890ff) !important;
+
+        a {
+          color: #fff !important;
+        }
+      }
     }
 
     ::v-deep .ant-tag {

@@ -147,7 +147,10 @@
 
             <a-spin :spinning="loading && pagination.current === 1">
               <a-empty v-if="indicators.length === 0 && !loading" class="market-empty" :description="$t('community.catalog.emptyTitle')">
-                <a-button type="primary" ghost @click="resetMarketFilters">{{ $t('community.catalog.clearFilters') }}</a-button>
+                <a-button type="primary" class="market-empty__action" @click="resetMarketFilters">
+                  <a-icon type="reload" />
+                  {{ $t('community.catalog.clearFilters') }}
+                </a-button>
               </a-empty>
               <market-catalog-list
                 v-else-if="marketViewMode === 'compact'"
@@ -1361,8 +1364,9 @@ export default {
   .market-catalog-toolbar {
     overflow: hidden;
     border: 1px solid rgba(15, 23, 42, 0.08);
-    border-radius: 8px;
+    border-radius: 12px;
     background: #fff;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.045);
 
     &__top,
     &__discovery {
@@ -1370,7 +1374,7 @@ export default {
       align-items: center;
       gap: 10px;
       min-width: 0;
-      padding: 10px 12px;
+      padding: 11px 14px;
     }
 
     &__top {
@@ -1424,32 +1428,41 @@ export default {
   .market-discovery-tabs,
   .market-view-toggle {
     display: inline-flex;
-    overflow: hidden;
-    border: 1px solid #d9d9d9;
-    border-radius: 6px;
-    background: #fff;
+    align-items: center;
+    gap: 3px;
+    overflow: visible;
+    padding: 3px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #f8fafc;
 
     ::v-deep .ant-radio-button-wrapper {
       height: 32px;
       margin-left: 0;
       border: 0 !important;
-      border-left: 1px solid #d9d9d9 !important;
-      border-radius: 0 !important;
+      border-left: 0 !important;
+      border-radius: 7px !important;
+      background: transparent;
+      color: #64748b;
       line-height: 30px;
       box-shadow: none !important;
+      transition: color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
 
       &::before {
         display: none !important;
       }
 
-      &:first-child {
-        margin-left: 0;
-        border-left: 0 !important;
+      &:hover {
+        color: var(--primary-color, #1890ff);
       }
 
       &.ant-radio-button-wrapper-checked {
         z-index: 2;
         border-left-color: transparent !important;
+        background: #fff;
+        color: var(--primary-color, #1890ff);
+        font-weight: 650;
+        box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12) !important;
       }
     }
   }
@@ -1523,11 +1536,39 @@ export default {
   }
 
   .market-empty {
-    margin: 52px 0;
+    min-height: 360px;
+    margin: 0;
+    padding: 64px 20px;
+    border: 1px dashed #dbe4ef;
+    border-radius: 12px;
+    background:
+      radial-gradient(circle at 50% 28%, rgba(24, 144, 255, 0.07), transparent 34%),
+      linear-gradient(180deg, #fff 0%, #fbfdff 100%);
+
+    ::v-deep .ant-empty-image {
+      height: 88px;
+      margin-bottom: 14px;
+      opacity: 0.9;
+    }
 
     ::v-deep .ant-empty-description {
-      color: #64748b;
-      font-size: 12px;
+      margin-bottom: 18px;
+      color: #526174;
+      font-size: 13px;
+      font-weight: 550;
+    }
+
+    .market-empty__action {
+      min-width: 142px;
+      height: 36px;
+      border-radius: 8px;
+      color: #fff !important;
+      font-weight: 600;
+      box-shadow: 0 6px 16px rgba(24, 144, 255, 0.2);
+
+      .anticon {
+        margin-right: 5px;
+      }
     }
   }
 
@@ -1898,18 +1939,50 @@ export default {
   }
 
   .admin-tabs {
+    display: inline-block;
     margin-bottom: 14px;
-    padding: 0 2px;
-    background: transparent;
+    padding: 4px;
+    border: 1px solid #e2e8f0;
+    border-radius: 11px;
+    background: #fff;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
 
     ::v-deep .ant-tabs-bar {
       margin-bottom: 0;
+      border-bottom: 0;
+    }
+
+    ::v-deep .ant-tabs-nav-container {
+      margin-bottom: 0;
+    }
+
+    ::v-deep .ant-tabs-ink-bar {
+      display: none !important;
     }
 
     ::v-deep .ant-tabs-nav .ant-tabs-tab {
+      margin: 0 3px 0 0;
+      padding: 7px 15px;
+      border-radius: 7px;
+      color: #64748b;
       font-size: var(--market-font-body);
       font-weight: 600;
       line-height: 22px;
+      transition: color 0.18s ease, background 0.18s ease;
+
+      &:last-child {
+        margin-right: 0;
+      }
+
+      &:hover {
+        color: var(--primary-color, #1890ff);
+        background: rgba(24, 144, 255, 0.06);
+      }
+
+      &.ant-tabs-tab-active {
+        color: var(--primary-color, #1890ff);
+        background: rgba(24, 144, 255, 0.1);
+      }
     }
 
     ::v-deep .ant-tabs-nav .ant-badge {
@@ -2133,12 +2206,21 @@ export default {
   background: #141414;
 
   .admin-tabs {
-    background: transparent;
+    border-color: #303030;
+    background: #1f1f1f;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
 
     ::v-deep .ant-tabs-nav .ant-tabs-tab {
       color: rgba(255, 255, 255, 0.65);
+
+      &:hover {
+        color: #69b1ff;
+        background: rgba(24, 144, 255, 0.1);
+      }
+
       &.ant-tabs-tab-active {
-        color: var(--primary-color, #1890ff);
+        color: #69b1ff;
+        background: rgba(24, 144, 255, 0.16);
       }
     }
   }
@@ -2268,6 +2350,22 @@ export default {
     background: #1f1f1f;
   }
 
+  .market-empty {
+    border-color: #333d49;
+    background:
+      radial-gradient(circle at 50% 28%, rgba(24, 144, 255, 0.12), transparent 35%),
+      linear-gradient(180deg, #1b1d20 0%, #17191c 100%);
+
+    ::v-deep .ant-empty-description {
+      color: rgba(255, 255, 255, 0.58);
+    }
+
+    .market-empty__action {
+      color: #fff !important;
+      box-shadow: 0 6px 18px rgba(24, 144, 255, 0.28);
+    }
+  }
+
   .market-risk-tip {
     color: rgba(255, 255, 255, 0.58);
     background: rgba(250, 173, 20, 0.09);
@@ -2368,11 +2466,15 @@ export default {
     background: #262626;
 
     ::v-deep .ant-radio-button-wrapper {
-      border-left-color: #434343 !important;
+      border-left-color: transparent !important;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.62);
 
-      &:first-child,
       &.ant-radio-button-wrapper-checked {
         border-left-color: transparent !important;
+        background: #363a40;
+        color: #69b1ff;
+        box-shadow: 0 1px 5px rgba(0, 0, 0, 0.34) !important;
       }
     }
   }

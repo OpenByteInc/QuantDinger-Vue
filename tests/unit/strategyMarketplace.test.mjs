@@ -278,12 +278,12 @@ test('strategy republishing reports a marketplace update instead of another list
   assert.match(reviewedLocales, /strategyPublishUpdateSuccessCopy/)
 })
 
-test('marketplace tab groups share one continuous segmented outline', () => {
+test('marketplace tab groups use a polished segmented control treatment', () => {
   const market = read('src/views/indicator-community/index.vue')
 
-  assert.match(market, /\.market-asset-tabs,\s*\.market-discovery-tabs,\s*\.market-view-toggle \{[\s\S]*?overflow: hidden;[\s\S]*?border: 1px solid #d9d9d9;[\s\S]*?border-radius: 6px;/)
-  assert.match(market, /\.ant-radio-button-wrapper \{[\s\S]*?border: 0 !important;[\s\S]*?border-left: 1px solid #d9d9d9 !important;[\s\S]*?border-radius: 0 !important;[\s\S]*?&::before \{[\s\S]*?display: none !important;/)
-  assert.doesNotMatch(market, /border-radius: 6px 0 0 6px !important|border-radius: 0 6px 6px 0 !important/)
+  assert.match(market, /\.market-asset-tabs,\s*\.market-discovery-tabs,\s*\.market-view-toggle \{[\s\S]*?gap: 3px;[\s\S]*?padding: 3px;[\s\S]*?border: 1px solid #e2e8f0;[\s\S]*?border-radius: 10px;[\s\S]*?background: #f8fafc;/)
+  assert.match(market, /\.ant-radio-button-wrapper \{[\s\S]*?border: 0 !important;[\s\S]*?border-left: 0 !important;[\s\S]*?border-radius: 7px !important;[\s\S]*?&::before \{[\s\S]*?display: none !important;/)
+  assert.match(market, /&\.ant-radio-button-wrapper-checked \{[\s\S]*?background: #fff;[\s\S]*?color: var\(--primary-color, #1890ff\);[\s\S]*?box-shadow:/)
 })
 
 test('indicator source visibility uses distinct semantic chip colors', () => {
