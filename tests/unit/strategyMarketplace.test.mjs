@@ -28,6 +28,8 @@ test('marketplace defaults to a dense catalog for indicators and strategies', ()
   assert.match(catalog, /community\.annualReturn/)
   assert.match(catalog, /community\.maxDrawdown/)
   assert.match(catalog, /community\.sharpe/)
+  assert.match(catalog, /community\.compositeScore/)
+  assert.match(catalog, /formatScore\(item\.score\)/)
   assert.match(catalog, /isStrategy \? 'market-catalog--strategy'/)
   assert.doesNotMatch(catalog, /backtest/i)
 })
@@ -60,7 +62,7 @@ test('catalog metric headers expose server-side ascending and descending sorting
   const route = read('../quantdinger_backend/backend_api_python/app/routes/community.py')
   const service = read('../quantdinger_backend/backend_api_python/app/services/community_service.py')
 
-  for (const key of ['rating', 'views', 'installs', 'price', 'annual_return', 'max_drawdown', 'sharpe', 'users']) {
+  for (const key of ['rating', 'views', 'installs', 'price', 'score', 'annual_return', 'max_drawdown', 'sharpe', 'users']) {
     assert.match(catalog, new RegExp(`sort-key="${key}"`))
   }
   assert.match(catalog, /catalog-sort__arrow--up/)

@@ -241,7 +241,7 @@ export function applyHtxOrderBook (book, data) {
 export const ORDER_BOOK_WS = {
   binance: {
     buildUrl (context) {
-      const base = context.marketType === 'swap' ? 'wss://fstream.binance.com/ws' : 'wss://stream.binance.com:9443/ws'
+      const base = context.marketType === 'swap' ? 'wss://fstream.binance.com/ws' : 'wss://stream.binance.com:443/ws'
       return `${base}/${compactSymbol(context.symbol).toLowerCase()}@depth20@100ms`
     },
     apply: applyBinanceOrderBook,

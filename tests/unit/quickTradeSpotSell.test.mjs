@@ -102,6 +102,59 @@ test('floating ticket sends only enabled protection legs and keeps limit, margin
   assert.equal(calls.length, 4)
 })
 
+test('quick trade sends immutable product identity only for specialized equity products', async () => {
+  const calls = []
+  const component = options('components/QuickTradePanel/QuickTradePanel.vue', {
+    placeQuickOrder: async payload => { calls.push(payload); return { code: 0 } }
+  })
+  const baseState = {
+    canSubmitBuy: true,
+    canSubmitSell: true,
+    floatingConsole: false,
+    embeddedDock: false,
+    dockTpslEnabled: false,
+    isCryptoMarket: true,
+    isStockMarket: false,
+    isSwapMode: false,
+    selectedCredentialId: 7,
+    currentSymbol: 'ETH/USDT',
+    orderType: 'market',
+    currentPrice: 2415,
+    currentPriceUpdatedAt: Date.now(),
+    amount: 100,
+    effectiveMarketType: 'spot',
+    spotBuyInputMode: 'amount',
+    spotSellInputMode: 'quantity',
+    source: 'indicator',
+    instrumentId: 'ETHUSDT',
+    productType: 'crypto',
+    apiFamily: 'spot',
+    $t: key => key,
+    $emit: () => {}
+  }
+
+  await component.methods.handleSubmit.call({ ...baseState }, 'buy')
+  await component.methods.handleSubmit.call({
+    ...baseState,
+    currentSymbol: 'QQQ/USDT',
+    instrumentId: 'QQQUSDT',
+    productType: 'stock_perpetual',
+    apiFamily: 'swap',
+    isSwapMode: true,
+    effectiveMarketType: 'swap',
+    leverage: 2,
+    marginMode: 'cross'
+  }, 'buy')
+
+  assert.equal(calls[0].resolve_product, true)
+  assert.equal(calls[0].instrument_id, undefined)
+  assert.equal(calls[0].product_type, undefined)
+  assert.equal(calls[0].api_family, undefined)
+  assert.equal(calls[1].instrument_id, 'QQQUSDT')
+  assert.equal(calls[1].product_type, 'stock_perpetual')
+  assert.equal(calls[1].api_family, 'swap')
+})
+
 test('live quotes do not overwrite a manually entered limit', () => {
   const component = options('components/QuickTradePanel/QuickTradePanel.vue')
   const state = { orderType: 'limit', limitPrice: 81000, currentPrice: 82000 }
@@ -586,6 +639,40 @@ test('Alpaca non-fractionable rejection tells the user to enter whole shares', (
     msg: 'Alpaca rejected the request. Raw error: {"code":40310000,"message":"asset \\"SPCX\\" is not fractionable"}'
   })
   assert.equal(brokerMessage, 'quickTrade.alpacaFractionalNotSupported')
+})
+
+test('quick trade localizes a backend error key before displaying it', async () => {
+  const errorKey = 'strategyV2.equityProductCatalogStale'
+  const translated = 'localized catalog message'
+  const component = options('components/QuickTradePanel/QuickTradePanel.vue', {
+    placeQuickOrder: async () => ({ code: 0, msg: errorKey })
+  })
+  const state = {
+    canSubmitBuy: true,
+    canSubmitSell: true,
+    floatingConsole: false,
+    embeddedDock: false,
+    dockTpslEnabled: false,
+    isCryptoMarket: true,
+    isStockMarket: false,
+    isSwapMode: false,
+    selectedCredentialId: 7,
+    currentSymbol: 'ETH/USDT',
+    orderType: 'market',
+    currentPrice: 2415,
+    currentPriceUpdatedAt: Date.now(),
+    amount: 100,
+    effectiveMarketType: 'spot',
+    spotBuyInputMode: 'amount',
+    spotSellInputMode: 'quantity',
+    source: 'indicator',
+    $t: key => key === errorKey ? translated : key,
+    $emit: () => {}
+  }
+
+  await component.methods.handleSubmit.call(state, 'buy')
+
+  assert.equal(state.tradeFeedback.text, translated)
 })
 
 test('balance refresh keeps the last value pending or failed and accepts a real zero', async () => {

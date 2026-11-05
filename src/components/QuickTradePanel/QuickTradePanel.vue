@@ -1122,6 +1122,27 @@ import { parseUtcAwareInstant } from '@/utils/utcInstant'
 import { broker } from '@/api/broker'
 import { calculatePositionMetrics } from './positionMetrics'
 
+const STRICT_PRODUCT_IDENTITY_TYPES = new Set(['tokenized_equity', 'stock_perpetual', 'direct_equity'])
+
+function translateApiMessage (vm, value) {
+  const text = String(value || '').trim()
+  if (!text) return ''
+  if (/^[A-Za-z][A-Za-z0-9_.-]+$/.test(text)) {
+    const translated = String(vm.$t(text) || '').trim()
+    if (translated && translated !== text) return translated
+  }
+  return text
+}
+
+function appendStrictProductIdentity (payload, vm) {
+  const productType = String(vm.productType || '').trim().toLowerCase()
+  if (!STRICT_PRODUCT_IDENTITY_TYPES.has(productType)) return payload
+  if (vm.instrumentId) payload.instrument_id = vm.instrumentId
+  if (vm.productType) payload.product_type = vm.productType
+  if (vm.apiFamily) payload.api_family = vm.apiFamily
+  return payload
+}
+
 export default {
   name: 'QuickTradePanel',
   components: { ExchangeAccountModal, PositionActivity, CryptoLiquidityArena },
@@ -2136,9 +2157,9 @@ export default {
         if (this.isCryptoMarket) {
           Object.assign(params, {
             exchange_id: exchangeId,
-            market_type: marketType,
-            instrument_id: this.instrumentId || undefined
+            market_type: marketType
           })
+          appendStrictProductIdentity(params, this)
         }
         const res = await request({
           url: '/api/market/price',
@@ -2275,18 +2296,17 @@ export default {
           }
           return
         }
-        const res = await getQuickTradeBalance({
+        const params = {
           credential_id: credentialId,
           market_type: marketType,
           symbol: this.currentSymbol,
           leverage: this.leverage,
           margin_mode: this.marginMode,
-          instrument_id: this.instrumentId || undefined,
-          product_type: this.productType || undefined,
-          api_family: this.apiFamily || undefined,
           resolve_product: this.isCryptoMarket ? '1' : undefined,
           refresh: fresh === true ? '1' : undefined
-        })
+        }
+        appendStrictProductIdentity(params, this)
+        const res = await getQuickTradeBalance(params)
         if (!isCurrent()) return
         if (res.code === 1 && res.data) {
           const d = res.data || {}
@@ -2350,16 +2370,15 @@ export default {
           this.currentPositions = matched.map(p => this.normalizePosition({ ...p, side: 'long', leverage: 1 }, { preferComputedPnl: true }))
           return this.currentPositions.length > 0
         }
-        const res = await getQuickTradePosition({
+        const params = {
           credential_id: credentialId,
           symbol,
           market_type: marketType,
-          instrument_id: this.instrumentId || undefined,
-          product_type: this.productType || undefined,
-          api_family: this.apiFamily || undefined,
           resolve_product: 'true',
           refresh: fresh === true ? '1' : undefined
-        })
+        }
+        appendStrictProductIdentity(params, this)
+        const res = await getQuickTradePosition(params)
         if (!isCurrent()) return
         if (res.code === 1 && res.data && Array.isArray(res.data.positions)) {
           this.currentPositions = res.data.positions.map(p => this.normalizePosition(p))
@@ -2615,9 +2634,7 @@ export default {
           sl_price: useSl ? (this.slPrice || 0) : 0,
           source: this.source
         }
-        if (this.instrumentId) payload.instrument_id = this.instrumentId
-        if (this.productType) payload.product_type = this.productType
-        if (this.apiFamily) payload.api_family = this.apiFamily
+        appendStrictProductIdentity(payload, this)
         if (this.isCryptoMarket) payload.resolve_product = true
         if (buyByQuantity) payload.quantity = Number(this.buyQuantity)
         if (sellByQuantity) payload.quantity = Number(this.sellQuantity)
@@ -2640,8 +2657,8 @@ export default {
             this.refreshAfterTrade()
           }
         } else {
-          const hint = res.error_hint ? this.$t(res.error_hint) : ''
-          const responseMessage = res.msg && this.$te(res.msg) ? this.$t(res.msg) : res.msg
+          const hint = translateApiMessage(this, res.error_hint)
+          const responseMessage = translateApiMessage(this, res.msg)
           const agreementError = typeof this.binanceTradFiAgreementError === 'function'
             ? this.binanceTradFiAgreementError(res, responseMessage || '')
             : ''
@@ -2649,7 +2666,7 @@ export default {
         }
       } catch (e) {
         const rd = (e && e.response && e.response.data) || {}
-        const hint = rd.error_hint ? this.$t(rd.error_hint) : ''
+        const hint = translateApiMessage(this, rd.error_hint)
         const agreementError = typeof this.binanceTradFiAgreementError === 'function'
           ? this.binanceTradFiAgreementError(rd, e.message || '')
           : ''
@@ -2712,6 +2729,10 @@ export default {
       }
     },
     friendlyOrderErrorMessage (payload, fallback = '') {
+      for (const value of [payload && payload.error_hint, fallback, payload && payload.msg, payload && payload.message, payload && payload.detail]) {
+        const localized = translateApiMessage(this, value)
+        if (localized && localized !== String(value || '').trim()) return localized
+      }
       const raw = [fallback, payload && payload.msg, payload && payload.message, payload && payload.detail, JSON.stringify(payload || {})].filter(Boolean).join(' ')
       if (/quickTrade\.alpacaFractionalNotSupported|not fractionable/i.test(raw)) return this.$t('quickTrade.alpacaFractionalNotSupported')
       if (/quickTrade\.alpacaAssetNotTradable|asset.+not tradable/i.test(raw)) return this.$t('quickTrade.alpacaAssetNotTradable')
@@ -2809,9 +2830,7 @@ export default {
           position_side: leg,
           source: 'manual'
         }
-        if (this.instrumentId) payload.instrument_id = this.instrumentId
-        if (this.productType) payload.product_type = this.productType
-        if (this.apiFamily) payload.api_family = this.apiFamily
+        appendStrictProductIdentity(payload, this)
         if (this.isCryptoMarket) payload.resolve_product = true
         const res = await closeQuickTradePosition(payload)
         if (res.code === 1) {
@@ -2857,13 +2876,13 @@ export default {
             this.refreshAfterTrade()
           }
         } else {
-          const hint = res.error_hint ? this.$t(res.error_hint) : ''
-          this.tradeFeedback = { type: 'error', text: hint || res.msg || this.$t('quickTrade.orderFailed') }
+          const hint = translateApiMessage(this, res.error_hint)
+          this.tradeFeedback = { type: 'error', text: hint || translateApiMessage(this, res.msg) || this.$t('quickTrade.orderFailed') }
         }
       } catch (e) {
         const rd = (e && e.response && e.response.data) || {}
-        const hint = rd.error_hint ? this.$t(rd.error_hint) : ''
-        this.tradeFeedback = { type: 'error', text: hint || rd.msg || e.message || this.$t('quickTrade.orderFailed') }
+        const hint = translateApiMessage(this, rd.error_hint)
+        this.tradeFeedback = { type: 'error', text: hint || translateApiMessage(this, rd.msg) || translateApiMessage(this, e.message) || this.$t('quickTrade.orderFailed') }
       } finally {
         this.closingPositionSide = null
       }

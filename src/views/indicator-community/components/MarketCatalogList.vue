@@ -12,8 +12,10 @@
         </template>
         <span v-else class="catalog-col catalog-col--scope">{{ $t('community.catalog.scope') }}</span>
         <span class="catalog-col catalog-col--author">{{ $t('community.catalog.author') }}</span>
-        <span class="catalog-col catalog-col--updated">{{ $t('community.catalog.updated') }}</span>
         <template v-if="isStrategy">
+          <span class="catalog-col catalog-col--score">
+            <catalog-sort-button :label="$t('community.compositeScore')" sort-key="score" :active-key="sortKey" :order="sortOrder" @sort="toggleSort" />
+          </span>
           <span class="catalog-col catalog-col--metric">
             <catalog-sort-button :label="$t('community.annualReturn')" sort-key="annual_return" :active-key="sortKey" :order="sortOrder" @sort="toggleSort" />
           </span>
@@ -90,9 +92,17 @@
           <a-avatar :src="item.author && item.author.avatar" :size="22" />
           <span :title="authorName(item)">{{ authorName(item) }}</span>
         </span>
-        <span class="catalog-col catalog-col--updated catalog-muted">{{ relativeDate(item.updated_at || item.created_at) }}</span>
 
         <template v-if="isStrategy">
+          <span class="catalog-col catalog-col--score catalog-score-cell">
+            <a-tooltip v-if="hasScore(item)" :title="scoreTooltip(item)">
+              <span class="catalog-score" :class="scoreClass(item.score)">
+                <a-icon type="trophy" theme="filled" />
+                {{ formatScore(item.score) }}
+              </span>
+            </a-tooltip>
+            <span v-else class="catalog-muted">—</span>
+          </span>
           <span class="catalog-col catalog-col--metric catalog-number" :class="metricTone(item.annual_return, 'return')">
             {{ formatPercent(item.annual_return, true) }}
           </span>
@@ -227,10 +237,6 @@ export default {
       const author = item.author || {}
       return author.nickname || author.username || '-'
     },
-    relativeDate (value) {
-      if (!value) return '-'
-      return moment(value).fromNow()
-    },
     strategyContract (item) {
       const contract = item.marketplace_contract || item.strategy_contract
       return contract && typeof contract === 'object' ? contract : {}
@@ -267,6 +273,23 @@ export default {
     formatRating (value) {
       const numeric = Number(value)
       return Number.isFinite(numeric) && numeric > 0 ? numeric.toFixed(1) : '-'
+    },
+    hasScore (item) {
+      return Number(item && item.sample_size) > 0 && Number.isFinite(Number(item && item.score))
+    },
+    formatScore (value) {
+      const numeric = Number(value)
+      return Number.isFinite(numeric) ? numeric.toFixed(0) : '—'
+    },
+    scoreClass (value) {
+      const numeric = Number(value)
+      if (numeric >= 80) return 'catalog-score--top'
+      if (numeric >= 60) return 'catalog-score--good'
+      if (numeric >= 40) return 'catalog-score--mid'
+      return 'catalog-score--low'
+    },
+    scoreTooltip (item) {
+      return `${this.$t('community.scoreTooltipBase')} ${this.$t('community.scoreTooltipSample', { n: Number(item.sample_size || 0) })}`
     },
     formatNumber (value) {
       const numeric = Number(value)
@@ -327,7 +350,6 @@ export default {
       minmax(300px, 4fr)
       minmax(110px, 1.2fr)
       minmax(120px, 1.4fr)
-      minmax(76px, 0.8fr)
       64px
       64px
       64px
@@ -345,7 +367,7 @@ export default {
       minmax(70px, 0.75fr)
       60px
       minmax(110px, 1.3fr)
-      76px
+      72px
       82px
       82px
       82px
@@ -621,6 +643,44 @@ export default {
   color: #f5a623;
 }
 
+.catalog-score-cell {
+  display: flex;
+  align-items: center;
+}
+
+.catalog-score {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 44px;
+  padding: 3px 7px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 750;
+  border-radius: 999px;
+
+  &--top {
+    color: #a85b00;
+    background: rgba(250, 173, 20, 0.17);
+  }
+
+  &--good {
+    color: #087f5b;
+    background: rgba(16, 185, 129, 0.12);
+  }
+
+  &--mid {
+    color: #5f6b7a;
+    background: rgba(100, 116, 139, 0.12);
+  }
+
+  &--low {
+    color: #c2414b;
+    background: rgba(229, 72, 77, 0.11);
+  }
+}
+
 .catalog-number {
   font-size: 11px;
   font-variant-numeric: tabular-nums;
@@ -722,5 +782,10 @@ export default {
     color: #fbbf24;
     background: rgba(245, 158, 11, 0.18);
   }
+
+  .catalog-score--top { color: #ffd666; }
+  .catalog-score--good { color: #6ee7b7; }
+  .catalog-score--mid { color: #d1d5db; }
+  .catalog-score--low { color: #ff9ca3; }
 }
 </style>

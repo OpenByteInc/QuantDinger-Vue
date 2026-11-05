@@ -129,6 +129,13 @@ test('all six transports build secure production WebSocket URLs', () => {
   }
 })
 
+test('Binance spot depth uses the firewall-friendly 443 endpoint', () => {
+  const spotUrl = ORDER_BOOK_WS.binance.buildUrl({ exchangeId: 'binance', symbol: 'ETH/USDT', marketType: 'spot' })
+  const swapUrl = ORDER_BOOK_WS.binance.buildUrl({ exchangeId: 'binance', symbol: 'ETH/USDT', marketType: 'swap' })
+  assert.equal(spotUrl, 'wss://stream.binance.com:443/ws/ethusdt@depth20@100ms')
+  assert.equal(swapUrl, 'wss://fstream.binance.com/ws/ethusdt@depth20@100ms')
+})
+
 test('WebSocket snapshots carry the correct quantity unit for every venue and market', () => {
   const expected = {
     binance: 'base',
