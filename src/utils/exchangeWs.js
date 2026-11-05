@@ -107,7 +107,7 @@ const EXCHANGE_WS = {
       const s = normalizedSymbol(context.instrumentId || symbol).toLowerCase()
       const base = normalizedMarketType(context.marketType) === 'swap'
         ? 'wss://fstream.binance.com/ws'
-        : 'wss://stream.binance.com:9443/ws'
+        : 'wss://data-stream.binance.vision/ws'
       return `${base}/${s}@kline_${interval}`
     },
     parseBar (data, context) {
