@@ -56,7 +56,7 @@
       v-model="detailVisible"
       :title="detailNotice ? displayTitle(detailNotice) : ''"
       :footer="null"
-      :width="isHtmlReport ? 900 : 660"
+      :width="hasProfessionalReports ? 1180 : (isHtmlReport ? 900 : 660)"
       :wrapClassName="isHtmlReport ? 'notice-detail-modal html-report-modal' : 'notice-detail-modal'"
       centered
     >
@@ -75,7 +75,14 @@
         <a-divider />
 
         <div class="notice-detail-content" :class="{ 'html-report': isHtmlReport }">
-          <div v-html="displayMessageHtml(detailNotice)" class="message-body"></div>
+          <div v-if="hasProfessionalReports" class="professional-report-list">
+            <ProfessionalAnalysisReport
+              v-for="report in professionalReports"
+              :key="report.report_id || `${report.instrument && report.instrument.market}:${report.instrument && report.instrument.symbol}`"
+              :result="report"
+            />
+          </div>
+          <div v-else v-html="displayMessageHtml(detailNotice)" class="message-body"></div>
         </div>
 
         <template v-if="hasExtraDetail">
@@ -160,6 +167,9 @@ import { createVisibilityPolling } from '@/utils/visibilityPolling'
 
 export default {
   name: 'HeaderNotice',
+  components: {
+    ProfessionalAnalysisReport: () => import('@/views/ai-analysis/components/ProfessionalAnalysisReport.vue')
+  },
   data () {
     return {
       loading: false,
@@ -179,8 +189,22 @@ export default {
     },
     isHtmlReport () {
       if (!this.detailNotice) return false
+      if (this.hasProfessionalReports) return true
       const html = this.displayMessageHtml(this.detailNotice)
       return html.includes('<div class="qd-report">') || html.includes('<style>')
+    },
+    professionalReports () {
+      const payload = (this.detailNotice && this.detailNotice.payload) || {}
+      if (Array.isArray(payload.professional_reports)) {
+        return payload.professional_reports.filter(report => report && ['professional_report_v1', '1.0'].includes(report.schema_version))
+      }
+      const analyses = Array.isArray(payload.position_analyses) ? payload.position_analyses : []
+      return analyses
+        .map(item => item && item.professional_report)
+        .filter(report => report && ['professional_report_v1', '1.0'].includes(report.schema_version))
+    },
+    hasProfessionalReports () {
+      return this.professionalReports.length > 0
     },
     hasExtraDetail () {
       if (!this.detailNotice || this.isHtmlReport) return false
@@ -810,6 +834,13 @@ export default {
   background: var(--qd-report-bg);
   color: var(--qd-report-text);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.notice-detail-modal .professional-report-list {
+  display: grid;
+  gap: 14px;
+  padding: 12px;
+  background: var(--qd-report-shell-bg);
 }
 
 .notice-detail-modal .qd-report * {
@@ -1468,19 +1499,19 @@ body.realdark,
 
   .notice-detail-modal {
     --qd-report-shell-bg: #171717;
-    --qd-report-bg: #0f1218;
-    --qd-report-surface: #151a23;
-    --qd-report-subtle: #111722;
-    --qd-report-border: #252b36;
-    --qd-report-strong-border: #2a303c;
-    --qd-report-text: #f8fafc;
-    --qd-report-muted: #8b97aa;
-    --qd-report-soft-text: #c7d0df;
-    --qd-report-header-bg: linear-gradient(135deg, #191e28 0%, #121722 100%);
-    --qd-report-panel-bg: #10151d;
-    --qd-report-buy-bg: linear-gradient(180deg, rgba(34, 197, 94, 0.12), #10151d 70%);
-    --qd-report-sell-bg: linear-gradient(180deg, rgba(239, 68, 68, 0.13), #10151d 70%);
-    --qd-report-hold-bg: linear-gradient(180deg, rgba(234, 179, 8, 0.13), #10151d 70%);
+    --qd-report-bg: #171717;
+    --qd-report-surface: #202020;
+    --qd-report-subtle: #1c1c1c;
+    --qd-report-border: #343434;
+    --qd-report-strong-border: #404040;
+    --qd-report-text: #f5f5f5;
+    --qd-report-muted: #a3a3a3;
+    --qd-report-soft-text: #d4d4d4;
+    --qd-report-header-bg: linear-gradient(135deg, #262626 0%, #1c1c1c 100%);
+    --qd-report-panel-bg: #242424;
+    --qd-report-buy-bg: linear-gradient(180deg, rgba(34, 197, 94, 0.12), #242424 70%);
+    --qd-report-sell-bg: linear-gradient(180deg, rgba(239, 68, 68, 0.13), #242424 70%);
+    --qd-report-hold-bg: linear-gradient(180deg, rgba(234, 179, 8, 0.13), #242424 70%);
     --qd-report-focus-bg: rgba(239, 68, 68, 0.08);
     --qd-report-focus-text: #fecaca;
     --qd-report-error-bg: rgba(239, 68, 68, 0.12);
