@@ -374,6 +374,10 @@
             </template>
           </div>
           <div class="action-buttons">
+            <a-button @click="shareVisible = true">
+              <a-icon type="share-alt" />
+              {{ $t('community.share.action') }}
+            </a-button>
             <a-button v-if="detail.is_own" disabled>
               {{ isStrategyAsset ? $t('community.myStrategy') : $t('community.myIndicator') }}
             </a-button>
@@ -429,19 +433,29 @@
         </div>
       </div>
     </a-spin>
+    <market-share-modal
+      :visible="shareVisible"
+      :detail="detail"
+      :performance="performance"
+      :preview-image="isIndicatorAsset ? detailPreviewImage : ''"
+      :is-dark-theme="isDarkTheme"
+      @close="shareVisible = false"
+    />
   </a-modal>
 </template>
 
 <script>
 import { mapState } from 'vuex'
 import CommentList from './CommentList.vue'
+import MarketShareModal from './MarketShareModal.vue'
 import request from '@/utils/request'
 import fallbackCover from '@/assets/marketplace/indicator-preview-default.svg'
 
 export default {
   name: 'IndicatorDetail',
   components: {
-    CommentList
+    CommentList,
+    MarketShareModal
   },
   props: {
     visible: {
@@ -472,6 +486,7 @@ export default {
       },
       myComment: null,
       imageError: false,
+      shareVisible: false,
       equityChartInst: null,
       equityResizeHandler: null,
       showAllParameters: false,
@@ -665,6 +680,7 @@ export default {
       this.comments = { items: [], total: 0, page: 1 }
       this.myComment = null
       this.imageError = false
+      this.shareVisible = false
       this.showAllParameters = false
       this.disposeEquityChart()
     },
@@ -3494,6 +3510,26 @@ export default {
 .qd-indicator-detail-modal-wrap {
   .indicator-detail-modal.is-indicator-asset {
     height: ~"min(700px, 88vh)";
+
+    .detail-top-layout__main {
+      display: flow-root;
+    }
+
+    .detail-body .detail-top-layout__main > .overview-section:last-child {
+      margin-bottom: 30px;
+    }
+
+    .overview-section .description {
+      margin-bottom: 0;
+    }
+
+    .listing-assurance-section > h3 {
+      margin-top: 0;
+    }
+
+    .detail-body > .reviews-section {
+      padding-top: 24px;
+    }
 
     .listing-assurance-grid {
       display: grid;

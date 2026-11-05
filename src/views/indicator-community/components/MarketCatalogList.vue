@@ -323,16 +323,36 @@ export default {
   &__head,
   &__row {
     display: grid;
-    grid-template-columns: minmax(240px, 2.5fr) minmax(80px, 0.8fr) minmax(90px, 0.9fr) 64px 56px 56px 56px 84px 48px;
+    grid-template-columns:
+      minmax(300px, 4fr)
+      minmax(110px, 1.2fr)
+      minmax(120px, 1.4fr)
+      minmax(76px, 0.8fr)
+      64px
+      64px
+      64px
+      minmax(90px, 1fr)
+      54px;
     align-items: center;
     column-gap: 8px;
-    min-width: 820px;
+    min-width: 1080px;
   }
 
   &--strategy &__head,
   &--strategy &__row {
-    grid-template-columns: minmax(220px, 2.2fr) 58px 54px minmax(78px, 0.8fr) 58px 66px 66px 52px 48px 76px 44px;
-    min-width: 930px;
+    grid-template-columns:
+      minmax(280px, 3.8fr)
+      minmax(70px, 0.75fr)
+      60px
+      minmax(110px, 1.3fr)
+      76px
+      82px
+      82px
+      82px
+      64px
+      90px
+      54px;
+    min-width: 1120px;
   }
 
   &__head {

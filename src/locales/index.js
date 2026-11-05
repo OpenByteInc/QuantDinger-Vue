@@ -56,6 +56,7 @@ import tradingVenueSettingsMessages from './lang/trading-venue-settings'
 import indicatorWorkspaceLayoutMessages from './lang/indicator-workspace-layout'
 import venueResearchCopyOverrides from './venue-research-copy-overrides'
 import marketCatalogMessages from './market-catalog-overrides'
+import marketShareMessages from './market-share-overrides'
 import humanCompletionOverrides from './human-completion-overrides'
 import reviewedRoundTwoOverrides from './reviewed-round-two-overrides'
 import reviewedStrategyReviewOverrides from './reviewed-strategy-review-overrides'
@@ -116,6 +117,7 @@ const messages = {
     ...(indicatorWorkspaceLayoutMessages[defaultLang] || {}),
     ...(venueResearchCopyOverrides[defaultLang] || {}),
     ...(marketCatalogMessages[defaultLang] || {}),
+    ...(marketShareMessages[defaultLang] || {}),
     ...(settingsAiMessages[defaultLang] || {}),
     ...(settingsTradingMessages[defaultLang] || {}),
     ...(settingsSecurityMessages[defaultLang] || {}),
@@ -240,6 +242,7 @@ function mergeLocaleOverrides (lang) {
     ...(indicatorWorkspaceLayoutMessages[lang] || {}),
     ...(venueResearchCopyOverrides[lang] || {}),
     ...(marketCatalogMessages[lang] || {}),
+    ...(marketShareMessages[lang] || {}),
     ...(settingsAiMessages[lang] || {}),
     ...(settingsTradingMessages[lang] || {}),
     ...(settingsSecurityMessages[lang] || {}),
@@ -318,6 +321,7 @@ export async function loadLanguageAsync (lang = defaultLang) {
       ...(indicatorWorkspaceLayoutMessages[lang] || {}),
       ...(venueResearchCopyOverrides[lang] || {}),
       ...(marketCatalogMessages[lang] || {}),
+      ...(marketShareMessages[lang] || {}),
       ...(humanCompletionOverrides[lang] || {}),
       ...(reviewedRoundTwoOverrides[lang] || {}),
       ...(reviewedStrategyReviewOverrides[lang] || {}),

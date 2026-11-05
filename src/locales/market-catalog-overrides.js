@@ -71,7 +71,180 @@ const en = {
   'community.credits': 'Credits'
 }
 
-export default {
+const detailTranslations = {
+  'zh-CN': {
+    'community.backtestRange': '回测区间',
+    'community.tradeCount': '交易次数',
+    'community.lastVerified': '最近验证',
+    'community.dataSource': '数据来源',
+    'community.executionCosts': '交易成本',
+    'community.executionCostsValue': '手续费 {commission} · 滑点 {slippage}',
+    'community.engineVersion': '回测引擎',
+    'community.purchaseDetails': '购买与兼容性',
+    'community.usageScope': '使用范围',
+    'community.accountBoundUse': '当前账户',
+    'community.updatePolicy': '更新方式',
+    'community.manualSyncUpdates': '手动同步作者更新',
+    'community.compatibility': '兼容性',
+    'community.chartIndicatorCompatibility': '图表指标',
+    'community.lastUpdated': '最近更新'
+  },
+  'zh-TW': {
+    'community.backtestRange': '回測區間',
+    'community.tradeCount': '交易次數',
+    'community.lastVerified': '最近驗證',
+    'community.dataSource': '資料來源',
+    'community.executionCosts': '交易成本',
+    'community.executionCostsValue': '手續費 {commission} · 滑點 {slippage}',
+    'community.engineVersion': '回測引擎',
+    'community.purchaseDetails': '購買與相容性',
+    'community.usageScope': '使用範圍',
+    'community.accountBoundUse': '目前帳戶',
+    'community.updatePolicy': '更新方式',
+    'community.manualSyncUpdates': '手動同步作者更新',
+    'community.compatibility': '相容性',
+    'community.chartIndicatorCompatibility': '圖表指標',
+    'community.lastUpdated': '最近更新'
+  },
+  'ja-JP': {
+    'community.backtestRange': 'バックテスト期間',
+    'community.tradeCount': '取引数',
+    'community.lastVerified': '最終検証',
+    'community.dataSource': 'データソース',
+    'community.executionCosts': '取引コスト',
+    'community.executionCostsValue': '手数料 {commission}・スリッページ {slippage}',
+    'community.engineVersion': 'エンジンバージョン',
+    'community.purchaseDetails': '購入と互換性',
+    'community.usageScope': '利用範囲',
+    'community.accountBoundUse': '現在のアカウント',
+    'community.updatePolicy': '更新方法',
+    'community.manualSyncUpdates': '公開者から手動同期',
+    'community.compatibility': '互換性',
+    'community.chartIndicatorCompatibility': 'チャートインジケーター',
+    'community.lastUpdated': '最終更新'
+  },
+  'ko-KR': {
+    'community.backtestRange': '백테스트 기간',
+    'community.tradeCount': '거래 수',
+    'community.lastVerified': '최근 검증',
+    'community.dataSource': '데이터 소스',
+    'community.executionCosts': '거래 비용',
+    'community.executionCostsValue': '수수료 {commission} · 슬리피지 {slippage}',
+    'community.engineVersion': '엔진 버전',
+    'community.purchaseDetails': '구매 및 호환성',
+    'community.usageScope': '사용 범위',
+    'community.accountBoundUse': '현재 계정',
+    'community.updatePolicy': '업데이트 방식',
+    'community.manualSyncUpdates': '게시자로부터 수동 동기화',
+    'community.compatibility': '호환성',
+    'community.chartIndicatorCompatibility': '차트 지표',
+    'community.lastUpdated': '최근 업데이트'
+  },
+  'de-DE': {
+    'community.backtestRange': 'Backtest-Zeitraum',
+    'community.tradeCount': 'Transaktionen',
+    'community.lastVerified': 'Zuletzt geprüft',
+    'community.dataSource': 'Datenquelle',
+    'community.executionCosts': 'Ausführungskosten',
+    'community.executionCostsValue': 'Gebühr {commission} · Slippage {slippage}',
+    'community.engineVersion': 'Engine-Version',
+    'community.purchaseDetails': 'Kauf und Kompatibilität',
+    'community.usageScope': 'Nutzungsumfang',
+    'community.accountBoundUse': 'Aktuelles Konto',
+    'community.updatePolicy': 'Aktualisierungen',
+    'community.manualSyncUpdates': 'Manuell vom Anbieter synchronisieren',
+    'community.compatibility': 'Kompatibilität',
+    'community.chartIndicatorCompatibility': 'Chart-Indikator',
+    'community.lastUpdated': 'Zuletzt aktualisiert'
+  },
+  'fr-FR': {
+    'community.backtestRange': 'Période du backtest',
+    'community.tradeCount': 'Transactions',
+    'community.lastVerified': 'Dernière vérification',
+    'community.dataSource': 'Source des données',
+    'community.executionCosts': 'Coûts d’exécution',
+    'community.executionCostsValue': 'Commission {commission} · Slippage {slippage}',
+    'community.engineVersion': 'Version du moteur',
+    'community.purchaseDetails': 'Achat et compatibilité',
+    'community.usageScope': 'Portée d’utilisation',
+    'community.accountBoundUse': 'Compte actuel',
+    'community.updatePolicy': 'Mises à jour',
+    'community.manualSyncUpdates': 'Synchronisation manuelle depuis l’auteur',
+    'community.compatibility': 'Compatibilité',
+    'community.chartIndicatorCompatibility': 'Indicateur graphique',
+    'community.lastUpdated': 'Dernière mise à jour'
+  },
+  'ru-RU': {
+    'community.backtestRange': 'Период бэктеста',
+    'community.tradeCount': 'Сделки',
+    'community.lastVerified': 'Последняя проверка',
+    'community.dataSource': 'Источник данных',
+    'community.executionCosts': 'Издержки исполнения',
+    'community.executionCostsValue': 'Комиссия {commission} · Проскальзывание {slippage}',
+    'community.engineVersion': 'Версия движка',
+    'community.purchaseDetails': 'Покупка и совместимость',
+    'community.usageScope': 'Область использования',
+    'community.accountBoundUse': 'Текущий аккаунт',
+    'community.updatePolicy': 'Обновления',
+    'community.manualSyncUpdates': 'Ручная синхронизация от автора',
+    'community.compatibility': 'Совместимость',
+    'community.chartIndicatorCompatibility': 'Графический индикатор',
+    'community.lastUpdated': 'Последнее обновление'
+  },
+  'ar-SA': {
+    'community.backtestRange': 'فترة الاختبار الخلفي',
+    'community.tradeCount': 'الصفقات',
+    'community.lastVerified': 'آخر تحقق',
+    'community.dataSource': 'مصدر البيانات',
+    'community.executionCosts': 'تكاليف التنفيذ',
+    'community.executionCostsValue': 'العمولة {commission} · الانزلاق {slippage}',
+    'community.engineVersion': 'إصدار المحرك',
+    'community.purchaseDetails': 'الشراء والتوافق',
+    'community.usageScope': 'نطاق الاستخدام',
+    'community.accountBoundUse': 'الحساب الحالي',
+    'community.updatePolicy': 'التحديثات',
+    'community.manualSyncUpdates': 'مزامنة يدوية من الناشر',
+    'community.compatibility': 'التوافق',
+    'community.chartIndicatorCompatibility': 'مؤشر الرسم البياني',
+    'community.lastUpdated': 'آخر تحديث'
+  },
+  'th-TH': {
+    'community.backtestRange': 'ช่วงการทดสอบย้อนหลัง',
+    'community.tradeCount': 'จำนวนการซื้อขาย',
+    'community.lastVerified': 'ตรวจสอบล่าสุด',
+    'community.dataSource': 'แหล่งข้อมูล',
+    'community.executionCosts': 'ต้นทุนการดำเนินการ',
+    'community.executionCostsValue': 'ค่าธรรมเนียม {commission} · สลิปเพจ {slippage}',
+    'community.engineVersion': 'เวอร์ชันเอนจิน',
+    'community.purchaseDetails': 'การซื้อและความเข้ากันได้',
+    'community.usageScope': 'ขอบเขตการใช้งาน',
+    'community.accountBoundUse': 'บัญชีปัจจุบัน',
+    'community.updatePolicy': 'การอัปเดต',
+    'community.manualSyncUpdates': 'ซิงค์จากผู้เผยแพร่ด้วยตนเอง',
+    'community.compatibility': 'ความเข้ากันได้',
+    'community.chartIndicatorCompatibility': 'อินดิเคเตอร์กราฟ',
+    'community.lastUpdated': 'อัปเดตล่าสุด'
+  },
+  'vi-VN': {
+    'community.backtestRange': 'Khoảng kiểm thử',
+    'community.tradeCount': 'Số giao dịch',
+    'community.lastVerified': 'Xác minh gần nhất',
+    'community.dataSource': 'Nguồn dữ liệu',
+    'community.executionCosts': 'Chi phí thực thi',
+    'community.executionCostsValue': 'Phí {commission} · Trượt giá {slippage}',
+    'community.engineVersion': 'Phiên bản công cụ',
+    'community.purchaseDetails': 'Mua và tương thích',
+    'community.usageScope': 'Phạm vi sử dụng',
+    'community.accountBoundUse': 'Tài khoản hiện tại',
+    'community.updatePolicy': 'Cập nhật',
+    'community.manualSyncUpdates': 'Đồng bộ thủ công từ tác giả',
+    'community.compatibility': 'Khả năng tương thích',
+    'community.chartIndicatorCompatibility': 'Chỉ báo biểu đồ',
+    'community.lastUpdated': 'Cập nhật gần nhất'
+  }
+}
+
+const messages = {
   'en-US': en,
   'zh-CN': {
     ...en,
@@ -606,3 +779,9 @@ export default {
     'community.credits': 'điểm'
   }
 }
+
+Object.entries(detailTranslations).forEach(([locale, translations]) => {
+  Object.assign(messages[locale], translations)
+})
+
+export default messages

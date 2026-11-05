@@ -32,6 +32,18 @@ test('marketplace defaults to a dense catalog for indicators and strategies', ()
   assert.doesNotMatch(catalog, /backtest/i)
 })
 
+test('compact catalog distributes space across identity and metric columns', () => {
+  const catalog = read('src/views/indicator-community/components/MarketCatalogList.vue')
+  const marketplace = read('src/views/indicator-community/index.vue')
+
+  assert.match(catalog, /minmax\(300px, 4fr\)/)
+  assert.match(catalog, /minmax\(120px, 1\.4fr\)/)
+  assert.match(catalog, /minmax\(280px, 3\.8fr\)/)
+  assert.match(catalog, /minmax\(110px, 1\.3fr\)/)
+  assert.match(marketplace, /\.market-empty \{[\s\S]*?background: #fbfcfe;/)
+  assert.match(marketplace, /border-color: #333;[\s\S]*?background: #191919;/)
+})
+
 test('strategy catalog metrics use semantic performance colors', () => {
   const catalog = read('src/views/indicator-community/components/MarketCatalogList.vue')
 
@@ -307,7 +319,30 @@ test('marketplace copy is complete across every supported locale', () => {
     assert.equal(Object.values(messages).every(value => typeof value === 'string' && value.trim().length > 0), true)
   }
 
+  const localizedDetailKeys = [
+    'community.purchaseDetails',
+    'community.usageScope',
+    'community.accountBoundUse',
+    'community.updatePolicy',
+    'community.manualSyncUpdates',
+    'community.compatibility',
+    'community.chartIndicatorCompatibility',
+    'community.lastUpdated',
+    'community.backtestRange',
+    'community.tradeCount',
+    'community.lastVerified',
+    'community.dataSource',
+    'community.executionCosts',
+    'community.engineVersion'
+  ]
+  for (const locale of locales.slice(1)) {
+    for (const key of localizedDetailKeys) {
+      assert.notEqual(marketCatalogMessages[locale][key], marketCatalogMessages['en-US'][key], `${locale} should localize ${key}`)
+    }
+  }
+
   assert.equal(marketCatalogMessages['ja-JP']['community.sharpe'], 'シャープレシオ')
+  assert.equal(marketCatalogMessages['ja-JP']['community.purchaseDetails'], '購入と互換性')
   assert.equal(marketCatalogMessages['ko-KR']['community.maxDrawdown'], '최대 낙폭')
   assert.equal(marketCatalogMessages['de-DE']['community.freeOnly'], 'Kostenlos')
   assert.equal(marketCatalogMessages['fr-FR']['community.sharpe'], 'Ratio de Sharpe')

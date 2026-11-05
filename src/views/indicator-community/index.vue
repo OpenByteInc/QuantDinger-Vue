@@ -723,6 +723,12 @@ export default {
     }
   },
   watch: {
+    '$route.query.listing' (value) {
+      const id = Number(value)
+      if (Number.isFinite(id) && id > 0 && id !== this.selectedIndicatorId) {
+        this.openDetailById(id)
+      }
+    },
     '$i18n.locale' () {
       this.pagination.current = 1
       this.loadIndicators()
@@ -755,6 +761,10 @@ export default {
     }
     await this.loadStrategyMarketOptions()
     this.loadIndicators()
+    const listingId = Number(q && q.listing)
+    if (Number.isFinite(listingId) && listingId > 0) {
+      this.openDetailById(listingId)
+    }
   },
   methods: {
     async loadStrategyMarketOptions () {
@@ -1541,9 +1551,7 @@ export default {
     padding: 64px 20px;
     border: 1px dashed #dbe4ef;
     border-radius: 12px;
-    background:
-      radial-gradient(circle at 50% 28%, rgba(24, 144, 255, 0.07), transparent 34%),
-      linear-gradient(180deg, #fff 0%, #fbfdff 100%);
+    background: #fbfcfe;
 
     ::v-deep .ant-empty-image {
       height: 88px;
@@ -1564,7 +1572,7 @@ export default {
       border-radius: 8px;
       color: #fff !important;
       font-weight: 600;
-      box-shadow: 0 6px 16px rgba(24, 144, 255, 0.2);
+      box-shadow: 0 6px 16px color-mix(in srgb, var(--primary-color, #1890ff) 20%, transparent);
 
       .anticon {
         margin-right: 5px;
@@ -1976,12 +1984,13 @@ export default {
 
       &:hover {
         color: var(--primary-color, #1890ff);
-        background: rgba(24, 144, 255, 0.06);
+        background: var(--primary-color-soft, color-mix(in srgb, var(--primary-color, #1890ff) 7%, transparent));
       }
 
       &.ant-tabs-tab-active {
         color: var(--primary-color, #1890ff);
-        background: rgba(24, 144, 255, 0.1);
+        background: color-mix(in srgb, var(--primary-color, #1890ff) 12%, #fff);
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary-color, #1890ff) 20%, transparent);
       }
     }
 
@@ -2214,13 +2223,14 @@ export default {
       color: rgba(255, 255, 255, 0.65);
 
       &:hover {
-        color: #69b1ff;
-        background: rgba(24, 144, 255, 0.1);
+        color: color-mix(in srgb, var(--primary-color, #1890ff) 78%, #fff);
+        background: color-mix(in srgb, var(--primary-color, #1890ff) 10%, #1f1f1f);
       }
 
       &.ant-tabs-tab-active {
-        color: #69b1ff;
-        background: rgba(24, 144, 255, 0.16);
+        color: color-mix(in srgb, var(--primary-color, #1890ff) 78%, #fff);
+        background: color-mix(in srgb, var(--primary-color, #1890ff) 16%, #1f1f1f);
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary-color, #1890ff) 28%, transparent);
       }
     }
   }
@@ -2351,10 +2361,8 @@ export default {
   }
 
   .market-empty {
-    border-color: #333d49;
-    background:
-      radial-gradient(circle at 50% 28%, rgba(24, 144, 255, 0.12), transparent 35%),
-      linear-gradient(180deg, #1b1d20 0%, #17191c 100%);
+    border-color: #333;
+    background: #191919;
 
     ::v-deep .ant-empty-description {
       color: rgba(255, 255, 255, 0.58);
@@ -2362,7 +2370,7 @@ export default {
 
     .market-empty__action {
       color: #fff !important;
-      box-shadow: 0 6px 18px rgba(24, 144, 255, 0.28);
+      box-shadow: 0 6px 18px color-mix(in srgb, var(--primary-color, #1890ff) 26%, transparent);
     }
   }
 
