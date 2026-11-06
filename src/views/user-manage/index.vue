@@ -3498,6 +3498,8 @@ export default {
 </script>
 
 <style lang="less" scoped>
+@import './user-manage-polish.less';
+
 .user-manage-page {
   padding: var(--qd-page-gutter, 16px) !important;
   min-height: calc(100vh - 120px);
@@ -4730,7 +4732,6 @@ export default {
   .mc-mono { color: rgba(255, 255, 255, 0.78); }
 }
 
-@import './user-manage-polish.less';
 </style>
 
 <style lang="less">

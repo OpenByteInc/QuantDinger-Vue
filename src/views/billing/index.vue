@@ -897,6 +897,8 @@ export default {
 </script>
 
 <style lang="less" scoped>
+@import './billing-polish.less';
+
 .billing-page {
   --billing-page-bg: #f4f6f8;
   --billing-surface: #ffffff;
@@ -1464,7 +1466,6 @@ export default {
   }
 }
 
-@import './billing-polish.less';
 </style>
 
 <style lang="less">

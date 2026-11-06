@@ -562,7 +562,7 @@ export default {
         return
       }
 
-      updateIndicators({ force, signature })
+      void updateIndicators({ force, signature })
     }
 
     const isCryptoMarket = () => {
@@ -5867,7 +5867,7 @@ registerOverlay({
         if (indicatorsUpdateQueued.value) {
           indicatorsUpdateQueued.value = false
           setTimeout(() => {
-            updateIndicators()
+            void updateIndicators()
           }, 0)
         }
       }

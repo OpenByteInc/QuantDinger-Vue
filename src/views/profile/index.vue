@@ -2000,6 +2000,8 @@ export default {
 </script>
 
 <style lang="less" scoped>
+@import './profile-polish.less';
+
 @primary-color: var(--primary-color, #1890ff);
 
 .profile-page {
@@ -4339,7 +4341,6 @@ export default {
   }
 }
 
-@import './profile-polish.less';
 </style>
 
 <style lang="less">
