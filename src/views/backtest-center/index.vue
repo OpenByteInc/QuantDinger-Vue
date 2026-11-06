@@ -1,5 +1,5 @@
 <template>
-  <div class="backtest-page qd-workspace-page" :class="{ 'theme-dark': isDarkTheme }" data-testid="backtest-center">
+  <div class="backtest-page qd-workspace-page qd-page-frame" :class="{ 'theme-dark': isDarkTheme }" data-testid="backtest-center">
     <section class="workspace-toolbar">
       <div class="workspace-toolbar__primary">
         <a-radio-group v-model="mode" class="workspace-mode-tabs" button-style="solid" data-testid="research-mode-switch">
@@ -2040,13 +2040,13 @@ export default {
   --workspace-border: #e2e6eb;
   --workspace-surface: #fafbfc;
   min-height: 100%;
-  padding: 0 14px 22px;
+  padding: var(--qd-page-gutter, 16px);
   background: #f1f3f5;
   color: var(--workspace-text);
   font-size: 12px;
 }
 .workspace-toolbar, .panel { border: 1px solid #e2e6eb; border-radius: 10px; background: #fff; box-shadow: 0 6px 20px rgba(15, 35, 60, 0.045); }
-.workspace-toolbar { position: sticky; z-index: 20; top: 0; display: flex; width: calc(100% + 28px); align-items: center; justify-content: space-between; gap: 16px; min-height: 48px; margin-right: -14px; margin-bottom: 10px; margin-left: -14px; padding: 7px 24px; border-radius: 0; }
+.workspace-toolbar { position: sticky; z-index: 20; top: 0; display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 16px; min-height: 48px; margin: 0 0 10px; padding: 7px 16px; border-radius: 10px; }
 .workspace-toolbar__primary { display: flex; min-width: 0; align-items: center; gap: 12px; }
 .workspace-mode-tabs { display: inline-flex; overflow: hidden; border-radius: 6px; }
 .workspace-mode-tabs /deep/ .ant-radio-button-wrapper { border-radius: 0; }
@@ -2345,10 +2345,12 @@ export default {
 .theme-dark /deep/ .ant-table-tbody > tr > td { border-color: rgba(255, 255, 255, 0.08); background: #111; color: rgba(255, 255, 255, 0.72); }
 @media (max-width: 1280px) { .workspace-factor-mode__label { display: none; } }
 @media (max-width: 1100px) { .workspace-toolbar { flex-wrap: wrap; }.workspace-grid, .workspace-grid.settings-open { grid-template-columns: 1fr; } .config-panel { position: static; overflow: visible; height: auto; min-height: 0; max-height: none; } .config-scroll { overflow: visible; } .result-panel { min-height: 560px; } .result-empty { min-height: 480px; } }
-@media (max-width: 720px) { .backtest-page { padding: 0 10px 10px; } .workspace-toolbar { top: 0; width: calc(100% + 20px); align-items: flex-start; flex-direction: column; margin-right: -10px; margin-left: -10px; padding-right: 20px; padding-left: 20px; } .workspace-toolbar__primary { width: 100%; align-items: flex-start; flex-direction: column; }.hero-actions { justify-content: flex-start; } .result-progress-strip { grid-template-columns: 1fr; }.result-empty { padding: 12px 0; }.empty-hero-card { grid-template-columns: 34px minmax(0, 1fr); padding: 14px; }.empty-orbit { width: 34px; height: 34px; }.empty-checks { grid-column: 1 / 3; }.form-grid, .manifest-grid, .metrics-grid, .assumption-strip, .empty-preview-grid { grid-template-columns: 1fr; }.range-presets__buttons { width: 100%; }.range-preset-wrap /deep/ .ant-btn { width: 100%; } }
+@media (max-width: 720px) { .backtest-page { padding: var(--qd-page-gutter, 12px); } .workspace-toolbar { top: 0; width: 100%; align-items: flex-start; flex-direction: column; margin-right: 0; margin-left: 0; padding-right: 12px; padding-left: 12px; } .workspace-toolbar__primary { width: 100%; align-items: flex-start; flex-direction: column; }.hero-actions { justify-content: flex-start; } .result-progress-strip { grid-template-columns: 1fr; }.result-empty { padding: 12px 0; }.empty-hero-card { grid-template-columns: 34px minmax(0, 1fr); padding: 14px; }.empty-orbit { width: 34px; height: 34px; }.empty-checks { grid-column: 1 / 3; }.form-grid, .manifest-grid, .metrics-grid, .assumption-strip, .empty-preview-grid { grid-template-columns: 1fr; }.range-presets__buttons { width: 100%; }.range-preset-wrap /deep/ .ant-btn { width: 100%; } }
 </style>
 
 <style lang="less">
+@import './backtest-polish.less';
+
 .backtest-history-drawer .ant-drawer-header { border-bottom: 1px solid #e8edf2; }
 .backtest-history-drawer .ant-drawer-body { padding: 16px; }
 .drawer-detail-loading { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; padding: 10px 12px; border: 1px solid color-mix(in srgb, var(--primary-color, #52c41a) 32%, transparent); border-radius: 8px; color: var(--primary-color, #52c41a); background: color-mix(in srgb, var(--primary-color, #52c41a) 8%, transparent); font-size: 12px; }

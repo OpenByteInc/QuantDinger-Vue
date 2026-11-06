@@ -1,5 +1,5 @@
 <template>
-  <div class="strategy-ide-shell qd-workspace-page" :class="{ 'theme-dark': isDarkTheme }">
+  <div class="strategy-ide-shell qd-workspace-page qd-page-frame" :class="{ 'theme-dark': isDarkTheme }">
     <div class="strategy-ide-layout">
       <a-alert
         v-if="adaptedBacktestRequired"
@@ -2945,12 +2945,31 @@ export default {
 
 <style lang="less" scoped>
 .strategy-ide-shell {
+  --strategy-radius-icon: 4px;
+  --strategy-radius-control: 6px;
+  --strategy-radius-panel: 8px;
+  --strategy-font-caption: 10px;
+  --strategy-font-meta: 11px;
+  --strategy-font-body: 12px;
+  --strategy-font-title: 13px;
+  --strategy-text-primary: #202633;
+  --strategy-text-secondary: #596579;
+  --strategy-text-muted: #8490a2;
+  --strategy-surface: #ffffff;
+  --strategy-surface-raised: #f7f8fa;
+  --strategy-surface-control: #ffffff;
+  --strategy-border: #e3e7ec;
   box-sizing: border-box;
   height: calc(100vh - 64px);
-  padding: 10px;
+  padding: 0;
   color: #252a34;
   background: #f4f5f7;
   overflow: hidden;
+}
+
+.strategy-ide-shell.qd-page-frame {
+  --qd-page-gutter: 0px;
+  padding: 0 !important;
 }
 
 .strategy-ide-shell.theme-dark {
@@ -2962,6 +2981,13 @@ export default {
   --ide-border: #2a2a2a;
   --ide-text: rgba(255, 255, 255, 0.9);
   --ide-text-muted: rgba(255, 255, 255, 0.58);
+  --strategy-text-primary: rgba(255, 255, 255, 0.9);
+  --strategy-text-secondary: rgba(255, 255, 255, 0.66);
+  --strategy-text-muted: rgba(255, 255, 255, 0.44);
+  --strategy-surface: #111111;
+  --strategy-surface-raised: #171717;
+  --strategy-surface-control: #1b1b1b;
+  --strategy-border: #2a2a2a;
 }
 
 .adapted-backtest-alert {
@@ -2980,8 +3006,8 @@ export default {
   height: auto;
   flex: 1;
   min-height: 0;
-  border: 1px solid #e1e4e8;
-  border-radius: 10px;
+  border: 0;
+  border-radius: 0;
   background: #fff;
   overflow: hidden;
 }
@@ -2995,6 +3021,7 @@ export default {
 
 .script-panel ::v-deep .editor-top-toolbar {
   flex: 0 0 auto;
+  margin-bottom: 0;
 }
 
 .script-panel ::v-deep .editor-layout {
@@ -3050,6 +3077,7 @@ export default {
 }
 
 .ide-toolbar {
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -3177,8 +3205,8 @@ export default {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid #e1e4e8;
-  border-radius: 9px;
+  border: 0;
+  border-radius: 0;
   background: #fff;
 }
 
@@ -3516,6 +3544,10 @@ export default {
     background: var(--ide-surface, #111111);
   }
 
+  .script-panel ::v-deep .strategy-ai-workspace-host--primary {
+    border-color: var(--ide-border, #2a2a2a);
+  }
+
   .strategy-ai-header {
     border-bottom-color: var(--ide-border, #2a2a2a);
     background: var(--ide-surface-raised, #171717);
@@ -3582,6 +3614,381 @@ export default {
 
 }
 
+/* Strategy workspace density and hierarchy */
+.ide-toolbar {
+  gap: 8px;
+  padding: 4px 8px;
+  border-bottom-color: var(--strategy-border);
+  background: var(--strategy-surface);
+  font-size: var(--strategy-font-body);
+}
+
+.toolbar-left,
+.toolbar-right {
+  gap: 4px;
+}
+
+.toolbar-right {
+  padding-left: 8px;
+  border-left-color: var(--strategy-border);
+}
+
+.strategy-workspace-switcher {
+  gap: 6px;
+  padding-right: 8px;
+  border-right-color: var(--strategy-border);
+}
+
+.strategy-workspace-copy {
+  width: 126px;
+}
+
+.strategy-workspace-copy strong {
+  color: var(--strategy-text-primary);
+  font-size: var(--strategy-font-body);
+  font-weight: 600;
+}
+
+.strategy-workspace-copy span {
+  margin-top: 2px;
+  color: var(--strategy-text-muted);
+  font-size: var(--strategy-font-caption);
+}
+
+.strategy-workspace-switcher /deep/ .ant-radio-group {
+  border-radius: var(--strategy-radius-control);
+}
+
+.strategy-workspace-switcher /deep/ .ant-radio-button-wrapper {
+  height: 36px;
+  padding: 0 12px;
+  font-size: var(--strategy-font-body);
+  font-weight: 500;
+  line-height: 34px;
+}
+
+.strategy-source-dropdown-trigger {
+  height: 36px !important;
+  border-radius: var(--strategy-radius-control) !important;
+  font-size: var(--strategy-font-body);
+}
+
+.ide-icon-btn {
+  border-radius: var(--strategy-radius-icon) !important;
+}
+
+.script-save-button,
+.script-live-button,
+.script-backtest-button,
+.indicator-convert-button,
+.robot-template-button,
+.factor-library-button,
+.universe-library-button {
+  border-radius: var(--strategy-radius-control) !important;
+  font-size: var(--strategy-font-body);
+  font-weight: 500;
+}
+
+.script-panel ::v-deep .section-header,
+.strategy-ai-header {
+  box-sizing: border-box;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 12px;
+  border-bottom-color: var(--strategy-border);
+  background: var(--strategy-surface-raised);
+}
+
+.script-panel ::v-deep .section-actions,
+.strategy-ai-header__title,
+.strategy-ai-header__actions {
+  gap: 6px;
+}
+
+.script-panel ::v-deep .section-title,
+.strategy-ai-header__title strong {
+  color: var(--strategy-text-primary);
+  font-size: var(--strategy-font-title);
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.script-panel ::v-deep .section-title .anticon {
+  margin-right: 6px;
+}
+
+.script-panel ::v-deep .current-template-tag,
+.script-panel ::v-deep .verification-status,
+.strategy-ai-contract-badge,
+.strategy-ai-memory-badge,
+.strategy-ai-message__badge {
+  border-radius: var(--strategy-radius-icon) !important;
+  font-size: var(--strategy-font-caption);
+  font-weight: 500;
+}
+
+.script-panel ::v-deep .verify-btn,
+.script-panel ::v-deep .developer-guide-link,
+.strategy-ai-header__actions ::v-deep .ant-btn-sm {
+  box-sizing: border-box;
+  height: 28px;
+  min-height: 28px;
+  padding: 0 8px;
+  border-radius: var(--strategy-radius-control);
+  font-size: var(--strategy-font-body);
+  font-weight: 500;
+  line-height: 26px;
+}
+
+.script-panel ::v-deep .developer-guide-link {
+  border: 1px solid var(--strategy-border);
+  color: var(--strategy-text-secondary);
+  background: var(--strategy-surface-control);
+  text-decoration: none;
+}
+
+.script-panel ::v-deep .developer-guide-link:hover,
+.script-panel ::v-deep .developer-guide-link:focus {
+  border-color: color-mix(in srgb, var(--primary-color, #ff5b21) 42%, var(--strategy-border));
+  color: var(--primary-color, #ff5b21);
+}
+
+.strategy-ai-header__title {
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.strategy-ai-contract-badge,
+.strategy-ai-memory-badge {
+  flex: 0 0 auto;
+  height: 20px;
+  padding: 2px 6px;
+  line-height: 14px;
+}
+
+.strategy-ai-memory-badge {
+  overflow: hidden;
+  color: var(--strategy-text-muted);
+  background: color-mix(in srgb, var(--strategy-text-primary) 7%, transparent);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.strategy-ai-body {
+  gap: 8px;
+  padding: 8px;
+}
+
+.strategy-ai-conversation {
+  padding: 10px;
+  border-color: var(--strategy-border);
+  border-radius: var(--strategy-radius-panel);
+  background: color-mix(in srgb, var(--strategy-surface) 92%, var(--strategy-surface-raised));
+}
+
+.strategy-ai-message {
+  max-width: 94%;
+  margin-bottom: 12px;
+}
+
+.strategy-ai-message__role {
+  margin: 0 2px 4px;
+  color: var(--strategy-text-muted);
+  font-size: var(--strategy-font-caption);
+}
+
+.strategy-ai-message__content,
+.strategy-ai-message--user .strategy-ai-message__content {
+  padding: 9px 10px;
+  border-radius: var(--strategy-radius-control);
+  color: var(--strategy-text-secondary);
+  font-size: var(--strategy-font-body);
+  line-height: 1.55;
+}
+
+.strategy-ai-message--user .strategy-ai-message__content {
+  border-color: color-mix(in srgb, var(--primary-color, #ff5b21) 30%, transparent);
+  background: color-mix(in srgb, var(--primary-color, #ff5b21) 7%, var(--strategy-surface));
+}
+
+.strategy-ai-message__content ::v-deep h3,
+.strategy-ai-message__content ::v-deep h4,
+.strategy-ai-message__content ::v-deep h5 {
+  margin: 12px 0 6px;
+  font-size: var(--strategy-font-body);
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.strategy-ai-message__content ::v-deep code {
+  border-radius: var(--strategy-radius-icon);
+  font-size: var(--strategy-font-meta);
+}
+
+.strategy-ai-composer {
+  padding: 8px;
+  border-color: var(--strategy-border);
+  border-radius: var(--strategy-radius-panel);
+  background: var(--strategy-surface);
+}
+
+.strategy-ai-composer ::v-deep textarea.ant-input {
+  min-height: 72px;
+  border-radius: var(--strategy-radius-control);
+  font-size: var(--strategy-font-body);
+}
+
+.strategy-ai-composer__footer {
+  margin-top: 6px;
+  font-size: var(--strategy-font-caption);
+}
+
+.strategy-ai-send {
+  height: 32px;
+  min-width: 88px;
+  border-radius: var(--strategy-radius-control);
+  font-size: var(--strategy-font-body);
+  font-weight: 500;
+}
+
+.script-panel ::v-deep .runtime-setup {
+  padding: 12px;
+  border-bottom-color: var(--strategy-border);
+  background: var(--strategy-surface);
+}
+
+.script-panel ::v-deep .runtime-setup__head {
+  margin-bottom: 12px;
+}
+
+.script-panel ::v-deep .runtime-setup__head strong {
+  color: var(--strategy-text-primary);
+  font-size: var(--strategy-font-title);
+  font-weight: 600;
+}
+
+.script-panel ::v-deep .runtime-market-badge {
+  min-height: 22px;
+  padding: 2px 7px;
+  border-radius: var(--strategy-radius-icon);
+  font-size: var(--strategy-font-caption);
+  font-weight: 500;
+}
+
+.script-panel ::v-deep .runtime-setup__grid {
+  gap: 12px 8px;
+}
+
+.script-panel ::v-deep .runtime-field {
+  gap: 4px;
+}
+
+.script-panel ::v-deep .runtime-field > span {
+  color: var(--strategy-text-secondary);
+  font-size: var(--strategy-font-meta);
+  font-weight: 500;
+}
+
+.script-panel ::v-deep .runtime-field .ant-select-selection,
+.script-panel ::v-deep .runtime-field .ant-select-selection--single,
+.script-panel ::v-deep .runtime-product-fixed {
+  height: 32px;
+  border-radius: var(--strategy-radius-control);
+}
+
+.script-panel ::v-deep .runtime-field .ant-select-selection__rendered,
+.script-panel ::v-deep .runtime-product-fixed {
+  line-height: 30px;
+}
+
+.script-panel ::v-deep .runtime-product-switch {
+  box-sizing: border-box;
+  height: 32px;
+  border-radius: var(--strategy-radius-control);
+}
+
+.script-panel ::v-deep .runtime-product-switch .ant-radio-button-wrapper {
+  height: 26px !important;
+  min-height: 26px !important;
+  border-radius: var(--strategy-radius-icon);
+  font-size: var(--strategy-font-body);
+  font-weight: 500;
+  line-height: 26px;
+}
+
+.script-panel ::v-deep .side-tabs--split .params-toolbar {
+  gap: 8px;
+  padding: 12px;
+  border-bottom-color: var(--strategy-border);
+  background: var(--strategy-surface-raised);
+}
+
+.script-panel ::v-deep .params-toolbar .panel-intro__title,
+.script-panel ::v-deep .param-item__label {
+  color: var(--strategy-text-primary);
+  font-size: var(--strategy-font-body);
+  font-weight: 600;
+}
+
+.script-panel ::v-deep .params-toolbar .panel-intro__desc,
+.script-panel ::v-deep .param-item__desc,
+.script-panel ::v-deep .param-item__type {
+  color: var(--strategy-text-muted);
+  font-size: var(--strategy-font-meta);
+  line-height: 1.5;
+}
+
+.script-panel ::v-deep .params-count-tag,
+.script-panel ::v-deep .params-live-tag {
+  border-radius: var(--strategy-radius-icon);
+  font-size: var(--strategy-font-caption);
+}
+
+.script-panel ::v-deep .side-tabs--split .param-list {
+  padding: 0 12px 12px;
+}
+
+.script-panel ::v-deep .side-tabs--split .param-item {
+  padding: 10px 0;
+  border-bottom-color: var(--strategy-border);
+}
+
+.script-panel ::v-deep .param-item__label-row {
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.script-panel ::v-deep .param-item .ant-input-number,
+.script-panel ::v-deep .param-item .ant-input,
+.script-panel ::v-deep .param-item .ant-select-selection {
+  height: 32px;
+  border-radius: var(--strategy-radius-control);
+  font-size: var(--strategy-font-body);
+}
+
+.script-panel ::v-deep .param-item .ant-input-number-input,
+.script-panel ::v-deep .param-item .ant-select-selection__rendered {
+  height: 30px;
+  line-height: 30px;
+}
+
+.script-panel ::v-deep .side-tabs--split .params-actions .ant-btn {
+  height: 32px;
+  border-radius: var(--strategy-radius-control);
+  font-size: var(--strategy-font-body);
+  font-weight: 500;
+}
+
+.script-panel ::v-deep .code-editor-container .CodeMirror {
+  font-family: "Fira Code", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.script-panel ::v-deep .code-editor-container .CodeMirror-linenumber {
+  font-size: var(--strategy-font-meta);
+}
+
 @media (max-width: 1180px) {
   .ide-toolbar {
     align-items: stretch;
@@ -3622,6 +4029,7 @@ export default {
   .script-panel ::v-deep .editor-layout--split .strategy-ai-workspace-host--primary {
     grid-column: 1 / 3;
     grid-row: 2;
+    border-top: 1px solid #e1e4e8;
   }
 
   .script-panel ::v-deep .editor-layout--split-no-params .code-col {
@@ -3632,6 +4040,7 @@ export default {
   .script-panel ::v-deep .editor-layout--split-no-params .strategy-ai-workspace-host--primary {
     grid-column: 2;
     grid-row: 1;
+    border-top: 0;
   }
 
   .strategy-ai-quick-prompts {
@@ -3662,6 +4071,7 @@ export default {
   .script-panel ::v-deep .editor-layout--split .strategy-ai-workspace-host--primary {
     grid-column: 1;
     min-height: 360px;
+    border-top: 1px solid #e1e4e8;
   }
 
   .script-panel ::v-deep .editor-layout--split .side-col { grid-row: 1; }

@@ -408,8 +408,8 @@
                     <div><h5>{{ $t('settings.marketCatalog.catalogCoverageTitle') }}</h5><p>{{ $t('settings.marketCatalog.catalogCoverageDesc') }}</p></div>
                   </div>
                   <div class="catalog-summary-grid">
-                    <div class="catalog-summary-item catalog-summary-item-primary"><span>{{ $t('settings.marketCatalog.activeRecords') }}</span><strong>{{ catalogMetric('active').toLocaleString() }}</strong></div>
-                    <div class="catalog-summary-item catalog-summary-item-primary"><span>{{ $t('settings.marketCatalog.uniqueSymbols') }}</span><strong>{{ catalogMetric('symbols').toLocaleString() }}</strong></div>
+                    <div class="catalog-summary-item"><span>{{ $t('settings.marketCatalog.activeRecords') }}</span><strong>{{ catalogMetric('active').toLocaleString() }}</strong></div>
+                    <div class="catalog-summary-item"><span>{{ $t('settings.marketCatalog.uniqueSymbols') }}</span><strong>{{ catalogMetric('symbols').toLocaleString() }}</strong></div>
                     <div class="catalog-summary-item"><span>{{ $t('settings.marketCatalog.ordinarySpot') }}</span><strong>{{ catalogMetric('ordinary_spot').toLocaleString() }}</strong></div>
                     <div class="catalog-summary-item"><span>{{ $t('settings.marketCatalog.swap') }}</span><strong>{{ catalogMetric('ordinary_swap').toLocaleString() }}</strong></div>
                     <div class="catalog-summary-item"><span>{{ $t('settings.marketCatalog.tokenizedEquity') }}</span><strong>{{ catalogMetric('tokenized_equity').toLocaleString() }}</strong></div>
@@ -3199,8 +3199,7 @@ export default {
 @card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 
 .settings-page {
-  padding: 16px !important;
-  padding-bottom: 104px;
+  padding: var(--qd-page-gutter, 16px) !important;
   min-height: calc(100vh - 120px);
   background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
 
@@ -4537,7 +4536,6 @@ export default {
     span { color: #7b8794; font-size: 11px; }
     strong { color: #243247; font-size: 20px; line-height: 1; }
   }
-  .catalog-summary-item-primary { background: #f5f9ff; border-color: #d8e7fb; }
   .catalog-table-wrap { overflow-x: auto; }
   .catalog-table {
     width: 100%;
@@ -4667,7 +4665,6 @@ export default {
   .catalog-health-metrics > div { border-left-color: rgba(255, 255, 255, 0.1); }
   .catalog-content-section { border-color: rgba(255, 255, 255, 0.1); background: #121416; }
   .catalog-summary-item { border-color: rgba(255, 255, 255, 0.08); background: #181b1f; }
-  .catalog-summary-item-primary { border-color: rgba(88, 166, 255, 0.22); background: #141c25; }
   .catalog-table th {
     color: #9da7b3;
     background: #181818;

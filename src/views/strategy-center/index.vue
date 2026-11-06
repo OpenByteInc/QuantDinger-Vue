@@ -326,7 +326,7 @@ export default {
   height: calc(100vh - 64px);
   min-height: 0;
   overflow: hidden;
-  padding: 18px 20px 24px !important;
+  padding: var(--qd-page-gutter, 16px) !important;
   background: var(--sc-page);
   color: var(--sc-text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif;
@@ -357,4 +357,8 @@ export default {
 @media (max-width: 720px) {
   .strategy-center { height: auto; min-height: calc(100vh - 64px); overflow: visible; padding: 12px !important; }
 }
+</style>
+
+<style lang="less">
+@import './strategy-center-polish.less';
 </style>

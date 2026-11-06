@@ -401,6 +401,35 @@
                           @click="toggleChartFullscreen"
                         ><a-icon :type="chartFullscreen ? 'fullscreen-exit' : 'fullscreen'" /></a-button>
                       </a-tooltip>
+                      <a-dropdown
+                        :trigger="['click']"
+                        placement="bottomRight"
+                        :get-popup-container="chartToolbarGetPopupContainer"
+                        :overlay-class-name="isDarkTheme ? 'ide-chart-layout-menu ide-chart-layout-menu--dark' : 'ide-chart-layout-menu'"
+                      >
+                        <a-tooltip :title="$t('indicatorIde.multiChart.layout')">
+                          <a-button
+                            size="small"
+                            class="ide-chart-layout-trigger"
+                            :aria-label="$t('indicatorIde.multiChart.layout')"
+                          >
+                            <span class="ide-chart-layout-icon" :class="`ide-chart-layout-icon--${chartLayoutMode}`">
+                              <span v-for="cell in chartLayoutMode" :key="cell"></span>
+                            </span>
+                            <a-icon type="down" class="ide-chart-layout-chevron" />
+                          </a-button>
+                        </a-tooltip>
+                        <a-menu slot="overlay" :selected-keys="[String(chartLayoutMode)]" @click="onChartLayoutMenuClick">
+                          <a-menu-item v-for="mode in chartLayoutOptions" :key="String(mode.value)">
+                            <span class="ide-chart-layout-menu-item">
+                              <span class="ide-chart-layout-icon" :class="`ide-chart-layout-icon--${mode.value}`">
+                                <span v-for="cell in mode.value" :key="cell"></span>
+                              </span>
+                              <span>{{ mode.label }}</span>
+                            </span>
+                          </a-menu-item>
+                        </a-menu>
+                      </a-dropdown>
                     </div>
                   </div>
                   <div class="chart-panel-toolbar-controls">
@@ -614,24 +643,52 @@
                   </div>
                 </div>
                 <div class="chart-panel-inner">
-                  <kline-chart
-                    ref="klineChart"
-                    :symbol="symbol"
-                    :market="market"
-                    :exchange-id="market === 'Crypto' ? cryptoExchangeId : ''"
-                    :market-type="market === 'Crypto' ? cryptoMarketType : 'spot'"
-                    :instrument-id="market === 'Crypto' ? currentInstrumentId : ''"
-                    :timeframe="timeframe"
-                    :theme="chartTheme"
-                    :candle-type="chartCandleType"
-                    :activeIndicators="activeIndicators"
-                    :quick-trade-positions="quickTradeChartPositions"
-                    :show-indicator-library-trigger="false"
-                    :userId="userId"
-                    :realtime-enabled="klineRealtimeEnabled"
-                    @indicator-toggle="handleIndicatorToggle"
-                    @price-change="handleChartPriceChange"
-                  />
+                  <div class="ide-chart-layout" :class="`ide-chart-layout--${chartLayoutMode}`">
+                    <div
+                      v-for="(pane, paneIndex) in visibleChartPanes"
+                      :key="pane.id"
+                      class="ide-chart-pane"
+                      :class="{ active: pane.id === activeChartPaneId }"
+                      @mousedown="activateChartPane(pane.id)"
+                    >
+                      <button
+                        type="button"
+                        class="ide-chart-pane-header"
+                        :aria-label="$t('indicatorIde.multiChart.activatePane', { n: paneIndex + 1 })"
+                        @click.stop="activateChartPane(pane.id)"
+                      >
+                        <span class="ide-chart-pane-index">{{ paneIndex + 1 }}</span>
+                        <strong>{{ pane.symbol }}</strong>
+                        <span v-if="pane.market === 'Crypto'" class="ide-chart-pane-context">
+                          {{ String(pane.exchangeId || '').toUpperCase() }} · {{ $t(pane.marketType === 'swap' ? 'marketContext.swap' : 'marketContext.spot') }}
+                        </span>
+                        <span class="ide-chart-pane-timeframe">{{ pane.timeframe }}</span>
+                        <span v-if="pane.activeIndicators && pane.activeIndicators.length" class="ide-chart-pane-indicators">
+                          {{ $t('indicatorIde.multiChart.indicatorCount', { n: pane.activeIndicators.length }) }}
+                        </span>
+                      </button>
+                      <div class="ide-chart-pane-body">
+                        <kline-chart
+                          :ref="chartPaneRefName(pane.id)"
+                          :symbol="pane.symbol"
+                          :market="pane.market"
+                          :exchange-id="pane.market === 'Crypto' ? pane.exchangeId : ''"
+                          :market-type="pane.market === 'Crypto' ? pane.marketType : 'spot'"
+                          :instrument-id="pane.market === 'Crypto' ? pane.instrumentId : ''"
+                          :timeframe="pane.timeframe"
+                          :theme="chartTheme"
+                          :candle-type="pane.candleType"
+                          :activeIndicators="pane.activeIndicators"
+                          :quick-trade-positions="pane.id === activeChartPaneId ? quickTradeChartPositions : []"
+                          :show-indicator-library-trigger="false"
+                          :userId="userId"
+                          :realtime-enabled="Boolean(pane.symbol)"
+                          @indicator-toggle="payload => handlePaneIndicatorToggle(pane.id, payload)"
+                          @price-change="payload => handlePanePriceChange(pane.id, payload)"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <section
                   v-if="liveTradingEnabled && quickTradeDrawerVisible"
@@ -1327,6 +1384,11 @@ export default {
       selectedWatchlistKey: 'Crypto:BTC/USDT',
 
       activeIndicators: [],
+      chartLayoutMode: 1,
+      activeChartPaneId: 'pane-1',
+      chartPanes: [],
+      chartWorkspaceReady: false,
+      applyingChartPaneState: false,
       chartPresetIndicatorOptions: [],
       chartIndicatorRunning: true,
       quickTradeDrawerVisible: false,
@@ -1505,6 +1567,16 @@ export default {
     chartTheme () {
       return this.isDarkTheme ? 'dark' : 'light'
     },
+    chartLayoutOptions () {
+      return [
+        { value: 1, label: this.$t('indicatorIde.multiChart.single') },
+        { value: 2, label: this.$t('indicatorIde.multiChart.dual') },
+        { value: 4, label: this.$t('indicatorIde.multiChart.quad') }
+      ]
+    },
+    visibleChartPanes () {
+      return (this.chartPanes || []).slice(0, this.chartLayoutMode)
+    },
     chartTypeOptions () {
       return [
         { value: 'candle_solid', label: this.$t('indicatorIde.chartType.candleSolid') },
@@ -1652,6 +1724,7 @@ export default {
     await this.loadWatchlist()
     this.restoreIdeUiState()
     this.restoreIdeSelectionPreference()
+    this.initializeChartWorkspace()
     await this.refreshCryptoSymbolCapabilities()
     this.applyIndicatorRouteSelection()
     this.autoSelectFirstIndicator()
@@ -1734,16 +1807,201 @@ export default {
     } catch (_) {}
   },
   methods: {
+    chartPaneRefName (paneId) {
+      return `klineChartPane_${String(paneId || '').replace(/[^a-zA-Z0-9_-]/g, '_')}`
+    },
+    getChartRef (paneId = this.activeChartPaneId) {
+      const refValue = this.$refs[this.chartPaneRefName(paneId)]
+      return Array.isArray(refValue) ? refValue[0] : refValue
+    },
+    cloneRuntimeIndicators (items) {
+      if (!Array.isArray(items)) return []
+      return items.filter(Boolean).map(item => ({
+        ...item,
+        params: item.params && typeof item.params === 'object' ? { ...item.params } : {},
+        style: item.style && typeof item.style === 'object' ? { ...item.style } : item.style
+      }))
+    },
+    currentChartPaneSnapshot (paneId = this.activeChartPaneId) {
+      return {
+        id: paneId,
+        market: this.market,
+        symbol: this.symbol,
+        assetId: this.currentAssetId,
+        exchangeId: this.cryptoExchangeId,
+        marketType: this.cryptoMarketType,
+        instrumentId: this.currentInstrumentId,
+        productType: this.currentProductType,
+        apiFamily: this.currentApiFamily,
+        underlyingMarket: this.currentUnderlyingMarket,
+        underlyingSymbol: this.currentUnderlyingSymbol,
+        availableMarketTypes: Array.isArray(this.availableCryptoMarketTypes) ? [...this.availableCryptoMarketTypes] : ['spot'],
+        timeframe: this.timeframe,
+        candleType: this.chartCandleType,
+        activeIndicators: this.cloneRuntimeIndicators(this.activeIndicators),
+        visibleIndicatorIds: [...(this.chartVisibleIndicatorIds || [])],
+        indicatorRunning: this.chartIndicatorRunning !== false
+      }
+    },
+    createChartPane (paneId, source = {}) {
+      const base = {
+        ...this.currentChartPaneSnapshot(paneId),
+        ...source,
+        id: paneId
+      }
+      base.visibleIndicatorIds = Array.isArray(source.visibleIndicatorIds)
+        ? source.visibleIndicatorIds.map(Number).filter(id => !isNaN(id))
+        : [...(base.visibleIndicatorIds || [])]
+      base.activeIndicators = this.hydrateChartPaneIndicators(
+        Array.isArray(source.activeIndicators) ? source.activeIndicators : base.activeIndicators,
+        base.visibleIndicatorIds,
+        paneId
+      )
+      return base
+    },
+    hydrateChartPaneIndicators (items, visibleIndicatorIds, paneId) {
+      const nonPython = this.normalizePersistedChartIndicators(items)
+      const pythonBlocks = []
+      const seen = new Set()
+      for (const rawId of visibleIndicatorIds || []) {
+        const id = Number(rawId)
+        if (!id || seen.has(id)) continue
+        seen.add(id)
+        const indicator = this.indicators.find(item => Number(item.id) === id)
+        if (!indicator) continue
+        const built = this.buildIdePythonIndicatorForChart(
+          indicator,
+          this.getIndicatorExecutableCode(indicator),
+          paneId
+        )
+        if (built) pythonBlocks.push(built)
+      }
+      return [...nonPython, ...pythonBlocks]
+    },
+    initializeChartWorkspace () {
+      const allowedModes = [1, 2, 4]
+      if (!allowedModes.includes(Number(this.chartLayoutMode))) this.chartLayoutMode = 1
+      const restored = Array.isArray(this.chartPanes) ? this.chartPanes.slice(0, 4) : []
+      const panes = []
+      for (let index = 0; index < 4; index++) {
+        const paneId = `pane-${index + 1}`
+        const source = restored.find(item => item && item.id === paneId) || restored[index]
+        panes.push(this.createChartPane(paneId, source || (index ? panes[0] : {})))
+      }
+      this.chartPanes = panes
+      if (!panes.some(item => item.id === this.activeChartPaneId) || !panes.slice(0, this.chartLayoutMode).some(item => item.id === this.activeChartPaneId)) {
+        this.activeChartPaneId = 'pane-1'
+      }
+      this.chartWorkspaceReady = true
+      this.applyChartPaneState(this.activeChartPaneId)
+      window.setTimeout(() => this.refreshVisibleChartIndicators(), 900)
+    },
+    syncActivePaneFromWorkspace () {
+      if (!this.chartWorkspaceReady || this.applyingChartPaneState) return
+      const index = this.chartPanes.findIndex(item => item.id === this.activeChartPaneId)
+      if (index < 0) return
+      this.$set(this.chartPanes, index, this.currentChartPaneSnapshot(this.activeChartPaneId))
+    },
+    applyChartPaneState (paneId) {
+      const pane = this.chartPanes.find(item => item.id === paneId)
+      if (!pane) return
+      this.applyingChartPaneState = true
+      this.activeChartPaneId = pane.id
+      this.market = pane.market || 'Crypto'
+      this.symbol = pane.symbol || ''
+      this.currentAssetId = Number(pane.assetId || 0)
+      this.cryptoExchangeId = pane.exchangeId || this.cryptoExchangeId
+      this.cryptoMarketType = pane.marketType || 'spot'
+      this.currentInstrumentId = pane.instrumentId || ''
+      this.currentProductType = pane.productType || (this.market === 'Crypto' ? 'crypto' : '')
+      this.currentApiFamily = pane.apiFamily || (this.market === 'Crypto' ? 'spot' : '')
+      this.currentUnderlyingMarket = pane.underlyingMarket || ''
+      this.currentUnderlyingSymbol = pane.underlyingSymbol || ''
+      this.availableCryptoMarketTypes = Array.isArray(pane.availableMarketTypes) && pane.availableMarketTypes.length
+        ? [...pane.availableMarketTypes]
+        : ['spot']
+      this.timeframe = pane.timeframe || '1D'
+      this.chartCandleType = supportedChartTypes.has(pane.candleType) ? pane.candleType : 'candle_solid'
+      this.chartVisibleIndicatorIds = [...(pane.visibleIndicatorIds || [])]
+      this.chartIndicatorRunning = pane.indicatorRunning !== false
+      this.activeIndicators = this.hydrateChartPaneIndicators(
+        pane.activeIndicators,
+        this.chartIndicatorRunning ? this.chartVisibleIndicatorIds : [],
+        pane.id
+      )
+      this.qtSymbol = this.symbol
+      this.selectedWatchlistKey = marketContextKey({
+        market: this.market,
+        symbol: this.symbol,
+        exchange_id: this.cryptoExchangeId,
+        market_type: this.cryptoMarketType,
+        instrument_id: this.currentInstrumentId
+      })
+      this.$nextTick(() => {
+        this.applyingChartPaneState = false
+        this.syncActivePaneFromWorkspace()
+        this.ensureChartReady()
+        this.syncChartPresetIndicatorOptions()
+      })
+    },
+    activateChartPane (paneId) {
+      if (!paneId || paneId === this.activeChartPaneId || this.applyingChartPaneState) return
+      this.syncActivePaneFromWorkspace()
+      this.applyChartPaneState(paneId)
+      this.schedulePersistIdeUiState()
+    },
+    setChartLayoutMode (mode) {
+      const nextMode = Number(mode)
+      if (![1, 2, 4].includes(nextMode) || nextMode === this.chartLayoutMode) return
+      this.syncActivePaneFromWorkspace()
+      this.chartLayoutMode = nextMode
+      const visible = this.chartPanes.slice(0, nextMode)
+      if (!visible.some(item => item.id === this.activeChartPaneId)) {
+        this.applyChartPaneState(visible[0] && visible[0].id)
+      }
+      this.schedulePersistIdeUiState()
+      this.$nextTick(() => {
+        this.ensureChartReady()
+        window.setTimeout(() => this.refreshVisibleChartIndicators(), 900)
+      })
+    },
+    onChartLayoutMenuClick ({ key }) {
+      this.setChartLayoutMode(Number(key))
+    },
+    async refreshVisibleChartIndicators () {
+      for (const pane of this.visibleChartPanes) {
+        const chart = this.getChartRef(pane.id)
+        if (!chart || typeof chart.updateIndicators !== 'function') continue
+        try {
+          await chart.updateIndicators()
+        } catch (_) {}
+      }
+    },
+    serializeChartPanes () {
+      this.syncActivePaneFromWorkspace()
+      return (this.chartPanes || []).slice(0, 4).map(pane => ({
+        ...pane,
+        activeIndicators: this.normalizePersistedChartIndicators(pane.activeIndicators),
+        visibleIndicatorIds: [...(pane.visibleIndicatorIds || [])]
+      }))
+    },
+    handlePanePriceChange (paneId, payload) {
+      if (paneId === this.activeChartPaneId) this.handleChartPriceChange(payload)
+    },
+    handlePaneIndicatorToggle (paneId, payload) {
+      if (paneId !== this.activeChartPaneId) this.applyChartPaneState(paneId)
+      this.handleIndicatorToggle(payload)
+    },
     syncChartPresetIndicatorOptions () {
       this.$nextTick(() => {
-        const chart = this.$refs.klineChart
+        const chart = this.getChartRef()
         const options = chart && chart.indicatorButtons
         this.chartPresetIndicatorOptions = Array.isArray(options) ? options.slice() : []
       })
     },
     onChartPresetIndicatorClick ({ key }) {
       const option = this.chartPresetIndicatorOptions.find(item => item.id === key)
-      const chart = this.$refs.klineChart
+      const chart = this.getChartRef()
       if (!option || !chart || typeof chart.handleIndicatorButtonClick !== 'function') return
       chart.handleIndicatorButtonClick(option)
     },
@@ -1986,6 +2244,15 @@ export default {
         if (s.timeframe && Object.prototype.hasOwnProperty.call(TF_MAX_DAYS, s.timeframe)) {
           this.timeframe = s.timeframe
         }
+        if ([1, 2, 4].includes(Number(s.chartLayoutMode))) {
+          this.chartLayoutMode = Number(s.chartLayoutMode)
+        }
+        if (Array.isArray(s.chartPanes)) {
+          this.chartPanes = s.chartPanes.slice(0, 4)
+        }
+        if (typeof s.activeChartPaneId === 'string' && s.activeChartPaneId) {
+          this.activeChartPaneId = s.activeChartPaneId
+        }
         if (typeof s.quickTradeDrawerVisible === 'boolean') {
           this.quickTradeDrawerVisible = this.liveTradingEnabled && s.quickTradeDrawerVisible
         }
@@ -2057,6 +2324,9 @@ export default {
         const payload = {
           timeframe: this.timeframe,
           activeIndicators: this.serializeChartIndicators(),
+          chartLayoutMode: this.chartLayoutMode,
+          activeChartPaneId: this.activeChartPaneId,
+          chartPanes: this.serializeChartPanes(),
           quickTradeDrawerVisible: this.liveTradingEnabled && this.quickTradeDrawerVisible,
           quickTradeMinimized: this.quickTradeMinimized,
           quickTradePinned: this.quickTradePinned,
@@ -2246,14 +2516,14 @@ export default {
     ensureChartReady () {
       this.$nextTick(() => {
         setTimeout(() => {
-          const chart = this.$refs.klineChart
-          if (!chart || !this.symbol) return
-          if (!chart.chartRef && typeof chart.initChart === 'function') {
-            chart.initChart()
+          for (const pane of this.visibleChartPanes) {
+            const chart = this.getChartRef(pane.id)
+            if (!chart || !pane.symbol) continue
+            if (!chart.chartRef && typeof chart.initChart === 'function') {
+              chart.initChart()
+            }
           }
-          if (this.selectedIndicatorId) {
-            this.syncSelectedIndicatorToChart()
-          }
+          if (this.selectedIndicatorId) this.syncSelectedIndicatorToChart()
         }, 300)
       })
     },
@@ -2812,11 +3082,10 @@ export default {
       if (String(item.id || '').startsWith('ide-py-')) return true
       return false
     },
-    buildIdePythonIndicatorForChart (ind, codeForChart) {
+    buildIdePythonIndicatorForChart (ind, codeForChart, paneId = this.activeChartPaneId) {
       if (!ind) return null
-      const chart = this.$refs.klineChart
       const code = codeForChart != null ? codeForChart : (ind.code || '')
-      if (!code || !String(code).trim() || !chart || typeof chart.executePythonStrategy !== 'function') return null
+      if (!code || !String(code).trim()) return null
       const chartId = `ide-py-${ind.id}`
       const runtimeParams = this.resolveIndicatorRuntimeParams(ind, code)
       return {
@@ -2828,6 +3097,8 @@ export default {
         code,
         params: runtimeParams,
         calculate: async (klineData, params = {}) => {
+          const chart = this.getChartRef(paneId)
+          if (!chart || typeof chart.executePythonStrategy !== 'function') return null
           return chart.executePythonStrategy(code, klineData, { ...runtimeParams, ...(params || {}) }, {
             ...ind,
             originalId: ind.id,
@@ -2849,13 +3120,13 @@ export default {
           const ind = this.indicators.find(i => Number(i.id) === id)
           if (!ind) continue
           const code = this.getIndicatorExecutableCode(ind, Number(this.selectedIndicatorId) === id ? codeOverride : undefined)
-          const built = this.buildIdePythonIndicatorForChart(ind, code)
+          const built = this.buildIdePythonIndicatorForChart(ind, code, this.activeChartPaneId)
           if (built) pythonBlocks.push(built)
         }
       }
       this.activeIndicators = [...nonPython, ...pythonBlocks]
       this.$nextTick(() => {
-        const chart = this.$refs.klineChart
+        const chart = this.getChartRef()
         if (chart && typeof chart.updateIndicators === 'function') {
           chart.updateIndicators()
         }
@@ -2987,7 +3258,7 @@ export default {
       this.applyIdeOverlayContainers()
       this.$nextTick(() => {
         if (this.cmInstance) this.cmInstance.refresh()
-        const chart = this.$refs.klineChart
+        const chart = this.getChartRef()
         const inst = chart && chart.chartRef
         if (inst && typeof inst.resize === 'function') {
           try { inst.resize() } catch (_) {}
@@ -4230,7 +4501,7 @@ export default {
       })
     },
     async captureIndicatorMarketplacePreview (name) {
-      const chart = this.$refs.klineChart
+      const chart = this.getChartRef()
       if (!chart || typeof chart.captureMarketPreview !== 'function') return ''
       try {
         return await chart.captureMarketPreview({
@@ -4569,20 +4840,24 @@ export default {
     activeIndicators: {
       deep: true,
       handler () {
+        this.syncActivePaneFromWorkspace()
         this.schedulePersistIdeUiState()
       }
     },
     market () {
       this.quickTradeChartPositions = []
+      this.syncActivePaneFromWorkspace()
       this.schedulePersistIdeUiState()
     },
     cryptoExchangeId () {
       this.quickTradeChartPositions = []
+      this.syncActivePaneFromWorkspace()
       this.ensureChartReady()
       this.schedulePersistIdeUiState()
     },
     cryptoMarketType () {
       this.quickTradeChartPositions = []
+      this.syncActivePaneFromWorkspace()
       this.ensureChartReady()
       this.schedulePersistIdeUiState()
     },
@@ -4598,6 +4873,7 @@ export default {
     chartVisibleIndicatorIds: {
       deep: true,
       handler () {
+        this.syncActivePaneFromWorkspace()
         this.schedulePersistIdeUiState()
       }
     },
@@ -4645,11 +4921,17 @@ export default {
     symbol () {
       this.quickTradeChartPositions = []
       this.qtSymbol = this.symbol
+      this.syncActivePaneFromWorkspace()
       this.ensureChartReady()
       this.schedulePersistIdeUiState()
     },
     timeframe () {
+      this.syncActivePaneFromWorkspace()
       this.ensureChartReady()
+      this.schedulePersistIdeUiState()
+    },
+    chartCandleType () {
+      this.syncActivePaneFromWorkspace()
       this.schedulePersistIdeUiState()
     },
     aiGenerating (val) {
@@ -7243,6 +7525,95 @@ body.dark .ide-signal-alert-modal-wrap {
     flex-direction: column;
     overflow: hidden;
   }
+  .ide-chart-layout {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    display: grid;
+    background: #d9d9d9;
+    gap: 1px;
+  }
+  .ide-chart-layout--1 { grid-template-columns: minmax(0, 1fr); }
+  .ide-chart-layout--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ide-chart-layout--4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+  }
+  .ide-chart-pane {
+    min-width: 0;
+    min-height: 0;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: inset 0 0 0 1px transparent;
+    transition: box-shadow 120ms ease;
+  }
+  .ide-chart-pane.active {
+    z-index: 1;
+    box-shadow: inset 0 0 0 2px var(--primary-color, @primary-color);
+  }
+  .ide-chart-pane-header {
+    flex: 0 0 28px;
+    width: 100%;
+    min-width: 0;
+    padding: 0 9px;
+    border: 0;
+    border-bottom: 1px solid #ececec;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: rgba(0, 0, 0, 0.62);
+    background: #fafafa;
+    cursor: pointer;
+    text-align: left;
+  }
+  .ide-chart-pane-header strong {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: rgba(0, 0, 0, 0.82);
+  }
+  .ide-chart-pane-index {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 18px;
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(0, 0, 0, 0.48);
+    background: rgba(0, 0, 0, 0.05);
+  }
+  .ide-chart-pane.active .ide-chart-pane-index {
+    color: #fff;
+    background: var(--primary-color, @primary-color);
+  }
+  .ide-chart-pane-context,
+  .ide-chart-pane-timeframe,
+  .ide-chart-pane-indicators {
+    flex: 0 0 auto;
+    color: rgba(0, 0, 0, 0.45);
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .ide-chart-pane-timeframe {
+    margin-left: auto;
+    color: var(--primary-color, @primary-color);
+    font-weight: 600;
+  }
+  .ide-chart-pane-body {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    overflow: hidden;
+  }
+  .ide-chart-layout--1 .ide-chart-pane-header { display: none; }
   ::v-deep .chart-left,
   ::v-deep .chart-wrapper,
   ::v-deep .chart-content-area,
@@ -7255,6 +7626,66 @@ body.dark .ide-signal-alert-modal-wrap {
     flex: 1 1 100% !important;
     border-right: none !important;
   }
+}
+
+.ide-chart-layout-trigger {
+  width: 48px;
+  min-width: 48px !important;
+  height: 30px !important;
+  padding: 0 8px !important;
+  border: 1px solid #d9d9d9;
+  border-radius: 7px !important;
+  box-sizing: border-box;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  line-height: 1;
+  vertical-align: middle;
+  color: #8c8c8c;
+  background: #fff;
+  cursor: pointer;
+  box-shadow: none;
+  transition: color .16s ease, border-color .16s ease, background .16s ease;
+}
+.ide-chart-layout-trigger:hover,
+.ide-chart-layout-trigger:focus-visible {
+  color: var(--primary-color, @primary-color);
+  border-color: var(--primary-color, @primary-color);
+  outline: none;
+}
+.ide-chart-layout-icon {
+  width: 22px;
+  height: 16px;
+  display: grid;
+  gap: 2px;
+}
+.ide-chart-layout-icon--1 { grid-template-columns: 1fr; }
+.ide-chart-layout-icon--2 { grid-template-columns: repeat(2, 1fr); }
+.ide-chart-layout-icon--4 {
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+}
+.ide-chart-layout-icon > span {
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid currentColor;
+  border-radius: 1px;
+  background: currentColor;
+  opacity: 0.72;
+}
+.ide-chart-layout-chevron {
+  font-size: 9px;
+}
+.ide-chart-layout-menu-item {
+  min-width: 112px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+::v-deep .ide-chart-layout-menu .ant-dropdown-menu-item-selected {
+  color: var(--primary-color, @primary-color);
+  background: color-mix(in srgb, var(--primary-color, @primary-color) 10%, transparent);
 }
 
 .ide-quick-float {
@@ -7918,6 +8349,31 @@ body.dark .ide-signal-alert-modal-wrap {
     .chart-panel-toolbar-controls .ide-toolbar-label {
       color: rgba(255, 255, 255, 0.45);
     }
+    .ide-chart-layout { background: #303030; }
+    .ide-chart-pane { background: #141414; }
+    .ide-chart-pane-header {
+      color: rgba(255, 255, 255, 0.62);
+      background: #1a1a1a;
+      border-bottom-color: #303030;
+    }
+    .ide-chart-pane-header strong { color: rgba(255, 255, 255, 0.88); }
+    .ide-chart-pane-index {
+      color: rgba(255, 255, 255, 0.52);
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .ide-chart-pane-context,
+    .ide-chart-pane-timeframe,
+    .ide-chart-pane-indicators { color: rgba(255, 255, 255, 0.48); }
+  }
+  .ide-chart-layout-trigger {
+    border-color: #434343;
+    background: #1f1f1f;
+    color: rgba(255, 255, 255, 0.56);
+  }
+  ::v-deep .ide-chart-layout-menu--dark .ant-dropdown-menu {
+    color: rgba(255, 255, 255, 0.85);
+    background: #1f1f1f;
+    border: 1px solid #434343;
   }
   .ide-quick-float {
     border-color: #3a3a3a;
@@ -8263,6 +8719,9 @@ body.dark .ide-signal-alert-modal-wrap {
 /* Shared typography hierarchy for the indicator workspace. */
 .indicator-ide {
   --ide-font-ui: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --ide-radius-icon: 4px;
+  --ide-radius-control: 6px;
+  --ide-radius-floating-action: 8px;
   --ide-type-title: 13px;
   --ide-type-body: 12px;
   --ide-type-caption: 11px;
@@ -8371,6 +8830,57 @@ body.dark .ide-signal-alert-modal-wrap {
   .ai-message__content ::v-deep code,
   .ai-message__content ::v-deep .qd-markdown-code {
     font-family: "Fira Code", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  }
+
+  .code-panel-icon-toggle,
+  .panel-title-icon-actions ::v-deep .ant-btn-sm {
+    border-radius: var(--ide-radius-icon) !important;
+  }
+
+  .panel-title-actions ::v-deep .ide-save-button,
+  .code-panel-collapse,
+  .code-quality-top-button,
+  .ide-guide-link,
+  .ide-market-type-fixed,
+  .ide-chart-type-trigger,
+  .ide-preset-indicator-trigger,
+  .ide-indicator-multiselect-trigger,
+  .ide-param-trigger,
+  .ide-chart-layout-trigger,
+  .chart-panel-toolbar .chart-panel-action-btn,
+  .chart-panel-toolbar .chart-panel-fs-btn,
+  .ide-quick-float__actions button {
+    border-radius: var(--ide-radius-control) !important;
+  }
+
+  .panel-title-actions ::v-deep .ide-save-button,
+  .code-panel-collapse {
+    height: 26px !important;
+    box-sizing: border-box;
+  }
+
+  .code-quality-top-button,
+  .ide-guide-link {
+    height: 24px !important;
+    box-sizing: border-box;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  .ide-toolbar-select ::v-deep .ant-select-selection {
+    border-radius: var(--ide-radius-control) !important;
+  }
+
+  .tf-group ::v-deep .ant-radio-button-wrapper:first-child {
+    border-radius: var(--ide-radius-control) 0 0 var(--ide-radius-control) !important;
+  }
+
+  .tf-group ::v-deep .ant-radio-button-wrapper:last-child {
+    border-radius: 0 var(--ide-radius-control) var(--ide-radius-control) 0 !important;
+  }
+
+  .ide-quick-float-launcher {
+    border-radius: var(--ide-radius-floating-action) !important;
   }
 }
 

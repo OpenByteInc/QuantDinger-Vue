@@ -1,0 +1,647 @@
+.broker-accounts {
+  --ba-page: #f5f7fa;
+  --ba-surface: #ffffff;
+  --ba-surface-muted: #f7f8fa;
+  --ba-surface-hover: #f0f2f5;
+  --ba-border: #e2e6ec;
+  --ba-border-strong: #d4dae3;
+  --ba-text: #182338;
+  --ba-text-secondary: #647087;
+  --ba-text-muted: #8a94a6;
+  --ba-success: #2f9e62;
+  --ba-radius-sm: 4px;
+  --ba-radius-md: 6px;
+  --ba-radius-lg: 8px;
+
+  background: var(--ba-page) !important;
+  font-size: 13px;
+
+  .ba-header {
+    min-height: 36px;
+    margin-bottom: 12px;
+    gap: 14px;
+  }
+
+  .ba-header-text {
+    gap: 14px;
+  }
+
+  .ba-title {
+    gap: 8px;
+    color: var(--ba-text);
+    font-size: 18px;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+
+    .anticon {
+      font-size: 17px;
+    }
+  }
+
+  .ba-subtitle {
+    color: var(--ba-text-secondary);
+    font-size: 12px;
+  }
+
+  .ba-header-actions {
+    gap: 8px;
+
+    > .ant-btn,
+    > .ant-dropdown-trigger {
+      height: 34px;
+      padding: 0 12px;
+      border-radius: var(--ba-radius-md);
+      font-size: 12px;
+      font-weight: 550;
+    }
+  }
+
+  .ba-health {
+    gap: 7px;
+    padding-right: 12px;
+    border-color: var(--ba-border);
+  }
+
+  .ba-health-label,
+  .ba-health-state {
+    font-size: 11px;
+  }
+
+  .ba-health-state {
+    color: var(--ba-text-muted);
+
+    &.is-healthy {
+      color: var(--ba-success);
+    }
+  }
+
+  .ba-health-dot {
+    width: 7px;
+    height: 7px;
+    background: var(--ba-text-muted);
+    box-shadow: none;
+  }
+
+  .ba-health-state.is-healthy .ba-health-dot {
+    background: var(--ba-success);
+  }
+
+  .ba-workbench {
+    grid-template-columns: 284px minmax(0, 1fr);
+    border-color: var(--ba-border);
+    border-radius: var(--ba-radius-lg);
+    background: var(--ba-surface);
+    box-shadow: none;
+  }
+
+  .ba-rail {
+    border-color: var(--ba-border);
+    background: var(--ba-surface-muted);
+  }
+
+  .ba-rail-heading {
+    height: 44px;
+    padding: 0 14px;
+    border-color: var(--ba-border);
+    color: var(--ba-text);
+    font-size: 13px;
+    font-weight: 650;
+  }
+
+  .ba-rail-group {
+    padding: 12px 8px 8px;
+  }
+
+  .ba-rail-group--crypto {
+    margin-top: 4px;
+    padding-top: 12px;
+    border-color: var(--ba-border);
+  }
+
+  .ba-rail-label {
+    margin-bottom: 5px;
+    padding: 0 7px;
+    color: var(--ba-text-muted);
+    font-size: 11px;
+    font-weight: 600;
+
+    strong {
+      color: var(--ba-text-secondary);
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  .ba-provider-row,
+  .ba-provider-row--crypto {
+    min-height: 50px;
+    padding: 7px 8px;
+    gap: 9px;
+    border-radius: var(--ba-radius-md);
+    color: var(--ba-text-secondary);
+    transition: background-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
+
+    &:hover {
+      background: var(--ba-surface-hover);
+    }
+
+    &.active {
+      color: var(--ba-text);
+      background: var(--ba-surface);
+      box-shadow: inset 2px 0 0 var(--primary-color, #ff5a24);
+    }
+  }
+
+  .ba-provider-icon {
+    width: 32px;
+    height: 32px;
+    flex-basis: 32px;
+    border-color: var(--ba-border);
+    border-radius: var(--ba-radius-md);
+    background: var(--ba-surface);
+  }
+
+  .ba-provider-copy {
+    gap: 2px;
+
+    strong {
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    small {
+      gap: 5px;
+      color: var(--ba-text-muted);
+      font-size: 10px;
+    }
+
+    i {
+      width: 6px;
+      height: 6px;
+
+      &.connected {
+        background: var(--ba-success);
+      }
+    }
+  }
+
+  .ba-detail {
+    padding: 16px 18px 20px;
+    background: var(--ba-surface);
+  }
+
+  .ba-detail--crypto {
+    padding: 0;
+  }
+
+  .crypto-card {
+    min-height: 100%;
+    margin: 0;
+    padding: 16px 18px;
+    border-radius: 0;
+    background: var(--ba-surface);
+    box-shadow: none;
+  }
+
+  .crypto-card-header {
+    align-items: center;
+    margin-bottom: 14px;
+  }
+
+  .crypto-card-title {
+    gap: 7px;
+    color: var(--ba-text);
+    font-size: 15px;
+    font-weight: 650;
+  }
+
+  .crypto-card-title-icon {
+    font-size: 15px;
+  }
+
+  .crypto-card-subtitle {
+    max-width: 720px;
+    margin-top: 3px;
+    color: var(--ba-text-secondary);
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  .crypto-card-actions .ant-btn {
+    height: 32px;
+    padding: 0 11px;
+    border-radius: var(--ba-radius-md);
+    font-size: 12px;
+  }
+
+  .crypto-grid {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 420px));
+    gap: 10px;
+    align-items: start;
+  }
+
+  .crypto-item {
+    padding: 13px 14px;
+    border-color: var(--ba-border);
+    border-radius: var(--ba-radius-lg);
+    background: var(--ba-surface);
+    box-shadow: none;
+    transition: border-color 140ms ease, background-color 140ms ease;
+
+    &:hover {
+      border-color: var(--ba-border-strong);
+      background: var(--ba-surface-muted);
+      box-shadow: none;
+    }
+  }
+
+  .crypto-item-top {
+    gap: 11px;
+  }
+
+  .crypto-item-icon {
+    width: 36px;
+    height: 36px;
+    flex-basis: 36px;
+    border-radius: var(--ba-radius-md);
+    font-size: 14px;
+  }
+
+  .crypto-item-name {
+    color: var(--ba-text);
+    font-size: 12px;
+    font-weight: 650;
+  }
+
+  .crypto-item-alias {
+    color: var(--ba-text-secondary);
+    font-weight: 500;
+  }
+
+  .crypto-item-line {
+    margin-top: 4px;
+    color: var(--ba-text-muted);
+    font-size: 10px;
+  }
+
+  .crypto-item-time,
+  .crypto-item-attribute-label {
+    color: var(--ba-text-muted);
+    font-size: 10px;
+  }
+
+  .crypto-item-attributes {
+    gap: 5px 10px;
+    margin-top: 8px;
+  }
+
+  .credential-tag,
+  .bp-badge-row .ant-tag {
+    padding: 0 6px;
+    border-radius: var(--ba-radius-sm);
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 18px;
+  }
+
+  .crypto-item-footer {
+    gap: 6px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-color: var(--ba-border);
+
+    .ant-btn {
+      height: 30px;
+      padding: 0 9px;
+      border-radius: var(--ba-radius-md);
+      font-size: 11px;
+    }
+  }
+
+  .broker-panel {
+    gap: 12px;
+    padding: 0;
+  }
+
+  .bp-account-selector {
+    gap: 8px;
+
+    > label {
+      color: var(--ba-text-secondary);
+      font-size: 12px;
+      line-height: 34px;
+    }
+
+    .ant-select-selection,
+    .ant-btn {
+      min-height: 34px;
+      border-radius: var(--ba-radius-md);
+      font-size: 12px;
+    }
+  }
+
+  .bp-status-card {
+    gap: 12px;
+    padding: 2px 0 14px;
+    border-color: var(--ba-border);
+  }
+
+  .bp-status-left {
+    gap: 11px;
+  }
+
+  .bp-status-icon {
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--ba-border);
+    border-radius: var(--ba-radius-lg);
+    background: var(--ba-surface-muted);
+  }
+
+  .bp-status-name {
+    color: var(--ba-text);
+    font-size: 17px;
+    font-weight: 650;
+  }
+
+  .bp-status-line {
+    margin-top: 3px;
+    color: var(--ba-text-secondary);
+    font-size: 11px;
+  }
+
+  .bp-status-account {
+    color: var(--ba-text-secondary);
+  }
+
+  .bp-badge-row {
+    margin-top: 7px;
+  }
+
+  .bp-status-actions .ant-btn {
+    height: 32px;
+    padding: 0 10px;
+    border-radius: var(--ba-radius-md);
+    font-size: 11px;
+  }
+
+  .bp-inner-tabs {
+    .ant-tabs-bar {
+      margin-bottom: 12px;
+      border-color: var(--ba-border);
+    }
+
+    .ant-tabs-tab {
+      margin-right: 22px;
+      padding: 9px 0;
+      color: var(--ba-text-secondary) !important;
+      font-size: 12px;
+    }
+  }
+
+  .bp-form-helper {
+    padding: 9px 10px;
+    border-color: var(--ba-border);
+    border-radius: var(--ba-radius-md);
+    background: var(--ba-surface-muted);
+    color: var(--ba-text-secondary);
+  }
+
+  .account-grid {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 8px;
+  }
+
+  .metric-card {
+    min-height: 92px;
+    padding: 11px 12px;
+    border-color: var(--ba-border);
+    border-radius: var(--ba-radius-md);
+    background: var(--ba-surface);
+
+    &.accent,
+    &.positive,
+    &.negative {
+      background: var(--ba-surface);
+    }
+
+    &.accent {
+      border-color: color-mix(in srgb, var(--primary-color, #ff5a24) 34%, var(--ba-border));
+    }
+  }
+
+  .metric-label {
+    color: var(--ba-text-muted);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  .metric-value {
+    margin-top: 6px;
+    color: var(--ba-text);
+    font-size: 17px;
+    font-weight: 650;
+  }
+
+  .metric-sub {
+    margin-top: 3px;
+    color: var(--ba-text-muted);
+    font-size: 10px;
+    line-height: 1.4;
+  }
+
+  .metric-card.positive .metric-value,
+  .pnl-positive {
+    color: var(--ba-success);
+  }
+
+  .bp-table-wrapper {
+    gap: 8px;
+
+    .bp-table-toolbar {
+      gap: 8px;
+    }
+
+    .bp-table-count {
+      color: var(--ba-text-muted);
+      font-size: 11px;
+    }
+
+    .ant-table {
+      border: 1px solid var(--ba-border);
+      border-radius: var(--ba-radius-md);
+      background: var(--ba-surface);
+      overflow: hidden;
+    }
+
+    .ant-table-thead > tr > th {
+      height: 36px;
+      padding: 7px 9px;
+      border-color: var(--ba-border);
+      background: var(--ba-surface-muted);
+      color: var(--ba-text-secondary);
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .ant-table-tbody > tr > td {
+      height: 44px;
+      padding: 7px 9px;
+      border-color: var(--ba-border);
+      color: var(--ba-text-secondary);
+      font-size: 11px;
+    }
+
+    .ant-table-tbody > tr:hover > td {
+      background: var(--ba-surface-muted) !important;
+    }
+
+    .ant-btn {
+      height: 30px;
+      border-radius: var(--ba-radius-md);
+      font-size: 11px;
+    }
+  }
+
+  .ant-alert {
+    border-radius: var(--ba-radius-md);
+  }
+}
+
+.broker-accounts.theme-dark {
+  --ba-page: #08090a;
+  --ba-surface: #111315;
+  --ba-surface-muted: #0d0f10;
+  --ba-surface-hover: #181b1e;
+  --ba-border: rgba(255, 255, 255, 0.1);
+  --ba-border-strong: rgba(255, 255, 255, 0.17);
+  --ba-text: rgba(255, 255, 255, 0.9);
+  --ba-text-secondary: rgba(255, 255, 255, 0.62);
+  --ba-text-muted: rgba(255, 255, 255, 0.4);
+  --ba-success: #55b985;
+
+  .ba-workbench,
+  .ba-detail,
+  .crypto-card {
+    background: var(--ba-surface);
+    box-shadow: none;
+  }
+
+  .ba-rail {
+    background: var(--ba-surface-muted);
+  }
+
+  .ba-provider-row {
+    color: var(--ba-text-secondary);
+
+    &:hover {
+      background: var(--ba-surface-hover);
+    }
+
+    &.active {
+      color: var(--ba-text) !important;
+      background: var(--ba-surface-hover) !important;
+      box-shadow: inset 2px 0 0 var(--primary-color, #ff5a24) !important;
+    }
+  }
+
+  .ba-provider-icon,
+  .bp-status-icon {
+    border-color: var(--ba-border);
+    background: var(--ba-surface);
+  }
+
+  .crypto-card-title,
+  .crypto-item-name,
+  .bp-status-name {
+    color: var(--ba-text);
+  }
+
+  .crypto-card-subtitle,
+  .crypto-item-alias,
+  .bp-status-line,
+  .bp-account-selector > label {
+    color: var(--ba-text-secondary);
+  }
+
+  .crypto-item {
+    border-color: var(--ba-border);
+    background: var(--ba-surface);
+
+    &:hover {
+      border-color: var(--ba-border-strong);
+      background: var(--ba-surface-hover);
+    }
+  }
+
+  .crypto-item-footer,
+  .bp-status-card,
+  .bp-inner-tabs .ant-tabs-bar {
+    border-color: var(--ba-border);
+  }
+
+  .bp-form-helper {
+    border-color: var(--ba-border);
+    background: var(--ba-surface-muted);
+    color: var(--ba-text-secondary);
+  }
+
+  .metric-card,
+  .metric-card.accent,
+  .metric-card.positive,
+  .metric-card.negative {
+    border-color: var(--ba-border);
+    background: var(--ba-surface);
+  }
+
+  .metric-label,
+  .metric-sub {
+    color: var(--ba-text-muted);
+  }
+
+  .metric-value {
+    color: var(--ba-text);
+  }
+
+  .bp-table-wrapper {
+    .ant-table,
+    .ant-table-tbody > tr > td,
+    .ant-table-placeholder {
+      border-color: var(--ba-border);
+      background: var(--ba-surface);
+      color: var(--ba-text-secondary);
+    }
+
+    .ant-table-thead > tr > th {
+      border-color: var(--ba-border);
+      background: var(--ba-surface-muted);
+      color: var(--ba-text-secondary);
+    }
+
+    .ant-table-tbody > tr:hover > td {
+      background: var(--ba-surface-hover) !important;
+    }
+  }
+}
+
+@media (max-width: 1080px) {
+  .broker-accounts .ba-workbench {
+    grid-template-columns: 232px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .broker-accounts {
+    padding: var(--qd-page-gutter, 12px) !important;
+
+    .crypto-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .crypto-card {
+      padding: 14px;
+    }
+  }
+}

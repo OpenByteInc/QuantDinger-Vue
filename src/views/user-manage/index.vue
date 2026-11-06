@@ -3499,7 +3499,7 @@ export default {
 
 <style lang="less" scoped>
 .user-manage-page {
-  padding: 16px !important;
+  padding: var(--qd-page-gutter, 16px) !important;
   min-height: calc(100vh - 120px);
   background: var(--qd-surface-subtle);
 
@@ -4554,7 +4554,7 @@ export default {
   }
 
   @media (max-width: 768px) {
-    padding: 16px 12px;
+    padding: var(--qd-page-gutter, 12px);
     min-height: calc(100vh - 100px);
 
     .strategy-contract-banner,
@@ -4661,7 +4661,7 @@ export default {
   }
 
   @media (max-width: 480px) {
-    padding: 12px 8px;
+    padding: var(--qd-page-gutter, 12px);
 
     .toolbar .toolbar-left {
       flex-direction: column;
@@ -4729,6 +4729,8 @@ export default {
   .mc-amount { color: #ff7875; }
   .mc-mono { color: rgba(255, 255, 255, 0.78); }
 }
+
+@import './user-manage-polish.less';
 </style>
 
 <style lang="less">

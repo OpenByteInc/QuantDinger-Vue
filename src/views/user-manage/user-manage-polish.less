@@ -1,0 +1,523 @@
+.user-manage-page {
+  --admin-panel: var(--qd-surface, #fff);
+  --admin-panel-subtle: var(--qd-surface-subtle, #f6f7f9);
+  --admin-border: var(--qd-border, #e3e7ed);
+  --admin-text: var(--qd-text, #182230);
+  --admin-text-secondary: var(--qd-text-secondary, #586577);
+  --admin-text-muted: var(--qd-text-muted, #8792a2);
+  --admin-radius-panel: 8px;
+  --admin-radius-control: 6px;
+
+  .manage-tabs {
+    ::v-deep .ant-tabs-bar {
+      margin-bottom: 12px;
+      border-bottom-color: var(--admin-border);
+    }
+
+    ::v-deep .ant-tabs-tab {
+      height: 40px;
+      margin-right: 24px;
+      padding: 0 0 10px;
+      color: var(--admin-text-muted);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    ::v-deep .ant-tabs-tab-active {
+      color: var(--primary-color, #1890ff);
+      font-weight: 600;
+    }
+  }
+
+  .strategy-contract-banner {
+    gap: 16px;
+    margin-bottom: 12px;
+    padding: 12px 16px;
+    border-color: var(--admin-border);
+    border-radius: var(--admin-radius-panel);
+    background: var(--admin-panel);
+    box-shadow: inset 3px 0 0 var(--primary-color, #1890ff);
+  }
+
+  .strategy-contract-copy {
+    gap: 10px;
+
+    .strategy-contract-icon {
+      width: 30px;
+      height: 30px;
+      border: 1px solid var(--admin-border);
+      border-radius: var(--admin-radius-control);
+      background: transparent;
+      color: var(--admin-text-secondary);
+      font-size: 15px;
+    }
+
+    .strategy-contract-title {
+      color: var(--admin-text);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    p {
+      margin-top: 2px;
+      color: var(--admin-text-muted);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+  }
+
+  .strategy-contract-status {
+    gap: 10px;
+    color: var(--admin-text-muted);
+    font-size: 11px;
+
+    strong {
+      color: var(--admin-text);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  .summary-cards {
+    gap: 12px;
+    margin-bottom: 12px;
+
+    .summary-card {
+      min-width: 0;
+      min-height: 84px;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: var(--admin-radius-panel);
+      background: var(--admin-panel);
+      box-shadow: none;
+      transition: border-color .16s ease, background-color .16s ease;
+
+      &:hover {
+        border-color: color-mix(in srgb, var(--primary-color, #1890ff) 24%, var(--admin-border));
+        box-shadow: none;
+      }
+
+      .summary-icon {
+        width: 30px;
+        height: 30px;
+        border-color: var(--admin-border);
+        border-radius: var(--admin-radius-control);
+        background: transparent;
+        color: var(--admin-text-muted);
+
+        .anticon { font-size: 14px; }
+      }
+
+      .summary-icon-primary,
+      .summary-icon-v2,
+      .summary-icon-capital {
+        border-color: var(--admin-border);
+        background: transparent;
+        color: var(--primary-color, #1890ff);
+      }
+
+      .summary-info {
+        .summary-value {
+          color: var(--admin-text);
+          font-size: 19px;
+          font-weight: 600;
+          font-variant-numeric: tabular-nums;
+          line-height: 1.15;
+
+          .roi-badge {
+            margin-left: 4px;
+            padding: 1px 4px;
+            border-radius: 4px;
+            background: var(--admin-panel-subtle);
+            font-size: 10px;
+            font-weight: 500;
+          }
+        }
+
+        .summary-sub,
+        .summary-label {
+          margin-top: 2px;
+          color: var(--admin-text-muted);
+          font-size: 10px;
+          line-height: 1.35;
+        }
+      }
+    }
+  }
+
+  .summary-cards.user-kpi-cards {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+
+    .summary-card .summary-info .summary-value {
+      gap: 4px;
+
+      .delta {
+        padding: 1px 4px;
+        border-radius: 4px;
+        font-size: 9px;
+        font-weight: 500;
+      }
+    }
+  }
+
+  .charts-grid {
+    gap: 12px;
+    margin-bottom: 12px;
+
+    .chart-card {
+      border-radius: var(--admin-radius-panel);
+      background: var(--admin-panel);
+      box-shadow: none;
+
+      ::v-deep .ant-card-body { padding: 12px 14px; }
+    }
+
+    .chart-card-header {
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .chart-card-hint {
+      color: var(--admin-text-muted);
+      font-size: 10px;
+    }
+
+    .chart-canvas,
+    .chart-canvas-tall {
+      height: 236px;
+      min-height: 236px;
+    }
+  }
+
+  .charts-grid.charts-grid-2col {
+    grid-template-columns: minmax(0, 1.35fr) minmax(360px, .85fr) !important;
+  }
+
+  .section-card-title {
+    gap: 7px;
+    margin-bottom: 8px;
+    color: var(--admin-text);
+    font-size: 13px;
+    font-weight: 600;
+
+    .section-card-title-icon {
+      color: var(--admin-text-muted);
+      font-size: 13px;
+    }
+  }
+
+  .toolbar {
+    gap: 8px;
+    margin-bottom: 10px;
+    padding: 8px;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-panel);
+    background: var(--admin-panel);
+
+    .toolbar-left,
+    .toolbar-right { gap: 6px; }
+
+    .toolbar-left .toolbar-divider {
+      height: 20px;
+      margin: 0 2px;
+    }
+
+    ::v-deep .ant-btn {
+      height: 32px;
+      padding: 0 11px;
+      border-radius: var(--admin-radius-control);
+      font-size: 11px;
+    }
+
+    ::v-deep .ant-input,
+    ::v-deep .ant-select-selection {
+      min-height: 32px;
+      border-radius: var(--admin-radius-control);
+      font-size: 11px;
+    }
+
+    ::v-deep .ant-select-selection__rendered { line-height: 30px; }
+
+    .batch-selected-count {
+      height: 28px;
+      padding: 0 8px;
+      border-radius: 4px;
+      background: transparent;
+      font-size: 10px;
+      font-weight: 500;
+    }
+  }
+
+  .toolbar-search { width: 240px; }
+  .toolbar-id-input { width: 104px; }
+  .toolbar-filter-select { width: 116px; }
+  .toolbar-select { width: 128px; }
+
+  .active-filters {
+    gap: 6px;
+    margin: -2px 0 10px;
+    padding: 6px 8px;
+    border-color: var(--admin-border);
+    border-radius: var(--admin-radius-control);
+    background: var(--admin-panel-subtle);
+
+    .active-filters-label {
+      color: var(--admin-text-muted);
+      font-size: 10px;
+    }
+
+    ::v-deep .ant-tag {
+      margin-right: 0;
+      border-radius: 4px;
+      font-size: 10px;
+      line-height: 20px;
+    }
+  }
+
+  .reward-withdrawal-count,
+  .summary-currency {
+    color: var(--admin-text-muted);
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .user-table-card {
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-panel);
+    background: var(--admin-panel);
+    box-shadow: none;
+
+    ::v-deep .ant-card-body {
+      padding: 0;
+      background: transparent;
+    }
+
+    > ::v-deep .ant-card-body > .section-card-title {
+      margin: 0;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--admin-border);
+    }
+
+    ::v-deep .ant-table {
+      background: transparent;
+      color: var(--admin-text-secondary);
+      font-size: 11px;
+    }
+
+    ::v-deep .ant-table-thead > tr > th {
+      height: 36px;
+      padding: 8px 10px;
+      border-bottom-color: var(--admin-border);
+      background: var(--admin-panel-subtle);
+      color: var(--admin-text-secondary);
+      font-size: 10px;
+      font-weight: 600;
+    }
+
+    ::v-deep .ant-table-tbody > tr > td {
+      padding: 9px 10px;
+      border-bottom-color: var(--admin-border);
+      background: transparent;
+      color: var(--admin-text-secondary);
+      font-variant-numeric: tabular-nums;
+    }
+
+    ::v-deep .ant-table-tbody > tr:hover > td { background: var(--admin-panel-subtle); }
+
+    ::v-deep .ant-tag {
+      margin-right: 0;
+      border-radius: 4px;
+      font-size: 9px;
+      line-height: 18px;
+    }
+
+    ::v-deep .ant-table-placeholder {
+      min-height: 160px;
+      border-color: var(--admin-border);
+      background: var(--admin-panel);
+      color: var(--admin-text-muted);
+    }
+
+    ::v-deep .ant-pagination {
+      margin: 10px 12px;
+
+      .ant-pagination-item,
+      .ant-pagination-prev .ant-pagination-item-link,
+      .ant-pagination-next .ant-pagination-item-link {
+        border-radius: var(--admin-radius-control);
+      }
+    }
+  }
+
+  .status-cell {
+    gap: 5px;
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+
+      &.dot-running {
+        box-shadow: none;
+        animation: none;
+      }
+    }
+
+    .status-running,
+    .status-stopped {
+      font-size: 11px;
+      font-weight: 500;
+    }
+  }
+
+  .runtime-cell span {
+    gap: 3px;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: transparent;
+    font-size: 9px;
+  }
+
+  .credits-value,
+  .address-text,
+  .hash-text,
+  .source-id-link,
+  .mono-id {
+    font-variant-numeric: tabular-nums;
+  }
+
+  &.theme-dark {
+    --admin-panel: #151515;
+    --admin-panel-subtle: #111111;
+    --admin-border: rgba(255, 255, 255, .09);
+    --admin-text: #edf1f7;
+    --admin-text-secondary: #aeb7c4;
+    --admin-text-muted: #788391;
+    background: #0d0d0d;
+
+    .strategy-contract-banner {
+      border-color: var(--admin-border);
+      background: var(--admin-panel);
+    }
+
+    .strategy-contract-copy {
+      .strategy-contract-title { color: var(--admin-text); }
+      p { color: var(--admin-text-muted); }
+    }
+
+    .strategy-contract-status {
+      color: var(--admin-text-muted);
+      strong { color: var(--admin-text); }
+    }
+
+    .summary-cards .summary-card,
+    .summary-cards .summary-card:hover {
+      border-color: var(--admin-border);
+      background: var(--admin-panel);
+      box-shadow: none;
+
+      .summary-info {
+        .summary-value { color: var(--admin-text); }
+        .summary-sub,
+        .summary-label { color: var(--admin-text-muted); }
+      }
+    }
+
+    .charts-grid .chart-card,
+    .user-table-card {
+      border-color: var(--admin-border);
+      background: var(--admin-panel);
+      box-shadow: none;
+
+      ::v-deep .ant-card-body { background: transparent; }
+    }
+
+    .section-card-title { color: var(--admin-text); }
+
+    .toolbar {
+      border-color: var(--admin-border);
+      background: var(--admin-panel);
+    }
+
+    .user-table-card {
+      ::v-deep .ant-table {
+        background: transparent;
+        color: var(--admin-text-secondary);
+
+        .ant-table-thead > tr > th {
+          border-bottom-color: var(--admin-border);
+          background: var(--admin-panel-subtle);
+          color: var(--admin-text-secondary);
+        }
+
+        .ant-table-tbody > tr > td {
+          border-bottom-color: var(--admin-border);
+          background: transparent;
+          color: var(--admin-text-secondary);
+        }
+
+        .ant-table-tbody > tr:hover > td { background: #1a1a1a; }
+
+        .ant-table-fixed-left .ant-table-thead > tr > th,
+        .ant-table-fixed-right .ant-table-thead > tr > th {
+          background: var(--admin-panel-subtle) !important;
+        }
+
+        .ant-table-fixed-left .ant-table-tbody > tr > td,
+        .ant-table-fixed-right .ant-table-tbody > tr > td {
+          background: var(--admin-panel);
+        }
+
+        .ant-table-fixed-left .ant-table-tbody > tr:hover > td,
+        .ant-table-fixed-right .ant-table-tbody > tr:hover > td {
+          background: #1a1a1a;
+        }
+      }
+    }
+
+    .runtime-cell span {
+      border-color: var(--admin-border);
+      background: transparent;
+      color: var(--admin-text-secondary);
+    }
+  }
+
+  @media (max-width: 1440px) {
+    .summary-cards.user-kpi-cards {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 1080px) {
+    .charts-grid.charts-grid-2col { grid-template-columns: 1fr !important; }
+  }
+
+  @media (max-width: 768px) {
+    .manage-tabs ::v-deep .ant-tabs-tab {
+      height: 36px;
+      margin-right: 16px;
+      padding: 0 0 8px;
+      font-size: 11px;
+    }
+
+    .summary-cards.user-kpi-cards,
+    .summary-cards {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .summary-cards .summary-card {
+      min-height: 76px;
+      padding: 10px 12px;
+    }
+
+    .toolbar { padding: 8px; }
+
+    .user-table-card ::v-deep .ant-card-body { padding: 0; }
+  }
+
+  @media (max-width: 480px) {
+    .summary-cards.user-kpi-cards,
+    .summary-cards {
+      grid-template-columns: 1fr;
+    }
+  }
+}

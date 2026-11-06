@@ -7,6 +7,10 @@ const componentPath = fileURLToPath(
   new URL('../../src/views/backtest-center/index.vue', import.meta.url)
 )
 const source = fs.readFileSync(componentPath, 'utf8')
+const polishPath = fileURLToPath(
+  new URL('../../src/views/backtest-center/backtest-polish.less', import.meta.url)
+)
+const polishSource = fs.readFileSync(polishPath, 'utf8')
 const portfolioResultPath = fileURLToPath(
   new URL('../../src/views/backtest-center/PortfolioResult.vue', import.meta.url)
 )
@@ -59,6 +63,19 @@ test('backtest center visual accents follow the configured system theme color', 
   for (const selector of ['\\.step-badge', '\\.empty-orbit', '\\.empty-preview-card > \\.anticon']) {
     assert.match(source, new RegExp(`${selector} \\{[^}]*var\\(--primary-color`))
   }
+})
+
+test('backtest workspaces and reports share one compact visual system', () => {
+  assert.match(source, /@import '\.\/backtest-polish\.less';/)
+  assert.match(polishSource, /--backtest-radius-panel: 8px;/)
+  assert.match(polishSource, /--backtest-radius-control: 6px;/)
+  assert.match(polishSource, /--backtest-radius-tag: 4px;/)
+  assert.match(polishSource, /\.factor-result \.factor-detail-tabs/)
+  assert.match(polishSource, /\.factor-benchmark \.ranking-table th/)
+  assert.match(polishSource, /\.portfolio-result \.result-tabs \.ant-tabs-tab/)
+  assert.match(polishSource, /\.evolution-shell \.candidate-card/)
+  assert.match(polishSource, /background-image: none;/)
+  assert.match(polishSource, /\.run-card\.active \{[\s\S]*?transform: none;/)
 })
 
 test('backtest center follows routed source ids after keep-alive activation', () => {

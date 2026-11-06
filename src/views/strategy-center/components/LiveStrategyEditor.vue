@@ -420,7 +420,7 @@
         <div class="deployment-modal-footer__actions">
           <a-button @click="close">{{ $t('trading-assistant.form.cancel') }}</a-button>
           <a-button type="primary" :loading="saving || sourceContractLoading" @click="save">
-            {{ $t(isEdit ? 'trading-assistant.form.confirmEdit' : 'trading-assistant.form.confirmCreate') }}
+            {{ $t(isEdit ? 'trading-assistant.form.confirmEdit' : 'strategyCenter.launch.createAndStart') }}
           </a-button>
         </div>
       </div>
@@ -429,7 +429,7 @@
 </template>
 
 <script>
-import { compileScriptSource, createStrategy, getScriptSourceDetail, getScriptSourceList, getStrategyDetail, updateScriptSource, updateStrategy } from '@/api/strategy'
+import { compileScriptSource, createStrategy, getScriptSourceDetail, getScriptSourceList, getStrategyDetail, startStrategy, updateScriptSource, updateStrategy } from '@/api/strategy'
 import { mapState } from 'vuex'
 import { listExchangeCredentials } from '@/api/credentials'
 import { getWatchlist } from '@/api/market'
@@ -1511,9 +1511,10 @@ export default {
       return true
     },
     async save () {
-      if (!(await this.validateDeployment())) return
+      if (this.saving) return
       this.saving = true
       try {
+        if (!(await this.validateDeployment())) return
         const payload = {
           sourceId: Number(this.model.scriptSourceId),
           name: this.model.name,
@@ -1535,9 +1536,29 @@ export default {
           ? await updateStrategy(this.strategyId, payload)
           : await createStrategy(payload)
         if (!res || res.code !== 1) throw new Error((res && res.msg) || '')
-        this.$message.success(this.$t(this.isEdit ? 'trading-assistant.messages.updateSuccess' : 'trading-assistant.messages.createSuccess'))
+        const savedId = Number((res.data && res.data.id) || this.strategyId || 0)
+        if (this.isEdit) {
+          this.$message.success(this.$t('trading-assistant.messages.updateSuccess'))
+        } else {
+          try {
+            if (!Number.isInteger(savedId) || savedId <= 0) throw new Error(this.$t('strategyV2.strategyNotFound'))
+            const started = await startStrategy(savedId)
+            if (!started || started.code !== 1) throw new Error((started && started.msg) || this.$t('trading-assistant.messages.startFailed'))
+            const status = started.data && started.data.status
+            if (status === 'running') {
+              this.$message.success(this.$t('strategyCenter.launch.createdStarted'))
+            } else if (status === 'starting') {
+              this.$message.info(this.$t('strategyCenter.launch.createdStarting'))
+            } else {
+              throw new Error(this.$t('trading-assistant.messages.startFailed'))
+            }
+          } catch (error) {
+            const reason = error.backendMessage || error.message || 'trading-assistant.messages.startFailed'
+            this.$message.warning(this.$t('strategyCenter.launch.createdStartUnconfirmed', { reason: this.$t(reason) }))
+          }
+        }
         this.$emit('saved', {
-          id: Number((res.data && res.data.id) || this.strategyId || 0),
+          id: savedId,
           mode: this.isEdit ? 'edit' : 'create'
         })
       } catch (error) {

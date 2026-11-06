@@ -1,0 +1,540 @@
+.backtest-page {
+  --backtest-radius-panel: 8px;
+  --backtest-radius-control: 6px;
+  --backtest-radius-tag: 4px;
+  --backtest-control-height: 32px;
+  --backtest-border: #e2e6eb;
+  --backtest-border-soft: #edf0f4;
+  --backtest-surface: #ffffff;
+  --backtest-surface-soft: #f7f8fa;
+  --backtest-heading: #17233d;
+  --backtest-text: #445269;
+  --backtest-muted: #718096;
+  --backtest-faint: #8b96a7;
+  color: var(--backtest-text);
+}
+
+.backtest-page.theme-dark {
+  --backtest-border: #2d2d2d;
+  --backtest-border-soft: #242424;
+  --backtest-surface: #111111;
+  --backtest-surface-soft: #151515;
+  --backtest-heading: #f4f7f5;
+  --backtest-text: #dce2de;
+  --backtest-muted: #8d9792;
+  --backtest-faint: #69736f;
+}
+
+.backtest-page .workspace-toolbar,
+.backtest-page .panel,
+.backtest-page .evolution-rail,
+.backtest-page .evolution-main {
+  border-color: var(--backtest-border);
+  border-radius: var(--backtest-radius-panel);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .035);
+}
+
+.backtest-page.theme-dark .workspace-toolbar,
+.backtest-page.theme-dark .panel,
+.backtest-page.theme-dark .evolution-rail,
+.backtest-page.theme-dark .evolution-main {
+  box-shadow: none;
+}
+
+.backtest-page .workspace-toolbar {
+  min-height: 50px;
+  padding: 8px 12px;
+}
+
+.backtest-page .workspace-mode-tabs {
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--backtest-border);
+  border-radius: var(--backtest-radius-panel);
+  background: var(--backtest-surface-soft);
+}
+
+.backtest-page .workspace-mode-tabs .ant-radio-button-wrapper {
+  height: var(--backtest-control-height);
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--backtest-radius-control);
+  color: var(--backtest-muted);
+  background: transparent;
+  box-shadow: none;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: var(--backtest-control-height);
+}
+
+.backtest-page .workspace-mode-tabs .ant-radio-button-wrapper::before {
+  display: none;
+}
+
+.backtest-page .workspace-mode-tabs .ant-radio-button-wrapper-checked {
+  color: #fff;
+  background: var(--primary-color, #52c41a);
+  box-shadow: none;
+}
+
+.backtest-page .factor-mode-compact {
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--backtest-border);
+  border-radius: var(--backtest-radius-panel);
+  background: var(--backtest-surface-soft);
+}
+
+.backtest-page .factor-mode-compact__button {
+  min-height: var(--backtest-control-height);
+  border-radius: var(--backtest-radius-control);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.backtest-page .factor-mode-compact__count,
+.backtest-page .workspace-factor-mode__count,
+.backtest-page .factor-history-switch b {
+  border-radius: var(--backtest-radius-tag);
+  font-weight: 600;
+}
+
+.backtest-page .hero-stat {
+  min-height: var(--backtest-control-height);
+  border-radius: var(--backtest-radius-control);
+  background: var(--backtest-surface-soft);
+}
+
+.backtest-page .hero-stat strong {
+  color: var(--backtest-heading);
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.backtest-page .panel-heading h2,
+.backtest-page .history-title-row h2,
+.backtest-page .config-section__heading h3,
+.backtest-page .subheading h3,
+.backtest-page .evolution-section__heading h3,
+.backtest-page .chart-heading h3,
+.backtest-page .trade-review-heading h3 {
+  color: var(--backtest-heading);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.backtest-page .step-badge,
+.backtest-page .evolution-section .step-badge {
+  border-radius: var(--backtest-radius-tag);
+  font-weight: 600;
+}
+
+.backtest-page .config-section,
+.backtest-page .evolution-section,
+.backtest-page .factor-summary-panel,
+.backtest-page .factor-detail-tabs,
+.backtest-page .analysis-card,
+.backtest-page .research-detail,
+.backtest-page .chart-card,
+.backtest-page .trade-review-card,
+.backtest-page .candidate-card,
+.backtest-page .validation-card,
+.backtest-page .deployment-decision,
+.backtest-page .best-params,
+.backtest-page .evolution-empty {
+  border-radius: var(--backtest-radius-panel);
+  box-shadow: none;
+}
+
+.backtest-page .config-section,
+.backtest-page .evolution-section,
+.backtest-page .factor-summary-panel {
+  border-color: var(--backtest-border);
+  background: var(--backtest-surface-soft);
+}
+
+.backtest-page .manifest-card,
+.backtest-page .date-range-card,
+.backtest-page .factor-contract-note,
+.backtest-page .benchmark-selection-summary,
+.backtest-page .parameter-row,
+.backtest-page .empty-hero-card,
+.backtest-page .empty-preview-card,
+.backtest-page .result-trustbar,
+.backtest-page .result-progress-strip,
+.backtest-page .portfolio-contribution-panel,
+.backtest-page .review-snapshot-empty,
+.backtest-page .study-facts,
+.backtest-page .validation-placeholder {
+  border-radius: var(--backtest-radius-panel);
+  box-shadow: none;
+}
+
+.backtest-page .ant-input,
+.backtest-page .ant-input-number,
+.backtest-page .ant-calendar-picker-input,
+.backtest-page .ant-select-selection,
+.backtest-page .ant-btn:not(.ant-btn-circle) {
+  border-radius: var(--backtest-radius-control);
+}
+
+.backtest-page .ant-input,
+.backtest-page .ant-input-number,
+.backtest-page .ant-calendar-picker-input,
+.backtest-page .ant-select-selection--single,
+.backtest-page .ant-btn:not(.ant-btn-sm):not(.ant-btn-circle) {
+  min-height: var(--backtest-control-height);
+}
+
+.backtest-page .ant-input,
+.backtest-page .ant-input-number-input,
+.backtest-page .ant-calendar-picker-input,
+.backtest-page .ant-select-selection__rendered,
+.backtest-page .ant-btn {
+  font-size: 12px;
+}
+
+.backtest-page .range-preset-wrap .ant-btn-sm {
+  height: 28px;
+  border-radius: var(--backtest-radius-tag);
+  box-shadow: none;
+  font-weight: 600;
+}
+
+.backtest-page .range-preset-wrap .ant-btn-primary,
+.backtest-page .source-param-save-row .ant-btn,
+.backtest-page .evolution-runbar .ant-btn-primary {
+  box-shadow: none;
+}
+
+.backtest-page .factor-research-mode,
+.backtest-page .source-category-switch {
+  border-radius: var(--backtest-radius-control);
+}
+
+.backtest-page .factor-research-mode .ant-radio-button-wrapper,
+.backtest-page .source-category-switch .ant-radio-button-wrapper {
+  height: var(--backtest-control-height);
+  font-size: 12px;
+  line-height: 30px;
+}
+
+.backtest-page .factor-research-mode .ant-radio-button-wrapper:first-child,
+.backtest-page .source-category-switch .ant-radio-button-wrapper:first-child {
+  border-radius: var(--backtest-radius-control) 0 0 var(--backtest-radius-control);
+}
+
+.backtest-page .factor-research-mode .ant-radio-button-wrapper:last-child,
+.backtest-page .source-category-switch .ant-radio-button-wrapper:last-child {
+  border-radius: 0 var(--backtest-radius-control) var(--backtest-radius-control) 0;
+}
+
+.backtest-page .source-param-save-row .ant-btn {
+  height: 34px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.backtest-page .manifest-title,
+.backtest-page .config-section .ant-form-item-label > label,
+.backtest-page .field-label,
+.backtest-page .evolution-section > label,
+.backtest-page .section-line label {
+  font-weight: 600;
+}
+
+.backtest-page .metric-card strong,
+.backtest-page .overview-card strong,
+.backtest-page .status-card strong,
+.backtest-page .metric-grid article > strong,
+.backtest-page .resource-estimate strong,
+.backtest-page .validation-score strong,
+.backtest-page .candidate-detail-summary strong {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.01em;
+}
+
+.backtest-page .metric-card,
+.backtest-page .overview-card,
+.backtest-page .status-card,
+.backtest-page .metric-grid article,
+.backtest-page .benchmark-analysis-metric,
+.backtest-page .review-facts div,
+.backtest-page .protocol-grid article,
+.backtest-page .failure-list article,
+.backtest-page .candidate-detail-summary div {
+  border-radius: var(--backtest-radius-panel);
+  box-shadow: none;
+}
+
+.backtest-page .metric-card--featured,
+.backtest-page .metric-grid .metric-card--leader {
+  background: var(--backtest-surface);
+  box-shadow: none;
+}
+
+.backtest-page .benchmark-analysis-card,
+.backtest-page .research-verdict,
+.backtest-page .research-verdict--review,
+.backtest-page .metric-grid .metric-card--leader {
+  border-radius: var(--backtest-radius-panel);
+  background-image: none;
+  box-shadow: none;
+}
+
+.backtest-page .benchmark-analysis-card {
+  background-color: var(--backtest-surface);
+}
+
+.backtest-page .research-verdict,
+.backtest-page .research-verdict--review {
+  background-color: var(--backtest-surface-soft);
+}
+
+.backtest-page .research-verdict__icon,
+.backtest-page .leader-score {
+  border-radius: var(--backtest-radius-control);
+  background-image: none;
+  box-shadow: none;
+}
+
+.backtest-page .verdict-chip,
+.backtest-page .classification-pill,
+.backtest-page .open-position-tag,
+.backtest-page .trust-tag,
+.backtest-page .run-card__status,
+.backtest-page .job-status,
+.backtest-page .analysis-accent-tag {
+  border-radius: var(--backtest-radius-tag);
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.backtest-page .verdict-chip--status i {
+  box-shadow: none;
+}
+
+.backtest-page .factor-result .factor-summary-panel,
+.backtest-page .factor-result .chart-card,
+.backtest-page .factor-result .factor-detail-tabs {
+  border-radius: var(--backtest-radius-panel);
+  box-shadow: none;
+}
+
+.backtest-page .factor-result .factor-summary-panel {
+  padding: 10px;
+}
+
+.backtest-page .factor-result .metric-card,
+.backtest-page .factor-result .overview-card {
+  border-radius: var(--backtest-radius-panel);
+}
+
+.backtest-page .factor-result .sample-quality-banner {
+  border-left-width: 3px;
+  border-radius: var(--backtest-radius-panel);
+}
+
+.backtest-page .factor-result .chart-card {
+  padding: 12px;
+}
+
+.backtest-page .factor-result .factor-detail-tabs {
+  padding: 0 12px 12px;
+}
+
+.backtest-page .factor-result .factor-detail-tabs .ant-tabs-bar {
+  margin: 0 -12px 12px;
+  padding: 0 12px;
+  border-radius: var(--backtest-radius-panel) var(--backtest-radius-panel) 0 0;
+}
+
+.backtest-page .factor-result .factor-detail-tabs .ant-tabs-tab,
+.backtest-page .portfolio-result .result-tabs .ant-tabs-tab,
+.backtest-page .factor-benchmark .benchmark-tabs .ant-tabs-tab {
+  padding-top: 11px;
+  padding-bottom: 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.backtest-page .factor-result .correlation-grid {
+  border-radius: var(--backtest-radius-control);
+}
+
+.backtest-page .factor-benchmark .benchmark-header__icon,
+.backtest-page .factor-benchmark .section-icon,
+.backtest-page .factor-benchmark .rank-badge,
+.backtest-page .factor-benchmark .protocol-grid article > i,
+.backtest-page .factor-benchmark .failure-list article > span {
+  border-radius: var(--backtest-radius-control);
+}
+
+.backtest-page .factor-benchmark .eyebrow,
+.backtest-page .evolution-shell .eyebrow,
+.backtest-page .research-verdict__copy > span {
+  font-weight: 600;
+  letter-spacing: .04em;
+}
+
+.backtest-page .factor-benchmark .metric-grid article,
+.backtest-page .factor-benchmark .analysis-card,
+.backtest-page .factor-benchmark .research-detail {
+  border-radius: var(--backtest-radius-panel);
+  box-shadow: none;
+}
+
+.backtest-page .factor-benchmark .ranking-table th,
+.backtest-page .factor-benchmark .ranking-table td,
+.backtest-page .portfolio-result .ant-table,
+.backtest-page .candidate-table,
+.backtest-page .fold-table {
+  font-variant-numeric: tabular-nums;
+}
+
+.backtest-page .factor-benchmark .ranking-table th,
+.backtest-page .portfolio-result .ant-table-thead > tr > th,
+.backtest-page .candidate-table__head,
+.backtest-page .fold-table__head {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .01em;
+}
+
+.backtest-page .factor-benchmark .ranking-table td,
+.backtest-page .portfolio-result .ant-table-tbody > tr > td,
+.backtest-page .candidate-table__row,
+.backtest-page .fold-table__row {
+  font-size: 11px;
+}
+
+.backtest-page .portfolio-result .benchmark-analysis-card,
+.backtest-page.theme-dark .portfolio-result .benchmark-analysis-card {
+  background-image: none;
+}
+
+.backtest-page .portfolio-result .contribution-item {
+  border-radius: var(--backtest-radius-control);
+  box-shadow: none;
+  transition: border-color .15s ease, background-color .15s ease;
+}
+
+.backtest-page .portfolio-result .contribution-item.active {
+  box-shadow: none;
+}
+
+.backtest-page .portfolio-result .result-tabs .ant-tabs-bar,
+.backtest-page .factor-benchmark .benchmark-tabs .ant-tabs-bar {
+  border-color: var(--backtest-border);
+}
+
+.backtest-page .portfolio-result .result-tabs .ant-tabs-ink-bar,
+.backtest-page .factor-result .factor-detail-tabs .ant-tabs-ink-bar,
+.backtest-page .factor-benchmark .benchmark-tabs .ant-tabs-ink-bar {
+  height: 2px;
+}
+
+.backtest-page .evolution-shell {
+  gap: 10px;
+}
+
+.backtest-page .evolution-shell .evolution-section {
+  border-radius: var(--backtest-radius-panel);
+}
+
+.backtest-page .evolution-shell .parameter-domain > span,
+.backtest-page .evolution-shell .parameter-domain .ant-input-number,
+.backtest-page .evolution-shell .ant-select-selection,
+.backtest-page .evolution-shell .ant-calendar-picker-input {
+  border-radius: var(--backtest-radius-control);
+}
+
+.backtest-page .evolution-shell .evolution-runbar {
+  border-radius: var(--backtest-radius-panel);
+  box-shadow: none;
+}
+
+.backtest-page .evolution-shell .resource-estimate,
+.backtest-page .evolution-shell .history-item,
+.backtest-page .evolution-shell .validation-card,
+.backtest-page .evolution-shell .candidate-table__row,
+.backtest-page .evolution-shell .fold-table__row,
+.backtest-page .evolution-shell .candidate-detail-summary div,
+.backtest-page .evolution-shell .candidate-param-grid > div {
+  border-radius: var(--backtest-radius-control);
+  box-shadow: none;
+}
+
+.backtest-page .evolution-shell .research-verdict,
+.backtest-page .evolution-shell .metric-grid article,
+.backtest-page .evolution-shell .chart-card,
+.backtest-page .evolution-shell .candidate-card {
+  border-radius: var(--backtest-radius-panel);
+  box-shadow: none;
+}
+
+.backtest-page .evolution-shell .metric-grid .metric-card--leader,
+.backtest-page .evolution-shell .research-verdict,
+.backtest-page .evolution-shell .research-verdict--review {
+  background-image: none;
+}
+
+.backtest-page .evolution-shell .history-item,
+.backtest-page .run-card {
+  transition: border-color .15s ease, background-color .15s ease;
+}
+
+.backtest-page .evolution-shell .history-item:hover,
+.backtest-page .evolution-shell .history-item--active,
+.backtest-page .run-card:hover,
+.backtest-page .run-card.active {
+  transform: none;
+  box-shadow: none;
+}
+
+.backtest-history-drawer .ant-drawer-header {
+  border-color: #e2e6eb;
+}
+
+.backtest-history-drawer .ant-drawer-body {
+  padding: 14px;
+}
+
+.backtest-history-drawer .drawer-history-toolbar--factor,
+.backtest-history-drawer .run-card,
+.backtest-history-drawer .drawer-detail-loading {
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.backtest-history-drawer .drawer-refresh-button,
+.backtest-history-drawer .factor-history-switch .ant-radio-button-wrapper {
+  height: 32px;
+  border-radius: 6px;
+  box-shadow: none;
+  font-size: 12px;
+}
+
+.backtest-history-drawer .factor-history-switch .ant-radio-button-wrapper:first-child {
+  border-radius: 6px 0 0 6px;
+}
+
+.backtest-history-drawer .factor-history-switch .ant-radio-button-wrapper:last-child {
+  border-radius: 0 6px 6px 0;
+}
+
+.backtest-history-drawer .run-card:hover,
+.backtest-history-drawer .run-card.active {
+  transform: none;
+}
+
+@media (max-width: 1100px) {
+  .backtest-page .workspace-mode-tabs .ant-radio-button-wrapper {
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+}

@@ -114,7 +114,7 @@ test('indicator marketplace uses generated chart previews and removes decorative
   assert.match(chart, /querySelectorAll\('canvas'\)/)
   assert.match(chart, /const scale = Math\.max\(width \/ sourceWidth, availableHeight \/ sourceHeight\)/)
   assert.match(chart, /context\.rect\(0, headerHeight, width, availableHeight\)/)
-  assert.match(ide, /const chart = this\.\$refs\.klineChart/)
+  assert.match(ide, /const chart = this\.getChartRef\(\)/)
   assert.match(ide, /waitForRender: false/)
   assert.match(ide, /runtimeCheck: false/)
   assert.doesNotMatch(ide, /marketplacePreviewChart/)
@@ -296,8 +296,8 @@ test('strategy republishing reports a marketplace update instead of another list
 test('marketplace tab groups use a polished segmented control treatment', () => {
   const market = read('src/views/indicator-community/index.vue')
 
-  assert.match(market, /\.market-asset-tabs,\s*\.market-discovery-tabs,\s*\.market-view-toggle \{[\s\S]*?gap: 3px;[\s\S]*?padding: 3px;[\s\S]*?border: 1px solid #e2e8f0;[\s\S]*?border-radius: 10px;[\s\S]*?background: #f8fafc;/)
-  assert.match(market, /\.ant-radio-button-wrapper \{[\s\S]*?border: 0 !important;[\s\S]*?border-left: 0 !important;[\s\S]*?border-radius: 7px !important;[\s\S]*?&::before \{[\s\S]*?display: none !important;/)
+  assert.match(market, /\.market-asset-tabs,\s*\.market-discovery-tabs,\s*\.market-view-toggle \{[\s\S]*?gap: 3px;[\s\S]*?padding: 2px;[\s\S]*?border: 1px solid #e2e8f0;[\s\S]*?border-radius: 8px;[\s\S]*?background: #f8fafc;/)
+  assert.match(market, /\.ant-radio-button-wrapper \{[\s\S]*?border: 0 !important;[\s\S]*?border-left: 0 !important;[\s\S]*?border-radius: 6px !important;[\s\S]*?&::before \{[\s\S]*?display: none !important;/)
   assert.match(market, /&\.ant-radio-button-wrapper-checked \{[\s\S]*?background: #fff;[\s\S]*?color: var\(--primary-color, #1890ff\);[\s\S]*?box-shadow:/)
 })
 

@@ -152,7 +152,7 @@
           </div>
         </div>
         <div
-          id="kline-chart-container"
+          ref="chartContainerRef"
           class="kline-chart-container"
         ></div>
         <canvas
@@ -451,10 +451,12 @@ export default {
       }
     }
 
+    const chartContainerRef = ref(null)
     const wmCanvasRef = ref(null)
     const chartRootEl = ref(null)
     let _wmTimer = null
     let _wmObserver = null
+    let _wmPaintSignature = ''
 
     const realtimeTimer = ref(null)
     const realtimeInterval = ref(5000)
@@ -489,7 +491,7 @@ export default {
     const clampNumber = (value, min, max) => Math.max(min, Math.min(max, value))
 
     const estimateVisibleBarCount = () => {
-      const container = document.getElementById('kline-chart-container')
+      const container = chartContainerRef.value
       const width = container && container.clientWidth ? container.clientWidth : (window.innerWidth || 1280)
       return clampNumber(Math.ceil(width / 8), 120, 260)
     }
@@ -516,16 +518,51 @@ export default {
 
     const indicatorsUpdating = ref(false)
     const indicatorsUpdateQueued = ref(false)
-    const lastRealtimeIndicatorBarTs = ref(null)
+    const lastIndicatorRenderSignature = ref('')
     let indicatorRenderSeq = 0
 
-    const maybeUpdateIndicators = (force = false) => {
+    const getIndicatorDataSignature = () => {
+      const rows = klineData.value || []
+      const first = rows[0]
+      const last = rows[rows.length - 1]
+      return [
+        rows.length,
+        Number(first && first.timestamp) || 0,
+        Number(last && last.timestamp) || 0
+      ].join(':')
+    }
+
+    const getIndicatorConfigSignature = () => JSON.stringify((props.activeIndicators || []).map(indicator => ({
+      id: indicator && indicator.id,
+      instanceId: indicator && indicator.instanceId,
+      type: indicator && indicator.type,
+      visible: indicator && indicator.visible,
+      code: indicator && indicator.code,
+      params: indicator && indicator.params,
+      style: indicator && indicator.style
+    })))
+
+    const getIndicatorRenderSignature = () => `${getIndicatorDataSignature()}|${getIndicatorConfigSignature()}`
+
+    const hasPythonIndicators = () => (props.activeIndicators || []).some(indicator => (
+      indicator && indicator.visible !== false && indicator.type === 'python'
+    ))
+
+    const maybeUpdateIndicators = (options = {}) => {
       if (!chartRef.value || !klineData.value.length) return
-      const latestBar = klineData.value[klineData.value.length - 1]
-      const latestBarTs = Number(latestBar && latestBar.timestamp)
-      if (!force && Number.isFinite(latestBarTs) && lastRealtimeIndicatorBarTs.value === latestBarTs) return
-      lastRealtimeIndicatorBarTs.value = Number.isFinite(latestBarTs) ? latestBarTs : null
-      updateIndicators()
+      const normalizedOptions = typeof options === 'boolean' ? { force: options } : options
+      const force = normalizedOptions.force === true
+      const reason = normalizedOptions.reason || 'manual'
+      const signature = getIndicatorRenderSignature()
+      if (!force && signature === lastIndicatorRenderSignature.value) return
+
+      const chartManagedUpdate = reason === 'realtime' || reason === 'history'
+      if (!force && chartManagedUpdate && lastIndicatorRenderSignature.value && !hasPythonIndicators()) {
+        lastIndicatorRenderSignature.value = signature
+        return
+      }
+
+      updateIndicators({ force, signature })
     }
 
     const isCryptoMarket = () => {
@@ -2901,7 +2938,7 @@ registerOverlay({
 
               setTimeout(() => {
                 if (chartRef.value) {
-                  maybeUpdateIndicators(true)
+                  maybeUpdateIndicators({ force: true, reason: 'load' })
                 }
               }, 100)
             }
@@ -3018,10 +3055,10 @@ registerOverlay({
                     preserveViewport: true,
                     viewport: savedViewport,
                     moreData: hasMoreHistory.value,
-                    onComplete: updateIndicators
+                    onComplete: () => maybeUpdateIndicators({ reason: 'history' })
                   })
                 } catch (e) {
-                  updateIndicators()
+                  maybeUpdateIndicators({ reason: 'history' })
                 }
               }
             })
@@ -3155,7 +3192,7 @@ registerOverlay({
             if (hasAppendedBars) {
               const appendBars = mergedData.filter(item => !existingTimestamps.has(item.timestamp))
               appendRealtimeBarsToChart(appendBars)
-              maybeUpdateIndicators(true)
+              maybeUpdateIndicators({ reason: 'realtime' })
             } else if (mergedLast && mergedLast.timestamp === existingLast.timestamp) {
               const bar = {
                 timestamp: mergedLast.timestamp,
@@ -3172,7 +3209,7 @@ registerOverlay({
                   replaceChartData(chartDisplayData(), { preserveViewport: true })
                 } catch (_) {}
               }
-              maybeUpdateIndicators(false)
+              maybeUpdateIndicators({ reason: 'realtime' })
             }
           }
         }
@@ -3249,7 +3286,7 @@ registerOverlay({
       const bar = pendingWsBar
       if (!bar || !chartRef.value) return
       pendingWsBar = null
-      scheduleRealtimeChartBarUpdate(bar)
+      flushRealtimeChartBar(bar)
     }
 
     const handleWsTick = (bar) => {
@@ -3287,7 +3324,6 @@ registerOverlay({
         }
 
         arr[arr.length - 1] = merged
-        klineData.value = arr.slice()
 
         updatePricePanelFromLastBars(arr)
 
@@ -3295,7 +3331,7 @@ registerOverlay({
         if (wsTickRafId == null) {
           wsTickRafId = requestAnimationFrame(flushWsTick)
         }
-        maybeUpdateIndicators(false)
+        maybeUpdateIndicators({ reason: 'realtime' })
       } else if (normalizedBar.timestamp > lastBar.timestamp) {
         if (isRealtimeAppendGapSuspicious(lastBar.timestamp, normalizedBar.timestamp)) {
           startRestPolling({ kick: true, kickDelay: 0 })
@@ -3308,12 +3344,11 @@ registerOverlay({
         if (arr.length > 500) {
           arr.splice(0, arr.length - 500)
         }
-        klineData.value = arr.slice()
 
         updatePricePanelFromLastBars(arr, true)
 
         appendRealtimeBarsToChart([normalizedBar])
-        maybeUpdateIndicators(true)
+        maybeUpdateIndicators({ reason: 'realtime' })
       }
     }
 
@@ -3422,14 +3457,14 @@ registerOverlay({
     }
 
     const initChart = () => {
-      const container = document.getElementById('kline-chart-container')
+      const container = chartContainerRef.value
       if (!container) return
 
       if (container.clientWidth === 0 || container.clientHeight === 0) {
         let retryCount = 0
         const maxRetries = 10
         const checkAndInit = () => {
-          const checkContainer = document.getElementById('kline-chart-container')
+          const checkContainer = chartContainerRef.value
           if (checkContainer && checkContainer.clientWidth > 0 && checkContainer.clientHeight > 0) {
             initChart()
           } else if (retryCount < maxRetries) {
@@ -3454,7 +3489,7 @@ registerOverlay({
       volPaneId = null
 
       try {
-        const container = document.getElementById('kline-chart-container')
+        const container = chartContainerRef.value
         if (!container) {
           throw new Error('K-line chart container is missing')
         }
@@ -3633,7 +3668,7 @@ registerOverlay({
             }
 
             nextTick(() => {
-              maybeUpdateIndicators(true)
+              maybeUpdateIndicators({ force: true, reason: 'init' })
             })
           }
         }
@@ -3652,7 +3687,7 @@ registerOverlay({
           }
         }, 100)
       } else {
-          const container = document.getElementById('kline-chart-container')
+          const container = chartContainerRef.value
         if (container && container.clientWidth > 0 && container.clientHeight > 0) {
           initChart()
         }
@@ -4063,6 +4098,25 @@ registerOverlay({
         }
         return dataPoint
       })
+    }
+
+    const createAlignedPlotCalculator = (sourceData, plotDataMap) => {
+      let cachedSignature = ''
+      let cachedRows = []
+      return (targetData) => {
+        const rows = Array.isArray(targetData) ? targetData : []
+        const signature = [
+          rows.length,
+          getKLineTimeKey(rows[0]),
+          getKLineTimeKey(rows[rows.length - 1])
+        ].join(':')
+        if (signature === cachedSignature) {
+          return cachedRows
+        }
+        cachedSignature = signature
+        cachedRows = buildAlignedPlotRows(sourceData, plotDataMap, rows)
+        return cachedRows
+      }
     }
 
     const extractPlotColorSeries = (data) => {
@@ -4922,7 +4976,14 @@ registerOverlay({
       }
     }
 
-    const updateIndicators = async () => {
+    const updateIndicators = async (options = {}) => {
+      const force = options && options.force === true
+      const renderSignature = options && options.signature
+        ? options.signature
+        : getIndicatorRenderSignature()
+      if (!force && renderSignature === lastIndicatorRenderSignature.value) {
+        return
+      }
       if (indicatorsUpdating.value) {
         indicatorsUpdateQueued.value = true
         return
@@ -4937,6 +4998,7 @@ registerOverlay({
       const previousIndicatorIds = [...addedIndicatorIds.value]
       addedSignalOverlayIds.value = []
       addedIndicatorIds.value = []
+      let renderSucceeded = false
       try {
       const internalData = convertToInternalFormat(chartDisplayData())
       const mainPaneOverlayFigures = []
@@ -5039,6 +5101,7 @@ registerOverlay({
                     for (const group of plotGroups) {
                       if (!group.plots.length) continue
                       const bundle = buildCustomPlotBundle(group.plots, plotIdx => `PLOT_${plotIdx}_${idx}_${group.groupName}`)
+                      const calculateAlignedRows = createAlignedPlotCalculator(internalData, bundle.plotDataMap)
                       const renderSignature = hashCustomIndicatorSignature(JSON.stringify({
                         version: CUSTOM_INDICATOR_RENDER_VERSION,
                         code: indicator.code || '',
@@ -5056,7 +5119,7 @@ registerOverlay({
                       try {
                         const registered = registerCustomIndicator(
                           customIndicatorName,
-                          (kLineDataList) => buildAlignedPlotRows(internalData, bundle.plotDataMap, kLineDataList),
+                          calculateAlignedRows,
                           bundle.figures,
                           [],
                           2,
@@ -5127,6 +5190,7 @@ registerOverlay({
                     for (const group of plotGroups) {
                       if (!group.plots.length) continue
                       const bundle = buildCustomPlotBundle(group.plots, plotIdx => `PLOT_${plotIdx}_${idx}_${group.groupName}`)
+                      const calculateAlignedRows = createAlignedPlotCalculator(internalData, bundle.plotDataMap)
                       const renderSignature = hashCustomIndicatorSignature(JSON.stringify({
                         version: CUSTOM_INDICATOR_RENDER_VERSION,
                         code: indicator.code || '',
@@ -5147,12 +5211,12 @@ registerOverlay({
                           addMainPaneOverlayEntry({
                             signature: `${customIndicatorName}_${idx}`,
                             figures: bundle.figures,
-                            calc: (kLineDataList) => buildAlignedPlotRows(internalData, bundle.plotDataMap, kLineDataList)
+                            calc: calculateAlignedRows
                           })
                         } else {
                           const registered = registerCustomIndicator(
                             customIndicatorName,
-                            (kLineDataList) => buildAlignedPlotRows(internalData, bundle.plotDataMap, kLineDataList),
+                            calculateAlignedRows,
                             bundle.figures,
                             [],
                             2,
@@ -5784,6 +5848,7 @@ registerOverlay({
       if (renderedCount > 0 || activeIndicatorCount === 0) {
         removeSignalOverlayBatch(previousSignalOverlayIds)
         removeIndicatorBatch(previousIndicatorIds)
+        renderSucceeded = true
       } else {
         addedSignalOverlayIds.value = previousSignalOverlayIds
         addedIndicatorIds.value = previousIndicatorIds
@@ -5794,6 +5859,9 @@ registerOverlay({
         addedSignalOverlayIds.value = previousSignalOverlayIds
         addedIndicatorIds.value = previousIndicatorIds
       } finally {
+        if (renderSucceeded) {
+          lastIndicatorRenderSignature.value = renderSignature
+        }
         indicatorsUpdating.value = false
         emit('indicators-updated')
         if (indicatorsUpdateQueued.value) {
@@ -5860,7 +5928,6 @@ registerOverlay({
       chartTheme.value = newTheme
       if (chartRef.value) {
         updateChartTheme()
-        updateIndicators()
       }
       nextTick(() => _ensureWmLayer())
     })
@@ -5871,7 +5938,6 @@ registerOverlay({
       try {
         replaceChartData(chartDisplayData(), { preserveViewport: true })
       } catch (_) {}
-      updateIndicators()
     })
 
     watch(() => props.activeIndicators, (newVal, oldVal) => {
@@ -5919,17 +5985,16 @@ registerOverlay({
       })
 
       nextTick(() => {
-        const el = document.getElementById('kline-chart-container')
+        const el = chartContainerRef.value
         if (!el || typeof ResizeObserver === 'undefined') return
         chartResizeObserver = new ResizeObserver(() => {
           if (chartResizeRafId != null) cancelAnimationFrame(chartResizeRafId)
           chartResizeRafId = requestAnimationFrame(() => {
             chartResizeRafId = null
             if (chartRef.value && typeof chartRef.value.resize === 'function') {
-              chartRef.value.resize()
-              scheduleSyncVolumePaneLayout()
+              syncVolumePaneLayout()
             } else {
-              const c = document.getElementById('kline-chart-container')
+              const c = chartContainerRef.value
               if (c && c.clientWidth > 0 && c.clientHeight > 0) {
                 initChart()
               }
@@ -5959,10 +6024,23 @@ registerOverlay({
       const h = parent.clientHeight
       if (w === 0 || h === 0) return
       const dpr = window.devicePixelRatio || 1
-      cvs.width = w * dpr
-      cvs.height = h * dpr
-      cvs.style.width = w + 'px'
-      cvs.style.height = h + 'px'
+      const pixelWidth = Math.max(1, Math.round(w * dpr))
+      const pixelHeight = Math.max(1, Math.round(h * dpr))
+      const cssWidth = `${w}px`
+      const cssHeight = `${h}px`
+      const signature = `${pixelWidth}x${pixelHeight}:${chartTheme.value}`
+      if (
+        signature === _wmPaintSignature &&
+        cvs.width === pixelWidth &&
+        cvs.height === pixelHeight &&
+        cvs.style.width === cssWidth &&
+        cvs.style.height === cssHeight
+      ) return
+      _wmPaintSignature = signature
+      cvs.width = pixelWidth
+      cvs.height = pixelHeight
+      cvs.style.width = cssWidth
+      cvs.style.height = cssHeight
       const ctx = cvs.getContext('2d')
       if (!ctx) return
       ctx.clearRect(0, 0, cvs.width, cvs.height)
@@ -5995,11 +6073,10 @@ registerOverlay({
     const _ensureWmLayer = () => {
       const cvs = wmCanvasRef.value
       if (!cvs) return
-      // force visibility
-      cvs.style.display = 'block'
-      cvs.style.opacity = '1'
-      cvs.style.visibility = 'visible'
-      cvs.style.pointerEvents = 'none'
+      if (cvs.style.display !== 'block') cvs.style.display = 'block'
+      if (cvs.style.opacity !== '1') cvs.style.opacity = '1'
+      if (cvs.style.visibility !== 'visible') cvs.style.visibility = 'visible'
+      if (cvs.style.pointerEvents !== 'none') cvs.style.pointerEvents = 'none'
       _paintWmCanvas()
     }
 
@@ -6078,7 +6155,7 @@ registerOverlay({
           drawY: headerHeight - (drawHeight - availableHeight) * focusY
         }
       }
-      const chartContainer = document.getElementById('kline-chart-container')
+      const chartContainer = chartContainerRef.value
       const layers = chartContainer
         ? Array.from(chartContainer.querySelectorAll('canvas')).filter(layer => {
           const rect = layer.getBoundingClientRect()
@@ -6150,7 +6227,7 @@ registerOverlay({
       }
       if (_wmTimer) { clearInterval(_wmTimer); _wmTimer = null }
       if (_wmObserver) { _wmObserver.disconnect(); _wmObserver = null }
-      const chartContainer = document.getElementById('kline-chart-container')
+      const chartContainer = chartContainerRef.value
       if (chartContainer && shiftMeasurePointerDownHandler) {
         chartContainer.removeEventListener('pointerdown', shiftMeasurePointerDownHandler, true)
         shiftMeasurePointerDownHandler = null
@@ -6172,6 +6249,7 @@ registerOverlay({
       chartRef,
       chartTheme,
       themeConfig,
+      chartContainerRef,
       wmCanvasRef,
       chartRootEl,
       chartModalGetContainer,

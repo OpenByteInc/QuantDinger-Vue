@@ -474,7 +474,7 @@ export default {
 
 <style lang="less" scoped>
 .agent-tokens-page {
-  padding: 16px;
+  padding: var(--qd-page-gutter, 16px);
 
   .toolbar {
     display: flex;

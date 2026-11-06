@@ -80,14 +80,28 @@ test('position ownership guidance stays compact and theme aware', () => {
   assert.doesNotMatch(positions, /class="ownership-risk-alert"/)
 })
 
+test('overview positions content keeps breathing room below its section header', () => {
+  const operations = read('src/views/strategy-center/components/LiveOperationsTable.vue')
+
+  assert.match(operations, /\.overview-positions-panel ::v-deep \.positions-section \{ padding: 12px 14px 14px; \}/)
+})
+
 test('live status filters and signal position guidance use compact theme-aware layouts', () => {
   const operations = read('src/views/strategy-center/components/LiveOperationsTable.vue')
   const positions = read('src/views/strategy-center/components/PositionRecords.vue')
+  const center = read('src/views/strategy-center/index.vue')
+  const polish = read('src/views/strategy-center/strategy-center-polish.less')
   const liveRiskLocale = read('src/locales/lang/strategy-live-risk.js')
 
   assert.match(operations, /class="master-tab__label"/)
   assert.match(operations, /class="master-tab__count"/)
-  assert.match(operations, /min-height: 54px/)
+  assert.match(center, /@import '\.\/strategy-center-polish\.less'/)
+  assert.match(polish, /\.master-tabs button \{[\s\S]*?min-height: 40px;[\s\S]*?flex-direction: row/)
+  assert.match(polish, /\.strategy-row\.selected,[\s\S]*?background: var\(--sc-surface-muted\)/)
+  assert.match(polish, /\.financial-strip \.primary-financial-card[\s\S]*?box-shadow: inset 2px 0 0/)
+  assert.match(polish, /\.log-filter-tab\.active[\s\S]*?background: color-mix/)
+  assert.match(polish, /\.execution-records-table \.ant-table-tbody > tr > td \{[\s\S]*?height: 52px;[\s\S]*?padding: 6px 8px !important/)
+  assert.match(polish, /\.execution-records-table \.ant-table-pagination\.ant-pagination \{[\s\S]*?margin: 8px 0 0 auto;[\s\S]*?padding: 3px/)
   assert.match(positions, /class="virtual-account-note" role="note"/)
   assert.match(positions, /virtual-account-note__icon/)
   assert.match(positions, /margin: 10px 0 12px/)

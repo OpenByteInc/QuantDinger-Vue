@@ -1359,7 +1359,7 @@ export default {
   --market-font-control: 13px;
   --market-font-small: 12px;
   --market-font-section: 20px;
-  padding: 24px;
+  padding: var(--qd-page-gutter, 16px);
   min-height: calc(100vh - 120px);
   background: #f5f5f5;
   font-size: var(--market-font-body);
@@ -1374,17 +1374,17 @@ export default {
   .market-catalog-toolbar {
     overflow: hidden;
     border: 1px solid rgba(15, 23, 42, 0.08);
-    border-radius: 12px;
+    border-radius: 8px;
     background: #fff;
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.045);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.035);
 
     &__top,
     &__discovery {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       min-width: 0;
-      padding: 11px 14px;
+      padding: 10px 12px;
     }
 
     &__top {
@@ -1417,16 +1417,17 @@ export default {
     ::v-deep .ant-select-selection,
     ::v-deep .ant-input,
     ::v-deep .ant-input-search-button {
-      height: 32px;
-      font-size: 12px;
+      height: 36px;
+      font-size: var(--market-font-control);
+      border-radius: 6px;
     }
 
     ::v-deep .ant-radio-button-wrapper {
-      line-height: 30px;
+      line-height: 34px;
     }
 
     ::v-deep .ant-select-selection__rendered {
-      line-height: 30px;
+      line-height: 34px;
     }
   }
 
@@ -1441,9 +1442,9 @@ export default {
     align-items: center;
     gap: 3px;
     overflow: visible;
-    padding: 3px;
+    padding: 2px;
     border: 1px solid #e2e8f0;
-    border-radius: 10px;
+    border-radius: 8px;
     background: #f8fafc;
 
     ::v-deep .ant-radio-button-wrapper {
@@ -1451,12 +1452,14 @@ export default {
       margin-left: 0;
       border: 0 !important;
       border-left: 0 !important;
-      border-radius: 7px !important;
+      border-radius: 6px !important;
       background: transparent;
       color: #64748b;
       line-height: 30px;
       box-shadow: none !important;
-      transition: color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+      font-size: var(--market-font-control);
+      font-weight: 500;
+      transition: color 0.16s ease, background 0.16s ease, border-color 0.16s ease;
 
       &::before {
         display: none !important;
@@ -1471,8 +1474,8 @@ export default {
         border-left-color: transparent !important;
         background: #fff;
         color: var(--primary-color, #1890ff);
-        font-weight: 650;
-        box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12) !important;
+        font-weight: 600;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.09) !important;
       }
     }
   }
@@ -1488,7 +1491,7 @@ export default {
     color: #087f78;
     font-size: 10px;
     font-weight: 700;
-    border-radius: 9px;
+    border-radius: 4px;
     background: rgba(19, 194, 194, 0.12);
   }
 
@@ -1511,7 +1514,7 @@ export default {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      min-height: 42px;
+      min-height: 44px;
       padding: 0 12px;
       border-bottom: 1px solid rgba(15, 23, 42, 0.08);
 
@@ -1521,12 +1524,13 @@ export default {
         gap: 5px;
         color: #1f2937;
         font-size: 13px;
+        font-weight: 600;
       }
 
       ::v-deep .ant-btn {
         height: auto;
         padding: 0;
-        font-size: 10px;
+        font-size: 12px;
       }
     }
   }
@@ -1538,7 +1542,7 @@ export default {
     min-width: 17px;
     height: 17px;
     padding: 0 5px;
-    border-radius: 9px;
+    border-radius: 4px;
     background: rgba(19, 194, 194, 0.12);
     color: #087f78;
     font-size: 10px;
@@ -1581,7 +1585,7 @@ export default {
   }
 
   .market-filter-section {
-    padding: 10px 12px;
+    padding: 12px;
     border-bottom: 1px solid rgba(15, 23, 42, 0.065);
 
     &:last-child {
@@ -1589,36 +1593,38 @@ export default {
     }
 
     h4 {
-      margin: 0 0 7px;
+      margin: 0 0 8px;
       color: #334155;
-      font-size: 11px;
-      font-weight: 650;
+      font-size: 12px;
+      font-weight: 600;
     }
 
     > .ant-select {
       width: 100%;
-      font-size: 11px;
+      font-size: 12px;
     }
 
     ::v-deep .ant-select-selection--single {
-      height: 28px;
+      height: 32px;
+      border-radius: 6px;
     }
 
     ::v-deep .ant-select-selection__rendered {
-      line-height: 26px;
+      line-height: 30px;
     }
 
     ::v-deep .ant-radio-wrapper {
       margin: 0;
       color: #5a6678;
-      font-size: 11px;
-      line-height: 24px;
+      font-size: 12px;
+      line-height: 26px;
     }
 
     ::v-deep .ant-btn {
-      margin-top: 7px;
-      height: 26px;
-      font-size: 10px;
+      margin-top: 8px;
+      height: 32px;
+      border-radius: 6px;
+      font-size: 12px;
     }
   }
 
@@ -1632,17 +1638,18 @@ export default {
     grid-template-columns: 1fr auto 1fr;
     align-items: center;
     gap: 4px;
-    margin-top: 7px;
+    margin-top: 8px;
 
     ::v-deep .ant-input-number {
       width: 100%;
-      height: 28px;
-      font-size: 10px;
+      height: 32px;
+      border-radius: 6px;
+      font-size: 12px;
     }
 
     ::v-deep .ant-input-number-input {
-      height: 26px;
-      padding: 0 6px;
+      height: 30px;
+      padding: 0 8px;
     }
 
     > span {
@@ -1653,6 +1660,10 @@ export default {
   .market-results {
     min-width: 0;
     scroll-margin-top: 96px;
+
+    ::v-deep .indicator-card {
+      border-radius: 8px;
+    }
   }
 
   .market-strategy-risk,
@@ -1661,10 +1672,10 @@ export default {
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    min-height: 34px;
+    min-height: 36px;
     margin-bottom: 8px;
-    padding: 7px 10px;
-    font-size: 11px;
+    padding: 8px 12px;
+    font-size: 12px;
     border-radius: 6px;
   }
 
@@ -1899,7 +1910,7 @@ export default {
   .indicator-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 16px;
+    gap: 12px;
   }
 
   .market-results {
@@ -1927,10 +1938,10 @@ export default {
     align-items: flex-start;
     gap: 8px;
     margin-top: 14px;
-    padding: 12px 16px;
+    padding: 10px 12px;
     color: rgba(0, 0, 0, 0.58);
     font-size: 12px;
-    line-height: 1.65;
+    line-height: 1.5;
     background: rgba(250, 173, 20, 0.08);
     border: 1px solid rgba(250, 173, 20, 0.18);
     border-radius: 8px;
@@ -2340,6 +2351,18 @@ export default {
     color: rgba(255, 255, 255, 0.62);
   }
 
+  .market-filter-section ::v-deep .ant-btn {
+    border-color: #434343;
+    background: #262626;
+    color: rgba(255, 255, 255, 0.78);
+
+    &:hover,
+    &:focus {
+      border-color: var(--primary-color, #1890ff);
+      color: var(--primary-color, #1890ff);
+    }
+  }
+
   .market-result-summary {
     color: rgba(255, 255, 255, 0.45);
     border-color: rgba(255, 255, 255, 0.08);
@@ -2603,7 +2626,7 @@ export default {
 
 @media (max-width: 768px) {
   .indicator-community-container {
-    padding: 12px;
+    padding: var(--qd-page-gutter, 12px);
 
     .market-catalog-toolbar {
       &__top,

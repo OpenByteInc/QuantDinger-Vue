@@ -2003,7 +2003,7 @@ export default {
 @primary-color: var(--primary-color, #1890ff);
 
 .profile-page {
-  padding: 24px;
+  padding: var(--qd-page-gutter, 16px);
   min-height: calc(100vh - 120px);
   background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
 
@@ -3549,7 +3549,7 @@ export default {
 // ==================== Mobile Responsive Styles ====================
 @media screen and (max-width: 768px) {
   .profile-page {
-    padding: 12px;
+    padding: var(--qd-page-gutter, 12px);
 
     .profile-overview-grid {
       grid-template-columns: minmax(0, 1fr);
@@ -3894,7 +3894,7 @@ export default {
 // Extra small devices (phones in portrait)
 @media screen and (max-width: 480px) {
   .profile-page {
-    padding: 8px;
+    padding: var(--qd-page-gutter, 12px);
 
     // Credits card
     .credits-card {
@@ -4338,6 +4338,8 @@ export default {
     }
   }
 }
+
+@import './profile-polish.less';
 </style>
 
 <style lang="less">

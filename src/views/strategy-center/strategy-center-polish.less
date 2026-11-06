@@ -1,0 +1,699 @@
+.strategy-center {
+  --sc-radius-sm: 4px;
+  --sc-radius-md: 6px;
+  --sc-radius-lg: 8px;
+  --sc-shadow: 0 6px 18px rgba(24, 34, 48, .04);
+  font-size: 13px;
+}
+
+.strategy-center.theme-dark {
+  --sc-page: #090909;
+  --sc-surface: #111111;
+  --sc-surface-subtle: #141414;
+  --sc-surface-muted: #181818;
+  --sc-border: rgba(255, 255, 255, .1);
+  --sc-border-soft: rgba(255, 255, 255, .065);
+  --sc-shadow: none;
+}
+
+.strategy-center .operations-workspace {
+  grid-template-columns: 330px minmax(0, 1fr);
+  border-radius: var(--sc-radius-lg);
+  box-shadow: var(--sc-shadow);
+}
+
+.strategy-center .strategy-master {
+  padding: 12px 10px 10px;
+}
+
+.strategy-center .master-command-bar {
+  min-height: 32px;
+  margin-bottom: 8px;
+}
+
+.strategy-center .master-health {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.strategy-center .master-health i {
+  width: 6px;
+  height: 6px;
+  box-shadow: none;
+}
+
+.strategy-center .master-actions .ant-btn {
+  height: 32px;
+  border-radius: var(--sc-radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.strategy-center .master-actions .ant-btn:last-child {
+  width: 32px;
+}
+
+.strategy-center .master-tabs {
+  padding: 0;
+  border: 1px solid var(--sc-border);
+  border-radius: var(--sc-radius-md);
+  background: var(--sc-surface);
+}
+
+.strategy-center .master-tabs button {
+  min-height: 40px;
+  flex-direction: row;
+  gap: 6px;
+  padding: 0 8px;
+  border-right: 1px solid var(--sc-border-soft);
+  color: var(--sc-muted);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.strategy-center .master-tabs button:last-child {
+  border-right: 0;
+}
+
+.strategy-center .master-tabs button::after {
+  left: 10px;
+  right: 10px;
+  height: 2px;
+}
+
+.strategy-center .master-tabs button.active {
+  color: var(--primary-color, #1890ff);
+  background: var(--sc-surface-muted);
+  font-weight: 650;
+}
+
+.strategy-center .master-tab__label {
+  min-height: auto;
+}
+
+.strategy-center .master-tabs .master-tab__count {
+  color: var(--sc-subtle);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.strategy-center .master-search {
+  padding: 10px 0 8px;
+}
+
+.strategy-center .master-search .ant-input {
+  height: 34px;
+  border-radius: var(--sc-radius-sm);
+  font-size: 12px;
+}
+
+.strategy-center .master-columns {
+  padding: 0 10px 7px;
+  color: var(--sc-subtle);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.strategy-center .strategy-list {
+  padding: 0;
+  border: 1px solid var(--sc-border);
+  border-radius: var(--sc-radius-md);
+}
+
+.strategy-center .strategy-row {
+  min-height: 68px;
+  padding: 9px 10px;
+  border-bottom-color: var(--sc-border-soft);
+}
+
+.strategy-center .strategy-row:last-child {
+  border-bottom: 0;
+}
+
+.strategy-center .strategy-row::before {
+  top: 9px;
+  bottom: 9px;
+  width: 2px;
+}
+
+.strategy-center .strategy-row:hover {
+  background: var(--sc-surface-subtle);
+}
+
+.strategy-center .strategy-row.selected,
+.strategy-center .operations-workspace.theme-dark .strategy-row.selected {
+  background: var(--sc-surface-muted);
+}
+
+.strategy-center .strategy-row.selected::before {
+  background: var(--primary-color, #1890ff);
+}
+
+.strategy-center .row-main,
+.strategy-center .row-status {
+  gap: 3px;
+}
+
+.strategy-center .row-main strong {
+  color: var(--sc-heading);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.strategy-center .row-main small,
+.strategy-center .row-status {
+  color: var(--sc-muted);
+  font-size: 10px;
+}
+
+.strategy-center .row-status {
+  padding-left: 11px;
+}
+
+.strategy-center .row-status em {
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 9px;
+}
+
+.strategy-center .row-pnl strong {
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.strategy-center .row-pnl small {
+  font-size: 9px;
+}
+
+.strategy-center .master-footer {
+  min-height: 36px;
+  padding: 8px 4px 0;
+  border-top: 0;
+}
+
+.strategy-center .master-footer .ant-pagination-simple {
+  font-size: 11px;
+}
+
+.strategy-center .strategy-detail {
+  padding: 14px;
+  background: var(--sc-page);
+}
+
+.strategy-center .detail-header {
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--sc-border);
+  border-radius: var(--sc-radius-lg);
+  background: var(--sc-surface);
+}
+
+.strategy-center .detail-title-line {
+  gap: 7px;
+}
+
+.strategy-center .detail-title-line h2 {
+  color: var(--sc-heading);
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -.015em;
+}
+
+.strategy-center .detail-symbol {
+  font-size: 12px;
+}
+
+.strategy-center .detail-header p {
+  margin-top: 5px;
+  font-size: 10px;
+}
+
+.strategy-center .status-pill,
+.strategy-center .execution-pill,
+.strategy-center .exchange-pill,
+.strategy-center .portfolio-pill {
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.strategy-center .detail-actions,
+.strategy-center .pause-actions {
+  gap: 6px;
+}
+
+.strategy-center .detail-actions .ant-btn {
+  height: 34px;
+  padding: 0 12px;
+  border-radius: var(--sc-radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.strategy-center .runtime-status-bar {
+  gap: 6px 16px;
+  margin: 7px 2px 8px;
+  font-size: 10px;
+}
+
+.strategy-center .runtime-status-bar strong {
+  font-size: 10px;
+}
+
+.strategy-center .metric-section {
+  margin-bottom: 8px;
+}
+
+.strategy-center .metric-section-head {
+  min-height: 23px;
+  padding: 0 2px 4px;
+}
+
+.strategy-center .metric-section-head h3 {
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.strategy-center .metric-section-head > span {
+  font-size: 9px;
+}
+
+.strategy-center .financial-strip,
+.strategy-center .performance-strip {
+  gap: 6px;
+}
+
+.strategy-center .financial-strip > div,
+.strategy-center .performance-strip > div {
+  padding: 8px 10px;
+  border-radius: var(--sc-radius-md);
+  background: var(--sc-surface);
+}
+
+.strategy-center .financial-strip > div {
+  min-height: 66px;
+}
+
+.strategy-center .performance-strip > div {
+  min-height: 58px;
+}
+
+.strategy-center .financial-strip span,
+.strategy-center .performance-strip span {
+  margin-bottom: 2px;
+  font-size: 10px;
+}
+
+.strategy-center .financial-strip strong,
+.strategy-center .performance-strip strong,
+.strategy-center .financial-strip .primary-financial-card strong {
+  color: var(--sc-text);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.strategy-center .financial-strip small,
+.strategy-center .performance-strip small {
+  margin-top: 2px;
+  font-size: 9px;
+}
+
+.strategy-center .financial-strip .primary-financial-card,
+.strategy-center .operations-workspace.theme-dark .financial-strip .primary-financial-card {
+  border-color: var(--sc-border);
+  background: var(--sc-surface);
+  box-shadow: inset 2px 0 0 var(--primary-color, #1890ff);
+}
+
+.strategy-center .operations-workspace.theme-dark .detail-actions .ant-btn[disabled] {
+  border-color: var(--sc-border);
+  color: var(--sc-subtle);
+  background: var(--sc-surface-muted);
+}
+
+.strategy-center .runtime-tabs {
+  margin-top: 8px;
+}
+
+.strategy-center .runtime-tabs > .ant-tabs-bar {
+  margin-bottom: 8px;
+  border-radius: var(--sc-radius-md);
+}
+
+.strategy-center .runtime-tabs > .ant-tabs-bar .ant-tabs-tab {
+  min-height: 38px;
+  margin: 0 22px 0 0;
+  padding: 0;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 38px;
+}
+
+.strategy-center .runtime-tabs > .ant-tabs-bar .ant-tabs-ink-bar {
+  height: 2px;
+}
+
+.strategy-center .runtime-tabs .strategy-tab-pane-inner,
+.strategy-center .panel-section {
+  border-radius: var(--sc-radius-md);
+  box-shadow: none;
+}
+
+.strategy-center .section-head {
+  min-height: 40px;
+  padding: 0 12px;
+}
+
+.strategy-center .section-head h3 {
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.strategy-center .section-head > span {
+  font-size: 10px;
+}
+
+.strategy-center .overview-equity-panel {
+  margin-top: 8px;
+}
+
+.strategy-center .equity-chart {
+  height: 250px;
+}
+
+.strategy-center .section-empty,
+.strategy-center .strategy-tab-empty {
+  color: var(--sc-subtle);
+  background: transparent;
+}
+
+.strategy-center .position-records,
+.strategy-center .trading-records,
+.strategy-center .strategy-logs,
+.strategy-center .strategy-review-report,
+.strategy-center .grid-orders-panel,
+.strategy-center .ai-decision-records {
+  color: var(--sc-text);
+  font-size: 12px;
+}
+
+.strategy-center .position-records .empty-state,
+.strategy-center .trading-records .empty-state {
+  border-radius: var(--sc-radius-md);
+  background: transparent;
+}
+
+.strategy-center .position-records .virtual-account-note,
+.strategy-center .position-records .ownership-toolbar,
+.strategy-center .position-records .portfolio-position-summary > div,
+.strategy-center .trading-records .cost-summary-card,
+.strategy-center .trading-records .execution-source-note,
+.strategy-center .trading-records .execution-reconciliation-alert {
+  border-radius: var(--sc-radius-md);
+  box-shadow: none;
+}
+
+.strategy-center .position-records .portfolio-position-summary > div,
+.strategy-center .trading-records .cost-summary-card {
+  padding: 8px 10px;
+  background: var(--sc-surface-subtle);
+}
+
+.strategy-center .position-records .portfolio-position-summary strong,
+.strategy-center .trading-records .cost-summary-card strong {
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.strategy-center .trading-records .execution-reconciliation-alert,
+.strategy-center .trading-records.theme-dark .execution-reconciliation-alert {
+  border-color: color-mix(in srgb, var(--sc-warning) 35%, var(--sc-border));
+  background: color-mix(in srgb, var(--sc-warning) 6%, var(--sc-surface));
+}
+
+.strategy-center .position-records .ant-table,
+.strategy-center .trading-records .ant-table,
+.strategy-center .grid-orders-panel .ant-table {
+  color: var(--sc-text);
+  background: var(--sc-surface);
+  font-size: 11px;
+}
+
+.strategy-center .position-records .ant-table-thead > tr > th,
+.strategy-center .trading-records .ant-table-thead > tr > th,
+.strategy-center .grid-orders-panel .ant-table-thead > tr > th,
+.strategy-center .position-records.theme-dark .ant-table-thead > tr > th,
+.strategy-center .trading-records.theme-dark .ant-table-thead > tr > th,
+.strategy-center .grid-orders-panel.theme-dark .ant-table-thead > tr > th {
+  padding: 9px 10px;
+  border-color: var(--sc-border);
+  color: var(--sc-muted);
+  background: var(--sc-surface-subtle) !important;
+  background-image: none !important;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.strategy-center .position-records .ant-table-tbody > tr > td,
+.strategy-center .trading-records .ant-table-tbody > tr > td,
+.strategy-center .grid-orders-panel .ant-table-tbody > tr > td,
+.strategy-center .position-records.theme-dark .ant-table-tbody > tr > td,
+.strategy-center .trading-records.theme-dark .ant-table-tbody > tr > td,
+.strategy-center .grid-orders-panel.theme-dark .ant-table-tbody > tr > td {
+  padding: 9px 10px;
+  border-color: var(--sc-border-soft);
+  color: var(--sc-text);
+  background: var(--sc-surface) !important;
+}
+
+.strategy-center .trading-records .execution-records-table .ant-table-thead > tr > th {
+  height: 36px;
+  padding: 6px 8px !important;
+  line-height: 1.3;
+}
+
+.strategy-center .trading-records .execution-records-table .ant-table-tbody > tr > td {
+  height: 52px;
+  padding: 6px 8px !important;
+  line-height: 1.35;
+  vertical-align: middle;
+}
+
+.strategy-center .trading-records .trade-type-cell .trade-type-tag {
+  margin-bottom: 2px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  line-height: 18px;
+}
+
+.strategy-center .trading-records .trade-type-cell .trade-type-desc {
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+.strategy-center .trading-records .execution-cell,
+.strategy-center .trading-records .execution-quality-cell {
+  gap: 1px;
+}
+
+.strategy-center .trading-records .execution-records-table .ant-table-pagination.ant-pagination {
+  gap: 2px;
+  margin: 8px 0 0 auto;
+  padding: 3px;
+  border-radius: var(--sc-radius-md);
+  box-shadow: none;
+}
+
+.strategy-center .trading-records .execution-records-table .ant-table-pagination.ant-pagination .ant-pagination-item,
+.strategy-center .trading-records .execution-records-table .ant-table-pagination.ant-pagination .ant-pagination-prev,
+.strategy-center .trading-records .execution-records-table .ant-table-pagination.ant-pagination .ant-pagination-next {
+  min-width: 28px;
+  height: 28px;
+  line-height: 26px;
+}
+
+.strategy-center .position-records .ant-tag,
+.strategy-center .trading-records .ant-tag {
+  border-radius: 3px;
+  background-image: none !important;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.strategy-center .review-verdict,
+.strategy-center .overview-metrics,
+.strategy-center .report-panel,
+.strategy-center .evidence-chart,
+.strategy-center .diagnosis-table,
+.strategy-center .ai-consent,
+.strategy-center .direction-content dl > div {
+  border-radius: var(--sc-radius-md);
+}
+
+.strategy-center .review-verdict h3,
+.strategy-center .strategy-review-report h3 {
+  font-size: 13px;
+}
+
+.strategy-center .review-verdict h4,
+.strategy-center .strategy-review-report h4 {
+  font-size: 12px;
+}
+
+.strategy-center .overview-metrics > div,
+.strategy-center .report-panel,
+.strategy-center .evidence-chart {
+  padding: 10px 12px;
+}
+
+.strategy-center .ai-status {
+  border-radius: 3px;
+}
+
+.strategy-center .logs-toolbar {
+  min-height: 36px;
+  margin-bottom: 6px;
+  padding: 0;
+}
+
+.strategy-center .log-filter-tabs {
+  gap: 4px;
+}
+
+.strategy-center .log-filter-tab {
+  min-height: 30px;
+  padding: 0 9px;
+  border-radius: var(--sc-radius-sm);
+  color: var(--sc-muted) !important;
+  border-color: var(--sc-border) !important;
+  background: var(--sc-surface-subtle) !important;
+  box-shadow: none !important;
+  font-size: 10px;
+  transition: color .15s ease, border-color .15s ease, background-color .15s ease;
+}
+
+.strategy-center .log-filter-tab.active {
+  color: var(--primary-color, #1890ff) !important;
+  border-color: color-mix(in srgb, var(--primary-color, #1890ff) 42%, var(--sc-border)) !important;
+  background: color-mix(in srgb, var(--primary-color, #1890ff) 7%, var(--sc-surface)) !important;
+}
+
+.strategy-center .log-filter-tab .tab-count {
+  min-width: auto;
+  height: auto;
+  padding: 0;
+  color: currentColor !important;
+  background: transparent !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.strategy-center .log-filter-tab:hover .tab-icon {
+  transform: none;
+}
+
+.strategy-center .logs-container {
+  padding: 8px 10px;
+  border-color: var(--sc-border);
+  border-radius: var(--sc-radius-md);
+  color: var(--sc-text);
+  background: var(--sc-surface-subtle);
+  font-size: 11px;
+  line-height: 1.65;
+}
+
+.strategy-center .log-entry {
+  border-radius: 3px;
+}
+
+.strategy-center .log-level {
+  min-height: 18px;
+  padding: 0 5px;
+  border-radius: 3px;
+  font-size: 9px;
+  line-height: 16px;
+}
+
+.strategy-center .grid-orders-panel {
+  padding: 12px;
+}
+
+.strategy-center .grid-orders-head {
+  margin-bottom: 10px;
+}
+
+.strategy-center .grid-orders-head h3 {
+  color: var(--sc-heading);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.strategy-center .grid-orders-head p {
+  margin-top: 3px;
+  color: var(--sc-muted);
+  font-size: 11px;
+}
+
+.strategy-center .grid-order-summary {
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.strategy-center .grid-order-summary div,
+.strategy-center .grid-orders-panel.theme-dark .grid-order-summary div {
+  padding: 9px 10px;
+  border-color: var(--sc-border);
+  border-radius: var(--sc-radius-md);
+  background: var(--sc-surface-subtle);
+}
+
+.strategy-center .grid-order-summary span {
+  color: var(--sc-muted);
+  font-size: 10px;
+}
+
+.strategy-center .grid-order-summary strong {
+  color: var(--sc-text);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.strategy-center .ant-btn,
+.strategy-center .ant-input,
+.strategy-center .ant-select-selection,
+.strategy-center .ant-alert,
+.strategy-center .ant-pagination-item,
+.strategy-center .ant-pagination-prev .ant-pagination-item-link,
+.strategy-center .ant-pagination-next .ant-pagination-item-link {
+  border-radius: var(--sc-radius-sm);
+}
+
+.strategy-center .ant-btn,
+.strategy-center .ant-input,
+.strategy-center .ant-select-selection {
+  box-shadow: none;
+}
+
+.strategy-center .financial-strip strong,
+.strategy-center .performance-strip strong,
+.strategy-center .row-pnl,
+.strategy-center .cost-summary-card strong,
+.strategy-center .overview-metrics b,
+.strategy-center .grid-order-summary strong {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 1180px) {
+  .strategy-center .operations-workspace {
+    grid-template-columns: 300px minmax(0, 1fr);
+  }
+
+  .strategy-center .detail-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

@@ -20,3 +20,8 @@ test('market catalog separates venue products by executable contract', () => {
   assert.match(source, /row\.direct_equity/)
   assert.match(source, /row\.stock_perpetual/)
 })
+
+test('market catalog summary cards use one neutral surface', () => {
+  assert.doesNotMatch(source, /catalog-summary-item-primary/)
+  assert.match(source, /\.catalog-summary-item \{ border-color: rgba\(255, 255, 255, 0\.08\); background: #181b1f; \}/)
+})

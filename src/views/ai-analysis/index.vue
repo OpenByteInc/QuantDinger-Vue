@@ -1,6 +1,6 @@
 <template>
   <div
-    class="professional-analysis-page qd-workspace-page"
+    class="professional-analysis-page qd-workspace-page qd-page-frame"
     :class="{ 'theme-dark': isDarkTheme, embedded }"
     :style="{ '--primary-color': primaryColor }"
   >
@@ -36,7 +36,7 @@ export default {
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  background: #eef3f8;
+  background: #f4f4f4;
 }
 
 .professional-analysis-page.embedded {
@@ -45,7 +45,7 @@ export default {
 }
 
 .professional-analysis-page.theme-dark {
-  background: #0a0a0a;
+  background: #080808;
 }
 
 </style>

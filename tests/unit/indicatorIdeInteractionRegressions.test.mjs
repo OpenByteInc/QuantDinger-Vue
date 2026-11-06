@@ -83,6 +83,66 @@ test('derived live candles restore the viewport before the browser can paint a r
   assert.doesNotMatch(replaceSource, /requestAnimationFrame/)
 })
 
+test('live chart updates coalesce into one frame without replacing Vue state on every tick', () => {
+  const flushStart = klineChartSource.indexOf('const flushWsTick = () => {')
+  const flushEnd = klineChartSource.indexOf('const handleWsTick = (bar) => {', flushStart)
+  const tickStart = flushEnd
+  const tickEnd = klineChartSource.indexOf('const handleWsNewBar', tickStart)
+  const flushSource = klineChartSource.slice(flushStart, flushEnd)
+  const tickSource = klineChartSource.slice(tickStart, tickEnd)
+
+  assert.ok(flushStart >= 0 && flushEnd > flushStart && tickEnd > tickStart)
+  assert.match(flushSource, /flushRealtimeChartBar\(bar\)/)
+  assert.doesNotMatch(flushSource, /scheduleRealtimeChartBarUpdate\(bar\)/)
+  assert.doesNotMatch(tickSource, /klineData\.value = arr\.slice\(\)/)
+})
+
+test('chart resize and watermark guards avoid duplicate full-canvas work', () => {
+  const resizeStart = klineChartSource.indexOf('chartResizeObserver = new ResizeObserver')
+  const resizeEnd = klineChartSource.indexOf('chartResizeObserver.observe', resizeStart)
+  const watermarkStart = klineChartSource.indexOf('const _paintWmCanvas = () => {')
+  const watermarkEnd = klineChartSource.indexOf('const _startWmGuard = () => {', watermarkStart)
+  const resizeSource = klineChartSource.slice(resizeStart, resizeEnd)
+  const watermarkSource = klineChartSource.slice(watermarkStart, watermarkEnd)
+
+  assert.ok(resizeStart >= 0 && resizeEnd > resizeStart)
+  assert.match(resizeSource, /syncVolumePaneLayout\(\)/)
+  assert.doesNotMatch(resizeSource, /chartRef\.value\.resize\(\)[\s\S]*?scheduleSyncVolumePaneLayout\(\)/)
+  assert.match(watermarkSource, /signature === _wmPaintSignature/)
+  assert.match(watermarkSource, /if \(cvs\.style\.display !== 'block'\)/)
+})
+
+test('multi-chart layout keeps each chart instance scoped to its own container and workspace state', () => {
+  assert.doesNotMatch(klineChartSource, /id="kline-chart-container"/)
+  assert.doesNotMatch(klineChartSource, /getElementById\('kline-chart-container'\)/)
+  assert.match(klineChartSource, /ref="chartContainerRef"/)
+  assert.match(indicatorIdeSource, /class="ide-chart-layout"/)
+  assert.match(indicatorIdeSource, /v-for="\(pane, paneIndex\) in visibleChartPanes"/)
+  assert.match(indicatorIdeSource, /chartLayoutMode: 1/)
+  assert.match(indicatorIdeSource, /setChartLayoutMode \(mode\)/)
+  assert.match(indicatorIdeSource, /chartPanes: this\.serializeChartPanes\(\)/)
+  assert.match(indicatorIdeSource, /hydrateChartPaneIndicators/)
+})
+
+test('multi-chart layout uses one compact dropdown instead of three persistent toolbar buttons', () => {
+  assert.match(indicatorIdeSource, /<a-button\s+size="small"\s+class="ide-chart-layout-trigger"/)
+  assert.match(indicatorIdeSource, /class="ide-chart-layout-trigger"/)
+  assert.match(indicatorIdeSource, /class="ide-chart-layout-menu-item"/)
+  assert.match(indicatorIdeSource, /@click="onChartLayoutMenuClick"/)
+  assert.match(indicatorIdeSource, /\.ide-chart-layout-trigger\s*\{[\s\S]*?height:\s*30px !important;/)
+  assert.doesNotMatch(indicatorIdeSource, /class="ide-chart-layout-switch"/)
+  assert.doesNotMatch(indicatorIdeSource, /class="ide-chart-layout-button"/)
+})
+
+test('indicator refreshes are deduplicated while chart-managed indicators advance incrementally', () => {
+  assert.match(klineChartSource, /const getIndicatorRenderSignature = \(\)/)
+  assert.match(klineChartSource, /signature === lastIndicatorRenderSignature\.value/)
+  assert.match(klineChartSource, /chartManagedUpdate && lastIndicatorRenderSignature\.value && !hasPythonIndicators\(\)/)
+  assert.match(klineChartSource, /const createAlignedPlotCalculator = \(sourceData, plotDataMap\)/)
+  assert.match(klineChartSource, /if \(signature === cachedSignature\) \{[\s\S]*?return cachedRows/)
+  assert.match(klineChartSource, /maybeUpdateIndicators\(\{ reason: 'realtime' \}\)/)
+})
+
 test('measure overlay separates bar count and duration without mojibake', () => {
   assert.match(klineChartSource, /metaText \+= ` · \$\{timeSpan\}`/)
   assert.doesNotMatch(klineChartSource, /鐠\?|锟斤拷|\uFFFD/u)

@@ -909,7 +909,7 @@ export default {
   --billing-accent-soft: color-mix(in srgb, var(--primary-color, #13c2c2) 10%, transparent);
   --billing-accent-border: color-mix(in srgb, var(--primary-color, #13c2c2) 32%, transparent);
   min-height: 100%;
-  padding: 24px clamp(20px, 3vw, 48px) 56px;
+  padding: var(--qd-page-gutter, 16px);
   color: var(--billing-text);
   background: var(--billing-page-bg);
 
@@ -1463,6 +1463,8 @@ export default {
     }
   }
 }
+
+@import './billing-polish.less';
 </style>
 
 <style lang="less">

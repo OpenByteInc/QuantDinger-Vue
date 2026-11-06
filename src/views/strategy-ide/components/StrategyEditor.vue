@@ -1268,7 +1268,7 @@ export default {
   grid-template-columns: minmax(280px, 18%) minmax(520px, 1fr) minmax(340px, 29%);
   grid-template-rows: minmax(0, 1fr);
   display: grid;
-  gap: 10px;
+  gap: 0;
   height: 100%;
 }
 
@@ -1292,7 +1292,7 @@ export default {
   justify-content: flex-end;
   gap: 8px;
   min-width: 0;
-  margin-bottom: 8px;
+  margin-bottom: 0;
 }
 
 .code-col {
@@ -1382,6 +1382,12 @@ export default {
     max-width: none;
     min-width: 0;
   }
+
+  .side-tabs--split,
+  .editor-layout--split .code-section {
+    border-right: 0;
+    border-bottom: 1px solid #e8e8e8;
+  }
 }
 
 .code-section {
@@ -1392,6 +1398,12 @@ export default {
   display: flex;
   flex-direction: column;
   min-width: 0;
+}
+
+.editor-layout--split .code-section {
+  border: 0;
+  border-right: 1px solid #e8e8e8;
+  border-radius: 0;
 }
 
 .section-header {
@@ -1614,8 +1626,9 @@ export default {
 }
 
 .side-tabs--split {
-  border: 1px solid #e8e8e8;
-  border-radius: 8px;
+  border: 0;
+  border-right: 1px solid #e8e8e8;
+  border-radius: 0;
   background: #fff;
 
   ::v-deep .ant-tabs-content {
@@ -1678,13 +1691,18 @@ export default {
     flex-direction: column;
     align-content: start;
     overflow-y: auto;
-    gap: 8px;
-    padding: 10px;
+    gap: 0;
+    padding: 0 12px 12px;
   }
 
   .param-item {
+    flex: 0 0 auto;
     min-width: 0;
-    padding: 10px;
+    padding: 12px 0;
+    border: 0;
+    border-bottom: 1px solid #f0f0f0;
+    border-radius: 0;
+    background: transparent;
   }
 
   .params-empty-guide {
@@ -1722,12 +1740,13 @@ export default {
 
 .runtime-setup {
   flex: 0 0 auto;
-  margin: 10px;
-  padding: 13px;
-  border: 1px solid #e7e9ed;
-  border-radius: 10px;
-  background: #fafbfc;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+  margin: 0;
+  padding: 14px 12px;
+  border: 0;
+  border-bottom: 1px solid #e7e9ed;
+  border-radius: 0;
+  background: #fff;
+  box-shadow: none;
 }
 
 .runtime-setup__head {
@@ -1972,9 +1991,9 @@ export default {
 
 .theme-dark {
   .runtime-setup {
-    border-color: rgba(255, 255, 255, 0.09);
-    background: #1b1b1b;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.24);
+    border-color: #2a2a2a;
+    background: #111111;
+    box-shadow: none;
   }
 
   .runtime-setup__head strong,
@@ -2464,6 +2483,18 @@ export default {
 
     .params-actions {
       background: transparent;
+    }
+
+    .param-item {
+      border-color: #2a2a2a;
+      background: transparent;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .side-tabs--split,
+    .editor-layout--split .code-section {
+      border-bottom-color: #2a2a2a;
     }
   }
 

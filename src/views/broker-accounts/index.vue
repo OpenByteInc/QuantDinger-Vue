@@ -11,7 +11,7 @@
       <div class="ba-header-actions">
         <div class="ba-health">
           <span class="ba-health-label">{{ $t('brokerAccounts.connectionHealth') }}</span>
-          <span class="ba-health-state">
+          <span class="ba-health-state" :class="{ 'is-healthy': connectedCount > 0 }">
             <i class="ba-health-dot" />
             {{ connectedCount > 0 ? $t('brokerAccounts.allHealthy') : $t('brokerAccounts.notConnected') }}
           </span>
@@ -452,7 +452,7 @@ export default {
 .broker-accounts {
   height: calc(100vh - 64px);
   min-height: 660px;
-  padding: 24px 28px 28px !important;
+  padding: var(--qd-page-gutter, 16px) !important;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -840,4 +840,8 @@ export default {
     overflow: visible;
   }
 }
+</style>
+
+<style lang="less">
+@import './broker-accounts-polish.less';
 </style>

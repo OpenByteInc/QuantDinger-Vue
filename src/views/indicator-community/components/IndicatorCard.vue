@@ -316,14 +316,14 @@ export default {
 .indicator-card {
   border-radius: 8px;
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: border-color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
   height: 100%;
   display: flex;
   flex-direction: column;
 
   &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    border-color: color-mix(in srgb, var(--primary-color, #1890ff) 34%, rgba(15, 23, 42, 0.12));
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
   }
 
   .card-cover {
@@ -443,7 +443,7 @@ export default {
       }
 
       &.paid {
-        background: linear-gradient(135deg, #f5af19 0%, #f12711 100%);
+        background: var(--primary-color, #f25a2b);
         color: #fff;
       }
     }
@@ -467,16 +467,16 @@ export default {
 
     .asset-type-badge {
       padding: 4px 8px;
-      border-radius: 14px;
+      border-radius: 4px;
       font-size: 12px;
-      font-weight: 700;
+      font-weight: 600;
       color: #fff;
       display: flex;
       align-items: center;
       gap: 4px;
       max-width: 118px;
       background: rgba(0, 0, 0, 0.48);
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+      box-shadow: none;
       backdrop-filter: blur(4px);
       pointer-events: auto;
 
@@ -490,23 +490,23 @@ export default {
 
     .score-badge {
       padding: 3px 8px 3px 6px;
-      border-radius: 12px;
+      border-radius: 4px;
       font-size: 12px;
-      font-weight: 700;
+      font-weight: 600;
       color: #fff;
       display: flex;
       align-items: center;
       gap: 4px;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+      box-shadow: none;
       backdrop-filter: blur(4px);
       pointer-events: auto;
 
       .anticon { font-size: 12px; }
       .score-num { letter-spacing: 0.5px; }
 
-      &--top { background: linear-gradient(135deg, #f5af19, #f12711); }
-      &--good { background: linear-gradient(135deg, #36d1dc, #5b86e5); }
-      &--mid { background: linear-gradient(135deg, #8e8e8e, #b4b4b4); }
+      &--top { background: #d97706; }
+      &--good { background: #2563a6; }
+      &--mid { background: #6b7280; }
       &--low { background: rgba(0, 0, 0, 0.55); }
     }
 
@@ -648,8 +648,8 @@ export default {
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
-      line-height: 1.5;
-      min-height: 36px;
+      line-height: 1.55;
+      min-height: 38px;
     }
 
     .visual-summary {
@@ -767,6 +767,7 @@ export default {
         line-height: 18px;
         padding: 0 6px;
         border: none;
+        border-radius: 4px;
       }
       .tag-symbol { background: rgba(24, 144, 255, 0.08); color: var(--primary-color, #1890ff); }
       .tag-tf { background: rgba(82, 196, 26, 0.08); color: #389e0d; }
@@ -808,7 +809,7 @@ export default {
     .card-author {
       display: flex;
       align-items: center;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
 
       .author-name {
         margin-left: 8px;
@@ -829,7 +830,7 @@ export default {
         display: flex;
         align-items: center;
         gap: 4px;
-        font-size: 12px;
+        font-size: 11px;
         color: rgba(0, 0, 0, 0.45);
 
         .anticon {

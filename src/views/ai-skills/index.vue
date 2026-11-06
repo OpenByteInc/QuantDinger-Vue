@@ -362,7 +362,7 @@ export default {
 <style lang="less" scoped>
 .ai-skill-center {
   min-height: calc(100vh - 104px);
-  padding: 16px;
+  padding: var(--qd-page-gutter, 16px);
   color: var(--text-color, #10213d);
 }
 
@@ -715,7 +715,7 @@ export default {
 
 @media (max-width: 760px) {
   .ai-skill-center {
-    padding: 14px;
+    padding: var(--qd-page-gutter, 12px);
   }
 
   .page-header,
