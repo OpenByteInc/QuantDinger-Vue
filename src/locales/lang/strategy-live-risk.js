@@ -944,6 +944,50 @@ const ar = {
   'strategyCenter.editor.positionSideShort': 'مركز بيع'
 }
 
+const deploymentControlLocales = {
+  'ar-SA': ['عرض إخلاء مسؤولية التداول الحقيقي', 'رافعة العقود الدائمة', 'اختر من 1× إلى {max}×. قد تفرض المنصة حدًا أقل حسب الأداة أو حجم المركز أو الحساب.', 'جارٍ التشغيل'],
+  'de-DE': ['Haftungsausschluss für den Live-Handel anzeigen', 'Hebel für unbefristete Kontrakte', 'Wählen Sie zwischen 1× und {max}×. Die Börse kann je nach Instrument, Positionsgröße oder Konto ein niedrigeres Limit anwenden.', 'Wird gestartet'],
+  'fr-FR': ['Voir l’avertissement relatif au trading réel', 'Effet de levier du contrat perpétuel', 'Choisissez entre 1× et {max}×. La plateforme peut imposer une limite inférieure selon l’instrument, la taille de position ou le compte.', 'Démarrage'],
+  'ja-JP': ['ライブ取引の免責事項を表示', '無期限契約のレバレッジ', '1倍から{max}倍の範囲で選択します。銘柄、ポジションサイズ、口座に応じて、取引所がより低い上限を適用する場合があります。', '起動中'],
+  'ko-KR': ['실거래 면책 조항 보기', '무기한 계약 레버리지', '1배에서 {max}배 사이에서 선택하세요. 거래소는 종목, 포지션 규모 또는 계정에 따라 더 낮은 한도를 적용할 수 있습니다.', '시작 중'],
+  'ru-RU': ['Открыть отказ от ответственности для реальной торговли', 'Плечо бессрочного контракта', 'Выберите от 1× до {max}×. Биржа может установить меньший предел в зависимости от инструмента, размера позиции или счёта.', 'Запускается'],
+  'th-TH': ['ดูข้อจำกัดความรับผิดชอบสำหรับการซื้อขายจริง', 'เลเวอเรจสัญญาไม่มีกำหนด', 'เลือกได้ตั้งแต่ 1× ถึง {max}× โดยตลาดอาจกำหนดเพดานต่ำกว่านี้ตามสินทรัพย์ ขนาดสถานะ หรือบัญชี', 'กำลังเริ่มต้น'],
+  'vi-VN': ['Xem tuyên bố miễn trừ trách nhiệm giao dịch thật', 'Đòn bẩy hợp đồng vĩnh viễn', 'Chọn từ 1× đến {max}×. Sàn có thể áp dụng giới hạn thấp hơn tùy theo mã giao dịch, quy mô vị thế hoặc tài khoản.', 'Đang khởi động']
+}
+
+const deploymentControlTargets = { 'ar-SA': ar, 'de-DE': de, 'fr-FR': fr, 'ja-JP': ja, 'ko-KR': ko, 'ru-RU': ru, 'th-TH': th, 'vi-VN': vi }
+const healthReasonKeys = ['recentOrderFailure', 'positionDrift', 'runtimeStale', 'runtimeOffline', 'runtimeUnknown', 'priceUnavailable', 'generic']
+const healthReasonLocales = {
+  'en-US': ['A recent order failed', 'Account position ownership needs review', 'Runtime heartbeat is delayed', 'Runtime heartbeat is offline', 'Waiting for the first runtime heartbeat', 'Market price is temporarily unavailable', 'Runtime health needs attention'],
+  'zh-CN': ['近期订单执行失败', '账户持仓归属需要处理', '运行心跳延迟', '运行心跳已离线', '正在等待首次运行心跳', '行情价格暂时不可用', '运行状态需要处理'],
+  'zh-TW': ['近期訂單執行失敗', '帳戶持倉歸屬需要處理', '執行心跳延遲', '執行心跳已離線', '正在等待首次執行心跳', '行情價格暫時不可用', '執行狀態需要處理'],
+  'ja-JP': ['最近の注文が失敗しました', '口座ポジションの帰属を確認してください', '実行ハートビートが遅延しています', '実行ハートビートがオフラインです', '最初の実行ハートビートを待っています', '市場価格を一時的に取得できません', '実行状態の確認が必要です'],
+  'ko-KR': ['최근 주문 실행에 실패했습니다', '계정 포지션 소유권을 확인해야 합니다', '런타임 하트비트가 지연되고 있습니다', '런타임 하트비트가 오프라인입니다', '첫 런타임 하트비트를 기다리는 중입니다', '시장 가격을 일시적으로 사용할 수 없습니다', '런타임 상태를 확인해야 합니다'],
+  'de-DE': ['Ein kürzlich erteilter Auftrag ist fehlgeschlagen', 'Die Zuordnung der Kontoposition muss geprüft werden', 'Der Laufzeit-Heartbeat ist verzögert', 'Der Laufzeit-Heartbeat ist offline', 'Der erste Laufzeit-Heartbeat wird erwartet', 'Der Marktpreis ist vorübergehend nicht verfügbar', 'Der Laufzeitstatus muss geprüft werden'],
+  'fr-FR': ['Un ordre récent a échoué', 'L’attribution de la position du compte doit être vérifiée', 'Le signal d’activité est retardé', 'Le signal d’activité est hors ligne', 'En attente du premier signal d’activité', 'Le prix du marché est temporairement indisponible', 'L’état d’exécution doit être vérifié'],
+  'ru-RU': ['Недавний ордер завершился ошибкой', 'Требуется проверить принадлежность позиции счёта', 'Сигнал активности среды задерживается', 'Сигнал активности среды отсутствует', 'Ожидание первого сигнала активности среды', 'Рыночная цена временно недоступна', 'Состояние среды требует внимания'],
+  'vi-VN': ['Một lệnh gần đây đã thất bại', 'Cần kiểm tra quyền sở hữu vị thế tài khoản', 'Nhịp tim tiến trình đang bị trễ', 'Nhịp tim tiến trình đang ngoại tuyến', 'Đang chờ nhịp tim tiến trình đầu tiên', 'Giá thị trường tạm thời không khả dụng', 'Trạng thái tiến trình cần được xử lý'],
+  'th-TH': ['คำสั่งล่าสุดล้มเหลว', 'ต้องตรวจสอบการเป็นเจ้าของสถานะในบัญชี', 'ฮาร์ตบีตของระบบทำงานล่าช้า', 'ฮาร์ตบีตของระบบออฟไลน์', 'กำลังรอฮาร์ตบีตแรกของระบบ', 'ราคาตลาดไม่พร้อมใช้งานชั่วคราว', 'สถานะการทำงานต้องได้รับการตรวจสอบ'],
+  'ar-SA': ['فشل أمر حديث', 'يجب مراجعة ملكية مركز الحساب', 'نبض بيئة التشغيل متأخر', 'نبض بيئة التشغيل غير متصل', 'في انتظار أول نبض لبيئة التشغيل', 'سعر السوق غير متاح مؤقتًا', 'حالة التشغيل تحتاج إلى مراجعة']
+}
+const healthReasonTargets = { 'en-US': locale, 'zh-CN': zhCN, 'zh-TW': zhTW, ...deploymentControlTargets }
+locale['liveMonitor.starting'] = 'Starting'
+zhCN['liveMonitor.starting'] = '启动中'
+zhTW['liveMonitor.starting'] = '啟動中'
+Object.entries(healthReasonLocales).forEach(([localeKey, values]) => {
+  const messages = healthReasonTargets[localeKey]
+  healthReasonKeys.forEach((key, index) => {
+    messages[`strategyCenter.console.healthReason.${key}`] = values[index]
+  })
+})
+Object.entries(deploymentControlLocales).forEach(([localeKey, values]) => {
+  const messages = deploymentControlTargets[localeKey]
+  messages['trading-assistant.liveDisclaimer.view'] = values[0]
+  messages['strategyCenter.editor.leverageAutoTitle'] = values[1]
+  messages['strategyCenter.editor.leverageAutoHint'] = values[2]
+  messages['liveMonitor.starting'] = values[3]
+})
+
 export default {
   'en-US': locale,
   'zh-CN': zhCN,

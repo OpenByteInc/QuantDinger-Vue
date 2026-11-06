@@ -8,7 +8,8 @@ const source = fs.readFileSync(
 )
 
 test('crypto watchlist search distinguishes spot and perpetual products', () => {
-  assert.match(source, /cryptoProductLabel\(item\)/)
+  assert.match(source, /<add-watchlist-modal/)
+  assert.match(source, /watchlistContextLabel\(item\)/)
   assert.match(source, /item\.product_type \|\| item\.productType/)
   assert.match(source, /marketContext\.product\.\$\{productType\}/)
   assert.match(source, /marketContext\.\$\{marketType === 'swap' \? 'swap' : 'spot'\}/)

@@ -59,8 +59,13 @@ export function normalizePercentParamValue (raw) {
   return n
 }
 
-export function formatStrategyInstrument (config = {}) {
-  return formatStrategyInstrumentIdentity(config, { includeConfigExchange: true })
+export function formatStrategyInstrument (config = {}, options = {}) {
+  const parsed = parseStrategyInstrumentIdentity(config.symbol || config.instrument || '', config)
+  return formatStrategyInstrumentIdentity({
+    ...config,
+    symbol: parsed.symbol,
+    exchange_id: options.includeExchange ? config.exchange_id : ''
+  }, { includeConfigExchange: Boolean(options.includeExchange) })
 }
 
 function replacePrimaryTimeframeReferences (source, previousTimeframe, nextTimeframe) {
@@ -96,7 +101,9 @@ function replacePrimaryTimeframeReferences (source, previousTimeframe, nextTimef
 
 export function applyStrategyRuntimeConfigToCode (code, config = {}) {
   const source = String(code || '')
-  const instrument = formatStrategyInstrument(config)
+  const instrument = formatStrategyInstrument(config, {
+    includeExchange: strategyCodeUsesExplicitExchange(source)
+  })
   const timeframe = String(config.timeframe || '').trim()
   const exchangeId = String(config.exchange_id || '').trim()
   const tradeDirection = String(config.trade_direction || '').trim().toLowerCase()
@@ -228,7 +235,7 @@ export function extractStrategyRuntimeContractFromCode (code) {
     source.match(/context\.set_universe\(\s*(?:instruments\s*=\s*)?\[\s*["']([^"']+)["']/m)
   const instrument = String((instrumentMatch && instrumentMatch[1]) || '')
   const hasInstrument = Boolean(instrumentMatch && config.symbol)
-  const hasProduct = hasInstrument && config.market_category === 'Crypto' && /@(spot|swap)$/i.test(instrument)
+  const hasProduct = hasInstrument && config.market_category === 'Crypto' && /@(?:[^@:\s]+:)?(spot|swap)$/i.test(instrument)
   const hasTimeframe = Boolean(config.timeframe)
   const hasExchange = Boolean(config.exchange_id && strategyCodeUsesExplicitExchange(source))
   const hasDirection = Boolean(config.trade_direction)

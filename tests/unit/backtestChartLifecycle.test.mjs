@@ -26,6 +26,21 @@ test('backtest center compiles a source manifest before accepting runtime contro
   assert.match(source, /return Boolean\(this\.manifest && this\.manifest\.leverageAllowed\)/)
 })
 
+test('backtest leverage is clamped and checked against the source manifest', () => {
+  assert.match(source, /@change="handleLeverageChange"/)
+  assert.match(source, /Math\.min\(limit, Math\.max\(1,/)
+  assert.match(source, /Number\(this\.form\.leverage\) > this\.maxLeverage/)
+  assert.match(source, /strategyV2\.leverageExceedsStrategyLimit/)
+})
+
+test('collapsed risk and benchmark rows reserve separate space for metrics and metadata', () => {
+  assert.match(portfolioResultSource, /\.portfolio-result \{[^}]*container-type: inline-size;/)
+  assert.match(portfolioResultSource, /\.benchmark-analysis-heading \{[^}]*display: grid;[^}]*min-height: 56px;/)
+  assert.match(portfolioResultSource, /\.benchmark-analysis-preview \{[^}]*grid-row: 1;[^}]*grid-column: 3;/)
+  assert.match(portfolioResultSource, /\.benchmark-analysis-meta \{[^}]*grid-row: 2;[^}]*grid-column: 3;/)
+  assert.match(portfolioResultSource, /@container \(max-width: 860px\)/)
+})
+
 test('backtest source parameters can be compiled and saved as a new strategy version', () => {
   assert.match(source, /strategyV2\.backtest\.saveParamDefaults/)
   assert.match(source, /sourceParamChangedDefinitions/)

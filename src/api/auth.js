@@ -43,7 +43,7 @@ export function login (data) {
   return request({
     url: '/api/auth/login',
     method: 'post',
-    data
+    data: { ...data, client_type: 'pc' }
   })
 }
 
@@ -55,7 +55,7 @@ export function verifyLoginMfa (data) {
   return request({
     url: '/api/auth/mfa/verify-login',
     method: 'post',
-    data
+    data: { ...data, client_type: 'pc' }
   })
 }
 
@@ -100,7 +100,7 @@ export function loginWithCode (data) {
   return request({
     url: '/api/auth/login-code',
     method: 'post',
-    data
+    data: { ...data, client_type: 'pc' }
   })
 }
 
@@ -112,7 +112,7 @@ export function register (data) {
   return request({
     url: '/api/auth/register',
     method: 'post',
-    data
+    data: { ...data, client_type: 'pc' }
   })
 }
 
@@ -144,12 +144,12 @@ export function changePassword (data) {
  * Get Google OAuth URL
  */
 export function getGoogleOAuthUrl () {
-  return joinApiBase('/api/auth/oauth/google')
+  return joinApiBase('/api/auth/oauth/google?client_type=pc')
 }
 
 /**
  * Get GitHub OAuth URL
  */
 export function getGitHubOAuthUrl () {
-  return joinApiBase('/api/auth/oauth/github')
+  return joinApiBase('/api/auth/oauth/github?client_type=pc')
 }

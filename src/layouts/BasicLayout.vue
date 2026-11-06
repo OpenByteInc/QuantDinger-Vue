@@ -1252,7 +1252,7 @@ export default {
   }
 
   .ant-layout-sider-children {
-    padding-bottom: calc(var(--menu-footer-height, 220px) + 12px);
+    padding-bottom: calc(var(--menu-footer-height, 0px) + 12px);
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
@@ -1301,7 +1301,7 @@ export default {
     .ant-menu {
       flex: 1 1 auto;
       min-height: 0;
-      max-height: calc(100vh - var(--menu-footer-height, 220px) - 24px);
+      max-height: calc(100vh - var(--menu-footer-height, 0px) - 24px);
       overflow-y: auto !important;
       overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
@@ -1373,7 +1373,7 @@ export default {
     .ant-drawer-body {
       overflow-y: auto !important;
       overflow-x: hidden !important;
-      padding-bottom: var(--footer-height, 280px) !important;
+      padding-bottom: var(--footer-height, 0px) !important;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: thin;
       scrollbar-color: rgba(255, 255, 255, 0.2) transparent;

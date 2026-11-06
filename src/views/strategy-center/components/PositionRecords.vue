@@ -178,9 +178,13 @@
           <div v-if="record.difference_quote != null">{{ $t(ownershipExchangeId === 'alpaca' ? 'strategyCenter.positionOwnership.alpacaQuoteDifference' : 'strategyCenter.positionOwnership.quoteDifference', { value: formatSignedMoney(record.difference_quote) }) }}</div>
         </template>
         <template slot="ownershipAllocations" slot-scope="text, record">
-          <a-popover v-if="record.allocations && record.allocations.length" :title="$t('strategyCenter.positionOwnership.relatedStrategies')">
+          <a-popover
+            v-if="record.allocations && record.allocations.length"
+            :title="$t('strategyCenter.positionOwnership.relatedStrategies')"
+            :overlay-class-name="isDark ? 'position-ownership-popover position-ownership-popover--dark' : 'position-ownership-popover'"
+          >
             <template slot="content">
-              <div v-for="allocation in record.allocations" :key="allocation.strategy_id">
+              <div v-for="allocation in record.allocations" :key="allocation.strategy_id" class="position-ownership-popover__row">
                 {{ allocation.strategy_name }} #{{ allocation.strategy_id }} · {{ formatOwnershipQty(allocation.quantity) }}
               </div>
             </template>
@@ -1111,5 +1115,55 @@ export default {
 
 .ownership-shortfall-alert {
   margin-top: 16px;
+}
+</style>
+
+<style lang="less">
+.position-ownership-popover {
+  .ant-popover-inner {
+    border-color: #e2e8f0;
+    background: #fff;
+  }
+
+  .ant-popover-title {
+    border-bottom-color: #e8edf3;
+    color: #253044;
+    font-weight: 650;
+  }
+
+  .ant-popover-inner-content {
+    color: #475569;
+  }
+
+  .ant-popover-arrow {
+    border-color: #fff;
+  }
+
+  &__row {
+    color: inherit;
+    line-height: 1.7;
+  }
+}
+
+.position-ownership-popover--dark {
+  .ant-popover-inner {
+    border-color: #343941 !important;
+    background: #1b1d20 !important;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.46) !important;
+  }
+
+  .ant-popover-title {
+    border-bottom-color: rgba(255, 255, 255, 0.09);
+    color: #f2f4f7;
+  }
+
+  .ant-popover-inner-content {
+    color: #d7dce3;
+  }
+
+  .ant-popover-arrow {
+    border-color: #1b1d20 !important;
+    background: #1b1d20;
+  }
 }
 </style>

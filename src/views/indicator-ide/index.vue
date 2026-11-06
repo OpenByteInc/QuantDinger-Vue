@@ -407,12 +407,12 @@
                     <div class="ide-toolbar-group ide-toolbar-group--watchlist">
                       <span class="ide-toolbar-label">{{ $t('indicatorIde.toolbar.watchlist') }}</span>
                       <a-select
-                        v-model="selectedWatchlistKey"
+                        :value="toolbarSelectedKey"
+                        option-label-prop="label"
                         class="ide-toolbar-select ide-toolbar-select--watchlist chart-panel-watchlist-select"
                         :placeholder="$t('backtest-center.config.watchlistPlaceholder')"
                         size="small"
                         show-search
-                        allow-clear
                         :loading="loadingWatchlist"
                         :filter-option="filterWatchlistOption"
                         :dropdown-class-name="isDarkTheme ? 'ide-watchlist-dropdown ide-watchlist-dropdown--dark' : 'ide-watchlist-dropdown'"
@@ -422,19 +422,21 @@
                       >
                         <a-select-option
                           v-for="w in toolbarWatchlistOptions"
-                          :key="watchlistContextKey(w)"
-                          :value="watchlistContextKey(w)"
+                          :key="watchlistAssetKey(w)"
+                          :value="watchlistAssetKey(w)"
+                          :label="w.symbol"
+                          :title="[w.symbol, watchlistContextLabel(w)].join(' · ')"
                         >
                           <span class="wl-opt-tag" :class="'wl-mkt-' + (w.market || '').toLowerCase()">{{ marketLabel(w.market) }}</span>
                           <strong class="wl-opt-symbol">{{ w.symbol }}</strong>
                           <a-tag v-if="isExchangeEquityProduct(w)" color="blue" class="wl-product-tag">
                             {{ productTypeLabel(w.product_type) }}
                           </a-tag>
-                          <span v-if="w.name" class="wl-opt-name">{{ w.name }}</span>
+                          <span class="wl-opt-name">{{ watchlistContextLabel(w) }}</span>
                         </a-select-option>
                         <a-select-option key="__add__" value="__add__" class="add-option">
                           <div class="ide-watchlist-add-row">
-                            <a-icon type="plus" /> {{ $t('backtest-center.config.addSymbol') }}
+                            <a-icon type="plus" /> {{ $t('watchlistAssets.add') }}
                           </div>
                         </a-select-option>
                       </a-select>
@@ -653,6 +655,7 @@
                       :console-minimized="quickTradeMinimized"
                       :visible="true"
                       :symbol="qtSymbol"
+                      :asset-id="currentAssetId"
                       :preset-side="qtSide"
                       :preset-price="qtPrice"
                       source="indicator"
@@ -723,89 +726,14 @@
     </div>
 
     <!-- Add symbol modal -->
-    <a-modal
-      :title="$t('dashboard.analysis.modal.addStock.title')"
+    <add-watchlist-modal
       :visible="showAddModal"
-      @ok="handleAddStock"
-      @cancel="showAddModal = false"
-      :confirmLoading="addingStock"
-      width="560px"
-      :get-container="ideModalGetContainer"
-      :wrap-class-name="isDarkTheme ? 'ide-modal-wrap ide-modal-wrap--dark' : 'ide-modal-wrap'"
-    >
-      <a-tabs v-model="addMarketTab" size="small" class="ide-add-market-tabs" @change="onAddMarketTabChange">
-        <a-tab-pane
-          v-for="m in ideAddMarketKeys"
-          :key="m"
-          :tab="$t('dashboard.indicator.market.' + m)"
-        ></a-tab-pane>
-      </a-tabs>
-      <div v-if="addMarketTab === 'Crypto'" class="ide-add-source-row">
-        <a-select
-          v-model="cryptoExchangeId"
-          style="width: 50%;"
-          :dropdown-class-name="isDarkTheme ? 'ide-add-source-dropdown ide-add-source-dropdown--dark' : 'ide-add-source-dropdown'"
-          @change="onAddSourceChange"
-        >
-          <a-select-option v-for="exchangeId in cryptoExchangeIds" :key="exchangeId" :value="exchangeId">
-            {{ exchangeId.toUpperCase() }}
-          </a-select-option>
-        </a-select>
-        <a-select
-          v-model="cryptoMarketType"
-          style="width: 50%;"
-          :dropdown-class-name="isDarkTheme ? 'ide-add-source-dropdown ide-add-source-dropdown--dark' : 'ide-add-source-dropdown'"
-          @change="onAddSourceChange"
-        >
-          <a-select-option value="spot">{{ $t('marketContext.spot') }}</a-select-option>
-          <a-select-option value="swap">{{ $t('marketContext.swap') }}</a-select-option>
-        </a-select>
-      </div>
-      <a-alert
-        v-if="addMarketTab === 'Crypto'"
-        class="ide-exchange-product-hint"
-        type="info"
-        show-icon
-        :message="$t('marketContext.exchangeProductWatchlistHint')"
-      />
-      <a-input-search
-        v-model="addSearchKeyword"
-        :placeholder="$t('backtest-center.config.symbolPlaceholder')"
-        @search="doAddSearch"
-        @change="onAddSearchInput"
-        :loading="addSearching"
-        size="large"
-        allow-clear
-        style="margin: 12px 0;"
-      />
-      <a-list
-        v-if="addSearchResults.length > 0"
-        size="small"
-        :data-source="addSearchResults"
-        style="max-height: 240px; overflow-y: auto;"
-      >
-        <a-list-item
-          slot="renderItem"
-          slot-scope="item"
-          style="cursor: pointer;"
-          :class="{ 'add-item-active': addSelectedItem && watchlistContextKey(addSelectedItem) === watchlistContextKey(item) }"
-          @click="addSelectedItem = item"
-        >
-          <strong>{{ item.symbol }}</strong>
-          <a-tag v-if="isExchangeEquityProduct(item)" color="blue" style="margin-left: 8px;">
-            {{ productTypeLabel(item.product_type) }}
-          </a-tag>
-          <span v-if="item.underlying_symbol" style="color: #999; margin-left: 4px;">
-            {{ item.underlying_symbol }}
-          </span>
-          <span v-if="item.name" style="color: #999; margin-left: 8px;">{{ item.name }}</span>
-          <a-icon v-if="addSelectedItem && watchlistContextKey(addSelectedItem) === watchlistContextKey(item)" type="check-circle" theme="filled" style="color: #52c41a; margin-left: auto;" />
-        </a-list-item>
-      </a-list>
-      <div v-if="addSearchResults.length === 0 && addSearchKeyword && addSearched" style="padding: 16px 0; text-align: center; color: #999;">
-        {{ $t('backtest-center.config.noSearchResult') }}
-      </div>
-    </a-modal>
+      :markets="ideAddMarketKeys"
+      :watchlist="watchlist"
+      :initial-market="market"
+      @close="showAddModal = false"
+      @added="reloadWatchlistOnly"
+    />
 
     <a-modal
       :title="$t('indicatorIde.paramPanel.title')"
@@ -1287,7 +1215,9 @@ import { loadEnabledMarketOptions, firstMarketValue } from '@/utils/marketModule
 import { CRYPTO_EXCHANGE_IDS, marketContextKey, normalizeExchangeId, normalizeMarketType } from '@/utils/marketContext'
 import { getUserInfo } from '@/api/login'
 import { getNotificationSettings } from '@/api/user'
-import { getWatchlist, addWatchlist, getSymbolCapabilities, searchSymbols } from '@/api/market'
+import { getWatchlist, getSymbolCapabilities } from '@/api/market'
+import AddWatchlistModal from '@/components/Watchlist/AddWatchlistModal.vue'
+import { groupWatchlistAssets, watchlistAssetKey, watchlistContextLabel } from '@/utils/watchlistAssets'
 import { getPublicSettingsConfig } from '@/api/settings'
 import { extractIndicatorSignalLabels } from '@/utils/indicatorSignalOptions'
 import { renderSafeMarkdown } from '@/utils/safeMarkdown'
@@ -1352,7 +1282,7 @@ const supportedChartTypes = new Set([
 export default {
   name: 'IndicatorIDE',
   mixins: [baseMixin],
-  components: { KlineChart, QuickTradePanel, IndicatorMarketPicker },
+  components: { KlineChart, QuickTradePanel, IndicatorMarketPicker, AddWatchlistModal },
   data () {
     return {
       userId: null,
@@ -1375,6 +1305,7 @@ export default {
 
       market: 'Crypto',
       symbol: 'BTC/USDT',
+      currentAssetId: 0,
       timeframe: '1D',
       chartCandleType: 'candle_solid',
       cryptoExchangeId: 'binance',
@@ -1494,15 +1425,7 @@ export default {
       publishCodeHidden: false,
 
       showAddModal: false,
-      addingStock: false,
       addMarketTab: 'Crypto',
-      addSearchKeyword: '',
-      addSearchResults: [],
-      addSelectedItem: null,
-      addSearching: false,
-      addSearched: false,
-      addSearchTimer: null,
-
       showHistoryDrawer: false,
       historyIndicatorId: null,
       showCodeVersionDrawer: false,
@@ -1667,23 +1590,31 @@ export default {
       }
       return list
     },
-    toolbarWatchlistOptions () {
-      const list = Array.isArray(this.watchlist) ? [...this.watchlist] : []
-      if (!this.market || !this.symbol) return list
-      const current = {
+    currentWatchlistContext () {
+      return {
+        asset_id: this.currentAssetId,
         market: this.market,
         symbol: this.symbol,
         exchange_id: this.market === 'Crypto' ? this.cryptoExchangeId : '',
         market_type: this.market === 'Crypto' ? this.cryptoMarketType : 'spot',
-        instrument_id: this.currentInstrumentId
+        instrument_id: this.currentInstrumentId,
+        product_type: this.currentProductType,
+        underlying_market: this.currentUnderlyingMarket,
+        underlying_symbol: this.currentUnderlyingSymbol
       }
-      const currentKey = marketContextKey(current)
-      if (list.some(item => this.watchlistContextKey(item) === currentKey)) return list
-      const sameSymbol = list.find(item => (
-        String(item && item.market || '') === String(this.market) &&
-        String(item && item.symbol || '') === String(this.symbol)
-      )) || {}
-      return [{ ...sameSymbol, ...current }, ...list]
+    },
+    toolbarWatchlistOptions () {
+      const list = [...this.watchlist]
+      const current = this.currentWatchlistContext
+      if (current.market && current.symbol && !list.some(item => watchlistAssetKey(item) === watchlistAssetKey(current))) {
+        list.unshift(current)
+      }
+      return groupWatchlistAssets(list, current).map(group => group.item)
+    },
+    toolbarSelectedKey () {
+      const current = this.currentWatchlistContext
+      const row = this.toolbarWatchlistOptions.find(item => watchlistAssetKey(item) === watchlistAssetKey(current))
+      return row ? watchlistAssetKey(row) : undefined
     },
     signalAlertSignalOptions () {
       return this.extractSignalAlertOptions(this.selectedIndicatorParamCode || this.currentCode)
@@ -1745,6 +1676,7 @@ export default {
     })
   },
   activated () {
+    this.reloadWatchlistOnly()
     if (this._saveShortcutListener) {
       window.addEventListener('keydown', this._saveShortcutListener)
     }
@@ -1774,7 +1706,6 @@ export default {
       this.cmInstance.toTextArea()
       this.cmInstance = null
     }
-    clearTimeout(this.addSearchTimer)
     if (this.ideAiTipTimer) clearInterval(this.ideAiTipTimer)
     if (this._fullscreenListener) {
       document.removeEventListener('fullscreenchange', this._fullscreenListener)
@@ -2120,19 +2051,27 @@ export default {
 
         const market = String(saved.market || '')
         const symbol = String(saved.symbol || '')
-        const watchlistKey = marketContextKey({
+        const savedContext = {
+          asset_id: Number(saved.assetId || saved.asset_id || 0),
           market,
           symbol,
           exchange_id: saved.exchangeId || saved.exchange_id,
           market_type: saved.marketType || saved.market_type,
-          instrument_id: saved.instrumentId || saved.instrument_id
-        })
-        const hasWatchlistItem = this.watchlist.some(item => this.watchlistContextKey(item) === watchlistKey)
-        if (market && symbol && hasWatchlistItem) {
+          instrument_id: saved.instrumentId || saved.instrument_id,
+          product_type: saved.productType || saved.product_type,
+          api_family: saved.apiFamily || saved.api_family,
+          underlying_market: saved.underlyingMarket || saved.underlying_market,
+          underlying_symbol: saved.underlyingSymbol || saved.underlying_symbol
+        }
+        const selectedRow = this.watchlist.find(item =>
+          (savedContext.asset_id > 0 && Number(item.asset_id) === savedContext.asset_id) ||
+          watchlistAssetKey(item) === watchlistAssetKey(savedContext))
+        if (market && symbol && selectedRow) {
           this.market = market
           this.symbol = symbol
+          this.currentAssetId = Number(selectedRow.asset_id || 0)
           this.qtSymbol = symbol
-          this.selectedWatchlistKey = watchlistKey
+          this.selectedWatchlistKey = watchlistAssetKey(selectedRow)
           this.cryptoExchangeId = market === 'Crypto'
             ? this.normalizeCryptoExchange(saved.exchangeId || saved.exchange_id)
             : this.cryptoExchangeId
@@ -2140,8 +2079,7 @@ export default {
             ? normalizeMarketType(saved.marketType || saved.market_type, 'Crypto')
             : this.cryptoMarketType
           this.currentInstrumentId = String(saved.instrumentId || saved.instrument_id || '')
-          const selectedRow = this.watchlist.find(item => this.watchlistContextKey(item) === watchlistKey)
-          if (selectedRow) this.applyCurrentProductContext(selectedRow)
+          this.applyCurrentProductContext(selectedRow || savedContext)
         }
 
         const indicatorId = Number(saved.indicatorId)
@@ -2163,6 +2101,7 @@ export default {
         storage.set(ideSelectionStorageKey(this.userId), JSON.stringify({
           market: this.market,
           symbol: this.symbol,
+          assetId: this.currentAssetId,
           exchangeId: this.market === 'Crypto' ? this.cryptoExchangeId : '',
           marketType: this.market === 'Crypto' ? this.cryptoMarketType : 'spot',
           instrumentId: this.currentInstrumentId,
@@ -2253,27 +2192,15 @@ export default {
     },
 
     reconcileIdeMarketFromWatchlist () {
-      if (this.market && this.symbol) {
-        this.selectedWatchlistKey = marketContextKey({
-          market: this.market,
-          symbol: this.symbol,
-          exchange_id: this.market === 'Crypto' ? this.cryptoExchangeId : '',
-          market_type: this.market === 'Crypto' ? this.cryptoMarketType : 'spot',
-          instrument_id: this.currentInstrumentId
-        })
-      }
-      const key = this.selectedWatchlistKey
-      if (!key || key === '__add__') return
-      const row = (this.watchlist || []).find(
-        w => w && w.market && w.symbol && this.watchlistContextKey(w) === key
-      )
+      const row = (this.watchlist || []).find(w =>
+        (this.currentAssetId > 0 && Number(w.asset_id) === this.currentAssetId) ||
+        (w.market === this.market && w.symbol === this.symbol &&
+          String(w.product_type || 'crypto') === String(this.currentProductType || 'crypto')))
       if (row) {
+        this.currentAssetId = Number(row.asset_id || 0)
+        this.selectedWatchlistKey = watchlistAssetKey(row)
         this.market = String(row.market)
         this.symbol = String(row.symbol)
-        if (this.market === 'Crypto') {
-          this.cryptoExchangeId = this.normalizeCryptoExchange(row.exchange_id || row.exchangeId)
-          this.cryptoMarketType = normalizeMarketType(row.market_type || row.marketType, 'Crypto')
-        }
         this.applyCurrentProductContext(row)
         this.qtSymbol = this.symbol
         this.refreshCryptoSymbolCapabilities()
@@ -4406,28 +4333,39 @@ export default {
     watchlistContextKey (item) {
       return marketContextKey(item)
     },
+    watchlistAssetKey (item) {
+      return watchlistAssetKey(item)
+    },
     filterWatchlistOption (input, option) {
       const val = (option.componentOptions.propsData.value || '').toLowerCase()
       if (val === '__add__') return true
       return val.includes(input.toLowerCase())
     },
+    watchlistContextLabel (item) {
+      return watchlistContextLabel(item, key => this.$t(key))
+    },
+    async reloadWatchlistOnly () {
+      if (!this.userId) return
+      try {
+        const res = await getWatchlist({ userid: this.userId })
+        if (res && res.code === 1 && Array.isArray(res.data)) this.watchlist = res.data
+      } catch (_) { /* Preserve the current chart and cached list on refresh failure. */ }
+    },
     async handleWatchlistChange (val) {
       if (val === '__add__') {
         this.showAddModal = true
-        this.$nextTick(() => { this.selectedWatchlistKey = undefined })
         return
       }
+      if (!val) return
+      this.selectedWatchlistKey = val
       if (val) {
         const row = this.toolbarWatchlistOptions.find(
-          w => w && w.market && w.symbol && this.watchlistContextKey(w) === val
+          w => w && w.market && w.symbol && watchlistAssetKey(w) === val
         )
         if (row) {
+          this.currentAssetId = Number(row.asset_id || 0)
           this.market = String(row.market)
           this.symbol = String(row.symbol)
-          if (this.market === 'Crypto') {
-            this.cryptoExchangeId = this.normalizeCryptoExchange(row.exchange_id || row.exchangeId)
-            this.cryptoMarketType = normalizeMarketType(row.market_type || row.marketType, 'Crypto')
-          }
           this.applyCurrentProductContext(row)
         } else {
           const legacyValue = String(val).split('|')[0]
@@ -4474,12 +4412,6 @@ export default {
         this.cryptoExchangeId = previousExchangeId
         await this.refreshCryptoSymbolCapabilities()
       }
-      this.selectedWatchlistKey = marketContextKey({
-        market: this.market,
-        symbol: this.symbol,
-        exchange_id: this.cryptoExchangeId,
-        market_type: this.cryptoMarketType
-      })
       this.persistCryptoMarketSource()
     },
     handleQuickTradeExchangeChange (context) {
@@ -4495,12 +4427,6 @@ export default {
       this.cryptoMarketType = nextMarketType
       const context = (this.cryptoProductContexts || []).find(item => item.market_type === nextMarketType)
       this.applyCurrentProductContext(context || { market_type: nextMarketType })
-      this.selectedWatchlistKey = marketContextKey({
-        market: this.market,
-        symbol: this.symbol,
-        exchange_id: this.cryptoExchangeId,
-        market_type: this.cryptoMarketType
-      })
       this.persistCryptoMarketSource()
     },
 
@@ -4521,15 +4447,17 @@ export default {
         return true
       }
       const symbol = String(this.symbol)
+      const assetId = Number(this.currentAssetId || 0)
       const exchangeId = this.normalizeCryptoExchange(this.cryptoExchangeId)
       this.cryptoCapabilitiesLoading = true
       try {
         const res = await getSymbolCapabilities({
+          asset_id: assetId,
           market: 'Crypto',
           symbol,
           exchange_id: exchangeId
         })
-        if (symbol !== this.symbol || exchangeId !== this.normalizeCryptoExchange(this.cryptoExchangeId)) return
+        if (assetId !== Number(this.currentAssetId || 0) || symbol !== this.symbol || exchangeId !== this.normalizeCryptoExchange(this.cryptoExchangeId)) return true
         const data = (res && res.data) || {}
         const contexts = Array.isArray(data.contexts) ? data.contexts : []
         const marketTypes = [...new Set((data.market_types || []).map(value => normalizeMarketType(value, 'Crypto')))]
@@ -4596,97 +4524,7 @@ export default {
           marketType
         }))
       } catch (_) { /* ignore quota */ }
-    },
-
-    // ===== Add symbol modal =====
-    onAddMarketTabChange () {
-      this.addSearchKeyword = ''
-      this.addSearchResults = []
-      this.addSelectedItem = null
-      this.addSearched = false
-    },
-    onAddSourceChange () {
-      this.persistCryptoMarketSource()
-      this.addSearchResults = []
-      this.addSelectedItem = null
-      this.addSearched = false
-      if (this.addSearchKeyword) this.doAddSearch()
-    },
-    onAddSearchInput () {
-      clearTimeout(this.addSearchTimer)
-      if (!this.addSearchKeyword) { this.addSearchResults = []; return }
-      this.addSearchTimer = setTimeout(() => this.doAddSearch(), 400)
-    },
-    async doAddSearch () {
-      if (!this.addSearchKeyword) return
-      this.addSearching = true
-      try {
-        const res = await searchSymbols({
-          market: this.addMarketTab,
-          keyword: this.addSearchKeyword,
-          limit: 20,
-          exchange_id: this.addMarketTab === 'Crypto' ? this.cryptoExchangeId : undefined,
-          market_type: this.addMarketTab === 'Crypto' ? this.cryptoMarketType : undefined
-        })
-        if (res && res.data && Array.isArray(res.data)) {
-          this.addSearchResults = res.data
-        } else {
-          this.addSearchResults = []
-        }
-        this.addSearched = true
-        if (this.addSearchResults.length === 0) {
-          this.addSelectedItem = { market: this.addMarketTab, symbol: this.addSearchKeyword.trim().toUpperCase(), name: '' }
-        }
-      } catch (_) {
-        this.addSelectedItem = { market: this.addMarketTab, symbol: this.addSearchKeyword.trim().toUpperCase(), name: '' }
-      } finally {
-        this.addSearching = false
-      }
-    },
-    async handleAddStock () {
-      const item = this.addSelectedItem
-      if (!item || !item.symbol) {
-        this.$message.warning(this.$t('backtest-center.config.symbolRequired'))
-        return
-      }
-      this.addingStock = true
-      try {
-        const mkt = item.market || this.addMarketTab
-        await addWatchlist({
-          userid: this.userId,
-          market: mkt,
-          symbol: item.symbol,
-          name: item.name || '',
-          exchange_id: item.exchange_id || (mkt === 'Crypto' ? this.cryptoExchangeId : ''),
-          market_type: item.market_type || (mkt === 'Crypto' ? this.cryptoMarketType : 'spot'),
-          instrument_id: item.instrument_id || '',
-          settle_currency: item.settle_currency || ''
-        })
-        this.$message.success(this.$t('backtest-center.config.addSuccess'))
-        await this.loadWatchlist()
-        this.selectedWatchlistKey = marketContextKey({
-          market: mkt,
-          symbol: item.symbol,
-          exchange_id: item.exchange_id || (mkt === 'Crypto' ? this.cryptoExchangeId : ''),
-          market_type: item.market_type || (mkt === 'Crypto' ? this.cryptoMarketType : 'spot'),
-          instrument_id: item.instrument_id || ''
-        })
-        this.market = mkt
-        this.symbol = item.symbol
-        if (mkt === 'Crypto') {
-          this.cryptoExchangeId = this.normalizeCryptoExchange(item.exchange_id || this.cryptoExchangeId)
-          this.cryptoMarketType = normalizeMarketType(item.market_type || this.cryptoMarketType, 'Crypto')
-        }
-        this.applyCurrentProductContext(item)
-        await this.refreshCryptoSymbolCapabilities()
-        this.showAddModal = false
-      } catch (e) {
-        this.$message.error(e.message || 'Failed')
-      } finally {
-        this.addingStock = false
-      }
     }
-
   },
   watch: {
     liveTradingEnabled (enabled) {

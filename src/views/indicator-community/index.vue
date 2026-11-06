@@ -62,8 +62,8 @@
               </a-select-option>
             </a-select>
             <a-radio-group v-model="marketViewMode" button-style="solid" class="market-view-toggle">
-              <a-radio-button value="compact"><a-icon type="unordered-list" /> {{ $t('community.catalog.compactList') }}</a-radio-button>
               <a-radio-button value="grid"><a-icon type="appstore" /> {{ $t('community.catalog.visualGrid') }}</a-radio-button>
+              <a-radio-button value="compact"><a-icon type="unordered-list" /> {{ $t('community.catalog.compactList') }}</a-radio-button>
             </a-radio-group>
           </div>
         </div>
@@ -675,7 +675,7 @@ export default {
         directionMode: undefined,
         leverage: undefined
       },
-      marketViewMode: 'compact',
+      marketViewMode: 'grid',
       showMarketFilters: false,
       strategyMarketOptions: [],
       strategyBindingModes: ['fixed', 'parameterized', 'universe', 'portfolio'],

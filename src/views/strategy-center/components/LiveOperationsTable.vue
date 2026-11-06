@@ -199,6 +199,10 @@
             {{ pendingWorkLabel(selectedStrategy) }}
             <strong>{{ health(selectedStrategy).pending_orders || 0 }}</strong>
           </span>
+          <span v-if="needsAttention(selectedStrategy)" class="runtime-attention-reason">
+            <a-icon type="info-circle" />
+            {{ attentionReasonLabel(selectedStrategy) }}
+          </span>
         </div>
 
         <section class="metric-section financial-metrics">
@@ -653,6 +657,7 @@ export default {
     },
     health (strategy) { return strategy && strategy.runtime_health || {} },
     healthState (strategy) {
+      if (!this.isRunning(strategy)) return 'inactive'
       const health = this.health(strategy)
       if (health.position_drift_blocked || Number(health.position_drift_count || 0) > 0) return 'degraded'
       return String(health.health || (this.isRunning(strategy) ? 'unknown' : 'inactive')).toLowerCase()
@@ -660,6 +665,7 @@ export default {
     healthLabel (strategy) { return this.$t(`liveMonitor.${this.healthState(strategy)}`) },
     healthClass (strategy) { return `health-${this.healthState(strategy)}` },
     needsAttention (strategy) {
+      if (!this.isRunning(strategy)) return false
       const health = this.health(strategy)
       if (typeof health.needs_attention === 'boolean') return health.needs_attention
       return ['degraded', 'stale', 'offline'].includes(this.healthState(strategy)) ||
@@ -667,8 +673,32 @@ export default {
         Boolean(health.position_drift_blocked) ||
         Number(health.position_drift_count || 0) > 0
     },
-    statusClass (strategy) { return this.needsAttention(strategy) ? 'warning' : (this.isRunning(strategy) ? 'running' : 'stopped') },
-    statusLabel (strategy) { return this.needsAttention(strategy) ? this.healthLabel(strategy) : (this.isRunning(strategy) ? this.$t('systemOverview.running') : this.$t('systemOverview.stopped')) },
+    attentionReasonLabel (strategy) {
+      const health = this.health(strategy)
+      const reasons = Array.isArray(health.attention_reasons) ? health.attention_reasons : []
+      const reason = String(reasons[0] || health.last_error || '').trim().toLowerCase()
+      const reasonKeys = {
+        recent_order_failure: 'recentOrderFailure',
+        position_drift: 'positionDrift',
+        runtime_stale: 'runtimeStale',
+        runtime_offline: 'runtimeOffline',
+        runtime_unknown: 'runtimeUnknown',
+        live_price_stale: 'priceUnavailable',
+        live_price_unavailable: 'priceUnavailable',
+        market_data_unavailable: 'priceUnavailable'
+      }
+      const suffix = reasonKeys[reason] || 'generic'
+      return this.$t(`strategyCenter.console.healthReason.${suffix}`)
+    },
+    statusClass (strategy) {
+      if (this.needsAttention(strategy)) return 'warning'
+      if (this.healthState(strategy) === 'starting') return 'starting'
+      return this.isRunning(strategy) ? 'running' : 'stopped'
+    },
+    statusLabel (strategy) {
+      if (this.needsAttention(strategy) || this.healthState(strategy) === 'starting') return this.healthLabel(strategy)
+      return this.isRunning(strategy) ? this.$t('systemOverview.running') : this.$t('systemOverview.stopped')
+    },
     strategyPnl (strategy) {
       if (!strategy || strategy.today_pnl == null || strategy.today_pnl === '') return null
       const value = Number(strategy.today_pnl)
@@ -744,7 +774,8 @@ export default {
 .master-health.is-warning { color: #b06b18; }
 .master-health.is-warning i { background: #d68a24; box-shadow: 0 0 0 3px rgba(214, 138, 36, .12); }
 .master-actions { display: flex; align-items: center; flex: 0 0 auto; gap: 5px; }
-.master-actions ::v-deep .ant-btn { height: 28px; padding: 0 8px; border-radius: 5px; font-size: 11px; }
+.master-actions ::v-deep .ant-btn { display: inline-flex; align-items: center; justify-content: center; height: 28px; padding: 0 8px; border-radius: 5px; font-size: 11px; line-height: 1; }
+.master-actions ::v-deep .ant-btn > .anticon { display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
 .master-actions ::v-deep .ant-btn:last-child { width: 28px; padding: 0; }
 .master-tabs { display: grid; grid-template-columns: repeat(3, 1fr); padding: 14px 14px 0; border-bottom: 1px solid #e7eaf0; }
 .master-tabs button { position: relative; display: flex; justify-content: center; gap: 6px; padding: 11px 4px 13px; border: 0; background: transparent; color: #667085; font-size: 14px; font-weight: 500; cursor: pointer; }
@@ -767,7 +798,7 @@ export default {
 .row-main small { overflow: hidden; color: #788391; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .row-status { position: relative; padding-left: 12px; color: #525d6b; font-size: 12px; font-weight: 500; }
 .row-status > i { position: absolute; left: 0; top: 4px; width: 6px; height: 6px; border-radius: 50%; }
-.row-status > i.running { background: #28a85f; }.row-status > i.warning { background: #e16b47; }.row-status > i.stopped { background: #858c96; }
+.row-status > i.running { background: #28a85f; }.row-status > i.starting { background: #d99a22; }.row-status > i.warning { background: #e16b47; }.row-status > i.stopped { background: #858c96; }
 .row-status em { width: max-content; padding: 1px 5px; border: 1px solid #dfe3e8; border-radius: 3px; color: #697382; font-size: 11px; font-style: normal; font-weight: 500; }.row-status em.live { border-color: rgba(222, 164, 24, .35); color: #a66f00; }
 .row-pnl { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right; color: #596273; font-variant-numeric: tabular-nums; }
 .row-pnl strong { font-size: 13px; font-weight: 650; }
@@ -779,7 +810,7 @@ export default {
 .detail-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding-bottom: 16px; border-bottom: 1px solid #e6e9ee; }
 .detail-title-line { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; }.detail-title-line h2 { margin: 0; color: #151d29; font-size: 21px; font-weight: 700; letter-spacing: -.01em; }.detail-symbol { color: #667085; font-size: 13px; font-weight: 500; }
 .detail-header p { margin: 7px 0 0; color: #778290; font-size: 12px; font-variant-numeric: tabular-nums; }.detail-header p span { margin: 0 6px; }
-.status-pill, .execution-pill, .exchange-pill, .portfolio-pill { padding: 2px 7px; border-radius: 3px; font-size: 12px; font-weight: 500; }.status-pill.running { color: #269d58; background: rgba(38, 157, 88, .09); }.status-pill.warning { color: #cb5f3f; background: rgba(203, 95, 63, .1); }.status-pill.stopped { color: #66717f; background: #eef0f3; }.execution-pill { border: 1px solid #e1e4e8; color: #66717f; }.execution-pill.live { border-color: rgba(225, 164, 22, .38); color: #a86f00; }.exchange-pill, .portfolio-pill { display: inline-flex; align-items: center; gap: 5px; }.exchange-pill { border: 1px solid rgba(24, 144, 255, .24); color: #1677b8; background: rgba(24, 144, 255, .06); }.portfolio-pill { border: 1px solid color-mix(in srgb, var(--primary-color, #1890ff) 28%, transparent); color: var(--primary-color, #1890ff); background: color-mix(in srgb, var(--primary-color, #1890ff) 8%, transparent); }
+.status-pill, .execution-pill, .exchange-pill, .portfolio-pill { padding: 2px 7px; border-radius: 3px; font-size: 12px; font-weight: 500; }.status-pill.running { color: #269d58; background: rgba(38, 157, 88, .09); }.status-pill.starting { color: #a66f00; background: rgba(225, 164, 22, .11); }.status-pill.warning { color: #cb5f3f; background: rgba(203, 95, 63, .1); }.status-pill.stopped { color: #66717f; background: #eef0f3; }.execution-pill { border: 1px solid #e1e4e8; color: #66717f; }.execution-pill.live { border-color: rgba(225, 164, 22, .38); color: #a86f00; }.exchange-pill, .portfolio-pill { display: inline-flex; align-items: center; gap: 5px; }.exchange-pill { border: 1px solid rgba(24, 144, 255, .24); color: #1677b8; background: rgba(24, 144, 255, .06); }.portfolio-pill { border: 1px solid color-mix(in srgb, var(--primary-color, #1890ff) 28%, transparent); color: var(--primary-color, #1890ff); background: color-mix(in srgb, var(--primary-color, #1890ff) 8%, transparent); }
 .detail-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .pause-actions { display: inline-flex; gap: 8px; }
 .delete-strategy-button:not([disabled]) { border-color: rgba(217, 86, 86, .4); color: #d95656; }
@@ -787,7 +818,8 @@ export default {
 .runtime-status-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 20px; margin: 10px 2px 12px; color: #788391; font-size: 12px; }
 .runtime-status-bar > span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .runtime-status-bar strong { color: #202a37; font-size: 12px; font-weight: 650; font-variant-numeric: tabular-nums; }
-.health-healthy { color: #25a25a !important; }.health-degraded,.health-stale { color: #d18425 !important; }.health-offline { color: #d95656 !important; }
+.runtime-status-bar .runtime-attention-reason { flex: 1 1 260px; color: #b76b18; white-space: normal; }
+.health-healthy { color: #25a25a !important; }.health-starting { color: #b77b10 !important; }.health-degraded,.health-stale { color: #d18425 !important; }.health-offline { color: #d95656 !important; }
 .metric-section { margin-bottom: 12px; }
 .metric-section-head { display: flex; align-items: center; justify-content: space-between; min-height: 28px; padding: 0 2px 6px; }
 .metric-section-head h3 { margin: 0; color: #353f4c; font-size: 13px; font-weight: 650; }
@@ -913,7 +945,8 @@ export default {
 }
 .detail-title-line { gap: 8px; }
 .detail-title-line h2 { font-size: 22px; }
-.detail-actions ::v-deep .ant-btn { height: 36px; border-radius: 6px; }
+.detail-actions ::v-deep .ant-btn { display: inline-flex; align-items: center; justify-content: center; height: 36px; border-radius: 6px; line-height: 1; }
+.detail-actions ::v-deep .ant-btn > .anticon { display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
 .runtime-tabs { margin-top: 12px; }
 .runtime-tabs ::v-deep .ant-tabs-bar {
   margin: 0 0 12px;

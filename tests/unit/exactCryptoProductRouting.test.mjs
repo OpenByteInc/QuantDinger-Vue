@@ -34,15 +34,20 @@ test('quick trade protects product identity across reads and order submission', 
   assert.match(closePayloadSource, /payload\.resolve_product = true/)
 })
 
-test('strategy builder searches and persists one exact executable product', () => {
+test('strategy builder selects a logical asset and previews its current chart product', () => {
   const source = read('src/views/strategy-ide/index.vue')
   const editor = read('src/views/strategy-ide/components/StrategyEditor.vue')
 
-  assert.match(source, /searchSymbols\(\{[\s\S]*?market: this\.runConfig\.market_category/)
-  assert.match(source, /getSymbolCapabilities\(\{[\s\S]*?symbol: this\.runConfig\.symbol/)
-  assert.match(source, /instrument_id: String\(cfg\.instrument_id/)
-  assert.match(source, /product_type: String\(cfg\.product_type/)
-  assert.match(source, /api_family: String\(cfg\.api_family/)
+  assert.match(source, /const res = await getWatchlist\(\)/)
+  assert.match(source, /groupWatchlistAssets/)
+  assert.doesNotMatch(source, /searchStrategySymbols/)
+  assert.match(source, /asset_id: selected\.asset_id/)
+  assert.match(source, /const symbol = String\(this\.runConfig\.symbol\)[\s\S]*?getSymbolCapabilities\(\{[\s\S]*?symbol,/)
+  assert.match(source, /const sourceOwnsExchange = Boolean\(this\.strategyRuntimeContract\.hasExchange\)/)
+  assert.match(source, /const exchangeId = sourceOwnsExchange \? String\(this\.runConfig\.exchange_id[\s\S]*?exchange_id: exchangeId/)
+  assert.match(source, /symbol !== String\(this\.runConfig\.symbol\)[\s\S]*?sourceOwnsExchange !== Boolean\(this\.strategyRuntimeContract\.hasExchange\)/)
   assert.match(editor, /v-if="runtimeProductCanSwitch"/)
   assert.match(editor, /runtimeAvailableMarketTypes/)
+  assert.match(editor, /option-label-prop="label"/)
+  assert.match(editor, /:filter-option="filterRuntimeSymbolOption"/)
 })

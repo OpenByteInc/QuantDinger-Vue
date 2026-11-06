@@ -75,7 +75,6 @@
                 <div class="runtime-setup__head">
                   <div class="runtime-setup__copy">
                     <strong>{{ $t('strategyBuilder.setupTitle') }}</strong>
-                    <span>{{ $t('strategyBuilder.setupDescription') }}</span>
                   </div>
                   <span v-if="runtimeCapabilities.hasInstrument" class="runtime-market-badge">
                     <a-icon type="global" /> {{ runtimeMarketLabel }}
@@ -92,18 +91,34 @@
                     </span>
                     <a-select
                       show-search
-                      :filter-option="false"
+                      option-label-prop="label"
+                      :filter-option="filterRuntimeSymbolOption"
                       :value="runtimeSymbolValue"
                       :loading="runtimeSymbolLoading"
                       :placeholder="$t('strategyBuilder.symbolPlaceholder')"
-                      @search="$emit('runtime-symbol-search', $event)"
-                      @change="$emit('runtime-symbol-change', $event)"
+                      :dropdown-class-name="isDark ? 'watchlist-select-dropdown watchlist-select-dropdown--dark' : 'watchlist-select-dropdown'"
+                      @change="handleRuntimeSymbolChange"
                       @dropdownVisibleChange="handleRuntimeSymbolDropdown"
                     >
-                      <a-select-option v-for="option in runtimeSymbolOptions" :key="option.value" :value="option.value">
+                      <a-select-option
+                        v-for="option in runtimeSymbolOptions"
+                        :key="option.value"
+                        :value="option.value"
+                        :label="option.symbol"
+                        :title="[option.symbol, option.context_label].filter(Boolean).join(' · ')"
+                      >
                         <span class="runtime-symbol-option">
-                          <a-icon v-if="option.is_watchlist" type="star" theme="filled" />
-                          <span>{{ option.label }}</span>
+                          <span class="runtime-symbol-market" :class="'runtime-symbol-market--' + String(option.market || '').toLowerCase()">
+                            {{ runtimeOptionMarketLabel(option.market) }}
+                          </span>
+                          <strong>{{ option.symbol }}</strong>
+                          <span class="runtime-symbol-context">{{ option.context_label }}</span>
+                        </span>
+                      </a-select-option>
+                      <a-select-option key="__add__" value="__add__" class="runtime-symbol-add-option">
+                        <span class="runtime-symbol-add-row">
+                          <a-icon type="plus" />
+                          <span>{{ $t('watchlistAssets.add') }}</span>
                         </span>
                       </a-select-option>
                     </a-select>
@@ -566,13 +581,12 @@ export default {
     runtimeSymbolValue () {
       const market = String(this.runtimeConfig.market_category || '')
       const symbol = String(this.runtimeConfig.symbol || '').toUpperCase()
-      const marketType = String(this.runtimeConfig.market_type || '')
-      const exchangeId = String(this.runtimeConfig.exchange_id || '')
+      const assetId = Number(this.runtimeConfig.asset_id || 0)
       const exact = this.runtimeSymbolOptions.find(option => (
         String(option.market || '') === market &&
-        String(option.symbol || '').toUpperCase() === symbol &&
-        (!marketType || !option.market_type || String(option.market_type) === marketType) &&
-        (!this.runtimeCapabilities.hasExchange || !option.exchange_id || String(option.exchange_id) === exchangeId)
+        (assetId > 0
+          ? Number(option.asset_id || 0) === assetId
+          : String(option.symbol || '').toUpperCase() === symbol)
       ))
       return exact ? exact.value : symbol
     },
@@ -1086,6 +1100,30 @@ export default {
 
     handleRuntimeSymbolDropdown (visible) {
       if (visible) this.$emit('runtime-symbol-open')
+    },
+
+    filterRuntimeSymbolOption (input, option) {
+      const props = option && option.componentOptions && option.componentOptions.propsData
+      const query = String(input || '').trim().toLowerCase()
+      if (!query) return true
+      return [props && props.label, props && props.title, props && props.value]
+        .filter(Boolean)
+        .some(value => String(value).toLowerCase().includes(query))
+    },
+
+    runtimeOptionMarketLabel (market) {
+      const value = String(market || '')
+      const key = `dashboard.analysis.market.${value}`
+      const translated = this.$t(key)
+      return translated === key ? value : translated
+    },
+
+    handleRuntimeSymbolChange (value) {
+      if (value === '__add__') {
+        this.$emit('runtime-symbol-add')
+        return
+      }
+      this.$emit('runtime-symbol-change', value)
     },
 
     safeTemplateIcon (template) {
@@ -1861,19 +1899,56 @@ export default {
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
 
-  .anticon {
-    flex: 0 0 auto;
-    color: var(--primary-color, #faad14);
-    font-size: 11px;
-  }
-
-  span {
+  strong,
+  .runtime-symbol-context {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+
+  strong {
+    flex: 0 0 auto;
+    font-size: 13px;
+    font-weight: 600;
+  }
+}
+
+.runtime-symbol-market {
+  display: inline-block;
+  flex: 0 0 auto;
+  padding: 0 6px;
+  border-radius: 3px;
+  color: #fff;
+  background: #8c8c8c;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  line-height: 18px;
+}
+
+.runtime-symbol-market--crypto { background: #fa8c16; }
+.runtime-symbol-market--usstock { background: var(--primary-color, #1890ff); }
+.runtime-symbol-market--cnstock { background: #eb2f96; }
+.runtime-symbol-market--hkstock { background: #f5222d; }
+.runtime-symbol-market--forex { background: #52c41a; }
+.runtime-symbol-market--futures { background: #722ed1; }
+
+.runtime-symbol-context {
+  min-width: 0;
+  color: #8c8c8c;
+  font-size: 11px;
+}
+
+.runtime-symbol-add-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 28px;
+  color: var(--primary-color, #ff5a1f);
+  font-weight: 600;
 }
 
 .runtime-setup__hint {
@@ -2575,4 +2650,8 @@ export default {
     }
   }
 }
+</style>
+
+<style lang="less">
+@import '../../../components/Watchlist/watchlist-select.less';
 </style>

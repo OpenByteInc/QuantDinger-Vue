@@ -30,6 +30,8 @@ const marketApi = {
   GetMarketTypes: '/api/market/types',
   // Symbol search
   SearchSymbols: '/api/market/symbols/search',
+  SearchAssets: '/api/market/assets/search',
+  GetAssetCapabilities: '/api/market/assets/capabilities',
   GetSymbolCapabilities: '/api/market/symbols/capabilities',
   GetHotSymbols: '/api/market/symbols/hot'
 }
@@ -58,13 +60,10 @@ export function removeWatchlist (parameter) {
   })
 }
 
-export function getWatchlistPrices (parameter) {
+export function getWatchlistPrices () {
   return request({
     url: marketApi.GetWatchlistPrices,
-    method: 'get',
-    params: {
-      watchlist: JSON.stringify(parameter.watchlist || [])
-    }
+    method: 'get'
   })
 }
 
@@ -280,6 +279,22 @@ export function clearChatSessionMemory (sessionId) {
 export function searchSymbols (parameter) {
   return request({
     url: marketApi.SearchSymbols,
+    method: 'get',
+    params: parameter
+  })
+}
+
+export function searchAssets (parameter) {
+  return request({
+    url: marketApi.SearchAssets,
+    method: 'get',
+    params: parameter
+  })
+}
+
+export function getAssetCapabilities (parameter) {
+  return request({
+    url: marketApi.GetAssetCapabilities,
     method: 'get',
     params: parameter
   })

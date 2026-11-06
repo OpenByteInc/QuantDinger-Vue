@@ -15,9 +15,11 @@ test('indicator picker opens from cache and refreshes stale data in the backgrou
   assert.match(source, /if \(!background\) this\.applyIndicatorRouteSelection\(\)/)
   assert.match(source, /toggleCodeDrawer \(\)[\s\S]*this\.indicatorDropdownVisible = false/)
   assert.match(source, /v-for="w in toolbarWatchlistOptions"/)
-  assert.match(source, /toolbarWatchlistOptions \(\)[\s\S]*const currentKey = marketContextKey\(current\)[\s\S]*return \[\{ \.\.\.sameSymbol, \.\.\.current \}, \.\.\.list\]/)
-  assert.match(source, /handleCryptoExchangeChange \(value\)[\s\S]*this\.selectedWatchlistKey = marketContextKey/)
-  assert.match(source, /handleCryptoMarketTypeChange \(value\)[\s\S]*this\.selectedWatchlistKey = marketContextKey/)
+  assert.match(source, /toolbarWatchlistOptions \(\)[\s\S]*list\.unshift\(current\)[\s\S]*groupWatchlistAssets\(list, current\)/)
+  const exchangeHandler = source.match(/handleCryptoExchangeChange \(value\)[\s\S]*?\n    \},/)[0]
+  const productHandler = source.match(/handleCryptoMarketTypeChange \(value\)[\s\S]*?\n    \},/)[0]
+  assert.ok(!exchangeHandler.includes('selectedWatchlistKey'))
+  assert.ok(!productHandler.includes('selectedWatchlistKey'))
 })
 
 test('backtest strategy picker refreshes source options when opened', () => {

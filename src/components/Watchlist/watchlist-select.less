@@ -1,0 +1,93 @@
+.watchlist-select-dropdown {
+  .ant-select-dropdown-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+
+  .runtime-symbol-option {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .runtime-symbol-market {
+    display: inline-block;
+    flex: 0 0 auto;
+    padding: 0 6px;
+    border-radius: 3px;
+    color: #fff;
+    background: #8c8c8c;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    line-height: 18px;
+  }
+
+  .runtime-symbol-market--crypto { background: #fa8c16; }
+  .runtime-symbol-market--usstock { background: var(--primary-color, #1890ff); }
+  .runtime-symbol-market--cnstock { background: #eb2f96; }
+  .runtime-symbol-market--hkstock { background: #f5222d; }
+  .runtime-symbol-market--forex { background: #52c41a; }
+  .runtime-symbol-market--futures { background: #722ed1; }
+
+  .runtime-symbol-option strong {
+    flex: 0 0 auto;
+    color: #333;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .runtime-symbol-context {
+    min-width: 0;
+    overflow: hidden;
+    color: #8c8c8c;
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .runtime-symbol-add-row {
+    display: flex;
+    width: 100%;
+    min-height: 28px;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    color: var(--primary-color, #ff5a1f);
+    font-weight: 600;
+  }
+
+  .ant-select-dropdown-menu-item-selected {
+    background: color-mix(in srgb, var(--primary-color, #1890ff) 12%, #fff);
+  }
+}
+
+.watchlist-select-dropdown--dark {
+  border: 1px solid #363636;
+  background: #1f1f1f;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+
+  .ant-select-dropdown-menu-item {
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  .runtime-symbol-option strong {
+    color: rgba(255, 255, 255, 0.88);
+  }
+
+  .runtime-symbol-context {
+    color: rgba(255, 255, 255, 0.45);
+  }
+
+  .ant-select-dropdown-menu-item-selected {
+    background: color-mix(in srgb, var(--primary-color, #1890ff) 20%, #1f1f1f);
+  }
+
+  .ant-select-dropdown-menu-item-active:not(.ant-select-dropdown-menu-item-selected) {
+    background: rgba(255, 255, 255, 0.06);
+  }
+}

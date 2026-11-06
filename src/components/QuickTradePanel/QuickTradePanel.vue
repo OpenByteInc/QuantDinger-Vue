@@ -1135,6 +1135,7 @@ function translateApiMessage (vm, value) {
 }
 
 function appendStrictProductIdentity (payload, vm) {
+  if (Number(vm.assetId || 0) > 0) payload.asset_id = Number(vm.assetId)
   const productType = String(vm.productType || '').trim().toLowerCase()
   if (!STRICT_PRODUCT_IDENTITY_TYPES.has(productType)) return payload
   if (vm.instrumentId) payload.instrument_id = vm.instrumentId
@@ -1154,6 +1155,7 @@ export default {
     source: { type: String, default: 'manual' }, // ai_radar / ai_analysis / indicator / manual
     marketType: { type: String, default: 'swap' }, // swap / spot
     availableMarketTypes: { type: Array, default: () => ['spot', 'swap'] },
+    assetId: { type: Number, default: 0 },
     instrumentId: { type: String, default: '' },
     productType: { type: String, default: '' },
     apiFamily: { type: String, default: '' },

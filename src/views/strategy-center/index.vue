@@ -72,6 +72,7 @@ export default {
   mounted () {
     this.loadStrategies()
     this.startRefreshTimer()
+    document.addEventListener('visibilitychange', this.handleVisibilityChange)
     this.openEditorFromRoute()
   },
   activated () {
@@ -83,6 +84,7 @@ export default {
   },
   beforeDestroy () {
     this.stopRefreshTimer()
+    document.removeEventListener('visibilitychange', this.handleVisibilityChange)
   },
   watch: {
     '$route.fullPath' () {
@@ -282,11 +284,14 @@ export default {
       if (this.refreshTimer) return
       this.refreshTimer = window.setInterval(() => {
         if (!document.hidden) this.loadStrategies()
-      }, 30000)
+      }, 5000)
     },
     stopRefreshTimer () {
       if (this.refreshTimer) window.clearInterval(this.refreshTimer)
       this.refreshTimer = null
+    },
+    handleVisibilityChange () {
+      if (!document.hidden && this.refreshTimer) this.loadStrategies({ force: true })
     },
     formatTime (value) {
       if (!value) return '-'

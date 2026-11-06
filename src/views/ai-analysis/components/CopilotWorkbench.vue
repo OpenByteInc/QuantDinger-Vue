@@ -245,6 +245,7 @@
             <a-select
               ref="contextSymbolSelect"
               v-model="selectedSymbolValue"
+              option-label-prop="label"
               show-search
               allow-clear
               size="large"
@@ -261,10 +262,11 @@
                 v-for="item in selectableSymbols"
                 :key="symbolOptionValue(item)"
                 :value="symbolOptionValue(item)"
+                :label="item.symbol"
               >
                 <div class="symbol-option">
                   <strong>{{ item.symbol }}</strong>
-                  <span>{{ item.name || item.market }}</span>
+                  <span>{{ watchlistContextLabel(item) }}</span>
                   <em :class="['symbol-market-pill', marketPillClass(item.market)]">{{ marketLabel(item.market) }}</em>
                 </div>
               </a-select-option>
@@ -336,24 +338,24 @@
     <aside class="right-rail">
       <section class="rail-panel watch-panel">
         <div class="panel-head">
-          <span><a-icon type="star" theme="filled" /> {{ text.watchlist }}</span>
+          <span><a-icon type="star" theme="filled" /> {{ $t('watchlistAssets.title') }}</span>
           <a-button size="small" type="link" @click="loadWatchlist"><a-icon type="reload" /></a-button>
         </div>
         <div class="add-watch">
-          <a-button type="primary" block icon="plus" @click="openAddWatchModal">{{ text.addWatch }}</a-button>
+          <a-button type="primary" block icon="plus" @click="openAddWatchModal">{{ $t('watchlistAssets.add') }}</a-button>
         </div>
         <div v-if="watchlist.length === 0" class="empty-mini">{{ text.noWatchlist }}</div>
         <div v-else class="watch-list">
           <div
-            v-for="item in watchlist.slice(0, 12)"
+            v-for="item in groupedWatchlist"
             :key="watchKey(item)"
             class="watch-card"
-            :class="{ active: watchKey(item) === selectedSymbolValue }"
+            :class="{ active: symbolOptionValue(item) === selectedSymbolValue }"
           >
             <button type="button" class="watch-main" @click="selectWatch(item)">
               <span class="watch-identity">
                 <strong>{{ item.symbol }}</strong>
-                <em>{{ item.name || marketLabel(item.market) }}</em>
+                <em :title="watchlistContextLabel(item)">{{ watchlistContextLabel(item) }}</em>
               </span>
               <span class="watch-market-data">
                 <strong class="watch-price">{{ formatPriceValue(priceFor(item) && priceFor(item).price, item.market) }}</strong>
@@ -370,9 +372,10 @@
                 <button type="button" @click="openTaskModal(item)"><a-icon type="clock-circle" /></button>
               </a-tooltip>
               <a-popconfirm
-                :title="text.removeWatchConfirm"
+                :title="$t('watchlistAssets.removeConfirm')"
                 :ok-text="text.remove"
                 :cancel-text="text.cancel"
+                overlay-class-name="copilot-watch-remove-confirm"
                 @confirm="removeWatch(item)"
               >
                 <a-tooltip :title="text.remove">
@@ -471,68 +474,14 @@
       </a-form>
     </a-modal>
 
-    <a-modal
-      v-model="addWatchModalVisible"
-      :title="text.addWatchTitle"
-      :ok-text="text.add"
-      :cancel-text="text.cancel"
-      :confirm-loading="addingWatch"
-      :ok-button-props="{ props: { disabled: !addWatchSelected } }"
-      wrap-class-name="copilot-modal add-watch-copilot-modal"
-      width="620px"
-      @ok="confirmAddWatchSymbol"
-      @cancel="closeAddWatchModal"
-    >
-      <div class="add-watch-modal">
-        <a-tabs v-model="addWatchMarket" @change="handleAddWatchMarketChange">
-          <a-tab-pane v-for="market in markets" :key="market.value" :tab="marketLabel(market.value)" />
-        </a-tabs>
-        <a-input-search
-          v-model="addWatchKeyword"
-          size="large"
-          allow-clear
-          :loading="addWatchSearching"
-          :placeholder="text.addWatchSearchPlaceholder"
-          @search="handleAddWatchSearch"
-          @change="handleAddWatchKeywordChange"
-        >
-          <a-button slot="enterButton" type="primary" icon="search">{{ text.search }}</a-button>
-        </a-input-search>
-
-        <div class="add-watch-results">
-          <div v-if="addWatchSearching" class="empty-mini">{{ text.loading }}</div>
-          <div v-else-if="addWatchResults.length === 0" class="empty-mini">{{ text.addWatchEmptyHint }}</div>
-          <template v-else>
-            <button
-              v-for="item in addWatchResults"
-              :key="'modal-' + symbolOptionValue(item)"
-              type="button"
-              class="symbol-result-card"
-              :class="{ active: addWatchSelected && symbolOptionValue(addWatchSelected) === symbolOptionValue(item) }"
-              @click="selectAddWatchSymbol(item)"
-            >
-              <span>
-                <strong>{{ item.symbol }}</strong>
-                <em>{{ item.name || marketLabel(item.market) }}</em>
-              </span>
-              <span class="symbol-result-meta">
-                <em :class="['symbol-market-pill', marketPillClass(item.market)]">{{ marketLabel(item.market) }}</em>
-                <em v-if="item.market === 'Crypto'" class="symbol-product-pill">{{ cryptoProductLabel(item) }}</em>
-              </span>
-            </button>
-          </template>
-        </div>
-
-        <a-alert
-          v-if="addWatchSelected"
-          class="selected-watch-alert"
-          type="info"
-          show-icon
-          :message="`${text.selected}: ${addWatchSelected.symbol}`"
-          :description="addWatchSelected.name || marketLabel(addWatchSelected.market)"
-        />
-      </div>
-    </a-modal>
+    <add-watchlist-modal
+      :visible="addWatchModalVisible"
+      :markets="markets.map(item => item.value)"
+      :watchlist="watchlist"
+      :initial-market="context.market"
+      @close="addWatchModalVisible = false"
+      @added="reloadWatchlistOnly"
+    />
 
     <a-modal
       v-model="memoryManagerVisible"
@@ -667,10 +616,8 @@ import {
   deleteChatSession,
   getWatchlist,
   getWatchlistPrices,
-  addWatchlist,
   removeWatchlist,
   searchSymbols,
-  getHotSymbols,
   getAgentPreflight,
   classifyAgentIntent,
   getAiSkills,
@@ -702,10 +649,9 @@ import { resolveMarketBiasLabelKey, resolveTradeActionLabelKey } from '@/utils/f
 import * as echarts from 'echarts'
 import { buildResearchChartOption, parseResearchChartBlock } from '@/utils/researchCharts.mjs'
 import ProfessionalAnalysisReport from './ProfessionalAnalysisReport.vue'
-import {
-  mergeWatchlistSuggestions,
-  sortCopilotMarkets
-} from './copilotWatchlistPresets.mjs'
+import { sortCopilotMarkets } from './copilotWatchlistPresets.mjs'
+import AddWatchlistModal from '@/components/Watchlist/AddWatchlistModal.vue'
+import { groupWatchlistAssets, watchlistContextLabel, watchlistPayload } from '@/utils/watchlistAssets'
 import {
   buildContextualFollowups,
   buildResearchStarterPrompts,
@@ -719,7 +665,8 @@ let localId = 1
 export default {
   name: 'CopilotWorkbench',
   components: {
-    ProfessionalAnalysisReport
+    ProfessionalAnalysisReport,
+    AddWatchlistModal
   },
   data () {
     return {
@@ -729,6 +676,7 @@ export default {
       watchAddValue: undefined,
       symbolOptions: [],
       symbolSearching: false,
+      symbolSearchKeyword: '',
       symbolSearchTimer: null,
       draft: '',
       attachments: [],
@@ -749,14 +697,6 @@ export default {
       watchlist: [],
       watchlistPrices: {},
       addWatchModalVisible: false,
-      addingWatch: false,
-      addWatchMarket: 'USStock',
-      addWatchKeyword: '',
-      addWatchResults: [],
-      addWatchSelected: null,
-      addWatchSearching: false,
-      addWatchSearchTimer: null,
-      addWatchSearchSeq: 0,
       monitors: [],
       loadingMonitors: false,
       analyzingSymbol: false,
@@ -1269,19 +1209,17 @@ export default {
         state: pieces.join(' · ') || this.text.taskState
       })
     },
+    groupedWatchlist () {
+      return this.watchlist
+    },
     selectableSymbols () {
-      const map = new Map()
-      ;(this.watchlist || []).forEach(item => {
-        const normalized = this.normalizeSymbolOption(item)
-        if (normalized) map.set(this.symbolOptionValue(normalized), normalized)
-      })
-      ;(this.symbolOptions || []).forEach(item => {
-        const normalized = this.normalizeSymbolOption(item)
-        if (normalized) map.set(this.symbolOptionValue(normalized), normalized)
-      })
-      const current = this.normalizeSymbolOption(this.context)
-      if (current) map.set(this.symbolOptionValue(current), current)
-      return Array.from(map.values())
+      const rows = [...this.watchlist]
+      const selected = this.symbolOptions.find(item => this.symbolOptionValue(item) === this.selectedSymbolValue)
+      if (selected && !rows.some(item => this.symbolOptionValue(item) === this.selectedSymbolValue)) rows.push(selected)
+      const preferred = rows.find(item => this.symbolOptionValue(item) === this.selectedSymbolValue)
+      return groupWatchlistAssets(rows, preferred).map(group => group.item).filter(item =>
+        !this.symbolSearchKeyword || [item.symbol, item.name, this.watchlistContextLabel(item)].join(' ').toLowerCase().includes(this.symbolSearchKeyword)
+      )
     },
     displayCalendarEvents () {
       const list = Array.isArray(this.calendarEvents) ? this.calendarEvents : []
@@ -1327,9 +1265,11 @@ export default {
   updated () {
     this.scheduleMarkdownCharts()
   },
+  activated () {
+    this.reloadWatchlistOnly()
+  },
   beforeDestroy () {
     if (this.symbolSearchTimer) clearTimeout(this.symbolSearchTimer)
-    if (this.addWatchSearchTimer) clearTimeout(this.addWatchSearchTimer)
     if (this._markdownChartFrame) cancelAnimationFrame(this._markdownChartFrame)
     if (this._markdownChartObserver) this._markdownChartObserver.disconnect()
     if (this._markdownCharts) this._markdownCharts.forEach(chart => chart.dispose())
@@ -1533,9 +1473,6 @@ export default {
         module: item.module
       }))
       const values = this.markets.map(item => item.value)
-      if (!values.includes(this.addWatchMarket)) {
-        this.addWatchMarket = firstMarketValue(this.markets)
-      }
       if (this.context.market && !values.includes(this.context.market)) {
         this.context = { market: '', symbol: '' }
       }
@@ -1582,7 +1519,7 @@ export default {
         this.seedSymbolOptions()
         this.applyDefaultWatchSymbol()
         if (this.watchlist.length) {
-          const prices = await getWatchlistPrices({ watchlist: this.watchlist.slice(0, 24).map(x => ({ market: x.market, symbol: x.symbol })) })
+          const prices = await getWatchlistPrices()
           this.watchlistPrices = this.normalizePriceMap(prices.data || {})
         }
       } catch (_) {
@@ -1699,6 +1636,7 @@ export default {
       this.$nextTick(this.resizeComposer)
     },
     seedSymbolOptions () {
+      this.symbolSearchKeyword = ''
       this.symbolOptions = (this.watchlist || []).filter(item => !this.context.market || item.market === this.context.market)
       if (!this.symbolOptions.length && this.context.symbol) {
         this.symbolOptions = [{ market: this.context.market, symbol: this.context.symbol }]
@@ -1718,34 +1656,7 @@ export default {
       this.symbolSearchTimer = setTimeout(() => this.doSymbolSearch(keyword), 260)
     },
     async doSymbolSearch (keyword) {
-      const kw = String(keyword || '').trim()
-      if (!kw) {
-        this.seedSymbolOptions()
-        return
-      }
-      this.symbolSearching = true
-      try {
-        const params = { keyword: kw, limit: 14 }
-        const res = await searchSymbols(params)
-        const data = res.data || {}
-        const list = Array.isArray(data) ? data : (data.results || data.symbols || data.items || [])
-        this.symbolOptions = list.map(x => this.normalizeSymbolOption(x)).filter(Boolean)
-        if (!this.symbolOptions.length) {
-          const inferred = this.inferSymbolFromText(kw)
-          this.symbolOptions = [{
-            market: (inferred && inferred.market) || this.context.market || firstMarketValue(this.markets),
-            symbol: (inferred && inferred.symbol) || kw.toUpperCase()
-          }]
-        }
-      } catch (_) {
-        const inferred = this.inferSymbolFromText(kw)
-        this.symbolOptions = [{
-          market: (inferred && inferred.market) || this.context.market || firstMarketValue(this.markets),
-          symbol: (inferred && inferred.symbol) || kw.toUpperCase()
-        }]
-      } finally {
-        this.symbolSearching = false
-      }
+      this.symbolSearchKeyword = String(keyword || '').trim().toLowerCase()
     },
     handleSymbolChange (value) {
       if (!value) {
@@ -1762,145 +1673,26 @@ export default {
     addWatchSymbol () {
       this.openAddWatchModal()
     },
-    async openAddWatchModal () {
+    openAddWatchModal () {
       this.addWatchModalVisible = true
-      const marketValues = this.markets.map(item => item.value)
-      this.addWatchMarket = marketValues.includes(this.context.market)
-        ? this.context.market
-        : (marketValues.includes(this.addWatchMarket) ? this.addWatchMarket : firstMarketValue(this.markets, 'USStock'))
-      this.addWatchKeyword = ''
-      this.addWatchSelected = null
-      await this.loadAddWatchHotSymbols()
     },
-    closeAddWatchModal () {
-      this.addWatchModalVisible = false
-      this.addWatchKeyword = ''
-      this.addWatchResults = []
-      this.addWatchSelected = null
-      this.addWatchSearching = false
-      this.addWatchSearchSeq += 1
-      if (this.addWatchSearchTimer) {
-        clearTimeout(this.addWatchSearchTimer)
-        this.addWatchSearchTimer = null
-      }
-    },
-    handleAddWatchMarketChange (market) {
-      this.addWatchMarket = market
-      this.addWatchKeyword = ''
-      this.addWatchSelected = null
-      this.addWatchSearchSeq += 1
-      this.loadAddWatchHotSymbols()
-    },
-    handleAddWatchKeywordChange (event) {
-      const value = event && event.target ? event.target.value : this.addWatchKeyword
-      this.addWatchKeyword = value || ''
-      if (this.addWatchSearchTimer) clearTimeout(this.addWatchSearchTimer)
-      this.addWatchSearchTimer = setTimeout(() => {
-        this.addWatchSearchTimer = null
-        this.searchAddWatchSymbols(this.addWatchKeyword)
-      }, 260)
-    },
-    handleAddWatchSearch (keyword) {
-      if (this.addWatchSearchTimer) {
-        clearTimeout(this.addWatchSearchTimer)
-        this.addWatchSearchTimer = null
-      }
-      const kw = String(keyword != null ? keyword : this.addWatchKeyword).trim()
-      this.addWatchKeyword = kw
-      this.searchAddWatchSymbols(kw)
-    },
-    async loadAddWatchHotSymbols () {
-      const seq = ++this.addWatchSearchSeq
-      const market = this.addWatchMarket
-      this.addWatchSearching = true
+    async reloadWatchlistOnly () {
       try {
-        const res = await getHotSymbols({ market, limit: 10 })
-        if (seq !== this.addWatchSearchSeq || market !== this.addWatchMarket) return
-        const data = res.data || {}
-        const list = Array.isArray(data) ? data : (data.results || data.symbols || data.items || [])
-        const normalized = list.map(x => this.normalizeSymbolOption({ ...x, market: x.market || market })).filter(Boolean)
-        this.addWatchResults = mergeWatchlistSuggestions(market, normalized)
-      } catch (_) {
-        if (seq !== this.addWatchSearchSeq || market !== this.addWatchMarket) return
-        this.addWatchResults = mergeWatchlistSuggestions(market)
-      } finally {
-        if (seq === this.addWatchSearchSeq && market === this.addWatchMarket) {
-          this.addWatchSearching = false
+        const res = await getWatchlist()
+        if (res && res.code === 1 && Array.isArray(res.data)) {
+          this.watchlist = res.data.map(item => this.normalizeSymbolOption(item)).filter(Boolean)
+          this.seedSymbolOptions()
+          const prices = await getWatchlistPrices()
+          this.watchlistPrices = this.normalizePriceMap(prices.data || {})
         }
-      }
+      } catch (_) { /* Preserve the current research context and cached list. */ }
     },
-    async searchAddWatchSymbols (keyword) {
-      const kw = String(keyword || '').trim()
-      if (!kw) {
-        await this.loadAddWatchHotSymbols()
-        return
-      }
-      const seq = ++this.addWatchSearchSeq
-      const market = this.addWatchMarket
-      this.addWatchSearching = true
-      this.addWatchSelected = null
-      try {
-        const res = await searchSymbols({ market, keyword: kw, limit: 16 })
-        if (seq !== this.addWatchSearchSeq || market !== this.addWatchMarket || kw !== this.addWatchKeyword.trim()) return
-        const data = res.data || {}
-        const list = Array.isArray(data) ? data : (data.results || data.symbols || data.items || [])
-        const normalized = list.map(x => this.normalizeSymbolOption({ ...x, market: x.market || market })).filter(Boolean)
-        this.addWatchResults = normalized.length ? normalized : this.manualAddWatchFallback(market, kw)
-      } catch (_) {
-        if (seq !== this.addWatchSearchSeq || market !== this.addWatchMarket || kw !== this.addWatchKeyword.trim()) return
-        this.addWatchResults = this.manualAddWatchFallback(market, kw)
-      } finally {
-        if (seq === this.addWatchSearchSeq && market === this.addWatchMarket) {
-          this.addWatchSearching = false
-        }
-      }
-    },
-    manualAddWatchFallback (market, keyword) {
-      const manualMarkets = ['Crypto', 'Forex', 'Futures', 'MOEX']
-      if (!manualMarkets.includes(market)) return []
-      return [{ market, symbol: String(keyword || '').trim().toUpperCase(), name: '' }]
-    },
-    selectAddWatchSymbol (item) {
-      this.addWatchSelected = this.normalizeSymbolOption(item)
-    },
-    async confirmAddWatchSymbol () {
-      const item = this.normalizeSymbolOption(this.addWatchSelected)
-      if (!item || !item.symbol) {
-        this.$message.warning(this.text.addWatchEmptyHint)
-        return
-      }
-      this.addingWatch = true
-      try {
-        const res = await addWatchlist({
-          market: item.market,
-          symbol: item.symbol,
-          name: item.name || item.symbol,
-          exchange_id: item.exchange_id || '',
-          market_type: item.market_type || '',
-          instrument_id: item.instrument_id || '',
-          settle_currency: item.settle_currency || ''
-        })
-        if (!res || res.code === 0) throw new Error((res && res.msg) || this.text.addWatchFailed)
-        this.$message.success(this.text.addWatchSuccess)
-        this.closeAddWatchModal()
-        await this.loadWatchlist()
-      } catch (e) {
-        this.$message.error((e && e.response && e.response.data && e.response.data.msg) || (e && e.message) || this.text.addWatchFailed)
-      } finally {
-        this.addingWatch = false
-      }
-    },
+    watchlistContextLabel (item) { return watchlistContextLabel(item, key => this.$t(key)) },
     async removeWatch (item) {
       const normalized = this.normalizeSymbolOption(item)
       if (!normalized || !normalized.symbol) return
       try {
-        const res = await removeWatchlist({
-          market: normalized.market,
-          symbol: normalized.symbol,
-          exchange_id: normalized.exchange_id || '',
-          market_type: normalized.market_type || '',
-          instrument_id: normalized.instrument_id || ''
-        })
+        const res = await removeWatchlist(watchlistPayload(normalized))
         if (!res || res.code === 0) throw new Error((res && res.msg) || this.text.removeWatchFailed)
         this.$message.success(this.text.removeWatchSuccess)
         if (this.selectedSymbolValue === this.symbolOptionValue(normalized)) {
@@ -1909,6 +1701,7 @@ export default {
         await this.loadWatchlist()
       } catch (e) {
         this.$message.error((e && e.response && e.response.data && e.response.data.msg) || (e && e.message) || this.text.removeWatchFailed)
+        await this.reloadWatchlistOnly()
       }
     },
     selectWatch (item) {
@@ -4199,11 +3992,14 @@ export default {
       const symbol = String(item.symbol || item.code || item.ticker || '').trim()
       if (!symbol) return null
       return {
+        asset_id: Number(item.asset_id || item.assetId || 0),
         market,
+        asset_class: item.asset_class || '',
         symbol: symbol.toUpperCase(),
         name: item.name || item.display_name || item.label || '',
         exchange_id: item.exchange_id || item.exchangeId || '',
-        market_type: item.market_type || item.marketType || (market === 'Crypto' ? 'spot' : ''),
+        market_type: item.market_type || item.marketType || '',
+        market_types: Array.isArray(item.market_types) ? item.market_types : [],
         instrument_id: item.instrument_id || item.instrumentId || '',
         settle_currency: item.settle_currency || item.settleCurrency || '',
         product_type: item.product_type || item.productType || '',
@@ -4227,6 +4023,8 @@ export default {
       return { market: market || this.context.market, symbol: rest.join(':') || '' }
     },
     symbolOptionValue (item) {
+      const assetId = Number(item.asset_id || item.assetId || 0)
+      if (assetId > 0) return `asset:${assetId}`
       return [
         item.market || '',
         item.exchange_id || '',
@@ -4888,6 +4686,8 @@ export default {
       })
     },
     watchKey (item) {
+      const assetId = Number(item.asset_id || item.assetId || 0)
+      if (assetId > 0) return `asset:${assetId}`
       return [
         item.market || '',
         item.exchange_id || '',
@@ -7775,6 +7575,46 @@ body.realdark .copilot-workbench .empty-mini,
 </style>
 
 <style lang="less">
+.copilot-watch-remove-confirm {
+  .ant-popover-message-title {
+    color: #243247;
+  }
+}
+
+body.dark .copilot-watch-remove-confirm,
+body.realdark .copilot-watch-remove-confirm,
+.theme-dark .copilot-watch-remove-confirm {
+  .ant-popover-inner {
+    border: 1px solid #343941;
+    background: #1b1d20;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, .42);
+  }
+
+  .ant-popover-message-title {
+    color: #f2f4f7;
+  }
+
+  .ant-popover-message > .anticon {
+    color: #e6a817;
+  }
+
+  .ant-popover-buttons .ant-btn:not(.ant-btn-primary) {
+    border-color: #454b55;
+    background: #25282d;
+    color: #e7e9ed;
+  }
+
+  .ant-popover-buttons .ant-btn:not(.ant-btn-primary):hover {
+    border-color: #6a727e;
+    color: #fff;
+  }
+
+  .ant-popover-arrow {
+    border-color: #1b1d20 !important;
+    background: #1b1d20;
+  }
+}
+
 .utility-tool-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

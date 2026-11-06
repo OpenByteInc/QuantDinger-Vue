@@ -61,6 +61,7 @@ import humanCompletionOverrides from './human-completion-overrides'
 import reviewedRoundTwoOverrides from './reviewed-round-two-overrides'
 import reviewedStrategyReviewOverrides from './reviewed-strategy-review-overrides'
 import strategyEvolutionReportMessages from './lang/strategy-evolution-report'
+import watchlistAssetMessages from './lang/watchlist-assets'
 
 Vue.use(VueI18n)
 
@@ -126,7 +127,8 @@ const messages = {
     ...(reviewedStrategyReviewOverrides[defaultLang] || {}),
     ...(strategyRunMessages[defaultLang] || {}),
     ...(agentManagementMessages[defaultLang] || {}),
-    ...(strategyEvolutionReportMessages[defaultLang] || {})
+    ...(strategyEvolutionReportMessages[defaultLang] || {}),
+    ...(watchlistAssetMessages[defaultLang] || {})
   }
 }
 
@@ -251,7 +253,8 @@ function mergeLocaleOverrides (lang) {
     ...(reviewedStrategyReviewOverrides[lang] || {}),
     ...(strategyRunMessages[lang] || {}),
     ...(agentManagementMessages[lang] || {}),
-    ...(strategyEvolutionReportMessages[lang] || {})
+    ...(strategyEvolutionReportMessages[lang] || {}),
+    ...(watchlistAssetMessages[lang] || {})
   }
   i18n.setLocaleMessage(lang, {
     ...(i18n.getLocaleMessage(lang) || {}),
@@ -327,7 +330,8 @@ export async function loadLanguageAsync (lang = defaultLang) {
       ...(reviewedStrategyReviewOverrides[lang] || {}),
       ...(strategyRunMessages[lang] || {}),
       ...(agentManagementMessages[lang] || {}),
-      ...(strategyEvolutionReportMessages[lang] || {})
+      ...(strategyEvolutionReportMessages[lang] || {}),
+      ...(watchlistAssetMessages[lang] || {})
     })
     i18n.setLocaleMessage(lang, locale)
     loadedLanguages.push(lang)

@@ -62,7 +62,7 @@ test('hold reports do not present risk reward as actionable', () => {
   assert.match(workbench, /plan\.net_risk_reward \?\? plan\.gross_risk_reward/)
 })
 
-test('symbol search is global and offers an inferred symbol when providers return no matches', () => {
+test('symbol picker is restricted to the mandatory logical watchlist', () => {
   const workbench = read('src/views/ai-analysis/components/CopilotWorkbench.vue')
   const searchMethod = workbench.slice(
     workbench.indexOf('async doSymbolSearch (keyword)'),
@@ -70,8 +70,9 @@ test('symbol search is global and offers an inferred symbol when providers retur
   )
 
   assert.doesNotMatch(searchMethod, /params\.market/)
-  assert.match(searchMethod, /if \(!this\.symbolOptions\.length\)/)
-  assert.match(searchMethod, /this\.inferSymbolFromText\(kw\)/)
+  assert.match(searchMethod, /this\.symbolSearchKeyword/)
+  assert.doesNotMatch(searchMethod, /searchSymbols|searchAssets|inferSymbolFromText/)
+  assert.match(workbench, /selectableSymbols \(\)[\s\S]*?\[\.\.\.this\.watchlist\]/)
   assert.match(workbench, /const plainTicker = value\.trim\(\)\.match/)
   assert.ok(
     workbench.indexOf('const marketPair = value.match') < workbench.indexOf('const pair = value.match'),
@@ -79,7 +80,6 @@ test('symbol search is global and offers an inferred symbol when providers retur
   )
   assert.match(workbench, /FOREX: 'Forex'/)
   assert.match(workbench, /FUTURES: 'Futures'/)
-  assert.match(searchMethod, /symbol: \(inferred && inferred\.symbol\) \|\| kw\.toUpperCase\(\)/)
 })
 
 test('professional report formats prices using the instrument quote currency', () => {

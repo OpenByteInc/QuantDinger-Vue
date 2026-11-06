@@ -228,7 +228,14 @@
                     </div>
                   </a-form-item>
                   <a-form-item v-if="mode === 'portfolio' && form.leverageEnabled" :label="$t('strategyV2.leverageMultiplier')">
-                    <a-input-number v-model="form.leverage" :min="1" :max="maxLeverage" :step="0.5" class="full-width" />
+                    <a-input-number
+                      v-model="form.leverage"
+                      :min="1"
+                      :max="maxLeverage"
+                      :step="0.5"
+                      class="full-width"
+                      @change="handleLeverageChange"
+                    />
                   </a-form-item>
                 </div>
               </section>
@@ -1118,6 +1125,9 @@ export default {
     },
     '$route.query.sourceId' () {
       if (this.pageReady && this.mode === 'portfolio') this.syncRouteSource({ fallback: true })
+    },
+    maxLeverage () {
+      this.handleLeverageChange(this.form.leverage)
     }
   },
   async mounted () {
@@ -1144,6 +1154,11 @@ export default {
     if (this.equityChart) this.equityChart.dispose()
   },
   methods: {
+    handleLeverageChange (value) {
+      const requested = Number(value)
+      const limit = Math.max(1, Number(this.maxLeverage) || 1)
+      this.form.leverage = Math.min(limit, Math.max(1, Number.isFinite(requested) ? requested : 1))
+    },
     themeColorWithAlpha (alpha) {
       const hex = String(this.primaryColor || '#52C41A').trim().replace('#', '')
       const normalized = hex.length === 3 ? hex.split('').map(char => char + char).join('') : hex
@@ -1731,6 +1746,11 @@ export default {
     async run () {
       if (!this.form.sourceId) {
         this.$message.warning(this.$t('strategyV2.sourceContractRequired'))
+        return
+      }
+      if (this.form.leverageEnabled && Number(this.form.leverage) > this.maxLeverage) {
+        this.handleLeverageChange(this.form.leverage)
+        this.$message.warning(this.$t('strategyV2.leverageExceedsStrategyLimit', { max: this.maxLeverage }))
         return
       }
       if (this.form.endDate.isAfter(moment().subtract(1, 'day'), 'day')) {

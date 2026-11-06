@@ -58,17 +58,32 @@
                 </span>
                 <a-select
                   show-search
-                  :filter-option="false"
+                  option-label-prop="label"
+                  :filter-option="filterRuntimeSymbolOption"
                   :value="runtimeSymbolValue"
                   :loading="runtimeSymbolLoading"
                   :placeholder="$t('strategyBuilder.symbolPlaceholder')"
-                  @search="searchRuntimeSymbols"
+                  :dropdown-class-name="isDarkTheme ? 'watchlist-select-dropdown watchlist-select-dropdown--dark' : 'watchlist-select-dropdown'"
                   @change="handleRuntimeSymbolChange"
                   @dropdownVisibleChange="onRuntimeSymbolDropdownVisibleChange">
-                  <a-select-option v-for="option in runtimeSymbolOptions" :key="option.value" :value="option.value">
+                  <a-select-option
+                    v-for="option in runtimeSymbolOptions"
+                    :key="option.value"
+                    :value="option.value"
+                    :label="option.symbol"
+                    :title="[option.symbol, option.context_label].filter(Boolean).join(' · ')">
                     <span class="runtime-symbol-option">
-                      <a-icon v-if="option.is_watchlist" type="star" theme="filled" />
-                      <span>{{ option.label }}</span>
+                      <span class="runtime-symbol-market" :class="'runtime-symbol-market--' + String(option.market || '').toLowerCase()">
+                        {{ runtimeOptionMarketLabel(option.market) }}
+                      </span>
+                      <strong>{{ option.symbol }}</strong>
+                      <span class="runtime-symbol-context">{{ option.context_label }}</span>
+                    </span>
+                  </a-select-option>
+                  <a-select-option key="__add__" value="__add__" class="runtime-symbol-add-option">
+                    <span class="runtime-symbol-add-row">
+                      <a-icon type="plus" />
+                      <span>{{ $t('watchlistAssets.add') }}</span>
                     </span>
                   </a-select-option>
                 </a-select>
@@ -90,20 +105,6 @@
                     <a-select-option v-for="timeframe in runtimeTimeframes" :key="timeframe" :value="timeframe">{{ timeframe }}</a-select-option>
                   </a-select>
                 </div>
-                <div v-if="sourceRuntimeContract.hasExchange && runtimeDraft.market_category === 'Crypto'" class="strategy-runtime-field strategy-runtime-field--exchange">
-                  <span>{{ $t('strategyBuilder.exchange') }}</span>
-                  <a-select :value="runtimeDraft.exchange_id" @change="setRuntimeDraft('exchange_id', $event)">
-                    <a-select-option v-for="exchange in runtimeExchangeOptions" :key="exchange.value" :value="exchange.value">
-                      {{ exchange.label }}
-                    </a-select-option>
-                  </a-select>
-                </div>
-              </div>
-              <div v-if="runtimeDirty" class="strategy-runtime-editor__footer">
-                <span><a-icon type="info-circle" /> {{ $t('strategyV2.sourceEditHint') }}</span>
-                <a-button size="small" type="primary" :loading="savingSourceRuntime" :disabled="!runtimeDirty" @click="applySourceRuntimeConfig">
-                  {{ $t('strategyV2.applySourceRuntime') }}
-                </a-button>
               </div>
             </div>
             <div v-else class="strategy-v2-summary__instrument">
@@ -151,10 +152,22 @@
                       <div v-if="parameterDescription(param)" class="parameter-description">{{ parameterDescription(param) }}</div>
                     </a-form-item>
                   </div>
-                  <p class="parameter-contract-hint">{{ $t('strategyBuilder.sourceContractHint') }}</p>
+                  <p class="parameter-contract-hint">{{ $t('strategyCenter.editor.deploymentParametersHint') }}</p>
                 </div>
               </a-collapse-panel>
             </a-collapse>
+            <div v-if="canEditSourceDefinition" class="strategy-source-apply">
+              <span><a-icon type="info-circle" /> {{ $t('strategyCenter.editor.sourceChangesHint') }}</span>
+              <a-button
+                size="small"
+                type="primary"
+                :loading="savingSourceRuntime"
+                :disabled="!sourceDefinitionDirty"
+                @click="applySourceDefinitionChanges"
+              >
+                {{ $t('strategyCenter.editor.applySourceChanges') }}
+              </a-button>
+            </div>
           </div>
         </a-form>
       </section>
@@ -191,23 +204,27 @@
                 <span class="execution-mode-card__icon" aria-hidden="true"><a-icon type="notification" /></span>
                 <span class="execution-mode-card__copy">
                   <strong>{{ $t('trading-assistant.form.executionModeSignal') }}</strong>
-                  <span>{{ $t('trading-assistant.form.executionModeSignalDesc') }}</span>
+                  <span>{{ $t('strategyCenter.editor.signalExecutionModeDesc') }}</span>
                 </span>
               </a-radio>
             </a-radio-group>
           </div>
 
           <div class="deployment-finance-grid">
-            <a-form-item :label="$t(capitalIsMargin ? 'trading-assistant.form.initialMargin' : 'trading-assistant.form.initialCapital')" required>
+            <a-form-item :label="$t(capitalFieldLabelKey)" required>
               <a-input-number v-model="model.initialCapital" :min="1" :max="1000000000" :precision="2" :step="1000" />
               <div v-if="capitalCurrency" class="field-hint">
-                {{ $t('strategyV2.capitalCurrencyHint', { currency: capitalCurrency }) }}
+                {{ $t(model.executionMode === 'signal' ? 'strategyCenter.editor.paperCapitalCurrencyHint' : 'strategyV2.capitalCurrencyHint', { currency: capitalCurrency }) }}
+              </div>
+              <div v-else class="field-hint">
+                {{ $t(model.executionMode === 'signal' ? 'strategyCenter.editor.paperCapitalGenericHint' : 'strategyCenter.editor.capitalCurrencyGenericHint') }}
               </div>
               <div v-if="capitalIsMargin" class="field-hint field-hint--notional">
-                {{ $t('trading-assistant.form.marginNotionalCapacity', {
+                {{ $t(capitalCurrency ? 'strategyCenter.editor.marginNotionalCapacity' : 'strategyCenter.editor.marginNotionalCapacityGeneric', {
                   margin: formattedInitialCapital,
                   leverage: effectiveLeverage,
-                  notional: formattedNotionalCapacity
+                  notional: formattedNotionalCapacity,
+                  currency: capitalCurrency
                 }) }}
               </div>
             </a-form-item>
@@ -289,7 +306,15 @@
               </div>
 
               <div class="live-connection-grid">
-                <a-form-item :label="$t('trading-assistant.form.savedCredential')" required>
+                <a-form-item required>
+                  <template #label>
+                    <span class="credential-field-label">
+                      <span>{{ $t('trading-assistant.form.savedCredential') }}</span>
+                      <a-button type="link" size="small" icon="plus" @click.stop="openBrokerAccounts">
+                        {{ $t('strategyCenter.editor.addAccount') }}
+                      </a-button>
+                    </span>
+                  </template>
                   <a-select
                     v-model="model.credentialId"
                     :loading="loadingCredentials"
@@ -309,8 +334,7 @@
             </div>
           </transition>
 
-          <a-collapse v-model="expandedSections" :bordered="false" class="deploy-collapse deploy-collapse--advanced">
-            <a-collapse-panel key="advanced" :header="$t('trading-assistant.form.advancedSettings')">
+          <div class="deployment-options">
               <div v-if="model.executionMode === 'live' && requiresDirectionFallback" class="advanced-field">
                 <strong>{{ $t('strategyCenter.editor.directionMode') }}</strong>
                 <a-radio-group v-model="model.directionMode" class="full-radio-group">
@@ -358,36 +382,48 @@
                   </a-checkbox>
                 </a-checkbox-group>
               </div>
-            </a-collapse-panel>
-          </a-collapse>
+          </div>
         </a-form>
       </section>
 
-      <div v-if="model.scriptSourceId && hasCurrentContract && model.executionMode === 'live'" class="deployment-consent-row">
-        <a-checkbox v-model="model.disclaimer">
-          {{ $t('trading-assistant.liveDisclaimer.agree') }}
-        </a-checkbox>
-        <a-popover
-          trigger="click"
-          placement="topRight"
-          :overlay-class-name="isDarkTheme ? 'deployment-disclaimer-popover deployment-disclaimer-popover--dark' : 'deployment-disclaimer-popover'">
-          <template #title>{{ $t('trading-assistant.liveDisclaimer.title') }}</template>
-          <template #content>
-            <p>{{ $t('trading-assistant.liveDisclaimer.content') }}</p>
-          </template>
-          <a-button type="link" class="deployment-consent-row__link">
-            {{ $t('trading-assistant.liveDisclaimer.view') }}
-          </a-button>
-        </a-popover>
-      </div>
       </a-spin>
     </div>
 
+    <add-watchlist-modal
+      :visible="showRuntimeAddWatchlist"
+      :markets="runtimeAddMarketKeys"
+      :watchlist="runtimeWatchlistRows"
+      :initial-market="runtimeDraft.market_category || 'Crypto'"
+      @close="showRuntimeAddWatchlist = false"
+      @added="handleRuntimeWatchlistAdded"
+    />
+
     <template #footer>
-      <a-button @click="close">{{ $t('trading-assistant.form.cancel') }}</a-button>
-      <a-button type="primary" :loading="saving || sourceContractLoading" @click="save">
-        {{ $t(isEdit ? 'trading-assistant.form.confirmEdit' : 'trading-assistant.form.confirmCreate') }}
-      </a-button>
+      <div class="deployment-modal-footer">
+        <div v-if="model.scriptSourceId && hasCurrentContract && model.executionMode === 'live'" class="deployment-consent-row">
+          <a-checkbox v-model="model.disclaimer">
+            {{ $t('trading-assistant.liveDisclaimer.agree') }}
+          </a-checkbox>
+          <a-popover
+            trigger="click"
+            placement="topRight"
+            :overlay-class-name="isDarkTheme ? 'deployment-disclaimer-popover deployment-disclaimer-popover--dark' : 'deployment-disclaimer-popover'">
+            <template #title>{{ $t('trading-assistant.liveDisclaimer.title') }}</template>
+            <template #content>
+              <p>{{ $t('trading-assistant.liveDisclaimer.content') }}</p>
+            </template>
+            <a-button type="link" class="deployment-consent-row__link">
+              {{ $t('trading-assistant.liveDisclaimer.view') }}
+            </a-button>
+          </a-popover>
+        </div>
+        <div class="deployment-modal-footer__actions">
+          <a-button @click="close">{{ $t('trading-assistant.form.cancel') }}</a-button>
+          <a-button type="primary" :loading="saving || sourceContractLoading" @click="save">
+            {{ $t(isEdit ? 'trading-assistant.form.confirmEdit' : 'trading-assistant.form.confirmCreate') }}
+          </a-button>
+        </div>
+      </div>
     </template>
   </a-modal>
 </template>
@@ -396,8 +432,11 @@
 import { compileScriptSource, createStrategy, getScriptSourceDetail, getScriptSourceList, getStrategyDetail, updateScriptSource, updateStrategy } from '@/api/strategy'
 import { mapState } from 'vuex'
 import { listExchangeCredentials } from '@/api/credentials'
-import { getWatchlist, searchSymbols } from '@/api/market'
+import { getWatchlist } from '@/api/market'
 import { getNotificationSettings } from '@/api/user'
+import AddWatchlistModal from '@/components/Watchlist/AddWatchlistModal.vue'
+import { loadEnabledMarketOptions } from '@/utils/marketModules'
+import { groupWatchlistAssets, watchlistAssetKey, watchlistContextLabel } from '@/utils/watchlistAssets'
 import {
   credentialMatchesLiveStrategy,
   formatExchangeCredentialLabel,
@@ -407,6 +446,7 @@ import {
 
 import {
   applyStrategyRuntimeConfigToCode,
+  buildScriptCodeWithParamValues,
   extractScriptParamsFromCode,
   extractStrategyRuntimeContractFromCode,
   sanitizeRuntimeConfigForSource
@@ -423,6 +463,28 @@ import { ratioPercentInputFormatter, ratioPercentInputParser } from '@/utils/num
 const PLATFORM_MAX_LEVERAGE = 100
 const DEFAULT_CHANNELS = ['browser', 'email']
 const RUNTIME_TIMEFRAMES = ['1m', '5m', '15m', '30m', '1H', '4H', '1D', '1W']
+const MARKET_ACCOUNTING_CURRENCIES = {
+  USStock: 'USD',
+  HKStock: 'HKD',
+  CNStock: 'CNY',
+  AStock: 'CNY'
+}
+const instrumentAccountingCurrency = (market, symbol, instrument = {}) => {
+  const explicit = String(
+    instrument.settlement_currency ||
+    instrument.settle_currency ||
+    instrument.quote_currency ||
+    instrument.currency ||
+    ''
+  ).trim().toUpperCase()
+  if (explicit) return explicit
+  const marketCurrency = MARKET_ACCOUNTING_CURRENCIES[String(market || '')]
+  if (marketCurrency) return marketCurrency
+  const normalizedSymbol = String(symbol || '').replace(/^[^:]+:/, '').split('@')[0].trim().toUpperCase()
+  if (normalizedSymbol.includes('/')) return normalizedSymbol.split('/').pop()
+  if (String(market || '') === 'Forex' && /^[A-Z]{6}$/.test(normalizedSymbol)) return normalizedSymbol.slice(-3)
+  return ''
+}
 const DIRECTION_MODE_ALIASES = {
   long: 'long_only',
   longonly: 'long_only',
@@ -495,6 +557,7 @@ const notificationTargets = settings => ({
 
 export default {
   name: 'LiveStrategyEditor',
+  components: { AddWatchlistModal },
   props: {
     visible: { type: Boolean, default: false },
     mode: { type: String, default: 'create' },
@@ -519,10 +582,12 @@ export default {
       runtimeOriginal: {},
       runtimeSymbolOptions: [],
       runtimeWatchlistOptions: [],
+      runtimeWatchlistRows: [],
       runtimeSymbolLoading: false,
       runtimeWatchlistLoading: false,
       runtimeTimeframes: [...RUNTIME_TIMEFRAMES],
-      runtimeSymbolSearchTimer: null,
+      runtimeAddMarketKeys: [],
+      showRuntimeAddWatchlist: false,
       originalStrategy: null,
       notificationSettings: {},
       notificationChannels: ['browser', 'email', 'telegram', 'discord', 'webhook', 'phone'],
@@ -621,27 +686,33 @@ export default {
     capitalIsMargin () {
       return this.supportsStrategyV2Leverage
     },
+    capitalFieldLabelKey () {
+      if (this.model.executionMode === 'signal') {
+        return this.capitalIsMargin
+          ? 'strategyCenter.editor.paperInitialMargin'
+          : 'strategyCenter.editor.paperInitialCapital'
+      }
+      return this.capitalIsMargin
+        ? 'trading-assistant.form.initialMargin'
+        : 'trading-assistant.form.initialCapital'
+    },
     platformMaxLeverage () {
       return this.supportsStrategyV2Leverage ? PLATFORM_MAX_LEVERAGE : 1
     },
     capitalCurrency () {
+      const runtimeMarket = String(this.runtimeDraft.market_category || '')
+      const runtimeSymbol = String(this.runtimeDraft.symbol || '')
+      if (this.canEditSourceRuntime && runtimeMarket && runtimeSymbol) {
+        return instrumentAccountingCurrency(runtimeMarket, runtimeSymbol, this.runtimeDraft)
+      }
       const universe = this.parseObject(this.strategyManifest.universe)
       if (universe.reference) {
-        return {
-          USStock: 'USD',
-          HKStock: 'HKD',
-          CNStock: 'CNY'
-        }[this.marketCategory] || ''
+        return MARKET_ACCOUNTING_CURRENCIES[this.marketCategory] || ''
       }
       const instruments = Array.isArray(universe.instruments) ? universe.instruments : []
-      const currencies = new Set(instruments.map(item => {
-        const market = String(item.market || '')
-        if (market === 'USStock') return 'USD'
-        if (market === 'HKStock') return 'HKD'
-        if (market === 'CNStock') return 'CNY'
-        const symbol = String(item.symbol || '').toUpperCase()
-        return symbol.includes('/') ? symbol.split('/').pop() : ''
-      }).filter(Boolean))
+      const currencies = new Set(instruments
+        .map(item => instrumentAccountingCurrency(item.market, item.symbol, item))
+        .filter(Boolean))
       return currencies.size === 1 ? Array.from(currencies)[0] : ''
     },
     effectiveLeverage () {
@@ -722,6 +793,29 @@ export default {
         String(this.sourceDetail.code || '').trim()
       )
     },
+    canEditSourceParameters () {
+      const hidden = Boolean(this.sourceDetail.code_hidden || this.sourceMetadata.code_hidden)
+      const running = String(this.sourceDetail.status || '').toLowerCase() === 'running'
+      return Boolean(
+        this.model.scriptSourceId &&
+        !hidden &&
+        !running &&
+        this.parameterDefinitions.length &&
+        String(this.sourceDetail.code || '').trim()
+      )
+    },
+    canEditSourceDefinition () {
+      return this.canEditSourceRuntime || this.canEditSourceParameters
+    },
+    sourceParametersDirty () {
+      if (!this.canEditSourceParameters) return false
+      const sourceValues = this.buildParameterValues(this.sourceParameterValues)
+      const draftValues = this.buildParameterValues(this.model.templateParams)
+      return JSON.stringify(sourceValues) !== JSON.stringify(draftValues)
+    },
+    sourceDefinitionDirty () {
+      return this.runtimeDirty || this.sourceParametersDirty
+    },
     runtimeExchangeOptions () {
       return CRYPTO_EXCHANGE_IDS.map(value => ({
         value,
@@ -741,7 +835,11 @@ export default {
       return fields.some(field => String(this.runtimeDraft[field] || '') !== String(this.runtimeOriginal[field] || ''))
     },
     sourceParameterValues () {
+      const metadata = this.sourceMetadata
+      const lastRunConfig = this.parseObject(metadata.last_run_config)
       return {
+        ...this.parseObject(metadata.script_template_params),
+        ...this.parseObject(lastRunConfig.script_template_params),
         ...this.parseObject(this.sourceDetail.template_params)
       }
     },
@@ -773,9 +871,6 @@ export default {
         if (value) this.initialize()
       }
     }
-  },
-  beforeDestroy () {
-    if (this.runtimeSymbolSearchTimer) clearTimeout(this.runtimeSymbolSearchTimer)
   },
   methods: {
     defaultModel () {
@@ -821,6 +916,8 @@ export default {
       this.runtimeOriginal = {}
       this.runtimeSymbolOptions = []
       this.runtimeWatchlistOptions = []
+      this.runtimeWatchlistRows = []
+      this.showRuntimeAddWatchlist = false
       this.originalStrategy = null
       this.loading = true
       try {
@@ -985,6 +1082,7 @@ export default {
       const firstInstrument = this.manifestInstruments[0] || {}
       const market = String(inferred.market_category || firstInstrument.market || this.marketCategory || 'Crypto')
       const next = {
+        asset_id: Number(inferred.asset_id || firstInstrument.asset_id || 0),
         market_category: market,
         symbol: String(inferred.symbol || firstInstrument.symbol || '').trim().toUpperCase(),
         market_type: normalizeMarketType(inferred.market_type || firstInstrument.market_type, market),
@@ -1000,27 +1098,53 @@ export default {
     },
     runtimeSymbolMatchesDraft (option) {
       if (!option) return false
-      return option.symbol === String(this.runtimeDraft.symbol || '').trim().toUpperCase() &&
-        option.market === this.runtimeDraft.market_category &&
-        (option.market !== 'Crypto' || option.market_type === this.runtimeDraft.market_type) &&
-        (!this.sourceRuntimeContract.hasExchange || !option.exchange_id || option.exchange_id === this.runtimeDraft.exchange_id)
+      const assetId = Number(this.runtimeDraft.asset_id || 0)
+      return option.market === this.runtimeDraft.market_category &&
+        (assetId > 0
+          ? option.asset_id === assetId
+          : option.symbol === String(this.runtimeDraft.symbol || '').trim().toUpperCase())
+    },
+    normalizeRuntimeSymbolOptions (rows, isWatchlist = false) {
+      return groupWatchlistAssets(Array.isArray(rows) ? rows : []).map(group => {
+        const marketTypes = [...new Set(group.items.flatMap(item => {
+          if (Array.isArray(item.market_types)) return item.market_types
+          return item.market_type || item.marketType ? [item.market_type || item.marketType] : []
+        }))]
+        return this.normalizeRuntimeSymbolOption({ ...group.item, market_types: marketTypes }, isWatchlist)
+      }).filter(Boolean)
     },
     normalizeRuntimeSymbolOption (item, isWatchlist = false) {
       const symbol = String((item && (item.symbol || item.code || item.value)) || '').trim().toUpperCase()
       if (!symbol) return null
       const market = String((item && (item.market || item.category)) || 'Crypto')
-      const exchangeId = normalizeExchangeId(item && (item.exchange_id || item.exchangeId))
-      const marketType = normalizeMarketType(item && (item.market_type || item.marketType), market)
+      const assetId = Number((item && (item.asset_id || item.assetId)) || 0)
+      const marketTypes = Array.isArray(item && item.market_types)
+        ? item.market_types.map(value => normalizeMarketType(value, market))
+        : (item && (item.market_type || item.marketType)
+            ? [normalizeMarketType(item.market_type || item.marketType, market)]
+            : [])
+      const marketType = market === 'Crypto' ? (marketTypes[0] || 'spot') : 'spot'
       const instrumentId = String((item && (item.instrument_id || item.instrumentId)) || '').trim()
       const name = String((item && (item.name || item.display_name)) || '').trim()
+      const productType = String((item && (item.product_type || item.productType)) || (market === 'Crypto' ? 'crypto' : 'equity')).toLowerCase()
       return {
-        value: [market, exchangeId, marketType, instrumentId, symbol].join('|'),
+        value: assetId > 0 ? `asset:${assetId}` : [market, symbol, productType].join('|'),
         label: [symbol, name, market].filter(Boolean).join(' · '),
+        name,
+        context_label: watchlistContextLabel({
+          ...item,
+          name,
+          symbol,
+          product_type: productType,
+          market_types: marketTypes
+        }, key => this.$t(key)),
+        asset_id: assetId,
         market,
         symbol,
-        exchange_id: exchangeId,
         market_type: marketType,
+        market_types: marketTypes,
         instrument_id: instrumentId,
+        product_type: productType,
         is_watchlist: isWatchlist
       }
     },
@@ -1029,8 +1153,8 @@ export default {
       if (!symbol || this.runtimeSymbolOptions.some(item => this.runtimeSymbolMatchesDraft(item))) return
       const current = this.normalizeRuntimeSymbolOption({
         market: this.runtimeDraft.market_category,
+        asset_id: this.runtimeDraft.asset_id,
         symbol,
-        exchange_id: this.runtimeDraft.exchange_id,
         market_type: this.runtimeDraft.market_type,
         instrument_id: this.runtimeDraft.instrument_id
       })
@@ -1044,9 +1168,8 @@ export default {
         const res = await getWatchlist()
         const data = res && res.data
         const list = Array.isArray(data) ? data : ((data && data.watchlist) || [])
-        this.runtimeWatchlistOptions = list
-          .map(item => this.normalizeRuntimeSymbolOption(item, true))
-          .filter(Boolean)
+        this.runtimeWatchlistRows = list
+        this.runtimeWatchlistOptions = this.normalizeRuntimeSymbolOptions(list, true)
         this.runtimeSymbolOptions = [...this.runtimeWatchlistOptions]
       } catch (error) {
         if (!this.runtimeWatchlistOptions.length) this.runtimeSymbolOptions = []
@@ -1057,44 +1180,54 @@ export default {
       }
     },
     onRuntimeSymbolDropdownVisibleChange (visible) {
-      if (visible && !this.runtimeWatchlistOptions.length) this.loadRuntimeWatchlistOptions()
+      if (visible) this.loadRuntimeWatchlistOptions()
     },
-    searchRuntimeSymbols (keyword) {
-      if (this.runtimeSymbolSearchTimer) clearTimeout(this.runtimeSymbolSearchTimer)
-      this.runtimeSymbolSearchTimer = setTimeout(() => this.loadRuntimeSymbols(keyword), 280)
+    filterRuntimeSymbolOption (input, option) {
+      const props = option && option.componentOptions && option.componentOptions.propsData
+      const query = String(input || '').trim().toLowerCase()
+      if (!query) return true
+      return [props && props.label, props && props.title, props && props.value]
+        .filter(Boolean)
+        .some(value => String(value).toLowerCase().includes(query))
     },
-    async loadRuntimeSymbols (keyword) {
-      const term = String(keyword || '').trim()
-      if (!term) {
-        this.runtimeSymbolOptions = [...this.runtimeWatchlistOptions]
-        this.ensureCurrentRuntimeSymbolOption()
-        return
+    runtimeOptionMarketLabel (market) {
+      const value = String(market || '')
+      const key = `dashboard.analysis.market.${value}`
+      const translated = this.$t(key)
+      return translated === key ? value : translated
+    },
+    async openRuntimeWatchlistModal () {
+      if (!this.runtimeAddMarketKeys.length) {
+        const options = await loadEnabledMarketOptions({ includeFeatures: ['research'] })
+        this.runtimeAddMarketKeys = options.map(item => item.value)
       }
-      this.runtimeSymbolLoading = true
-      try {
-        const res = await searchSymbols({ keyword: term, limit: 20 })
-        const data = res && res.data
-        const list = Array.isArray(data) ? data : ((data && (data.results || data.symbols || data.items)) || [])
-        this.runtimeSymbolOptions = list.map(item => this.normalizeRuntimeSymbolOption(item)).filter(Boolean)
-      } catch (error) {
-        this.runtimeSymbolOptions = []
-      } finally {
-        this.ensureCurrentRuntimeSymbolOption()
-        this.runtimeSymbolLoading = false
-      }
+      this.showRuntimeAddWatchlist = true
+    },
+    async handleRuntimeWatchlistAdded (item) {
+      await this.loadRuntimeWatchlistOptions()
+      const key = watchlistAssetKey(item)
+      const option = this.runtimeWatchlistOptions.find(candidate => watchlistAssetKey(candidate) === key)
+      if (option) this.handleRuntimeSymbolChange(option.value)
     },
     handleRuntimeSymbolChange (value) {
+      if (value === '__add__') {
+        this.openRuntimeWatchlistModal()
+        return
+      }
       if (!this.sourceRuntimeContract.hasInstrument) return
       const selected = this.runtimeSymbolOptions.find(option => option.value === value)
       if (!selected) return
       const patch = {
+        asset_id: selected.asset_id,
         market_category: selected.market,
         symbol: selected.symbol,
         instrument_id: selected.instrument_id || ''
       }
       if (selected.market === 'Crypto') {
-        patch.market_type = selected.market_type || this.runtimeDraft.market_type || 'spot'
-        patch.exchange_id = selected.exchange_id || this.runtimeDraft.exchange_id || 'binance'
+        const currentType = normalizeMarketType(this.runtimeDraft.market_type, 'Crypto')
+        patch.market_type = selected.market_types.includes(currentType)
+          ? currentType
+          : (selected.market_types[0] || currentType)
       } else {
         patch.market_type = 'spot'
         patch.exchange_id = ''
@@ -1127,39 +1260,87 @@ export default {
       if (!this.runtimeDirty) return true
       this.savingSourceRuntime = true
       try {
-        const code = applyStrategyRuntimeConfigToCode(this.sourceDetail.code || '', this.runtimeDraft)
-        if (!code || code === this.sourceDetail.code) {
+        const runtimeCode = applyStrategyRuntimeConfigToCode(this.sourceDetail.code || '', this.runtimeDraft)
+        if (!runtimeCode || runtimeCode === this.sourceDetail.code) {
           throw new Error(this.$t('strategyV2.sourceRuntimeUnsupported'))
         }
+        const templateParams = this.buildParameterValues(this.sourceParameterValues)
+        const code = runtimeCode
         const metadata = this.sourceMetadata
-        const description = this.sourceDetail.description || metadata.description || ''
         const lastRunConfig = sanitizeRuntimeConfigForSource(this.parseObject(metadata.last_run_config), code)
-        const res = await updateScriptSource(Number(this.model.scriptSourceId), {
-          name: this.sourceDetail.name || this.sourceDetail.title || this.sourceDetail.strategy_name || '',
-          description,
+        await this.persistSourceDefinition({
           code,
-          asset_type: this.sourceDetail.asset_type || 'script',
-          template_key: this.sourceDetail.template_key || '',
-          param_schema: this.parseObject(this.sourceDetail.param_schema),
-          template_params: { ...this.sourceParameterValues },
-          metadata: {
-            ...metadata,
-            description,
-            last_run_config: {
-              ...lastRunConfig,
-              ...this.runtimeDraft
-            },
-            script_template_params: { ...this.sourceParameterValues },
-            lifecycle_verified: false,
-            script_verified: false
-          }
+          templateParams,
+          lastRunConfig: {
+            ...lastRunConfig,
+            ...this.runtimeDraft
+          },
+          failureKey: 'strategyV2.sourceRuntimeUpdateFailed'
         })
-        if (!res || res.code !== 1) throw new Error((res && res.msg) || this.$t('strategyV2.sourceRuntimeUpdateFailed'))
-        await this.loadSourceDetail(this.model.scriptSourceId, false)
         if (!silentSuccess) this.$message.success(this.$t('strategyV2.sourceRuntimeUpdated'))
         return true
       } catch (error) {
         this.$message.error(error.backendMessage || error.message || this.$t('strategyV2.sourceRuntimeUpdateFailed'))
+        return false
+      } finally {
+        this.savingSourceRuntime = false
+      }
+    },
+    async persistSourceDefinition ({ code, templateParams, lastRunConfig, failureKey }) {
+      const metadata = this.sourceMetadata
+      const description = this.sourceDetail.description || metadata.description || ''
+      const res = await updateScriptSource(Number(this.model.scriptSourceId), {
+        name: this.sourceDetail.name || this.sourceDetail.title || this.sourceDetail.strategy_name || '',
+        description,
+        code,
+        asset_type: this.sourceDetail.asset_type || 'script',
+        template_key: this.sourceDetail.template_key || '',
+        param_schema: this.parseObject(this.sourceDetail.param_schema),
+        template_params: { ...templateParams },
+        metadata: {
+          ...metadata,
+          description,
+          last_run_config: { ...lastRunConfig },
+          script_template_params: { ...templateParams },
+          lifecycle_verified: false,
+          script_verified: false
+        }
+      })
+      if (!res || res.code !== 1) throw new Error((res && res.msg) || this.$t(failureKey))
+      await this.loadSourceDetail(this.model.scriptSourceId, false)
+    },
+    async applySourceDefinitionChanges () {
+      if (!this.canEditSourceDefinition || !this.sourceDefinitionDirty) return false
+      this.savingSourceRuntime = true
+      try {
+        const sourceCode = this.sourceDetail.code || ''
+        let code = sourceCode
+        if (this.runtimeDirty) {
+          code = applyStrategyRuntimeConfigToCode(code, this.runtimeDraft)
+          if (!code || code === sourceCode) throw new Error(this.$t('strategyV2.sourceRuntimeUnsupported'))
+        }
+        const templateParams = this.sourceParametersDirty
+          ? this.buildParameterValues(this.model.templateParams)
+          : this.buildParameterValues(this.sourceParameterValues)
+        if (this.sourceParametersDirty) {
+          code = buildScriptCodeWithParamValues(code, this.parameterDefinitions, templateParams)
+        }
+        const metadata = this.sourceMetadata
+        const lastRunConfig = sanitizeRuntimeConfigForSource(this.parseObject(metadata.last_run_config), code)
+        await this.persistSourceDefinition({
+          code,
+          templateParams,
+          lastRunConfig: {
+            ...lastRunConfig,
+            ...(this.runtimeDirty ? this.runtimeDraft : {}),
+            script_template_params: { ...templateParams }
+          },
+          failureKey: 'strategyCenter.editor.sourceChangesApplyFailed'
+        })
+        this.$message.success(this.$t('strategyCenter.editor.sourceChangesApplied'))
+        return true
+      } catch (error) {
+        this.$message.error(error.backendMessage || error.message || this.$t('strategyCenter.editor.sourceChangesApplyFailed'))
         return false
       } finally {
         this.savingSourceRuntime = false
@@ -1394,8 +1575,12 @@ export default {
   .editor-section { max-width: 100%; }
   .ant-modal-body { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; overflow: hidden; padding: 0; }
   .ant-spin-container { overflow-x: hidden; }
-  .ant-modal-footer { flex: 0 0 auto; padding: 12px 24px; border-top-color: #e8ebf0; background: #fff; }
+  .ant-modal-footer { flex: 0 0 auto; padding: 12px 24px; border-top-color: #e8ebf0; background: #fff; text-align: initial; }
   .ant-modal-footer .ant-btn { min-width: 82px; height: 34px; border-radius: 5px; }
+  .deployment-modal-footer { display: flex; align-items: center; justify-content: flex-end; gap: 20px; width: 100%; min-height: 34px; }
+  .deployment-modal-footer .deployment-consent-row { flex: 1 1 auto; min-width: 0; margin: 0; text-align: left; }
+  .deployment-modal-footer__actions { display: flex; flex: 0 0 auto; align-items: center; gap: 8px; }
+  .deployment-modal-footer__actions .ant-btn + .ant-btn { margin-left: 0; }
   .editor-content-scroll { flex: 1 1 auto; min-height: 0; max-height: calc(88vh - 108px); overflow-x: hidden; overflow-y: auto; padding: 16px 20px 20px; overscroll-behavior: contain; }
   .ant-alert-info .ant-alert-icon { color: var(--primary-color, #1890ff); }
   .editor-section { width: 100%; max-width: 860px; margin: 0 auto; }
@@ -1427,9 +1612,9 @@ export default {
   .strategy-runtime-product { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
   .strategy-runtime-product .ant-radio-button-wrapper { min-width: 0; height: 38px; padding: 0 12px; overflow: hidden; line-height: 36px; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
   .strategy-runtime-product .ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled) { border-color: var(--primary-color, #52c41a) !important; background: color-mix(in srgb, var(--primary-color, #52c41a) 9%, #fff) !important; color: var(--primary-color, #52c41a) !important; box-shadow: -1px 0 0 0 var(--primary-color, #52c41a) !important; }
-  .strategy-runtime-editor__footer { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 10px 12px; border-radius: 6px; background: color-mix(in srgb, var(--primary-color, #faad14) 6%, transparent); color: #7c8796; font-size: 11px; line-height: 1.45; }
-  .strategy-runtime-editor__footer > span { min-width: 0; }
-  .strategy-runtime-editor__footer .ant-btn { flex: 0 0 auto; height: 34px; padding: 0 16px; border-radius: 6px; }
+  .strategy-source-apply { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 12px; padding: 10px 12px; border-radius: 6px; background: color-mix(in srgb, var(--primary-color, #faad14) 6%, transparent); color: #7c8796; font-size: 11px; line-height: 1.45; }
+  .strategy-source-apply > span { min-width: 0; }
+  .strategy-source-apply .ant-btn { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; height: 34px; padding: 0 16px; border-radius: 6px; }
   .runtime-symbol-option { display: inline-flex; align-items: center; gap: 7px; }
   .runtime-symbol-option .anticon-star { color: #faad14; }
   .strategy-v2-summary__instrument { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin: 0; padding: 14px; background: transparent; }
@@ -1502,6 +1687,8 @@ export default {
   .notification-card > span:last-child { min-width: 0; padding-left: 9px; white-space: normal; }
   .notification-card__content { display: inline-flex; align-items: center; gap: 8px; min-width: 0; color: #354052; font-size: 12px; font-weight: 600; white-space: normal; overflow-wrap: anywhere; }
   .credential-config-link { display: inline-block; margin-left: 4px; color: var(--primary-color, #faad14); font-weight: 600; }
+  .credential-field-label { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; }
+  .credential-field-label .ant-btn { display: inline-flex; align-items: center; height: 24px; padding: 0; font-size: 12px; }
   .notification-card__content .anticon { color: #7d8794; font-size: 15px; }
   .notification-card.is-selected .notification-card__content .anticon { color: var(--primary-color, #faad14); }
   .deploy-collapse { overflow: hidden; border: 0; background: transparent; }
@@ -1513,8 +1700,7 @@ export default {
   .deploy-collapse .ant-collapse-content > .ant-collapse-content-box { padding: 14px; }
   .deploy-collapse__title { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; }
   .deploy-collapse__title .ant-tag { margin-right: 0; }
-  .deploy-collapse--advanced .ai-decision-filter-card { margin-bottom: 12px; }
-  .deploy-collapse--advanced .execution-panel { padding: 0; border: 0; background: transparent; }
+  .deployment-options { display: grid; gap: 12px; padding-top: 2px; }
   .strategy-v2-summary .deploy-collapse > .ant-collapse-item > .ant-collapse-header { border-top-color: #e7eaf0; }
   .editor-reveal-enter-active,
   .editor-reveal-leave-active { transition: opacity .18s ease, transform .18s ease; }
@@ -1579,7 +1765,7 @@ export default {
     .strategy-v2-summary__instrument em { color: #8c949f; }
     .strategy-runtime-editor { background: transparent; }
     .strategy-runtime-field { color: #dfe4e9; }
-    .strategy-runtime-editor__footer { color: #8c949f; }
+    .strategy-source-apply { color: #8c949f; }
     .strategy-v2-summary__instrument { background: transparent; }
     .leverage-panel__control b { color: #cfd4da; }
     .ant-input,
@@ -1615,10 +1801,14 @@ export default {
     p { color: #aab0b8; }
   }
 }
+@import '../../../components/Watchlist/watchlist-select.less';
 @media (max-width: 640px) {
   .live-strategy-editor-wrap {
     .ant-modal { width: calc(100vw - 20px) !important; margin: 0 10px; }
     .ant-modal-body { padding: 18px; }
+    .ant-modal-footer { padding: 10px 14px; }
+    .deployment-modal-footer { align-items: stretch; flex-direction: column; gap: 8px; }
+    .deployment-modal-footer__actions { justify-content: flex-end; }
     .parameter-grid,
     .notification-grid,
     .execution-mode-grid,
@@ -1628,7 +1818,7 @@ export default {
     .deployment-finance-grid,
     .strategy-equity-risk__grid { grid-template-columns: 1fr; }
     .strategy-runtime-field--exchange { grid-column: auto; }
-    .strategy-runtime-editor__footer { align-items: stretch; flex-direction: column; }
+    .strategy-source-apply { align-items: stretch; flex-direction: column; }
     .leverage-panel { align-items: flex-start; flex-wrap: wrap; }
     .deployment-finance-grid .leverage-panel { padding: 12px 0 0; border-top: 1px solid #e4e8ee; border-left: 0; }
     &.theme-dark .deployment-finance-grid .leverage-panel { border-top-color: #333333; }

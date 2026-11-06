@@ -1394,7 +1394,7 @@ export default {
 </script>
 
 <style lang="less" scoped>
-.portfolio-result { display: flex; min-width: 0; flex-direction: column; }
+.portfolio-result { display: flex; min-width: 0; flex-direction: column; container-type: inline-size; }
 .result-trustbar { order: 1; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; padding: 8px 10px; border: 1px solid; border-radius: 7px; }
 .result-trustbar > div { display: flex; align-items: center; gap: 8px; }
 .result-trustbar span { color: #64748b; font-size: 12px; }
@@ -1417,18 +1417,18 @@ export default {
 .chart-card, .trade-review-card { margin-top: 10px; padding: 12px; border: 1px solid #e5e9ee; border-radius: 8px; background: #fff; }
 .benchmark-analysis-card { --analysis-accent: var(--primary-color, #1890ff); order: 4; margin-top: 8px; padding: 10px 12px; border: 1px solid color-mix(in srgb, var(--analysis-accent) 24%, #e5e9ee); border-left: 3px solid var(--analysis-accent); border-radius: 8px; background: linear-gradient(135deg, color-mix(in srgb, var(--analysis-accent) 4%, #fff) 0%, #fff 100%); }
 .risk-analysis-card { --analysis-accent: var(--primary-color, #1890ff); }
-.benchmark-analysis-heading { display: flex; align-items: center; gap: 10px; min-height: 30px; }
-.benchmark-analysis-toggle { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 5px; outline: none; background: transparent; color: var(--analysis-accent); cursor: pointer; transition: background .15s ease; }
+.benchmark-analysis-heading { display: grid; grid-template-columns: 24px minmax(190px, .7fr) minmax(420px, 1.3fr); gap: 8px 14px; align-items: center; min-height: 56px; }
+.benchmark-analysis-toggle { display: inline-flex; grid-row: 1 / span 2; align-items: center; align-self: stretch; justify-content: center; width: 24px; min-height: 34px; padding: 0; border: 0; border-radius: 5px; outline: none; background: transparent; color: var(--analysis-accent); cursor: pointer; transition: background .15s ease; }
 .benchmark-analysis-toggle:hover, .benchmark-analysis-toggle:focus-visible { background: color-mix(in srgb, var(--analysis-accent) 10%, transparent); }
-.benchmark-analysis-title { flex: 0 1 430px; min-width: 170px; }
+.benchmark-analysis-title { grid-row: 1 / span 2; grid-column: 2; min-width: 0; }
 .benchmark-analysis-heading h3 { margin: 0; color: #20324a; font-size: 14px; }
 .benchmark-analysis-heading p, .benchmark-analysis-note { margin: 3px 0 0; color: #7c8ca1; font-size: 11px; }
-.benchmark-analysis-preview { display: grid; flex: 1; grid-template-columns: repeat(3, minmax(90px, 1fr)); align-items: center; min-width: 0; }
-.benchmark-analysis-preview > span { display: flex; align-items: baseline; justify-content: flex-end; gap: 8px; min-width: 0; padding: 0 14px; border-right: 1px solid #e5edf6; }
+.benchmark-analysis-preview { display: grid; grid-row: 1; grid-column: 3; grid-template-columns: repeat(3, minmax(120px, 1fr)); align-items: center; min-width: 0; width: 100%; }
+.benchmark-analysis-preview > span { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 10px; min-width: 0; padding: 2px 12px; border-right: 1px solid #e5edf6; }
 .benchmark-analysis-preview > span:last-child { border-right: 0; }
 .benchmark-analysis-preview small { overflow: hidden; color: #7c8ca1; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .benchmark-analysis-preview strong { flex: none; color: #20324a; font-size: 14px; font-variant-numeric: tabular-nums; }
-.benchmark-analysis-meta { display: flex; flex: none; flex-wrap: wrap; justify-content: flex-end; gap: 4px; margin-left: auto; }
+.benchmark-analysis-meta { display: flex; grid-row: 2; grid-column: 3; flex-wrap: wrap; justify-content: flex-end; gap: 6px; min-width: 0; margin-left: 0; }
 .benchmark-analysis-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 9px; }
 .benchmark-analysis-subheading { margin: 10px 0 0; padding-top: 9px; border-top: 1px solid #e5edf6; color: #334155; font-size: 11px; }
 .benchmark-analysis-grid--advanced { margin-top: 6px; }
@@ -1545,9 +1545,17 @@ export default {
 .portfolio-result.theme-dark .result-trustbar /deep/ .trust-tag--warning { border-color: #664d03; background: rgba(250, 173, 20, .18); color: #ffe58f; }
 @media (max-width: 1500px) { .metrics-grid { grid-template-columns: repeat(6, minmax(95px, 1fr)); } .assumption-strip { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 @media (max-width: 900px) { .metrics-grid, .overview-grid, .status-grid, .assumption-strip { grid-template-columns: repeat(2, 1fr); } .metrics-grid .metric-card, .assumption-strip div { border-right: 0; border-bottom: 1px solid #e5e9ee; } }
-@media (max-width: 1280px) { .benchmark-analysis-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .benchmark-analysis-preview > span:nth-child(3) { display: none; } .benchmark-analysis-preview { grid-template-columns: repeat(2, minmax(90px, 1fr)); } }
-@media (max-width: 900px) { .benchmark-analysis-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .benchmark-analysis-preview { display: none; } .benchmark-analysis-title { flex: 1; } .benchmark-analysis-meta { justify-content: flex-end; } }
+@media (max-width: 1280px) { .benchmark-analysis-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 900px) { .benchmark-analysis-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .benchmark-analysis-grid { grid-template-columns: 1fr; } }
+
+@container (max-width: 860px) {
+  .benchmark-analysis-heading { grid-template-columns: 24px minmax(0, 1fr); gap: 8px 12px; }
+  .benchmark-analysis-toggle { grid-row: 1 / span 3; }
+  .benchmark-analysis-title { grid-row: 1; grid-column: 2; }
+  .benchmark-analysis-preview { grid-row: 2; grid-column: 2; }
+  .benchmark-analysis-meta { grid-row: 3; grid-column: 2; justify-content: flex-start; }
+}
 @media (max-width: 900px) { .review-facts { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 1150px) { .contribution-list { grid-template-columns: 1fr; } }
 @media (max-width: 720px) { .result-trustbar { align-items: flex-start; flex-direction: column; }.result-trustbar > div { flex-wrap: wrap; } }

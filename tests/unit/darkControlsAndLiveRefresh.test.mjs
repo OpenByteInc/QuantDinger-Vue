@@ -29,6 +29,15 @@ test('saving a live strategy forces a fresh list and selects the saved instance'
   assert.match(center, /operationsTable\.selectStrategy\(savedStrategy\)/)
 })
 
+test('live strategy status refreshes promptly and when the page becomes visible', () => {
+  const center = read('src/views/strategy-center/index.vue')
+
+  assert.match(center, /document\.addEventListener\('visibilitychange', this\.handleVisibilityChange\)/)
+  assert.match(center, /document\.removeEventListener\('visibilitychange', this\.handleVisibilityChange\)/)
+  assert.match(center, /window\.setInterval\([\s\S]*?this\.loadStrategies\(\)[\s\S]*?5000\)/)
+  assert.match(center, /handleVisibilityChange \(\)[\s\S]*?this\.loadStrategies\(\{ force: true \}\)/)
+})
+
 test('live operations keep daily detail pnl separate from lifetime list pnl', () => {
   const operations = read('src/views/strategy-center/components/LiveOperationsTable.vue')
 

@@ -15,11 +15,12 @@ test('desktop marketplace exposes queryable strategy compatibility filters', () 
   assert.match(source, /activeStrategyFilterChips/)
 })
 
-test('marketplace defaults to a dense catalog for indicators and strategies', () => {
+test('marketplace defaults to the visual grid before the compact catalog option', () => {
   const marketplace = read('src/views/indicator-community/index.vue')
   const catalog = read('src/views/indicator-community/components/MarketCatalogList.vue')
 
-  assert.match(marketplace, /marketViewMode: 'compact'/)
+  assert.match(marketplace, /marketViewMode: 'grid'/)
+  assert.match(marketplace, /value="grid"[\s\S]*?value="compact"/)
   assert.match(marketplace, /<market-catalog-list/)
   assert.match(marketplace, /filters:\s*\{[\s\S]*?sortBy: 'recommended'/)
   assert.match(marketplace, /pageSize: 24/)

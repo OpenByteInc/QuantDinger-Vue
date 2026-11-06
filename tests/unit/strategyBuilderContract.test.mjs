@@ -26,8 +26,8 @@ const liveEditorSource = readFileSync(new URL('../../src/views/strategy-center/c
 
 test('strategy builder formats crypto and non-crypto instruments', () => {
   assert.equal(formatStrategyInstrument({ market_category: 'Crypto', symbol: 'btc/usdt', market_type: 'swap' }), 'Crypto:BTC/USDT@swap')
-  assert.equal(formatStrategyInstrument({ market_category: 'Crypto', symbol: 'Crypto:btc/usdt@binance:spot', market_type: 'spot' }), 'Crypto:BTC/USDT@binance:spot')
-  assert.equal(formatStrategyInstrument({ market_category: 'Crypto', symbol: 'btc/usdt@BINANCE:SPOT@spot', market_type: 'spot' }), 'Crypto:BTC/USDT@binance:spot')
+  assert.equal(formatStrategyInstrument({ market_category: 'Crypto', symbol: 'Crypto:btc/usdt@binance:spot', market_type: 'spot' }), 'Crypto:BTC/USDT@spot')
+  assert.equal(formatStrategyInstrument({ market_category: 'Crypto', symbol: 'btc/usdt', market_type: 'spot', exchange_id: 'binance' }, { includeExchange: true }), 'Crypto:BTC/USDT@binance:spot')
   assert.equal(formatStrategyInstrument({ market_category: 'USStock', symbol: 'msft', market_type: 'spot' }), 'USStock:MSFT')
   assert.equal(formatStrategyInstrument({ market_category: 'USStock', symbol: 'USStock:msft@nasdaq', market_type: 'spot' }), 'USStock:MSFT')
   assert.equal(formatStrategyInstrument({ market_category: 'HKStock', symbol: 'HKStock:00700.HK@hkex' }), 'HKStock:00700.HK')
@@ -99,7 +99,7 @@ test('strategy builder restores runtime controls from legacy source code', () =>
   })
 })
 
-test('strategy builder preserves venue-qualified crypto identities without duplicating the product suffix', () => {
+test('strategy builder canonicalizes venue-qualified crypto identities unless exchange control is explicit', () => {
   const source = `def initialize(context):
     g.symbol = 'Crypto:BTC/USDT@binance:spot'
     context.set_universe([g.symbol])
@@ -115,8 +115,25 @@ test('strategy builder preserves venue-qualified crypto identities without dupli
   })
 
   const updated = applyStrategyRuntimeConfigToCode(source, config)
-  assert.match(updated, /Crypto:BTC\/USDT@binance:spot/)
+  assert.match(updated, /Crypto:BTC\/USDT@spot/)
+  assert.doesNotMatch(updated, /@binance:/)
   assert.doesNotMatch(updated, /@binance:spot@spot/)
+})
+
+test('strategy builder keeps venue binding only for a source-owned exchange control', () => {
+  const source = `def initialize(context):
+    g.symbol = 'Crypto:BTC/USDT@spot'
+    g.exchange_id = 'okx'
+`
+  const updated = applyStrategyRuntimeConfigToCode(source, {
+    market_category: 'Crypto',
+    symbol: 'SOL/USDT',
+    market_type: 'swap',
+    exchange_id: 'binance'
+  })
+
+  assert.match(updated, /g\.symbol = "Crypto:SOL\/USDT@binance:swap"/)
+  assert.match(updated, /g\.exchange_id = "binance"/)
 })
 
 test('strategy builder reads generated robot equity defaults for deployment', () => {
@@ -296,6 +313,31 @@ test('strategy setup spans primary controls and refreshes the watchlist when ope
   assert.match(strategyEditorSource, /@dropdownVisibleChange="handleRuntimeSymbolDropdown"/)
   assert.match(strategyIdeSource, /@runtime-symbol-open="loadStrategyWatchlistOptions"/)
   assert.match(strategyIdeSource, /const res = await getWatchlist\(\)/)
+  assert.match(strategyEditorSource, /value="__add__"/)
+  assert.match(strategyEditorSource, /\$emit\('runtime-symbol-add'\)/)
+  assert.match(strategyIdeSource, /<add-watchlist-modal/)
+  assert.match(strategyIdeSource, /@runtime-symbol-add="openStrategyWatchlistModal"/)
+  assert.doesNotMatch(strategyIdeSource, /@runtime-symbol-search=/)
+  assert.doesNotMatch(strategyIdeSource, /searchStrategySymbols/)
+  assert.match(strategyEditorSource, /option-label-prop="label"/)
+  assert.match(strategyEditorSource, /:filter-option="filterRuntimeSymbolOption"/)
+  assert.doesNotMatch(strategyEditorSource, /strategyBuilder\.setupDescription/)
+})
+
+test('strategy product switching keeps the logical watchlist selection stable', () => {
+  const runtimeValue = strategyEditorSource.slice(
+    strategyEditorSource.indexOf('runtimeSymbolValue ()'),
+    strategyEditorSource.indexOf('runtimeMarketLabel ()')
+  )
+  assert.match(runtimeValue, /const assetId = Number\(this\.runtimeConfig\.asset_id \|\| 0\)/)
+  assert.doesNotMatch(runtimeValue, /market_type|exchange_id/)
+  assert.match(strategyEditorSource, /:label="option\.symbol"/)
+})
+
+test('logical asset selection does not scope product capabilities to the default venue', () => {
+  assert.match(strategyIdeSource, /const sourceOwnsExchange = Boolean\(this\.strategyRuntimeContract\.hasExchange\)/)
+  assert.match(strategyIdeSource, /const exchangeId = sourceOwnsExchange \? String\(this\.runConfig\.exchange_id \|\| ''\) : ''/)
+  assert.match(strategyIdeSource, /groupWatchlistAssets/)
 })
 
 test('parameter presentation accepts schema options and localized fallback copy', () => {

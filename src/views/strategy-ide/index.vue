@@ -38,9 +38,9 @@
           @verified="handleStrategyVerified"
           @template-change="handleTemplateChange"
           @runtime-change="handleRuntimeConfigChange"
-          @runtime-symbol-search="searchStrategySymbols"
           @runtime-symbol-change="handleRuntimeSymbolChange"
           @runtime-symbol-open="loadStrategyWatchlistOptions"
+          @runtime-symbol-add="openStrategyWatchlistModal"
         >
           <template #toolbar>
             <div class="ide-toolbar">
@@ -567,6 +567,15 @@
       @acquired="handleMarketStrategyAcquired"
     />
 
+    <add-watchlist-modal
+      :visible="showStrategyAddWatchlist"
+      :markets="strategyAddMarketKeys"
+      :watchlist="strategyWatchlistRows"
+      :initial-market="runConfig.market_category"
+      @close="showStrategyAddWatchlist = false"
+      @added="handleStrategyWatchlistAdded"
+    />
+
     <a-drawer
       :visible="showRobotBuilder"
       :title="text.robotTemplates"
@@ -667,11 +676,14 @@ import FactorLibraryModal from './FactorLibraryModal.vue'
 import UniverseLibraryModal from './UniverseLibraryModal.vue'
 import ExecutorStrategies from '@/views/executor-strategies'
 import IndicatorMarketPicker from '@/views/indicator-ide/components/IndicatorMarketPicker.vue'
+import AddWatchlistModal from '@/components/Watchlist/AddWatchlistModal.vue'
 import { resolveIndicatorStrategyContext } from '@/utils/indicatorStrategyContext'
 import { renderSafeMarkdown } from '@/utils/safeMarkdown'
 import { applyExactCodeEdits, candidateCodeEditOperations } from '@/utils/codeEdits'
-import { getSymbolCapabilities, getWatchlist, searchSymbols } from '@/api/market'
+import { getSymbolCapabilities, getWatchlist } from '@/api/market'
 import { CRYPTO_EXCHANGE_IDS, normalizeExchangeId, normalizeMarketType } from '@/utils/marketContext'
+import { loadEnabledMarketOptions } from '@/utils/marketModules'
+import { groupWatchlistAssets, watchlistAssetKey, watchlistContextLabel } from '@/utils/watchlistAssets'
 import {
   applyStrategyRuntimeConfigToCode,
   extractStrategyRuntimeContractFromCode,
@@ -700,6 +712,7 @@ import {
 const EMPTY_DRAFT_CODE = ''
 const createDefaultRunConfig = () => ({
   market_category: 'Crypto',
+  asset_id: 0,
   exchange_id: 'binance',
   symbol: 'BTC/USDT',
   timeframe: '1m',
@@ -721,7 +734,8 @@ export default {
     FactorLibraryModal,
     UniverseLibraryModal,
     ExecutorStrategies,
-    IndicatorMarketPicker
+    IndicatorMarketPicker,
+    AddWatchlistModal
   },
   data () {
     return {
@@ -788,11 +802,13 @@ export default {
       runConfig: createDefaultRunConfig(),
       strategySymbolOptions: [],
       strategyWatchlistOptions: [],
+      strategyWatchlistRows: [],
       strategySymbolLoading: false,
       strategyWatchlistLoading: false,
-      strategySymbolSearchTimer: null,
       strategyAvailableMarketTypes: ['swap'],
       strategyProductContexts: [],
+      strategyAddMarketKeys: [],
+      showStrategyAddWatchlist: false,
       lastSavedSnapshot: ''
     }
   },
@@ -1096,7 +1112,6 @@ export default {
     }
   },
   beforeDestroy () {
-    if (this.strategySymbolSearchTimer) clearTimeout(this.strategySymbolSearchTimer)
     if (this._saveShortcut) {
       window.removeEventListener('keydown', this._saveShortcut, true)
       this._saveShortcut = null
@@ -1134,9 +1149,30 @@ export default {
       }
     },
     async initializeStrategyBuilderOptions () {
-      await this.loadStrategyWatchlistOptions()
+      await Promise.all([
+        this.loadStrategyWatchlistOptions(),
+        this.loadStrategyAddMarkets()
+      ])
       this.ensureCurrentSymbolOption()
       await this.refreshStrategySymbolCapabilities()
+    },
+    async loadStrategyAddMarkets () {
+      if (this.strategyAddMarketKeys.length) return
+      const options = await loadEnabledMarketOptions({ includeFeatures: ['research'] })
+      this.strategyAddMarketKeys = options.map(item => item.value)
+    },
+    async openStrategyWatchlistModal () {
+      await this.loadStrategyAddMarkets()
+      this.showStrategyAddWatchlist = true
+    },
+    normalizeStrategySymbolOptions (rows, isWatchlist = false) {
+      return groupWatchlistAssets(Array.isArray(rows) ? rows : []).map(group => {
+        const marketTypes = [...new Set(group.items.flatMap(item => {
+          if (Array.isArray(item.market_types)) return item.market_types
+          return item.market_type || item.marketType ? [item.market_type || item.marketType] : []
+        }))]
+        return this.normalizeStrategySymbolOption({ ...group.item, market_types: marketTypes }, isWatchlist)
+      }).filter(Boolean)
     },
     async loadStrategyWatchlistOptions () {
       if (this.strategyWatchlistLoading) return
@@ -1146,9 +1182,8 @@ export default {
         const res = await getWatchlist()
         const data = res && res.data
         const list = Array.isArray(data) ? data : ((data && data.watchlist) || [])
-        this.strategyWatchlistOptions = list
-          .map(item => this.normalizeStrategySymbolOption(item, true))
-          .filter(Boolean)
+        this.strategyWatchlistRows = list
+        this.strategyWatchlistOptions = this.normalizeStrategySymbolOptions(list, true)
         this.strategySymbolOptions = [...this.strategyWatchlistOptions]
         this.ensureCurrentSymbolOption()
       } catch (_) {
@@ -1163,14 +1198,16 @@ export default {
       const symbol = String(this.runConfig.symbol || '').trim().toUpperCase()
       if (!symbol) return
       const exists = this.strategySymbolOptions.some(item => (
-        item.symbol === symbol &&
+        (Number(this.runConfig.asset_id || 0) > 0
+          ? item.asset_id === Number(this.runConfig.asset_id)
+          : item.symbol === symbol) &&
         item.market === this.runConfig.market_category &&
-        (item.market !== 'Crypto' || item.market_type === this.runConfig.market_type) &&
-        (!this.strategyRuntimeContract.hasExchange || !item.exchange_id || item.exchange_id === this.runConfig.exchange_id)
+        (item.market !== 'Crypto' || !item.market_types.length || item.market_types.includes(this.runConfig.market_type))
       ))
       if (!exists) {
         const current = this.normalizeStrategySymbolOption({
           market: this.runConfig.market_category,
+          asset_id: this.runConfig.asset_id,
           symbol,
           exchange_id: this.runConfig.exchange_id,
           market_type: this.runConfig.market_type,
@@ -1187,21 +1224,33 @@ export default {
       const symbol = String((item && (item.symbol || item.code || item.value)) || '').trim().toUpperCase()
       if (!symbol) return null
       const market = String((item && (item.market || item.category)) || 'Crypto')
-      const exchangeId = String((item && (item.exchange_id || item.exchangeId)) || '')
-      const marketType = market === 'Crypto'
-        ? normalizeMarketType(item && (item.market_type || item.marketType), market)
-        : 'spot'
+      const assetId = Number((item && (item.asset_id || item.assetId)) || 0)
+      const marketTypes = Array.isArray(item && item.market_types)
+        ? item.market_types.map(value => normalizeMarketType(value, market))
+        : (item && (item.market_type || item.marketType)
+            ? [normalizeMarketType(item.market_type || item.marketType, market)]
+            : [])
+      const marketType = market === 'Crypto' ? (marketTypes[0] || 'spot') : 'spot'
       const instrumentId = String((item && (item.instrument_id || item.instrumentId)) || '')
       const productType = String((item && (item.product_type || item.productType)) || (market === 'Crypto' ? 'crypto' : 'equity')).toLowerCase()
       const apiFamily = String((item && (item.api_family || item.apiFamily)) || marketType).toLowerCase()
       const name = String((item && (item.name || item.display_name)) || '').trim()
       return {
-        value: [market, exchangeId, marketType, instrumentId, symbol].join('|'),
+        value: assetId > 0 ? `asset:${assetId}` : [market, symbol, productType].join('|'),
         label: [symbol, name, market].filter(Boolean).join(' · '),
+        name,
+        context_label: watchlistContextLabel({
+          ...item,
+          name,
+          symbol,
+          product_type: productType,
+          market_types: marketTypes
+        }, key => this.$t(key)),
+        asset_id: assetId,
         market,
         symbol,
-        exchange_id: exchangeId,
         market_type: marketType,
+        market_types: marketTypes,
         instrument_id: instrumentId,
         product_type: productType,
         api_family: apiFamily,
@@ -1210,42 +1259,12 @@ export default {
         is_watchlist: isWatchlist
       }
     },
-    searchStrategySymbols (keyword) {
-      if (this.strategySymbolSearchTimer) clearTimeout(this.strategySymbolSearchTimer)
-      this.strategySymbolSearchTimer = setTimeout(() => this.loadStrategySymbols(keyword), 280)
-    },
-    async loadStrategySymbols (keyword) {
-      const term = String(keyword || '').trim()
-      if (!term) {
-        this.strategySymbolOptions = [...this.strategyWatchlistOptions]
-        this.ensureCurrentSymbolOption()
-        return
-      }
-      this.strategySymbolLoading = true
-      try {
-        const res = await searchSymbols({
-          market: this.runConfig.market_category,
-          keyword: term,
-          limit: 20,
-          exchange_id: this.runConfig.market_category === 'Crypto' ? this.runConfig.exchange_id : undefined,
-          market_type: this.runConfig.market_category === 'Crypto' ? this.runConfig.market_type : undefined
-        })
-        const data = res && res.data
-        const list = Array.isArray(data) ? data : ((data && (data.results || data.symbols || data.items)) || [])
-        this.strategySymbolOptions = list.map(this.normalizeStrategySymbolOption).filter(Boolean)
-        this.ensureCurrentSymbolOption()
-      } catch (_) {
-        this.strategySymbolOptions = []
-        this.ensureCurrentSymbolOption()
-      } finally {
-        this.strategySymbolLoading = false
-      }
-    },
     async handleRuntimeSymbolChange (value) {
       if (!this.strategyRuntimeContract.hasInstrument) return
       const selected = this.strategySymbolOptions.find(option => option.value === value)
       if (!selected) return
       const patch = {
+        asset_id: selected.asset_id,
         market_category: selected.market,
         symbol: selected.symbol,
         instrument_id: selected.instrument_id || '',
@@ -1255,8 +1274,11 @@ export default {
         underlying_symbol: selected.underlying_symbol || ''
       }
       if (selected.market === 'Crypto') {
-        patch.market_type = selected.market_type || this.runConfig.market_type || 'spot'
-        patch.exchange_id = selected.exchange_id || this.runConfig.exchange_id || 'binance'
+        if (selected.market_types.length) this.strategyAvailableMarketTypes = [...selected.market_types]
+        const currentType = normalizeMarketType(this.runConfig.market_type, 'Crypto')
+        patch.market_type = selected.market_types.includes(currentType)
+          ? currentType
+          : (selected.market_types[0] || currentType)
       } else {
         patch.market_type = 'spot'
         patch.exchange_id = ''
@@ -1265,6 +1287,12 @@ export default {
       }
       this.applyRuntimeConfigPatch(patch)
       await this.refreshStrategySymbolCapabilities()
+    },
+    async handleStrategyWatchlistAdded (item) {
+      await this.loadStrategyWatchlistOptions()
+      const key = watchlistAssetKey(item)
+      const option = this.strategyWatchlistOptions.find(candidate => watchlistAssetKey(candidate) === key)
+      if (option) await this.handleRuntimeSymbolChange(option.value)
     },
     async handleRuntimeConfigChange ({ field, value } = {}) {
       const capabilityByField = {
@@ -1304,7 +1332,6 @@ export default {
       }
       this.runConfig = next
       this.ensureCurrentSymbolOption()
-      if (['market_category', 'exchange_id', 'market_type'].includes(field)) this.searchStrategySymbols('')
       if (!this.scriptCodeHidden && this.currentAssetType === 'script') {
         const updated = applyStrategyRuntimeConfigToCode(this.scriptCode, next)
         if (updated !== this.scriptCode) this.scriptCode = updated
@@ -1326,13 +1353,24 @@ export default {
         this.strategyProductContexts = []
         return true
       }
+      const assetId = Number(this.runConfig.asset_id || 0)
+      const symbol = String(this.runConfig.symbol)
+      const sourceOwnsExchange = Boolean(this.strategyRuntimeContract.hasExchange)
+      const exchangeId = sourceOwnsExchange ? String(this.runConfig.exchange_id || '') : ''
       const currentType = normalizeMarketType(this.runConfig.market_type, 'Crypto')
       try {
         const res = await getSymbolCapabilities({
+          asset_id: assetId,
           market: 'Crypto',
-          symbol: this.runConfig.symbol,
-          exchange_id: this.runConfig.exchange_id
+          symbol,
+          exchange_id: exchangeId
         })
+        if (
+          assetId !== Number(this.runConfig.asset_id || 0) ||
+          symbol !== String(this.runConfig.symbol) ||
+          sourceOwnsExchange !== Boolean(this.strategyRuntimeContract.hasExchange) ||
+          exchangeId !== (this.strategyRuntimeContract.hasExchange ? String(this.runConfig.exchange_id || '') : '')
+        ) return true
         const data = (res && res.data) || {}
         const marketTypes = [...new Set((data.market_types || []).map(value => normalizeMarketType(value, 'Crypto')))]
         const contexts = Array.isArray(data.contexts) ? data.contexts : []
@@ -1867,8 +1905,8 @@ export default {
         ...inferredRunConfig
       }
       this.$nextTick(() => {
+        this.strategySymbolOptions = [...this.strategyWatchlistOptions]
         this.ensureCurrentSymbolOption()
-        this.searchStrategySymbols(this.runConfig.symbol)
       })
       const universeReference = this.extractUniverseReferenceFromCode(this.scriptCode)
       if (universeReference.id && !this.runConfig.universe_id) {

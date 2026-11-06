@@ -22,7 +22,7 @@ export function login (parameter) {
   return request({
     url: userApi.Login,
     method: 'post',
-    data: parameter
+    data: { ...parameter, client_type: 'pc' }
   })
 }
 
