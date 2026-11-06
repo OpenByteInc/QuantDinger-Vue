@@ -563,6 +563,19 @@ test('order rejection is shown below the ticket instead of a global notification
   assert.equal(state.tradeFeedback.text, 'translated:quickTrade.errorHints.positionConflict')
 })
 
+test('reselecting the current symbol clears stale trade feedback', () => {
+  const component = options('components/QuickTradePanel/QuickTradePanel.vue')
+  const state = {
+    currentSymbol: 'BTC/USDT',
+    tradeFeedback: { type: 'error', text: 'strategyV2.instrumentResolutionAmbiguous' }
+  }
+
+  component.methods.handleSymbolChange.call(state, 'BTC/USDT')
+
+  assert.equal(state.tradeFeedback, null)
+  assert.equal(state.currentSymbol, 'BTC/USDT')
+})
+
 test('close rejection is shown below the ticket instead of a global notification', async () => {
   const component = options('components/QuickTradePanel/QuickTradePanel.vue', {
     closeQuickTradePosition: async () => ({ code: 0, error_hint: 'quickTrade.errorHints.positionConflict' })

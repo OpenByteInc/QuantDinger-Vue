@@ -7,7 +7,7 @@
           <div class="profile-identity-copy">
             <h3 class="username">{{ profile.nickname || profile.username }}</h3>
             <div class="user-role">
-              <a-tag :color="getRoleColor(profile.role)">
+              <a-tag class="profile-role-tag" :color="getRoleColor(profile.role)">
                 {{ getRoleLabel(profile.role) }}
               </a-tag>
               <a-tag v-if="isVip" color="gold">
@@ -4243,6 +4243,24 @@ export default {
     .profile-settings-shell .edit-card {
       border-color: var(--profile-border);
       background: var(--profile-panel);
+    }
+
+    ::v-deep .profile-role-tag.ant-tag-red {
+      border-color: rgba(255, 77, 79, 0.55) !important;
+      background: rgba(255, 77, 79, 0.14) !important;
+      color: #ff7875 !important;
+    }
+
+    ::v-deep .profile-role-tag.ant-tag-blue {
+      border-color: color-mix(in srgb, var(--primary-color, #1890ff) 55%, transparent) !important;
+      background: color-mix(in srgb, var(--primary-color, #1890ff) 14%, transparent) !important;
+      color: var(--primary-color-hover, #69b1ff) !important;
+    }
+
+    ::v-deep .profile-role-tag.ant-tag-default {
+      border-color: var(--profile-border-strong) !important;
+      background: rgba(255, 255, 255, 0.05) !important;
+      color: var(--profile-text-secondary) !important;
     }
 
     .profile-settings-shell .edit-card ::v-deep .ant-tabs-left-content {

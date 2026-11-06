@@ -1846,6 +1846,7 @@ export default {
       return document.body
     },
     async init () {
+      this.tradeFeedback = null
       // Initialize current symbol from prop
       this.currentSymbol = this.symbol || ''
       if (this.presetSide) this.side = this.presetSide
@@ -2131,6 +2132,7 @@ export default {
       }, 300)
     },
     handleSymbolChange (value) {
+      this.tradeFeedback = null
       if (value && value !== this.currentSymbol) {
         this.currentSymbol = value
         // Load price for new symbol
