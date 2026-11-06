@@ -448,6 +448,7 @@
                           v-model="cryptoExchangeId"
                           size="small"
                           class="ide-toolbar-select ide-toolbar-select--exchange"
+                          :disabled="!cryptoExchangeIds.length"
                           :get-popup-container="chartToolbarGetPopupContainer"
                           @change="handleCryptoExchangeChange"
                         >
@@ -1213,6 +1214,7 @@ import { baseMixin } from '@/store/app-mixin'
 import request from '@/utils/request'
 import { loadEnabledMarketOptions, firstMarketValue } from '@/utils/marketModules'
 import { CRYPTO_EXCHANGE_IDS, marketContextKey, normalizeExchangeId, normalizeMarketType } from '@/utils/marketContext'
+import { normalizeEnabledTradingVenues } from '@/utils/tradingVenueConfig'
 import { getUserInfo } from '@/api/login'
 import { getNotificationSettings } from '@/api/user'
 import { getWatchlist, getSymbolCapabilities } from '@/api/market'
@@ -1319,7 +1321,7 @@ export default {
       cryptoProductContexts: [],
       cryptoCapabilitiesLoading: false,
       lastValidCryptoExchangeId: 'binance',
-      cryptoExchangeIds: CRYPTO_EXCHANGE_IDS,
+      cryptoExchangeIds: [...CRYPTO_EXCHANGE_IDS],
       watchlist: [],
       loadingWatchlist: false,
       selectedWatchlistKey: 'Crypto:BTC/USDT',
@@ -1641,6 +1643,7 @@ export default {
   created: async function () {
     multiTabEvents.$on('cache-evict', this.handleTabCacheEviction)
     await this.loadMarketModules()
+    await this.loadTradingVenueConfig()
     await this.loadUserId()
     this.restoreChartTypePreference()
     await this.initializeCryptoMarketSource()
@@ -1675,8 +1678,9 @@ export default {
       this.syncChartPresetIndicatorOptions()
     })
   },
-  activated () {
+  async activated () {
     this.reloadWatchlistOnly()
+    await this.loadTradingVenueConfig({ refreshCapabilities: true })
     if (this._saveShortcutListener) {
       window.addEventListener('keydown', this._saveShortcutListener)
     }
@@ -1884,6 +1888,29 @@ export default {
       }
       if (!this.ideAddMarketKeys.includes(this.market)) {
         this.market = this.addMarketTab || firstMarketValue(options)
+      }
+    },
+    async loadTradingVenueConfig ({ refreshCapabilities = false } = {}) {
+      let enabledVenueIds = [...CRYPTO_EXCHANGE_IDS]
+      try {
+        const res = await getPublicSettingsConfig()
+        enabledVenueIds = normalizeEnabledTradingVenues(res && res.data && res.data.enabled_trading_venues)
+          .filter(exchangeId => CRYPTO_EXCHANGE_IDS.includes(exchangeId))
+      } catch (_) { /* keep the full list when the public config is unavailable */ }
+
+      const previousExchangeId = normalizeExchangeId(this.cryptoExchangeId)
+      this.cryptoExchangeIds = enabledVenueIds
+      const nextExchangeId = enabledVenueIds.includes(previousExchangeId)
+        ? previousExchangeId
+        : (enabledVenueIds[0] || '')
+
+      if (nextExchangeId === previousExchangeId) return
+      this.cryptoExchangeId = nextExchangeId
+      this.lastValidCryptoExchangeId = nextExchangeId
+      this.currentInstrumentId = ''
+      if (refreshCapabilities && this.market === 'Crypto') {
+        await this.refreshCryptoSymbolCapabilities()
+        this.persistCryptoMarketSource()
       }
     },
     applyCopilotDraft () {
@@ -4449,6 +4476,11 @@ export default {
       const symbol = String(this.symbol)
       const assetId = Number(this.currentAssetId || 0)
       const exchangeId = this.normalizeCryptoExchange(this.cryptoExchangeId)
+      if (!exchangeId) {
+        this.cryptoProductContexts = []
+        this.availableCryptoMarketTypes = []
+        return false
+      }
       this.cryptoCapabilitiesLoading = true
       try {
         const res = await getSymbolCapabilities({
@@ -4486,7 +4518,8 @@ export default {
 
     normalizeCryptoExchange (value) {
       const normalized = normalizeExchangeId(value)
-      return CRYPTO_EXCHANGE_IDS.includes(normalized) ? normalized : 'binance'
+      if (this.cryptoExchangeIds.includes(normalized)) return normalized
+      return this.cryptoExchangeIds[0] || ''
     },
     async initializeCryptoMarketSource () {
       try {
@@ -4495,7 +4528,7 @@ export default {
         if (cached && typeof cached === 'object') {
           const exchangeId = normalizeExchangeId(cached.exchangeId || cached.exchange_id)
           const marketType = normalizeMarketType(cached.marketType || cached.market_type, 'Crypto')
-          if (CRYPTO_EXCHANGE_IDS.includes(exchangeId) && ['spot', 'swap'].includes(marketType)) {
+          if (this.cryptoExchangeIds.includes(exchangeId) && ['spot', 'swap'].includes(marketType)) {
             this.cryptoExchangeId = exchangeId
             this.cryptoMarketType = marketType
             return

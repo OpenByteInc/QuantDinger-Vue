@@ -38,10 +38,11 @@ test('venue settings copy is available in every supported locale', () => {
 })
 
 
-test('settings, broker workspace, and credential modal consume the venue policy', () => {
+test('settings and trading workspaces consume the venue policy', () => {
   const settings = readFileSync(new URL('../../src/views/settings/index.vue', import.meta.url), 'utf8')
   const brokers = readFileSync(new URL('../../src/views/broker-accounts/index.vue', import.meta.url), 'utf8')
   const modal = readFileSync(new URL('../../src/components/ExchangeAccountModal/ExchangeAccountModal.vue', import.meta.url), 'utf8')
+  const indicatorIde = readFileSync(new URL('../../src/views/indicator-ide/index.vue', import.meta.url), 'utf8')
 
   assert.match(settings, /venue_multiselect/)
   assert.match(settings, /tradingVenueGroups/)
@@ -50,6 +51,9 @@ test('settings, broker workspace, and credential modal consume the venue policy'
   assert.doesNotMatch(settings, /class="trading-venue-alert"/)
   assert.match(brokers, /enabledTradingVenues/)
   assert.match(modal, /normalizeEnabledTradingVenues/)
+  assert.match(indicatorIde, /normalizeEnabledTradingVenues/)
+  assert.match(indicatorIde, /loadTradingVenueConfig/)
+  assert.match(indicatorIde, /:disabled="!cryptoExchangeIds\.length"/)
 })
 
 
