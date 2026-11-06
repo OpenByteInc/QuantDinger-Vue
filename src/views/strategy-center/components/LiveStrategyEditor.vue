@@ -1554,6 +1554,8 @@ export default {
 </script>
 
 <style lang="less">
+@import '../../../components/Watchlist/watchlist-select.less';
+
 .live-strategy-editor-wrap {
   .ai-decision-filter-card { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid #e1e6ed; border-radius: 8px; background: #fafbfc; transition: border-color .18s ease, background .18s ease, box-shadow .18s ease; }
   .ai-decision-filter-card:hover,
@@ -1801,7 +1803,6 @@ export default {
     p { color: #aab0b8; }
   }
 }
-@import '../../../components/Watchlist/watchlist-select.less';
 @media (max-width: 640px) {
   .live-strategy-editor-wrap {
     .ant-modal { width: calc(100vw - 20px) !important; margin: 0 10px; }
