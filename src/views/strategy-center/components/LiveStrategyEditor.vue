@@ -1180,7 +1180,7 @@ export default {
       }
     },
     onRuntimeSymbolDropdownVisibleChange (visible) {
-      if (visible) this.loadRuntimeWatchlistOptions()
+      if (visible) this.loadRuntimeWatchlistOptions().catch(() => undefined)
     },
     filterRuntimeSymbolOption (input, option) {
       const props = option && option.componentOptions && option.componentOptions.propsData
@@ -1211,7 +1211,7 @@ export default {
     },
     handleRuntimeSymbolChange (value) {
       if (value === '__add__') {
-        this.openRuntimeWatchlistModal()
+        this.openRuntimeWatchlistModal().catch(() => undefined)
         return
       }
       if (!this.sourceRuntimeContract.hasInstrument) return

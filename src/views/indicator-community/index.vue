@@ -885,7 +885,7 @@ export default {
     handleCatalogSortChange ({ key, order }) {
       this.catalogSort = { key, order }
       this.pagination.current = 1
-      this.loadIndicators()
+      this.loadIndicators().catch(() => undefined)
     },
 
     handleMarketAssetTypeChange () {

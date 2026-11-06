@@ -180,7 +180,7 @@ export default {
       if (this.ai.status === 'ok' && typeof this.ai.summary === 'string' && this.ai.summary.trim() && this.aiAdvice.length) return 'ready'
       return this.ai.status === 'fallback' || this.ai.status === 'ok' ? 'fallback' : 'skipped'
     },
-    hasAiAdvice () { return this.aiStatus === 'ready' },
+    hasAiAdvice () { return String(this.aiStatus) === 'ready' },
     verdictTone () { return this.evidence.verdict === 'review_required' ? 'needs-review' : '' },
     quoteCurrency () {
       const symbol = String((this.report && this.report.strategy && this.report.strategy.symbol) || '').toUpperCase().split('@')[0]
@@ -189,7 +189,7 @@ export default {
     },
     profitFactorText () { return this.facts.profit_factor_state === 'no_losses' ? this.$t('strategyReviewV2.noLosses') : this.formatNumber(this.facts.profit_factor) },
     reportSummary () {
-      if (this.aiStatus === 'ready') return this.ai.summary.trim()
+      if (String(this.aiStatus) === 'ready') return this.ai.summary.trim()
       const finite = value => value != null && Number.isFinite(Number(value))
       if (finite(this.facts.window_net_pnl) && finite(this.facts.before_commission_pnl) && finite(this.facts.closed_fill_count)) {
         const key = Number(this.facts.exit_reason_coverage_pct) === 0 ? 'reportSummaryMissingExits' : 'reportSummary'

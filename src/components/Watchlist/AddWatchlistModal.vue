@@ -97,7 +97,7 @@ export default {
       this.failed = false
     },
     close () { if (!this.saving) this.$emit('close') },
-    changeMarket (market) { this.market = market; this.search() },
+    changeMarket (market) { this.market = market; this.search().catch(() => undefined) },
     queueSearch () {
       this.invalidate()
       this.loading = true

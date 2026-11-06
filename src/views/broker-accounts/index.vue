@@ -369,7 +369,7 @@ export default {
       if (!id) return
       this.$set(this.brokerCredentialIds, id, Number(credentialId))
       this.$set(this.connectionMap, id, { connected: false })
-      this.loadOne(id)
+      this.loadOne(id).catch(() => undefined)
     },
     normalizeStatus (id, res) {
       if (!res) return { connected: false }

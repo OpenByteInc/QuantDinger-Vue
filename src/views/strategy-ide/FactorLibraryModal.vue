@@ -810,7 +810,7 @@ export default {
       this.customValidation = null
       this.customTab = 'editor'
       this.customModalVisible = true
-      this.loadCustomAiPricing()
+      this.loadCustomAiPricing().catch(() => undefined)
     },
     customFactorPayload () {
       let defaultParams = {}

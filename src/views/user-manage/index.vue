@@ -2860,7 +2860,7 @@ export default {
     handleUserFilterChange () {
       this.pagination.current = 1
       this.clearSelectedUsers()
-      this.loadUsers()
+      this.loadUsers().catch(() => undefined)
     },
 
     async loadRoles () {

@@ -2230,7 +2230,7 @@ export default {
         this.symbol = String(row.symbol)
         this.applyCurrentProductContext(row)
         this.qtSymbol = this.symbol
-        this.refreshCryptoSymbolCapabilities()
+        this.refreshCryptoSymbolCapabilities().catch(() => undefined)
       }
     },
 

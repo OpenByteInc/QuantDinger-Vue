@@ -378,7 +378,7 @@ export default {
     setDepthMode (mode) {
       if (this.depthMode === mode) return
       this.depthMode = mode
-      if (this.streamStatus !== 'live') this.loadOrderBook()
+      if (this.streamStatus !== 'live') this.loadOrderBook().catch(() => undefined)
       this.$nextTick(() => {
         if (this.$refs.ladder) this.$refs.ladder.scrollTop = 0
       })
@@ -431,7 +431,7 @@ export default {
       if (!this.active || !this.symbol || !this.exchangeId) return
       this.streamStatus = 'connecting'
       this.usingRestFallback = false
-      this.loadOrderBook()
+      this.loadOrderBook().catch(() => undefined)
       this.connectOrderBookStream()
     },
     stopPolling () {
@@ -470,7 +470,7 @@ export default {
     startRestFallback () {
       if (!this.active) return
       this.usingRestFallback = true
-      this.loadOrderBook()
+      this.loadOrderBook().catch(() => undefined)
       if (!this.pollTimer) this.pollTimer = setInterval(this.loadOrderBook, 2000)
     },
     applySnapshot (payload) {
