@@ -203,6 +203,10 @@
             <a-icon type="info-circle" />
             {{ attentionReasonLabel(selectedStrategy) }}
           </span>
+          <span v-else-if="stoppedReasonLabel(selectedStrategy)" class="runtime-stop-reason">
+            <a-icon type="stop" />
+            {{ stoppedReasonLabel(selectedStrategy) }}
+          </span>
         </div>
 
         <section class="metric-section financial-metrics">
@@ -690,6 +694,18 @@ export default {
       const suffix = reasonKeys[reason] || 'generic'
       return this.$t(`strategyCenter.console.healthReason.${suffix}`)
     },
+    stoppedReasonLabel (strategy) {
+      if (this.isRunning(strategy)) return ''
+      const raw = String(this.health(strategy).stop_reason || '').trim().toLowerCase()
+      if (!raw) return ''
+      let suffix = ''
+      if (raw.includes('liquidation')) suffix = 'liquidation'
+      else if (raw.includes('exchange_adl') || /\badl\b/.test(raw)) suffix = 'adl'
+      else if (raw.includes('equity_take_profit')) suffix = 'equityTakeProfit'
+      else if (raw.includes('equity_stop_loss') || raw.includes('equity risk stopped')) suffix = 'equityStopLoss'
+      else if (raw.includes('risk') || raw.includes('auto-stopped')) suffix = 'riskProtection'
+      return suffix ? this.$t(`strategyCenter.console.stopReason.${suffix}`) : ''
+    },
     statusClass (strategy) {
       if (this.needsAttention(strategy)) return 'warning'
       if (this.healthState(strategy) === 'starting') return 'starting'
@@ -819,6 +835,7 @@ export default {
 .runtime-status-bar > span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .runtime-status-bar strong { color: #202a37; font-size: 12px; font-weight: 650; font-variant-numeric: tabular-nums; }
 .runtime-status-bar .runtime-attention-reason { flex: 1 1 260px; color: #b76b18; white-space: normal; }
+.runtime-status-bar .runtime-stop-reason { flex: 1 1 260px; color: var(--sc-negative, #d14f5a); white-space: normal; }
 .health-healthy { color: #25a25a !important; }.health-starting { color: #b77b10 !important; }.health-degraded,.health-stale { color: #d18425 !important; }.health-offline { color: #d95656 !important; }
 .metric-section { margin-bottom: 12px; }
 .metric-section-head { display: flex; align-items: center; justify-content: space-between; min-height: 28px; padding: 0 2px 6px; }

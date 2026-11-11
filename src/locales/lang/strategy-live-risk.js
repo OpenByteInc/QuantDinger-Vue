@@ -971,6 +971,33 @@ const healthReasonLocales = {
   'ar-SA': ['فشل أمر حديث', 'يجب مراجعة ملكية مركز الحساب', 'نبض بيئة التشغيل متأخر', 'نبض بيئة التشغيل غير متصل', 'في انتظار أول نبض لبيئة التشغيل', 'سعر السوق غير متاح مؤقتًا', 'حالة التشغيل تحتاج إلى مراجعة']
 }
 const healthReasonTargets = { 'en-US': locale, 'zh-CN': zhCN, 'zh-TW': zhTW, ...deploymentControlTargets }
+const riskStopKeys = ['liquidation', 'adl', 'equityStopLoss', 'equityTakeProfit', 'riskProtection']
+const riskStopLocales = {
+  'en-US': ['Stopped after exchange liquidation', 'Stopped after exchange auto-deleveraging', 'Stopped after the strategy loss limit triggered', 'Stopped after the strategy profit target triggered', 'Stopped by runtime risk protection'],
+  'zh-CN': ['检测到交易所强平，策略已停止', '检测到交易所自动减仓（ADL），策略已停止', '策略累计止损已触发并停止', '策略累计止盈已触发并停止', '运行风控已停止策略'],
+  'zh-TW': ['偵測到交易所強平，策略已停止', '偵測到交易所自動減倉（ADL），策略已停止', '策略累計止損已觸發並停止', '策略累計止盈已觸發並停止', '執行風控已停止策略'],
+  'ja-JP': ['取引所の強制決済を検出し、戦略を停止しました', '取引所の自動デレバレッジを検出し、戦略を停止しました', '戦略の累積損失上限に達して停止しました', '戦略の累積利益目標に達して停止しました', '実行時リスク保護により戦略を停止しました'],
+  'ko-KR': ['거래소 강제 청산이 감지되어 전략을 중지했습니다', '거래소 자동 디레버리징이 감지되어 전략을 중지했습니다', '전략 누적 손실 한도에 도달하여 중지했습니다', '전략 누적 이익 목표에 도달하여 중지했습니다', '런타임 위험 보호가 전략을 중지했습니다'],
+  'de-DE': ['Nach einer Liquidation durch die Börse gestoppt', 'Nach automatischem Deleveraging durch die Börse gestoppt', 'Nach Auslösen des Verlustlimits gestoppt', 'Nach Erreichen des Gewinnziels gestoppt', 'Durch den Laufzeit-Risikoschutz gestoppt'],
+  'fr-FR': ['Arrêt après liquidation par la plateforme', 'Arrêt après désendettement automatique par la plateforme', 'Arrêt après déclenchement de la limite de perte', 'Arrêt après atteinte de l’objectif de gain', 'Arrêt par la protection des risques d’exécution'],
+  'ru-RU': ['Остановлено после ликвидации на бирже', 'Остановлено после автоматического сокращения позиции на бирже', 'Остановлено после срабатывания лимита убытка', 'Остановлено после достижения цели прибыли', 'Остановлено защитой рисков среды исполнения'],
+  'vi-VN': ['Đã dừng sau khi sàn thanh lý vị thế', 'Đã dừng sau khi sàn tự động giảm đòn bẩy', 'Đã dừng khi chạm giới hạn lỗ của chiến lược', 'Đã dừng khi chạm mục tiêu lợi nhuận của chiến lược', 'Đã dừng bởi cơ chế bảo vệ rủi ro khi chạy'],
+  'th-TH': ['หยุดแล้วหลังตลาดบังคับชำระสถานะ', 'หยุดแล้วหลังตลาดลดเลเวอเรจอัตโนมัติ', 'หยุดแล้วเมื่อถึงขีดจำกัดขาดทุนของกลยุทธ์', 'หยุดแล้วเมื่อถึงเป้าหมายกำไรของกลยุทธ์', 'หยุดโดยระบบป้องกันความเสี่ยงขณะทำงาน'],
+  'ar-SA': ['توقفت بعد تصفية المنصة للمركز', 'توقفت بعد خفض الرافعة تلقائيًا من المنصة', 'توقفت بعد تفعيل حد خسارة الاستراتيجية', 'توقفت بعد بلوغ هدف ربح الاستراتيجية', 'توقفت بواسطة حماية مخاطر التشغيل']
+}
+const liquidationWarningLocales = {
+  'en-US': ['Liquidation can happen before the strategy stop', 'The limit uses this deployment’s capital, not the entire exchange wallet. With leverage, fast moves, fees, funding, or maintenance-margin changes can liquidate a position before a close order fills. A confirmed liquidation or ADL stops the strategy, but cannot restore lost margin.'],
+  'zh-CN': ['强平可能早于策略止损发生', '止损比例按本次部署投入资金计算，不是按整个交易所钱包计算。使用杠杆时，快速行情、手续费、资金费或维持保证金变化，都可能让仓位在平仓单成交前被强平。系统确认强平或 ADL 后会停止策略，但无法追回已损失的保证金。'],
+  'zh-TW': ['強平可能早於策略止損發生', '止損比例按本次部署投入資金計算，不是按整個交易所錢包計算。使用槓桿時，快速行情、手續費、資金費或維持保證金變化，都可能讓倉位在平倉單成交前被強平。系統確認強平或 ADL 後會停止策略，但無法追回已損失的保證金。'],
+  'ja-JP': ['戦略の損切りより先に強制決済される場合があります', '損失上限は取引所ウォレット全体ではなく、このデプロイに割り当てた資金を基準にします。レバレッジ取引では、急変動、手数料、資金調達料、維持証拠金の変化により、決済注文が約定する前に強制決済されることがあります。強制決済または ADL が確認されると戦略は停止しますが、失われた証拠金は回復できません。'],
+  'ko-KR': ['전략 손절보다 강제 청산이 먼저 발생할 수 있습니다', '손실 한도는 거래소 지갑 전체가 아니라 이번 배포에 할당된 자금을 기준으로 계산합니다. 레버리지 거래에서는 급격한 가격 변동, 수수료, 펀딩비 또는 유지 증거금 변화로 인해 청산 주문이 체결되기 전에 포지션이 강제 청산될 수 있습니다. 강제 청산 또는 ADL이 확인되면 전략은 중지되지만 손실된 증거금은 복구할 수 없습니다.'],
+  'de-DE': ['Eine Liquidation kann vor dem Strategie-Stop eintreten', 'Das Limit bezieht sich auf das Kapital dieser Bereitstellung, nicht auf das gesamte Börsen-Wallet. Bei Hebelwirkung können schnelle Kursbewegungen, Gebühren, Finanzierungskosten oder Änderungen der Erhaltungsmarge eine Position liquidieren, bevor ein Schließungsauftrag ausgeführt wird. Eine bestätigte Liquidation oder ein ADL stoppt die Strategie, kann verlorene Margin jedoch nicht wiederherstellen.'],
+  'fr-FR': ['Une liquidation peut survenir avant le stop de la stratégie', 'La limite est calculée sur le capital de ce déploiement, et non sur l’ensemble du portefeuille de la plateforme. Avec un effet de levier, une variation rapide, les frais, le financement ou une modification de la marge de maintenance peuvent liquider une position avant l’exécution de l’ordre de clôture. Une liquidation ou un ADL confirmé arrête la stratégie, sans pouvoir restaurer la marge perdue.'],
+  'ru-RU': ['Ликвидация может произойти раньше остановки стратегии', 'Лимит рассчитывается от капитала этого запуска, а не от всего баланса биржевого кошелька. При использовании плеча резкое движение цены, комиссии, финансирование или изменение поддерживающей маржи могут привести к ликвидации до исполнения заявки на закрытие. После подтверждения ликвидации или ADL стратегия останавливается, но потерянная маржа не восстанавливается.'],
+  'vi-VN': ['Thanh lý có thể xảy ra trước khi chiến lược dừng lỗ', 'Giới hạn được tính theo vốn của lần triển khai này, không phải toàn bộ ví trên sàn. Khi dùng đòn bẩy, biến động nhanh, phí, phí tài trợ hoặc thay đổi ký quỹ duy trì có thể khiến vị thế bị thanh lý trước khi lệnh đóng được khớp. Khi xác nhận thanh lý hoặc ADL, chiến lược sẽ dừng nhưng không thể khôi phục phần ký quỹ đã mất.'],
+  'th-TH': ['การบังคับชำระสถานะอาจเกิดก่อนจุดหยุดขาดทุนของกลยุทธ์', 'ขีดจำกัดคำนวณจากเงินทุนของการใช้งานครั้งนี้ ไม่ใช่ยอดทั้งกระเป๋าในตลาด เมื่อใช้เลเวอเรจ การเคลื่อนไหวของราคาอย่างรวดเร็ว ค่าธรรมเนียม ค่าฟันดิง หรือการเปลี่ยนแปลงมาร์จินรักษาสถานะ อาจทำให้สถานะถูกบังคับชำระก่อนคำสั่งปิดจะจับคู่ เมื่อยืนยันการบังคับชำระหรือ ADL ระบบจะหยุดกลยุทธ์ แต่ไม่สามารถคืนมาร์จินที่สูญเสียไปได้'],
+  'ar-SA': ['قد تحدث التصفية قبل إيقاف خسارة الاستراتيجية', 'يُحتسب الحد من رأس مال هذا التشغيل، وليس من كامل محفظة المنصة. عند استخدام الرافعة قد تؤدي الحركة السريعة أو الرسوم أو التمويل أو تغيّر هامش الصيانة إلى تصفية المركز قبل تنفيذ أمر الإغلاق. عند تأكيد التصفية أو خفض الرافعة التلقائي ADL تتوقف الاستراتيجية، لكن لا يمكن استعادة الهامش المفقود.']
+}
 locale['liveMonitor.starting'] = 'Starting'
 zhCN['liveMonitor.starting'] = '启动中'
 zhTW['liveMonitor.starting'] = '啟動中'
@@ -979,6 +1006,17 @@ Object.entries(healthReasonLocales).forEach(([localeKey, values]) => {
   healthReasonKeys.forEach((key, index) => {
     messages[`strategyCenter.console.healthReason.${key}`] = values[index]
   })
+})
+Object.entries(riskStopLocales).forEach(([localeKey, values]) => {
+  const messages = healthReasonTargets[localeKey]
+  riskStopKeys.forEach((key, index) => {
+    messages[`strategyCenter.console.stopReason.${key}`] = values[index]
+  })
+})
+Object.entries(healthReasonTargets).forEach(([localeKey, messages]) => {
+  const warning = liquidationWarningLocales[localeKey] || liquidationWarningLocales['en-US']
+  messages['strategyCenter.editor.liquidationRiskTitle'] = warning[0]
+  messages['strategyCenter.editor.liquidationRiskHint'] = warning[1]
 })
 Object.entries(deploymentControlLocales).forEach(([localeKey, values]) => {
   const messages = deploymentControlTargets[localeKey]
