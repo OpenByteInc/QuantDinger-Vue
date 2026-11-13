@@ -61,7 +61,14 @@
         :scroll="{ x: compact ? (portfolio ? 1130 : 1060) : (portfolio ? 1380 : 1260) }"
       >
         <template slot="symbol" slot-scope="text, record">
-          <strong>{{ record.symbol || text }}</strong>
+          <span class="position-symbol">
+            <strong>{{ record.symbol || text }}</strong>
+            <a-tooltip v-if="record.position_state === 'exit_residual'" :title="$t('quickTrade.dustBalanceHint')">
+              <a-tag color="orange" class="position-residual-tag">
+                {{ $t('quickTrade.dustBalance') }}
+              </a-tag>
+            </a-tooltip>
+          </span>
         </template>
         <template slot="side" slot-scope="text, record">
           <a-tag :color="(record.side || text) === 'long' ? 'green' : 'red'">
@@ -460,6 +467,7 @@ export default {
     },
     positionSummary () {
       return this.positions.reduce((summary, position) => {
+        if (position.position_state === 'exit_residual') return summary
         summary.count += 1
         summary.cost += this.getPositionCost(position)
         summary.marketValue += this.getMarketValue(position)
@@ -587,6 +595,9 @@ export default {
               position_cost: positionCost,
               market_value: marketValue,
               notional_value: positionCost,
+              position_state: position.position_state || position.positionState || 'open',
+              tradable_size: this.safeNumber(position.tradable_size ?? position.tradableSize) || 0,
+              residual_reason: position.residual_reason || position.residualReason || '',
               updated_at: position.updated_at || position.updatedAt || ''
             }
           })
@@ -809,6 +820,18 @@ export default {
   .position-weight {
     color: var(--primary-color, #1890ff);
     font-variant-numeric: tabular-nums;
+  }
+
+  .position-symbol {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .position-residual-tag {
+    margin-right: 0;
+    font-size: 10px;
+    line-height: 18px;
   }
 
   &.theme-dark .portfolio-position-summary > div {
