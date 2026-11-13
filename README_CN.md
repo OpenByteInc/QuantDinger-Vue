@@ -323,6 +323,7 @@ QuantDinger-Vue/
 | 本地登录或接口请求失败 | 确认后端监听 `http://127.0.0.1:5000`，或者设置 `VITE_DEV_PROXY_TARGET`。 |
 | 前端容器能启动但接口不通 | 从容器网络内检查 `BACKEND_URL`。前端容器中的 `localhost` 并不代表后端容器。 |
 | 长回测或 AI 生成被超时中断 | 本镜像 Nginx 允许十分钟，但上层负载均衡器或云代理可能配置了更短的超时。 |
+| 策略 AI 复盘超过普通请求的 30 秒超时 | 生成复盘使用 `AI_GENERATE_TIMEOUT`（三分钟）。API 调用方可通过 `getStrategyReviewReport(id, { ...data, timeout: 毫秒数 })` 调整等待时间；此传输选项不会发送到后端。请按模型预期耗时对齐代理和后端超时。生成请求不会自动重试，历史查询仍使用普通超时。 |
 | Docker 无法从 `registry-1.docker.io` 拉取 | 配置 Docker daemon/Desktop 代理，并参考主仓库安装故障排查文档。 |
 | 浏览器直接打开容器 manifest 显示 `UNAUTHORIZED` | 这通常说明仓库可达。`docker pull` 会执行浏览器普通请求没有的 Token 交换。 |
 | pnpm 要求重建 `node_modules` | 确认 Corepack 使用的 pnpm 版本与 `packageManager` 一致，然后执行 `pnpm install --frozen-lockfile`。 |
