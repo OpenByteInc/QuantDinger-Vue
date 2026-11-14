@@ -323,6 +323,7 @@ QuantDinger-Vue/
 | Login or API requests fail locally | Confirm the backend is listening on `http://127.0.0.1:5000`, or set `VITE_DEV_PROXY_TARGET`. |
 | The frontend container starts but API calls fail | Check `BACKEND_URL` from inside the container network. `localhost` inside the frontend container does not refer to the backend container. |
 | Long backtests or AI generation time out behind another proxy | Nginx in this image allows ten minutes, but an upstream load balancer or cloud proxy may have a shorter timeout. |
+| Strategy AI review exceeds the ordinary 30-second request timeout | Review generation uses `AI_GENERATE_TIMEOUT` (three minutes). API callers can set `getStrategyReviewReport(id, { ...data, timeout: milliseconds })`; this transport option is not sent to the backend. Align proxy and backend timeouts with the expected model latency. Generation is not automatically retried; history keeps the ordinary timeout. |
 | Docker cannot pull from `registry-1.docker.io` | Configure the Docker daemon/Desktop proxy and follow the main repository's installation troubleshooting guide. |
 | A direct browser request to a container manifest returns `UNAUTHORIZED` | That often confirms the registry is reachable. `docker pull` performs a token exchange that a plain browser request does not. |
 | pnpm wants to recreate `node_modules` | Ensure the Corepack pnpm version matches the `packageManager` field, then reinstall with `pnpm install --frozen-lockfile`. |
