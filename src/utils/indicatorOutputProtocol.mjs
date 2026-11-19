@@ -33,9 +33,9 @@ function parseRgbColor (value) {
       ? hex[1].split('').map(char => char + char).join('')
       : hex[1]
     return [
-      parseInt(digits.slice(0, 2), 16),
-      parseInt(digits.slice(2, 4), 16),
-      parseInt(digits.slice(4, 6), 16)
+      Number.parseInt(digits.slice(0, 2), 16),
+      Number.parseInt(digits.slice(2, 4), 16),
+      Number.parseInt(digits.slice(4, 6), 16)
     ]
   }
 
@@ -238,7 +238,7 @@ export function normalizeIndicatorOutput (rawResult, internalData = []) {
     plots,
     signals: asArray(result.signals),
     layers: asArray(result.layers || result.drawings),
-    tables: asArray(result.tables || result.panels).map(normalizeTable),
+    tables: asArray(result.tables || result.panels).map((table, index) => normalizeTable(table, index)),
     calculatedVars: result.calculatedVars && typeof result.calculatedVars === 'object'
       ? result.calculatedVars
       : {}

@@ -4579,7 +4579,8 @@ registerOverlay({
         .toLowerCase()
         .replace(/\s+/g, '_')
         .replace(/[^a-z0-9_]/g, '_')
-        .replace(/^_+|_+$/g, '') || `plot_${plotIdx}`
+        .replace(/^_+/, '')
+        .replace(/_+$/, '') || `plot_${plotIdx}`
     }
 
     const buildCandlestickPlotBundle = (plot, plotIdx, fallbackName) => {
@@ -6474,7 +6475,7 @@ registerOverlay({
         indicatorTables.value = []
         nextTick(() => {
           if (chartRef.value) {
-            updateIndicators({ force: true })
+            updateIndicators({ force: true }).catch(() => {})
           }
         })
       }

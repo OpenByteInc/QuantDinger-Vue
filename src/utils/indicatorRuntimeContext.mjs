@@ -47,7 +47,7 @@ export function extractIndicatorDataRequests (code, indicatorParams = {}) {
   const selectedSeries = normalizeIndicatorTimeframe(indicatorParams?.[seriesParam])
   const selectedLower = normalizeIndicatorTimeframe(indicatorParams?.[lowerParam])
 
-  for (const match of source.matchAll(/^\s*#\s*@(lower[_-]?timeframe|timeframe)\s+([^\s#]+)/gim)) {
+  for (const match of source.matchAll(/^[ \t]*#[ \t]*@(lower[_-]?timeframe|timeframe)[ \t]+([^\s#]+)/gim)) {
     addRequest(requests, match[2], String(match[1]).toLowerCase().startsWith('lower') ? 'lower_tf' : 'series')
   }
 
