@@ -129,7 +129,7 @@
           <ul>
             <li v-for="(item, index) in monitoringItems" :key="`${item.kind}-${item.case || index}-${index}`">
               <a-tag :color="monitoringColor(item)">{{ monitoringLabel(item) }}</a-tag>
-              <span>{{ cleanNarrative(item.text) }}</span>
+              <span>{{ item.kind === 'scenario' ? scenarioTriggerLabel({ ...item, trigger: item.text }) : cleanNarrative(item.text) }}</span>
               <small v-if="item.invalidation != null">{{ $t('fastAnalysis.invalidation') }}: {{ formatInvalidation(item.invalidation) }}</small>
             </li>
           </ul>
@@ -143,6 +143,7 @@
         </div>
         <div class="quality-grid">
           <div><span>{{ $t('fastAnalysis.dataCoverage') }}</span><strong>{{ formatRatio(quality.coverage_ratio) }}</strong></div>
+          <div><span>{{ $t('fastAnalysis.qualityScope') }}</span><small>{{ $t('fastAnalysis.qualityScopeNote') }}</small></div>
           <div><span>{{ $t('fastAnalysis.dataFreshness') }}</span><strong>{{ formatRatio(quality.freshness_ratio) }}</strong></div>
           <div><span>{{ $t('fastAnalysis.dataConflict') }}</span><strong>{{ formatRatio(quality.conflict_ratio) }}</strong></div>
           <div><span>{{ $t('fastAnalysis.conclusionStrength') }}</span><strong>{{ strengthLabel(quality.max_conclusion_strength) }}</strong></div>
@@ -419,7 +420,11 @@ export default {
     missingItems () {
       const qualityMissing = this.quality.missing_metrics || []
       const featureMissing = this.report?.market_features?.missing_capabilities || []
-      return [...new Set([...qualityMissing, ...featureMissing])]
+      const researchMissing = [
+        ...(this.researchIntelligence.missing_required_capabilities || []),
+        ...(this.researchIntelligence.missing_optional_capabilities || [])
+      ]
+      return [...new Set([...qualityMissing, ...featureMissing, ...researchMissing])]
     },
     dimensions () {
       return Array.isArray(this.report?.dimensions) ? this.report.dimensions : []
@@ -814,7 +819,10 @@ export default {
       const generatedDefaults = {
         'price and evidence confirm the upside thesis.': 'bull',
         'current evidence remains mixed or follows the central path.': 'base',
-        'downside catalyst or technical breakdown is confirmed.': 'bear'
+        'downside catalyst or technical breakdown is confirmed.': 'bear',
+        '价格走势与支持证据共同确认乐观情景。': 'bull',
+        '当前证据仍然分化，维持基准路径。': 'base',
+        '下行催化因素出现，或技术形态确认破位。': 'bear'
       }
       if (generatedDefaults[normalized]) {
         return this.$t(`fastAnalysis.scenarioTrigger.${generatedDefaults[normalized]}`)
