@@ -17,7 +17,11 @@ test('indicator conversion prompt protects direction, edge, execution, and risk 
   assert.match(strategyIde, /For edge\(A \| B\), compare the complete previous composite/)
   assert.match(strategyIde, /The strategy source owns its universe, markets, subscriptions, frequency/)
   assert.match(strategyIde, /market orders from handle_data become eligible at the next available bar open/)
-  assert.match(strategyIde, /attach native protection using stop_loss_pct/)
+  assert.match(strategyIde, /attach native Protection V2 using stop_loss_pct/)
+  assert.match(strategyIde, /stop_loss_pct or stop_loss_price/)
+  assert.match(strategyIde, /trailing_stop_pct or trailing_stop_points/)
+  assert.match(strategyIde, /Use exit_fraction for a shared partial-exit ratio/)
+  assert.match(strategyIde, /take_profit_exit_fraction/)
 })
 
 test('copilot builds workflow-specific artifact rules instead of mixing indicator and strategy rules', () => {

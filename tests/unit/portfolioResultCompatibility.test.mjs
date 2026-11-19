@@ -32,6 +32,15 @@ test('rebalance history distinguishes strategy batches from risk exits', () => {
   assert.match(source, /row\.recordType = 'protection'/)
 })
 
+test('Protection V2 events and partial exits are visible in backtest details', () => {
+  assert.match(source, /key="protection-events"/)
+  assert.match(source, /protectionEventsWithCount/)
+  assert.match(source, /dataIndex: 'exitFraction'/)
+  assert.match(source, /dataIndex: 'triggerPrice'/)
+  assert.match(source, /dataIndex: 'type'.*formatExecutionType/)
+  assert.match(source, /formatProtectionReason/)
+})
+
 test('completed-trade table uses the shared compact scrollbar treatment', () => {
   assert.match(source, /class="completed-trades-table"/)
   assert.match(source, /\.completed-trades-table \/deep\/ \.ant-table-body::\-webkit-scrollbar \{ width: 6px; height: 6px; \}/)

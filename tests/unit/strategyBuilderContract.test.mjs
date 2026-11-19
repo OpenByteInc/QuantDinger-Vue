@@ -378,9 +378,18 @@ test('all supported locales include the strategy builder contract', () => {
     assert.ok(messages.params.allow_short.description)
     for (const name of [
       'stop_loss_pct',
+      'stop_loss_price',
       'take_profit_pct',
+      'take_profit_price',
       'trailing_stop_pct',
+      'trailing_stop_points',
       'trailing_activation_pct',
+      'trailing_activation_points',
+      'exit_fraction',
+      'stop_loss_exit_fraction',
+      'take_profit_exit_fraction',
+      'trailing_exit_fraction',
+      'time_limit_exit_fraction',
       'trailing_enabled',
       'max_holding_bars',
       'time_limit_seconds'
@@ -389,8 +398,12 @@ test('all supported locales include the strategy builder contract', () => {
       assert.ok(messages.params[name].description, `${locale} ${name} description`)
     }
     assert.equal(messages.params.stopLossPct, messages.params.stop_loss_pct)
+    assert.equal(messages.params.stopLossPrice, messages.params.stop_loss_price)
     assert.equal(messages.params.takeProfitPct, messages.params.take_profit_pct)
+    assert.equal(messages.params.takeProfitPrice, messages.params.take_profit_price)
     assert.equal(messages.params.trailingStopPct, messages.params.trailing_stop_pct)
+    assert.equal(messages.params.trailingStopPoints, messages.params.trailing_stop_points)
+    assert.equal(messages.params.exitFraction, messages.params.exit_fraction)
   })
 })
 
@@ -402,6 +415,8 @@ test('common protection parameter names resolve through the shared presentation 
   }
 
   assert.equal(strategyParameterLabel({ name: 'take_profit_pct' }, translate), '止盈比例')
+  assert.equal(strategyParameterLabel({ name: 'take_profit_price' }, translate), '止盈价格')
   assert.equal(strategyParameterDescription({ name: 'trailing_stop_pct' }, translate, 'zh-CN'), '移动止损价格与持仓期间最优价格之间的回撤比例。')
+  assert.equal(strategyParameterDescription({ name: 'exit_fraction' }, translate, 'zh-CN'), '保护条件触发时默认退出的仓位比例，例如 0.4 表示退出 40%。')
   assert.equal(strategyParameterLabel({ name: 'trailingActivationPct', label: 'Trailing activation' }, translate), '移动止损启动比例')
 })

@@ -2511,12 +2511,31 @@ Object.values(additionalAiContractErrors).forEach(messages => {
   messages['strategyV2.aiHistoryWindowClockUnsupported'] = locale['strategyV2.aiHistoryWindowClockUnsupported']
 })
 
+const leverageLimitLocales = {
+  'ar-SA': 'لا يمكن أن تتجاوز الرافعة المالية الحد الأقصى {max}x المعلن في مصدر الاستراتيجية.',
+  'de-DE': 'Der Hebel darf das im Strategiequelltext angegebene Limit von {max}x nicht überschreiten.',
+  'fr-FR': 'L’effet de levier ne peut pas dépasser la limite de {max}x déclarée dans le code source de la stratégie.',
+  'ja-JP': 'レバレッジは戦略ソースで宣言された上限 {max} 倍を超えることはできません。',
+  'ko-KR': '레버리지는 전략 소스에 선언된 {max}배 한도를 초과할 수 없습니다.',
+  'ru-RU': 'Кредитное плечо не может превышать лимит {max}x, указанный в исходном коде стратегии.',
+  'th-TH': 'เลเวอเรจต้องไม่เกินขีดจำกัด {max} เท่าที่ประกาศไว้ในซอร์สกลยุทธ์',
+  'vi-VN': 'Đòn bẩy không được vượt quá giới hạn {max}x được khai báo trong mã nguồn chiến lược.'
+}
+
+Object.entries(leverageLimitLocales).forEach(([localeKey, value]) => {
+  additionalAiContractErrors[localeKey]['strategyV2.leverageExceedsStrategyLimit'] = value
+})
+
 const deploymentEditorLocales = {
   'ar-SA': {
     sourceChangesHint: 'تُطبَّق تغييرات الأداة والمنتج والإطار الزمني والمعلمات معًا على مصدر الاستراتيجية.',
     applySourceChanges: 'تطبيق على الاستراتيجية وإعادة التجميع',
     sourceChangesApplied: 'تم تحديث الإعدادات الافتراضية لمصدر الاستراتيجية وإعادة تجميعه.',
     sourceChangesApplyFailed: 'تعذر تحديث الإعدادات الافتراضية لمصدر الاستراتيجية.',
+    deploymentParametersHint: 'تُحفظ هذه القيم مع هذا التشغيل وتصبح نافذة بعد الإنشاء أو الحفظ. طبّقها على مصدر الاستراتيجية فقط إذا أردت أيضًا تغيير قيمه الافتراضية القابلة لإعادة الاستخدام.',
+    applyParametersToSource: 'تطبيق على مصدر الاستراتيجية',
+    parametersAppliedToSource: 'تم تحديث المعلمات الافتراضية للاستراتيجية وإعادة تجميعها.',
+    parametersApplyFailed: 'تعذر تحديث المعلمات الافتراضية للاستراتيجية.',
     addAccount: 'إضافة حساب',
     paperInitialMargin: 'هامش افتراضي',
     paperInitialCapital: 'رأس مال ابتدائي افتراضي',
@@ -2532,6 +2551,10 @@ const deploymentEditorLocales = {
     applySourceChanges: 'Auf Strategie anwenden und neu kompilieren',
     sourceChangesApplied: 'Die Standardwerte des Strategiequelltexts wurden aktualisiert und neu kompiliert.',
     sourceChangesApplyFailed: 'Die Standardwerte des Strategiequelltexts konnten nicht aktualisiert werden.',
+    deploymentParametersHint: 'Diese Werte werden mit diesem Einsatz gespeichert und nach Erstellen oder Speichern wirksam. Wenden Sie sie nur auf den Strategiequelltext an, wenn auch dessen wiederverwendbare Standardwerte geändert werden sollen.',
+    applyParametersToSource: 'Auf Strategiequelltext anwenden',
+    parametersAppliedToSource: 'Die Standardparameter der Strategie wurden aktualisiert und neu kompiliert.',
+    parametersApplyFailed: 'Die Standardparameter der Strategie konnten nicht aktualisiert werden.',
     addAccount: 'Konto hinzufügen',
     paperInitialMargin: 'Virtuelle Margin',
     paperInitialCapital: 'Virtuelles Startkapital',
@@ -2547,6 +2570,10 @@ const deploymentEditorLocales = {
     applySourceChanges: 'Appliquer à la stratégie et recompiler',
     sourceChangesApplied: 'Les valeurs par défaut du code source ont été mises à jour et recompilées.',
     sourceChangesApplyFailed: 'Impossible de mettre à jour les valeurs par défaut du code source.',
+    deploymentParametersHint: 'Ces valeurs sont enregistrées avec ce déploiement et prennent effet après sa création ou son enregistrement. Appliquez-les au code source uniquement si vous souhaitez aussi modifier ses valeurs par défaut réutilisables.',
+    applyParametersToSource: 'Appliquer au code source de la stratégie',
+    parametersAppliedToSource: 'Les paramètres par défaut de la stratégie ont été mis à jour et recompilés.',
+    parametersApplyFailed: 'Impossible de mettre à jour les paramètres par défaut de la stratégie.',
     addAccount: 'Ajouter un compte',
     paperInitialMargin: 'Marge virtuelle',
     paperInitialCapital: 'Capital initial virtuel',
@@ -2562,6 +2589,10 @@ const deploymentEditorLocales = {
     applySourceChanges: '戦略に適用して再コンパイル',
     sourceChangesApplied: '戦略ソースの既定値を更新し、再コンパイルしました。',
     sourceChangesApplyFailed: '戦略ソースの既定値を更新できませんでした。',
+    deploymentParametersHint: 'これらの値はこのデプロイに保存され、作成または保存後に有効になります。再利用する既定値も変更する場合にのみ、戦略ソースへ適用してください。',
+    applyParametersToSource: '戦略ソースに適用',
+    parametersAppliedToSource: '戦略の既定パラメータを更新し、再コンパイルしました。',
+    parametersApplyFailed: '戦略の既定パラメータを更新できませんでした。',
     addAccount: 'アカウントを追加',
     paperInitialMargin: '仮想証拠金',
     paperInitialCapital: '仮想初期資金',
@@ -2577,6 +2608,10 @@ const deploymentEditorLocales = {
     applySourceChanges: '전략에 적용하고 다시 컴파일',
     sourceChangesApplied: '전략 소스 기본값을 업데이트하고 다시 컴파일했습니다.',
     sourceChangesApplyFailed: '전략 소스 기본값을 업데이트하지 못했습니다.',
+    deploymentParametersHint: '이 값은 현재 배포와 함께 저장되며 생성 또는 저장 후 적용됩니다. 재사용 가능한 기본값도 변경하려는 경우에만 전략 소스에 적용하세요.',
+    applyParametersToSource: '전략 소스에 적용',
+    parametersAppliedToSource: '전략 기본 매개변수를 업데이트하고 다시 컴파일했습니다.',
+    parametersApplyFailed: '전략 기본 매개변수를 업데이트하지 못했습니다.',
     addAccount: '계정 추가',
     paperInitialMargin: '가상 증거금',
     paperInitialCapital: '가상 초기 자금',
@@ -2592,6 +2627,10 @@ const deploymentEditorLocales = {
     applySourceChanges: 'Применить к стратегии и перекомпилировать',
     sourceChangesApplied: 'Значения по умолчанию в исходном коде стратегии обновлены и перекомпилированы.',
     sourceChangesApplyFailed: 'Не удалось обновить значения по умолчанию в исходном коде стратегии.',
+    deploymentParametersHint: 'Эти значения сохраняются с текущим развёртыванием и вступают в силу после создания или сохранения. Применяйте их к исходному коду стратегии только для изменения её повторно используемых значений по умолчанию.',
+    applyParametersToSource: 'Применить к исходному коду стратегии',
+    parametersAppliedToSource: 'Параметры стратегии по умолчанию обновлены и перекомпилированы.',
+    parametersApplyFailed: 'Не удалось обновить параметры стратегии по умолчанию.',
     addAccount: 'Добавить счёт',
     paperInitialMargin: 'Виртуальная маржа',
     paperInitialCapital: 'Виртуальный начальный капитал',
@@ -2607,6 +2646,10 @@ const deploymentEditorLocales = {
     applySourceChanges: 'นำไปใช้กับกลยุทธ์และคอมไพล์ใหม่',
     sourceChangesApplied: 'อัปเดตค่าเริ่มต้นของซอร์สกลยุทธ์และคอมไพล์ใหม่แล้ว',
     sourceChangesApplyFailed: 'ไม่สามารถอัปเดตค่าเริ่มต้นของซอร์สกลยุทธ์ได้',
+    deploymentParametersHint: 'ค่าเหล่านี้จะบันทึกกับการใช้งานครั้งนี้และมีผลหลังจากสร้างหรือบันทึก ให้นำไปใช้กับซอร์สกลยุทธ์เฉพาะเมื่อต้องการเปลี่ยนค่าเริ่มต้นที่นำกลับมาใช้ใหม่ด้วย',
+    applyParametersToSource: 'นำไปใช้กับซอร์สกลยุทธ์',
+    parametersAppliedToSource: 'อัปเดตพารามิเตอร์เริ่มต้นของกลยุทธ์และคอมไพล์ใหม่แล้ว',
+    parametersApplyFailed: 'ไม่สามารถอัปเดตพารามิเตอร์เริ่มต้นของกลยุทธ์ได้',
     addAccount: 'เพิ่มบัญชี',
     paperInitialMargin: 'หลักประกันเสมือน',
     paperInitialCapital: 'เงินทุนเริ่มต้นเสมือน',
@@ -2622,6 +2665,10 @@ const deploymentEditorLocales = {
     applySourceChanges: 'Áp dụng vào chiến lược và biên dịch lại',
     sourceChangesApplied: 'Đã cập nhật các giá trị mặc định của mã nguồn chiến lược và biên dịch lại.',
     sourceChangesApplyFailed: 'Không thể cập nhật các giá trị mặc định của mã nguồn chiến lược.',
+    deploymentParametersHint: 'Các giá trị này được lưu cùng lần triển khai và có hiệu lực sau khi tạo hoặc lưu. Chỉ áp dụng chúng vào mã nguồn chiến lược khi bạn cũng muốn thay đổi các giá trị mặc định có thể tái sử dụng.',
+    applyParametersToSource: 'Áp dụng vào mã nguồn chiến lược',
+    parametersAppliedToSource: 'Đã cập nhật các tham số mặc định của chiến lược và biên dịch lại.',
+    parametersApplyFailed: 'Không thể cập nhật các tham số mặc định của chiến lược.',
     addAccount: 'Thêm tài khoản',
     paperInitialMargin: 'Ký quỹ ảo',
     paperInitialCapital: 'Vốn khởi tạo ảo',

@@ -36,27 +36,54 @@ const locale = (setupTitle, setupDescription, labels, hint, params) => ({
 const protectionParams = {
   'en-US': {
     stop_loss_pct: { label: 'Stop loss', description: 'Close the position when the loss reaches this percentage.' },
+    stop_loss_price: { label: 'Stop-loss price', description: 'Close the position when this absolute price is reached.' },
     take_profit_pct: { label: 'Take profit', description: 'Close the position when the profit reaches this percentage.' },
+    take_profit_price: { label: 'Take-profit price', description: 'Close the position when this absolute price is reached.' },
     trailing_stop_pct: { label: 'Trailing stop distance', description: 'Distance from the best price used by the trailing stop.' },
+    trailing_stop_points: { label: 'Trailing stop points', description: 'Absolute price distance from the best price used by the trailing stop.' },
     trailing_activation_pct: { label: 'Trailing stop activation', description: 'Profit required before the trailing stop starts following price.' },
+    trailing_activation_points: { label: 'Trailing activation points', description: 'Absolute favorable price movement required before trailing starts.' },
+    exit_fraction: { label: 'Protection exit fraction', description: 'Default position fraction closed by a protection trigger. 0.4 closes 40%.' },
+    stop_loss_exit_fraction: { label: 'Stop-loss exit fraction', description: 'Position fraction closed by stop loss; set to 0 to inherit the default protection fraction.' },
+    take_profit_exit_fraction: { label: 'Take-profit exit fraction', description: 'Position fraction closed by take profit; set to 0 to inherit the default protection fraction.' },
+    trailing_exit_fraction: { label: 'Trailing-stop exit fraction', description: 'Position fraction closed by trailing stop; set to 0 to inherit the default protection fraction.' },
+    time_limit_exit_fraction: { label: 'Time-limit exit fraction', description: 'Position fraction closed by the holding-time limit; set to 0 to inherit the default protection fraction.' },
     trailing_enabled: { label: 'Enable trailing stop', description: 'Use a trailing stop to protect gains after activation.' },
     max_holding_bars: { label: 'Maximum holding bars', description: 'Close the position after this many bars. Set to 0 to disable.' },
     time_limit_seconds: { label: 'Maximum holding time', description: 'Close the position after this many seconds. Set to 0 to disable.' }
   },
   'zh-CN': {
     stop_loss_pct: { label: '止损比例', description: '亏损达到该比例时平仓。' },
+    stop_loss_price: { label: '止损价格', description: '价格达到该绝对价位时触发止损。' },
     take_profit_pct: { label: '止盈比例', description: '盈利达到该比例时平仓。' },
+    take_profit_price: { label: '止盈价格', description: '价格达到该绝对价位时触发止盈。' },
     trailing_stop_pct: { label: '移动止损距离', description: '移动止损价格与持仓期间最优价格之间的回撤比例。' },
+    trailing_stop_points: { label: '移动止损点数', description: '移动止损价格与持仓期间最优价格之间的绝对价差。' },
     trailing_activation_pct: { label: '移动止损启动比例', description: '盈利达到该比例后开始跟踪价格。' },
+    trailing_activation_points: { label: '移动止损启动点数', description: '价格向盈利方向移动该绝对点数后开始跟踪。' },
+    exit_fraction: { label: '保护退出比例', description: '保护条件触发时默认退出的仓位比例，例如 0.4 表示退出 40%。' },
+    stop_loss_exit_fraction: { label: '止损退出比例', description: '止损触发时退出的仓位比例；设为 0 时继承保护退出比例。' },
+    take_profit_exit_fraction: { label: '止盈退出比例', description: '止盈触发时退出的仓位比例；设为 0 时继承保护退出比例。' },
+    trailing_exit_fraction: { label: '移动止损退出比例', description: '移动止损触发时退出的仓位比例；设为 0 时继承保护退出比例。' },
+    time_limit_exit_fraction: { label: '到期退出比例', description: '最大持仓时间触发时退出的仓位比例；设为 0 时继承保护退出比例。' },
     trailing_enabled: { label: '启用移动止损', description: '启动后使用移动止损保护已有盈利。' },
     max_holding_bars: { label: '最大持仓 K 线数', description: '持仓达到该 K 线数量后平仓，设置为 0 表示不限制。' },
     time_limit_seconds: { label: '最大持仓时间', description: '持仓达到该秒数后平仓，设置为 0 表示不限制。' }
   },
   'zh-TW': {
     stop_loss_pct: { label: '停損比例', description: '虧損達到此比例時平倉。' },
+    stop_loss_price: { label: '停損價格', description: '價格達到此絕對價位時觸發停損。' },
     take_profit_pct: { label: '停利比例', description: '獲利達到此比例時平倉。' },
+    take_profit_price: { label: '停利價格', description: '價格達到此絕對價位時觸發停利。' },
     trailing_stop_pct: { label: '移動停損距離', description: '移動停損價格與持倉期間最佳價格之間的回撤比例。' },
+    trailing_stop_points: { label: '移動停損點數', description: '移動停損價格與持倉期間最佳價格之間的絕對價差。' },
     trailing_activation_pct: { label: '移動停損啟動比例', description: '獲利達到此比例後開始追蹤價格。' },
+    trailing_activation_points: { label: '移動停損啟動點數', description: '價格向獲利方向移動此絕對點數後開始追蹤。' },
+    exit_fraction: { label: '保護退出比例', description: '保護條件觸發時預設退出的倉位比例，例如 0.4 表示退出 40%。' },
+    stop_loss_exit_fraction: { label: '停損退出比例', description: '停損觸發時退出的倉位比例；設為 0 時沿用保護退出比例。' },
+    take_profit_exit_fraction: { label: '停利退出比例', description: '停利觸發時退出的倉位比例；設為 0 時沿用保護退出比例。' },
+    trailing_exit_fraction: { label: '移動停損退出比例', description: '移動停損觸發時退出的倉位比例；設為 0 時沿用保護退出比例。' },
+    time_limit_exit_fraction: { label: '到期退出比例', description: '最大持倉時間觸發時退出的倉位比例；設為 0 時沿用保護退出比例。' },
     trailing_enabled: { label: '啟用移動停損', description: '啟動後使用移動停損保護既有獲利。' },
     max_holding_bars: { label: '最大持倉 K 線數', description: '持倉達到此 K 線數量後平倉，設為 0 表示不限制。' },
     time_limit_seconds: { label: '最大持倉時間', description: '持倉達到此秒數後平倉，設為 0 表示不限制。' }
@@ -137,16 +164,28 @@ const protectionParams = {
 
 const protectionParamAliases = {
   stopLossPct: 'stop_loss_pct',
+  stopLossPrice: 'stop_loss_price',
   takeProfitPct: 'take_profit_pct',
+  takeProfitPrice: 'take_profit_price',
   trailingStopPct: 'trailing_stop_pct',
+  trailingStopPoints: 'trailing_stop_points',
   trailingActivationPct: 'trailing_activation_pct',
+  trailingActivationPoints: 'trailing_activation_points',
+  exitFraction: 'exit_fraction',
+  stopLossExitFraction: 'stop_loss_exit_fraction',
+  takeProfitExitFraction: 'take_profit_exit_fraction',
+  trailingExitFraction: 'trailing_exit_fraction',
+  timeLimitExitFraction: 'time_limit_exit_fraction',
   trailingEnabled: 'trailing_enabled',
   maxHoldingBars: 'max_holding_bars',
   timeLimitSeconds: 'time_limit_seconds'
 }
 
 function withProtectionParams (lang, messages) {
-  const localized = protectionParams[lang] || protectionParams['en-US']
+  const localized = {
+    ...protectionParams['en-US'],
+    ...(protectionParams[lang] || {})
+  }
   const aliases = Object.keys(protectionParamAliases).reduce((result, alias) => {
     result[alias] = localized[protectionParamAliases[alias]]
     return result

@@ -311,7 +311,19 @@
           :data-source="executionRows"
           :row-key="(row, index) => row.order_id || index"
           size="small"
-          :scroll="{ x: 1250 }"
+          :scroll="{ x: 1395 }"
+          :pagination="{ pageSize: 8 }" />
+      </a-tab-pane>
+
+      <a-tab-pane key="protection-events" :tab="$t('strategyV2.backtest.tabs.protectionEventsWithCount', { count: protectionRows.length })">
+        <a-empty v-if="!protectionRows.length" :description="$t('strategyV2.backtest.noProtectionEvents')" />
+        <a-table
+          v-else
+          :columns="protectionColumns"
+          :data-source="protectionRows"
+          :row-key="row => row._rowKey"
+          size="small"
+          :scroll="{ x: 980 }"
           :pagination="{ pageSize: 8 }" />
       </a-tab-pane>
 
@@ -871,6 +883,12 @@ export default {
       return (this.result.holdingSnapshots || []).flatMap(snapshot => Object.keys(snapshot.positions || {}).map(symbol => ({ time: snapshot.time, symbol, ...snapshot.positions[symbol], cash: snapshot.cash, grossExposure: snapshot.grossExposure, netExposure: snapshot.netExposure }))).reverse()
     },
     tradeRows () { return this.result.closedTrades || this.result.trades || [] },
+    protectionRows () {
+      return (this.result.protectionEvents || []).map((row, index) => ({
+        ...row,
+        _rowKey: `${row.time || 'protection'}:${row.symbol || ''}:${row.reason || ''}:${index}`
+      }))
+    },
     reviewSymbols () {
       const snapshots = this.result.reviewCandles && typeof this.result.reviewCandles === 'object'
         ? Object.keys(this.result.reviewCandles)
@@ -1068,7 +1086,7 @@ export default {
         { title: this.$t('trading-assistant.costs.closingCommission'), dataIndex: 'exit_commission', customRender: value => this.formatNumber(value, 4) },
         { title: this.$t(this.hasGridMatchedTrades ? 'strategyV2.backtest.gridMatchedProfit' : 'backtest-center.tradeColumns.profit'), dataIndex: 'profit', customRender: value => this.$createElement('span', { class: ['trade-profit', this.profitTone(value)] }, this.formatSignedNumber(value)) },
         { title: this.$t('backtest-center.tradeColumns.balance'), dataIndex: 'balance', customRender: value => this.formatNumber(value) },
-        { title: this.$t('backtest-center.tradeColumns.closeReason'), dataIndex: 'close_reason', width: 150 }
+        { title: this.$t('backtest-center.tradeColumns.closeReason'), dataIndex: 'close_reason', width: 150, customRender: this.formatProtectionReason }
       ]
       if (this.hasGridMatchedTrades) {
         columns.splice(8, 0, {
@@ -1091,6 +1109,7 @@ export default {
         { title: this.$t('strategyV2.backtest.signalTime'), dataIndex: 'signal_time', width: 165, customRender: this.formatDate },
         { title: this.$t('strategyV2.backtest.fillTime'), dataIndex: 'time', width: 165, customRender: this.formatDate },
         { title: this.$t('backtest-center.symbol'), dataIndex: 'symbol', width: 165 },
+        { title: this.$t('strategyV2.backtest.executionType'), dataIndex: 'type', width: 145, customRender: this.formatExecutionType },
         { title: this.$t('strategyV2.backtest.side'), dataIndex: 'side', width: 70 },
         { title: this.$t('backtest-center.quantity'), dataIndex: 'quantity', customRender: value => this.formatNumber(value, 6) },
         { title: this.$t('backtest-center.price'), dataIndex: 'price', customRender: value => this.formatNumber(value, 4) },
@@ -1098,6 +1117,17 @@ export default {
         { title: this.$t('backtest-center.commission'), dataIndex: 'commission', customRender: value => this.formatNumber(value, 4) },
         { title: this.$t('strategyV2.backtest.orderStatusLabel'), dataIndex: 'status' },
         { title: this.$t('strategyV2.backtest.reason'), dataIndex: 'reason', width: 145 }
+      ]
+    },
+    protectionColumns () {
+      return [
+        { title: this.$t('strategyV2.backtest.time'), dataIndex: 'time', width: 170, customRender: this.formatDate },
+        { title: this.$t('backtest-center.symbol'), dataIndex: 'symbol', width: 180 },
+        { title: this.$t('strategyV2.backtest.side'), dataIndex: 'side', width: 90 },
+        { title: this.$t('strategyV2.backtest.reason'), dataIndex: 'reason', width: 150, customRender: this.formatProtectionReason },
+        { title: this.$t('strategyV2.backtest.protectionTriggerPrice'), dataIndex: 'triggerPrice', customRender: value => this.formatNumber(value, 6) },
+        { title: this.$t('strategyV2.backtest.protectionFillReferencePrice'), dataIndex: 'fillReferencePrice', customRender: value => this.formatNumber(value, 6) },
+        { title: this.$t('strategyV2.backtest.protectionExitFraction'), dataIndex: 'exitFraction', customRender: this.formatRate }
       ]
     },
     attributionColumns () {
@@ -1329,6 +1359,29 @@ export default {
       const key = `strategyV2.backtest.statusReasonValue.${value}`
       const translated = this.$t(key)
       return translated === key ? String(value) : translated
+    },
+    formatProtectionReason (value) {
+      if (!value) return '-'
+      const key = `strategyV2.backtest.recordReason.${value}`
+      const translated = this.$t(key)
+      return translated === key ? String(value) : translated
+    },
+    formatExecutionType (value) {
+      if (!value) return '-'
+      const keys = {
+        open_long: 'dashboard.indicator.backtest.tradeDetailOpenLong',
+        add_long: 'dashboard.indicator.backtest.tradeDetailAddLong',
+        reduce_long: 'dashboard.indicator.backtest.tradeDetailReduceLong',
+        close_long: 'dashboard.indicator.backtest.tradeDetailCloseLong',
+        open_short: 'dashboard.indicator.backtest.tradeDetailOpenShort',
+        add_short: 'dashboard.indicator.backtest.tradeDetailAddShort',
+        reduce_short: 'dashboard.indicator.backtest.tradeDetailReduceShort',
+        close_short: 'dashboard.indicator.backtest.tradeDetailCloseShort'
+      }
+      const key = keys[String(value).toLowerCase()]
+      if (!key) return String(value).replace(/_/g, ' ')
+      const translated = this.$t(key)
+      return translated === key ? String(value).replace(/_/g, ' ') : translated
     },
     formatRebalanceType (value, row) {
       const type = value || 'rebalance'
