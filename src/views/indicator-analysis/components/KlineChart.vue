@@ -160,6 +160,35 @@
           class="qd-wm-layer"
           :class="{ 'qd-wm-layer--dark': chartTheme === 'dark' }"
         ></canvas>
+        <div
+          v-for="table in indicatorTables"
+          :key="table.runtimeKey"
+          class="qd-indicator-table"
+          :class="[`qd-indicator-table--${table.position}`, { 'qd-indicator-table--compact': table.compact }]"
+          :style="indicatorTableStyle(table)"
+        >
+          <div v-if="table.title" class="qd-indicator-table__title">{{ table.title }}</div>
+          <div class="qd-indicator-table__grid">
+            <div v-if="table.columns.length" class="qd-indicator-table__row qd-indicator-table__row--header">
+              <span
+                v-for="(cell, cellIndex) in table.columns"
+                :key="`header-${cellIndex}`"
+                :style="indicatorTableCellStyle(cell)"
+              >{{ cell.text }}</span>
+            </div>
+            <div
+              v-for="(row, rowIndex) in table.rows"
+              :key="`row-${rowIndex}`"
+              class="qd-indicator-table__row"
+            >
+              <span
+                v-for="(cell, cellIndex) in row"
+                :key="`cell-${rowIndex}-${cellIndex}`"
+                :style="indicatorTableCellStyle(cell)"
+              >{{ cell.text }}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div v-if="loading && !klineData.length" class="chart-overlay">
@@ -256,6 +285,17 @@ import { buildHeikinAshiRows, buildHlcAreaRows, buildRangeBars } from '@/utils/p
 import { captureChartViewport, restoreChartViewport } from '@/utils/chartViewport.mjs'
 import ExchangeKlineWs from '@/utils/exchangeWs'
 import { splitIndicatorPlotsByPane } from '@/utils/indicatorPlotGrouping'
+import { buildIndicatorContextRequest } from '@/utils/indicatorRuntimeContext.mjs'
+import {
+  assignIndicatorSignalLanes,
+  isIndicatorLampPlot,
+  normalizeIndicatorCloudPointValue,
+  normalizeIndicatorLabelAnchor,
+  normalizeIndicatorLabelFontSize,
+  resolveIndicatorPlotTitle,
+  resolveIndicatorLabelTextColor,
+  normalizeIndicatorOutput
+} from '@/utils/indicatorOutputProtocol.mjs'
 import { usePyodide } from '@/services/pyodide/usePyodide'
 import {
   calculateSMA,
@@ -519,6 +559,8 @@ export default {
     const indicatorsUpdating = ref(false)
     const indicatorsUpdateQueued = ref(false)
     const lastIndicatorRenderSignature = ref('')
+    const indicatorTables = ref([])
+    const indicatorContextCache = new Map()
     let indicatorRenderSeq = 0
 
     const getIndicatorDataSignature = () => {
@@ -562,7 +604,7 @@ export default {
         return
       }
 
-      void updateIndicators({ force, signature })
+      updateIndicators({ force, signature }).catch(() => {})
     }
 
     const isCryptoMarket = () => {
@@ -693,6 +735,8 @@ export default {
     const addedBacktestOverlayIds = ref([])
     const addedDrawingOverlayIds = ref([])
     const addedQuickTradeOverlayIds = ref([])
+    let activeIndicatorOverlayGroupId = ''
+    let renderingIndicatorOverlayGroupId = ''
     const activeDrawingTool = ref(null)
     let shiftMeasurePointerDownHandler = null
 
@@ -709,6 +753,15 @@ export default {
         } catch (err) {
         }
       })
+    }
+
+    const removeIndicatorOverlayGroup = (groupId) => {
+      const inst = chartRef.value
+      if (!inst || !groupId || typeof inst.removeOverlay !== 'function') return
+      try {
+        inst.removeOverlay({ groupId })
+      } catch (err) {
+      }
     }
 
     const clearQuickTradePositionOverlays = () => {
@@ -798,6 +851,9 @@ export default {
           if (!name) return
           if (paneId) {
             inst.removeIndicator(paneId, name)
+            if (paneId !== 'candle_pane') {
+              inst.removeIndicator(paneId)
+            }
           } else {
             inst.removeIndicator('candle_pane', name)
             inst.removeIndicator(name)
@@ -805,6 +861,22 @@ export default {
         } catch (err) {
         }
       })
+    }
+
+    const removeOrphanedMainPaneIndicators = () => {
+      const inst = chartRef.value
+      if (!inst || typeof inst.getIndicatorByPaneId !== 'function') return
+      try {
+        const indicators = inst.getIndicatorByPaneId('candle_pane')
+        if (!(indicators instanceof Map)) return
+        indicators.forEach((indicator, key) => {
+          const name = String(indicator?.name || key || '')
+          if (name.startsWith('QD_MAIN_OVERLAY_')) {
+            inst.removeIndicator('candle_pane', name)
+          }
+        })
+      } catch (err) {
+      }
     }
 
     const { proxy } = getCurrentInstance()
@@ -1508,6 +1580,66 @@ export default {
       }
     }
 
+    const emptyIndicatorRuntimeContext = () => ({
+      version: 1,
+      market: props.market || '',
+      symbol: props.symbol || '',
+      timeframe: props.timeframe || '',
+      exchange_id: props.exchangeId || '',
+      market_type: props.marketType || '',
+      instrument_id: props.instrumentId || '',
+      requests: [],
+      series: {}
+    })
+
+    const loadIndicatorRuntimeContext = async (code, rawData, indicatorParams = {}) => {
+      const payload = buildIndicatorContextRequest({
+        code,
+        market: props.market,
+        symbol: props.symbol,
+        timeframe: props.timeframe,
+        exchangeId: props.exchangeId,
+        marketType: props.marketType,
+        instrumentId: props.instrumentId,
+        baseCount: rawData.length,
+        indicatorParams
+      })
+      if (!payload.requests.length) return emptyIndicatorRuntimeContext()
+
+      const firstTime = rawData[0]?.time || 0
+      const lastTime = rawData[rawData.length - 1]?.time || 0
+      const cacheKey = JSON.stringify([
+        payload.market,
+        payload.symbol,
+        payload.timeframe,
+        payload.exchange_id,
+        payload.market_type,
+        payload.instrument_id,
+        payload.base_count,
+        firstTime,
+        lastTime,
+        payload.requests
+      ])
+      if (indicatorContextCache.has(cacheKey)) {
+        return indicatorContextCache.get(cacheKey)
+      }
+
+      const response = await request({
+        url: '/api/indicator/multi-kline',
+        method: 'post',
+        data: payload,
+        timeout: 60000
+      })
+      if (!response || response.code !== 1 || !response.data) {
+        throw new Error(response?.msg || proxy.$t('dashboard.indicator.error.loadDataFailed'))
+      }
+      indicatorContextCache.set(cacheKey, response.data)
+      while (indicatorContextCache.size > 12) {
+        indicatorContextCache.delete(indicatorContextCache.keys().next().value)
+      }
+      return response.data
+    }
+
     const executePythonStrategy = async (userCode, klineData, params = {}, indicatorInfo = {}) => {
       try {
         await ensurePyodideReady()
@@ -1531,10 +1663,12 @@ export default {
           }
         })
 
+        const contextData = await loadIndicatorRuntimeContext(finalCode, rawData, params)
         const resultJson = await pyodideRunStrategy({
           userCode: finalCode,
           rawData,
-          params: params || {}
+          params: params || {},
+          contextData
         })
 
         if (!resultJson || typeof resultJson !== 'string') {
@@ -1611,9 +1745,14 @@ const resolveLayerColor = (color, fallback, alpha) => {
   return withAlpha(fallback, alpha)
 }
 
-const measureLayerText = (text, fontSize = 10, min = 40, max = 140) => {
-  const raw = String(text || '')
-  const width = raw.split('').reduce((acc, char) => acc + (char.charCodeAt(0) > 255 ? fontSize : fontSize * 0.58), 0)
+const indicatorLayerFontFamily = 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+
+const measureLayerText = (text, fontSize = 11, min = 40, max = 220) => {
+  const lines = String(text || '').split(/\r?\n/)
+  const width = lines.reduce((widest, line) => {
+    const lineWidth = line.split('').reduce((acc, char) => acc + (char.charCodeAt(0) > 255 ? fontSize : fontSize * 0.58), 0)
+    return Math.max(widest, lineWidth)
+  }, 0)
   return Math.max(min, Math.min(max, width + 18))
 }
 
@@ -1754,6 +1893,7 @@ const parseSignalValue = (value) => {
 
 const signalRenderMode = (signal, activeCount, dataLength) => {
   const rawMode = String(signal?.renderMode || signal?.mode || '').toLowerCase()
+  if (['none', 'hidden', 'off'].includes(rawMode)) return 'hidden'
   if (['event', 'events'].includes(rawMode)) return 'events'
   if (['point', 'points', 'marker', 'markers', 'raw'].includes(rawMode)) return 'points'
   if (['state', 'continuous', 'condition'].includes(rawMode)) return 'edge'
@@ -1774,12 +1914,14 @@ const shouldRenderSignalEntry = (entries, index, mode) => {
 }
 
 const normalizeIndicatorRenderResult = (rawResult = {}, internalData = []) => {
-  const result = rawResult && typeof rawResult === 'object' ? rawResult : {}
+  const result = normalizeIndicatorOutput(rawResult, internalData)
   const renderResult = {
+    version: result.version,
     name: result.name ? String(result.name) : '',
     description: result.description ? String(result.description) : '',
-    plots: Array.isArray(result.plots) ? result.plots : [],
-    layers: Array.isArray(result.layers) ? result.layers : [],
+    plots: result.plots,
+    layers: result.layers,
+    tables: result.tables,
     calculatedVars: result.calculatedVars && typeof result.calculatedVars === 'object'
       ? result.calculatedVars
       : {},
@@ -1804,6 +1946,7 @@ const normalizeIndicatorRenderResult = (rawResult = {}, internalData = []) => {
     const entries = Array.from({ length: dataLength }, (_, i) => parseSignalValue(signal.data[i]))
     const activeCount = entries.reduce((count, entry) => count + (entry.active ? 1 : 0), 0)
     const mode = signalRenderMode(signal, activeCount, dataLength)
+    if (mode === 'hidden') continue
 
     for (let i = 0; i < dataLength; i++) {
       if (!shouldRenderSignalEntry(entries, i, mode)) continue
@@ -1832,6 +1975,7 @@ const normalizeIndicatorRenderResult = (rawResult = {}, internalData = []) => {
       seenSignalKeys.add(key)
 
       renderResult.signalPoints.push({
+        dataIndex: i,
         timestamp,
         price,
         anchorPrice,
@@ -1847,6 +1991,7 @@ const normalizeIndicatorRenderResult = (rawResult = {}, internalData = []) => {
   if (renderResult.signalPoints.length > MAX_RENDERED_SIGNAL_POINTS) {
     renderResult.signalPoints = renderResult.signalPoints.slice(-MAX_RENDERED_SIGNAL_POINTS)
   }
+  renderResult.signalPoints = assignIndicatorSignalLanes(renderResult.signalPoints)
 
   return renderResult
 }
@@ -1862,7 +2007,7 @@ registerOverlay({
 
       checkEventOn: () => false,
 
-      createPointFigures: ({ coordinates, overlay }) => {
+      createPointFigures: ({ coordinates, overlay, bounding }) => {
         const { text } = overlay.extendData || {}
         const color = overlay.extendData?.color || '#555555'
         // `markerStyle === 'dashed'` is used by the indicator IDE to render a
@@ -1877,6 +2022,7 @@ registerOverlay({
         if (!coordinates[0]) return []
         const x = coordinates[0].x
         const signalY = coordinates[0].y
+        if (Number.isFinite(bounding?.width) && (x < 0 || x > bounding.width)) return []
 
         const anchorY = coordinates[1] ? coordinates[1].y : signalY
 
@@ -1956,7 +2102,15 @@ registerOverlay({
           ]
         }
 
-        const boxY = isBuy ? signalY : (signalY - boxHeight)
+        const lane = Math.max(0, Math.min(7, Number(overlay.extendData?.lane) || 0))
+        const laneShift = lane * (boxHeight + 48)
+        const rawBoxY = isBuy ? signalY + laneShift : (signalY - boxHeight - laneShift)
+        const maxBoxY = Number.isFinite(bounding?.height) ? Math.max(4, bounding.height - boxHeight - 4) : rawBoxY
+        const boxY = Number.isFinite(bounding?.height) ? Math.max(4, Math.min(rawBoxY, maxBoxY)) : rawBoxY
+        const rawBoxX = x - boxWidth / 2
+        const maxBoxX = Number.isFinite(bounding?.width) ? Math.max(4, bounding.width - boxWidth - 4) : rawBoxX
+        const boxX = Number.isFinite(bounding?.width) ? Math.max(4, Math.min(rawBoxX, maxBoxX)) : rawBoxX
+        const textX = boxX + boxWidth / 2
 
         const circleY = anchorY
         const lineStartY = circleY
@@ -1990,7 +2144,7 @@ registerOverlay({
             {
               type: 'rect',
               attrs: {
-                x: x - boxWidth / 2,
+                x: boxX,
                 y: boxY,
                 width: boxWidth,
                 height: boxHeight,
@@ -2008,7 +2162,7 @@ registerOverlay({
             {
               type: 'text',
               attrs: {
-                x: x,
+                x: textX,
                 y: boxY + boxHeight / 2,
                 text: textStr,
                 align: 'center',
@@ -2041,7 +2195,7 @@ registerOverlay({
           {
             type: 'rect',
             attrs: {
-              x: x - boxWidth / 2,
+              x: boxX,
               y: boxY,
               width: boxWidth,
               height: boxHeight,
@@ -2053,13 +2207,13 @@ registerOverlay({
           {
             type: 'text',
             attrs: {
-              x: x,
+              x: textX,
               y: boxY + boxHeight / 2,
               text: textStr,
               align: 'center',
               baseline: 'middle'
             },
-            styles: { color: solidTextColor, size: fontSize, weight: textWeight },
+            styles: { color: solidTextColor, size: fontSize, weight: textWeight, family: indicatorLayerFontFamily },
             ignoreEvent: true
           }
         ]
@@ -2108,7 +2262,7 @@ registerOverlay({
           }
         ]
         if (text) {
-          const fontSize = Number(data.fontSize || 10)
+          const fontSize = normalizeIndicatorLabelFontSize(data.fontSize)
           const labelWidth = measureLayerText(text, fontSize, 48, 150)
           const labelHeight = Math.max(17, fontSize + 8)
           const labelX = x1 + 8
@@ -2128,9 +2282,10 @@ registerOverlay({
             type: 'text',
             attrs: { x: labelX + 9, y: labelY + labelHeight / 2, text, align: 'left', baseline: 'middle' },
             styles: {
-              color: data.textColor || color,
+              color: resolveIndicatorLabelTextColor(data.textColor || color, isDark),
               size: fontSize,
               weight: '700',
+              family: indicatorLayerFontFamily,
               backgroundColor: 'transparent'
             },
             ignoreEvent: true
@@ -2151,6 +2306,7 @@ registerOverlay({
       createPointFigures: ({ coordinates, overlay, bounding }) => {
         if (!coordinates[0] || !coordinates[1]) return []
         const data = overlay.extendData || {}
+        const isDark = chartTheme.value === 'dark'
         const color = data.color || 'var(--primary-color, #1890ff)'
         const lineStart = { x: coordinates[0].x, y: coordinates[0].y }
         let lineEnd = { x: coordinates[1].x, y: coordinates[1].y }
@@ -2180,10 +2336,11 @@ registerOverlay({
           }
         ]
         if (data.text) {
+          const fontSize = normalizeIndicatorLabelFontSize(data.fontSize)
           const centered = data.textPosition === 'center'
           let textX = centered ? (coordinates[0].x + coordinates[1].x) / 2 : coordinates[1].x + 6
           if (!centered && data.keepTextVisible === true && Number.isFinite(bounding?.width)) {
-            const width = measureLayerText(data.text, Number(data.fontSize || 10))
+            const width = measureLayerText(data.text, fontSize)
             textX = Math.max(4, Math.min(textX, bounding.width - width - 4))
           }
           const textY = centered ? (coordinates[0].y + coordinates[1].y) / 2 : coordinates[1].y
@@ -2192,9 +2349,10 @@ registerOverlay({
             type: 'text',
             attrs: { x: textX, y: textY + (Number.isFinite(offset) ? offset : 0), text: String(data.text), align: centered ? 'center' : 'left', baseline: 'middle' },
             styles: {
-              color: data.textColor || color,
-              size: Number(data.fontSize || 10),
+              color: resolveIndicatorLabelTextColor(data.textColor || color, isDark),
+              size: fontSize,
               weight: data.fontWeight || '600',
+              family: indicatorLayerFontFamily,
               backgroundColor: 'transparent'
             },
             ignoreEvent: true
@@ -2212,7 +2370,7 @@ registerOverlay({
       needDefaultXAxisFigure: false,
       needDefaultYAxisFigure: false,
       checkEventOn: () => false,
-      createPointFigures: ({ coordinates, overlay }) => {
+      createPointFigures: ({ coordinates, overlay, bounding }) => {
         if (!coordinates[0]) return []
         const data = overlay.extendData || {}
         const text = String(data.text || '')
@@ -2220,15 +2378,25 @@ registerOverlay({
         const isDark = chartTheme.value === 'dark'
         const lowerText = text.toLowerCase()
         const color = data.color || (lowerText.includes('bull') ? '#12b76a' : (lowerText.includes('bear') ? '#f04438' : '#1677ff'))
-        const isAbove = data.side === 'above' || data.side === 'sell'
-        const fontSize = Number(data.fontSize || 10)
-        const width = measureLayerText(text, fontSize, 38, 132)
-        const height = fontSize + 9
+        const horizontalAnchor = normalizeIndicatorLabelAnchor(data.side)
+        const anchor = normalizeIndicatorLabelAnchor(data.anchor || data.side)
+        const fontSize = normalizeIndicatorLabelFontSize(data.fontSize)
+        const lines = text.split(/\r?\n/)
+        const lineHeight = Math.ceil(fontSize * 1.35)
+        const width = measureLayerText(text, fontSize, 48, 240)
+        const height = lines.length * lineHeight + 8
         const x = coordinates[0].x
-        const anchorRight = data.side === 'right' || lowerText.startsWith('regime')
-        const rectX = anchorRight ? x + 8 : x - width / 2
-        const y = coordinates[0].y + (isAbove ? -height - 7 : 7)
-        return [
+        const anchorRight = horizontalAnchor === 'right' || lowerText.startsWith('regime')
+        const rawRectX = anchorRight ? x + 8 : x - width / 2
+        const maxX = Number.isFinite(bounding?.width) ? Math.max(4, bounding.width - width - 4) : rawRectX
+        const rectX = Number.isFinite(bounding?.width) ? Math.max(4, Math.min(rawRectX, maxX)) : rawRectX
+        const baseY = anchor === 'above' ? -height - 7 : (anchor === 'center' ? -height / 2 : 7)
+        const offsetY = Number(data.labelOffsetY)
+        const rawY = coordinates[0].y + baseY + (Number.isFinite(offsetY) ? offsetY : 0)
+        const maxY = Number.isFinite(bounding?.height) ? Math.max(4, bounding.height - height - 4) : rawY
+        const y = Number.isFinite(bounding?.height) ? Math.max(4, Math.min(rawY, maxY)) : rawY
+        const textColor = resolveIndicatorLabelTextColor(data.textColor, isDark)
+        const figures = [
           {
             type: 'rect',
             attrs: { x: rectX, y, width, height, r: 5 },
@@ -2242,18 +2410,26 @@ registerOverlay({
             },
             ignoreEvent: true
           },
-          {
+          ...lines.map((line, index) => ({
             type: 'text',
-            attrs: { x: rectX + width / 2, y: y + height / 2, text, align: 'center', baseline: 'middle' },
+            attrs: {
+              x: rectX + width / 2,
+              y: y + 4 + lineHeight * index + lineHeight / 2,
+              text: line,
+              align: 'center',
+              baseline: 'middle'
+            },
             styles: {
-              color: data.textColor || color,
+              color: textColor,
               size: fontSize,
               weight: '700',
+              family: indicatorLayerFontFamily,
               backgroundColor: 'transparent'
             },
             ignoreEvent: true
-          }
+          }))
         ]
+        return figures
       }
     })
 
@@ -2863,6 +3039,17 @@ registerOverlay({
       if (loading.value && contextKey === activeLoadContextKey) return
       const generation = ++loadGeneration
       activeLoadContextKey = contextKey
+
+      indicatorRenderSeq += 1
+      lastIndicatorRenderSignature.value = ''
+      removeSignalOverlayBatch(addedSignalOverlayIds.value)
+      removeIndicatorOverlayGroup(activeIndicatorOverlayGroupId)
+      removeIndicatorBatch(addedIndicatorIds.value)
+      removeOrphanedMainPaneIndicators()
+      addedSignalOverlayIds.value = []
+      addedIndicatorIds.value = []
+      activeIndicatorOverlayGroupId = ''
+      indicatorTables.value = []
 
       stopRealtime()
       clearBacktestOverlays()
@@ -3981,9 +4168,11 @@ registerOverlay({
       })
     }
 
-    const CUSTOM_INDICATOR_RENDER_VERSION = 'r16'
+    const CUSTOM_INDICATOR_RENDER_VERSION = 'r19'
     const LAMP_FIGURE_TYPES = ['lamp', 'dot', 'point', 'scatter', 'circle']
     const CLOUD_FIGURE_TYPES = ['cloud', 'band', 'fill_between', 'fill-between']
+    const CANDLESTICK_FIGURE_TYPES = ['candlestick', 'candle', 'ohlc']
+    const BACKGROUND_FIGURE_TYPES = ['background', 'bgcolor', 'background_color']
 
     const hashCustomIndicatorSignature = (value) => {
       const text = String(value || '')
@@ -3999,6 +4188,8 @@ registerOverlay({
       const rawType = String(type || 'line').toLowerCase()
       if (LAMP_FIGURE_TYPES.includes(rawType)) return 'circle'
       if (CLOUD_FIGURE_TYPES.includes(rawType)) return 'cloud'
+      if (CANDLESTICK_FIGURE_TYPES.includes(rawType)) return 'candlestick'
+      if (BACKGROUND_FIGURE_TYPES.includes(rawType)) return 'background'
       if (['histogram', 'column'].includes(rawType)) return 'bar'
       if (['circle', 'bar', 'line'].includes(rawType)) return rawType
       return 'line'
@@ -4033,12 +4224,7 @@ registerOverlay({
     }
 
     const getCloudPointValue = (point, edge) => {
-      if (!point || typeof point !== 'object') return null
-      const value = edge === 'upper'
-        ? (point.upper ?? point.top ?? point.high ?? point.value ?? point.y ?? point.data)
-        : (point.lower ?? point.bottom ?? point.low)
-      const numeric = Number(value)
-      return Number.isFinite(numeric) ? numeric : null
+      return normalizeIndicatorCloudPointValue(point, edge)
     }
 
     const isTruthyLampValue = (value) => {
@@ -4084,10 +4270,12 @@ registerOverlay({
         }
       })
 
+      const hasTimedSource = sourceIndexByTime.size > 0
+
       return targetRows.map((item, fallbackIndex) => {
         const timeKey = getKLineTimeKey(item)
-        const sourceIndex = timeKey !== null && sourceIndexByTime.has(timeKey)
-          ? sourceIndexByTime.get(timeKey)
+        const sourceIndex = hasTimedSource
+          ? (timeKey !== null && sourceIndexByTime.has(timeKey) ? sourceIndexByTime.get(timeKey) : -1)
           : fallbackIndex
         const dataPoint = {}
         for (const figureKey in plotDataMap) {
@@ -4132,19 +4320,7 @@ registerOverlay({
     const isLampType = (type) => LAMP_FIGURE_TYPES.includes(String(type || '').toLowerCase())
 
     const looksLikeLampPlot = (plot) => {
-      if (!plot) return false
-      if (isLampType(plot.type)) return true
-      const name = String(plot.name || plot.title || '').toLowerCase()
-      const lampNamePattern = /(lamp|light|red|green|on|off|bull|bear|signal|state|trend)/
-      if (!lampNamePattern.test(name)) return false
-      const data = Array.isArray(plot.data) ? plot.data : []
-      const sample = data.map(getPlotPointValue).filter(value => value != null).slice(0, 80)
-      if (!sample.length) return true
-      const numericSample = sample.map(Number).filter(Number.isFinite)
-      if (!numericSample.length) return true
-      const uniqueValues = new Set(numericSample.map(value => Number(value.toFixed(6))))
-      const integerish = numericSample.every(value => Math.abs(value - Math.round(value)) < 1e-6)
-      return integerish && uniqueValues.size <= 8
+      return isIndicatorLampPlot(plot)
     }
 
     // Legacy lane parser kept for compatibility reference while v2 handles current lamp belts.
@@ -4246,7 +4422,7 @@ registerOverlay({
 
       const figure = {
         key: figureKey,
-        title: options.forceLamp ? '' : (plot.title === false ? '' : (plot.title || plot.name || plotName)),
+        title: resolveIndicatorPlotTitle(plot, plotName, options.forceLamp),
         type: figureType,
         lamp: options.forceLamp
           ? {
@@ -4339,6 +4515,33 @@ registerOverlay({
         }
       }
 
+      const lineMode = String(plot.lineStyle || plot.style || '').toLowerCase()
+      const breakOnNull = plot.connectNulls === false || ['linebr', 'line-break', 'line_break'].includes(lineMode)
+      if (figureType === 'line' && breakOnNull) {
+        figure.attrs = ({ coordinate, data }) => {
+          const previousRaw = data?.prev?.[figureKey]
+          const currentRaw = data?.current?.[figureKey]
+          if (previousRaw == null || currentRaw == null) {
+            return { coordinates: [] }
+          }
+          const previousValue = Number(previousRaw)
+          const currentValue = Number(currentRaw)
+          const previousX = Number(coordinate?.prev?.x)
+          const previousY = Number(coordinate?.prev?.[figureKey])
+          const currentX = Number(coordinate?.current?.x)
+          const currentY = Number(coordinate?.current?.[figureKey])
+          if (![previousValue, currentValue, previousX, previousY, currentX, currentY].every(Number.isFinite)) {
+            return { coordinates: [] }
+          }
+          return {
+            coordinates: [
+              { x: previousX, y: previousY },
+              { x: currentX, y: currentY }
+            ]
+          }
+        }
+      }
+
       if (options.forceLamp && figureType === 'bar') {
         figure.attrs = ({ coordinate, data, barSpace, bounding }) => {
           const indicatorData = data?.current || {}
@@ -4362,11 +4565,169 @@ registerOverlay({
         }
       }
 
-      if (figureType === 'bar' && plot.baseValue != null) {
-        figure.baseValue = Number(plot.baseValue)
+      if (figureType === 'bar' && !options.forceLamp) {
+        const baseValue = Number(plot.baseValue)
+        figure.baseValue = Number.isFinite(baseValue) ? baseValue : 0
       }
 
       return { figureKey, figure, colorKey, sizeKey, lowerKey, figureType }
+    }
+
+    const customPlotKeyBase = (plot, plotIdx, fallbackName) => {
+      const raw = plot?.name || fallbackName || `PLOT_${plotIdx}`
+      return String(raw)
+        .toLowerCase()
+        .replace(/\s+/g, '_')
+        .replace(/[^a-z0-9_]/g, '_')
+        .replace(/^_+|_+$/g, '') || `plot_${plotIdx}`
+    }
+
+    const buildCandlestickPlotBundle = (plot, plotIdx, fallbackName) => {
+      const key = customPlotKeyBase(plot, plotIdx, fallbackName)
+      const bodyKey = `${key}__body`
+      const wickKey = `${key}__wick`
+      const openKey = `${key}__open`
+      const highKey = `${key}__high`
+      const lowKey = `${key}__low`
+      const closeKey = `${key}__close`
+      const colorKey = `${key}__color`
+      const fillColorKey = `${key}__fill_color`
+      const borderColorKey = `${key}__border_color`
+      const wickColorKey = `${key}__wick_color`
+      const data = Array.isArray(plot.data) ? plot.data : []
+      const pointFallbackColor = (point) => {
+        const open = Number(point && point.open)
+        const close = Number(point && point.close)
+        if (Number.isFinite(open) && Number.isFinite(close)) {
+          return close >= open ? '#089981' : '#f23645'
+        }
+        return plot.color || '#64748b'
+      }
+      const shouldRenderPoint = (point) => {
+        if (!plot.skipNullColor) return true
+        return Boolean(point && (point.color || point.fillColor || point.borderColor || point.wickColor))
+      }
+      const numberField = (point, field) => {
+        if (!shouldRenderPoint(point)) return null
+        const numeric = Number(point && point[field])
+        return Number.isFinite(numeric) ? numeric : null
+      }
+      const colorField = (point, field, fallback) => {
+        if (!point || typeof point !== 'object') return fallback
+        return point[field] || fallback
+      }
+      const plotDataMap = {
+        [bodyKey]: data.map(point => numberField(point, 'close')),
+        [wickKey]: data.map(point => numberField(point, 'high')),
+        [openKey]: data.map(point => numberField(point, 'open')),
+        [highKey]: data.map(point => numberField(point, 'high')),
+        [lowKey]: data.map(point => numberField(point, 'low')),
+        [closeKey]: data.map(point => numberField(point, 'close')),
+        [colorKey]: data.map(point => colorField(point, 'color', pointFallbackColor(point))),
+        [fillColorKey]: data.map(point => colorField(point, 'fillColor', colorField(point, 'color', pointFallbackColor(point)))),
+        [borderColorKey]: data.map(point => colorField(point, 'borderColor', colorField(point, 'color', pointFallbackColor(point)))),
+        [wickColorKey]: data.map(point => colorField(point, 'wickColor', colorField(point, 'color', pointFallbackColor(point))))
+      }
+      const figures = [
+        {
+          key: wickKey,
+          title: undefined,
+          type: 'line',
+          attrs: ({ coordinate, data: figureData, yAxis }) => {
+            const current = coordinate?.current || {}
+            const indicatorData = figureData?.current || {}
+            const x = Number(current.x)
+            const highY = Number(yAxis?.convertToPixel?.(indicatorData[highKey]))
+            const lowY = Number(yAxis?.convertToPixel?.(indicatorData[lowKey]))
+            if (![x, highY, lowY].every(Number.isFinite)) return { coordinates: [] }
+            return { coordinates: [{ x, y: highY }, { x, y: lowY }] }
+          },
+          styles: (styleData) => {
+            const current = styleData?.current?.indicatorData || {}
+            const color = current[wickColorKey] || '#64748b'
+            return { color, size: Math.max(1, Number(plot.wickWidth) || 1), style: 'solid' }
+          }
+        },
+        {
+          key: bodyKey,
+          title: resolveIndicatorPlotTitle(plot),
+          type: 'rect',
+          attrs: ({ coordinate, data: figureData, barSpace, yAxis }) => {
+            const current = coordinate?.current || {}
+            const indicatorData = figureData?.current || {}
+            const x = Number(current.x)
+            const openY = Number(yAxis?.convertToPixel?.(indicatorData[openKey]))
+            const closeY = Number(yAxis?.convertToPixel?.(indicatorData[closeKey]))
+            if (![x, openY, closeY].every(Number.isFinite)) {
+              return { x: -9999, y: -9999, width: 0, height: 0 }
+            }
+            const baseWidth = Number(barSpace?.bar ?? barSpace?.gapBar ?? 8)
+            const width = Math.max(1, (Number.isFinite(baseWidth) ? baseWidth : 8) * 0.72)
+            return {
+              x: x - width / 2,
+              y: Math.min(openY, closeY),
+              width,
+              height: Math.max(1, Math.abs(closeY - openY))
+            }
+          },
+          styles: (styleData) => {
+            const current = styleData?.current?.indicatorData || {}
+            const color = current[fillColorKey] || current[colorKey] || '#64748b'
+            const borderColor = current[borderColorKey] || current[colorKey] || '#64748b'
+            return {
+              style: 'stroke_fill',
+              color,
+              borderColor,
+              borderSize: Math.max(0, Number(plot.borderSize) || 1)
+            }
+          }
+        }
+      ]
+      return { figures, plotDataMap }
+    }
+
+    const buildBackgroundPlotBundle = (plot, plotIdx, fallbackName) => {
+      const key = customPlotKeyBase(plot, plotIdx, fallbackName)
+      const figureKey = `${key}__background`
+      const colorKey = `${key}__background_color`
+      const data = Array.isArray(plot.data) ? plot.data : []
+      const fallbackColor = plot.color || '#64748b'
+      return {
+        figures: [{
+          key: figureKey,
+          title: undefined,
+          type: 'rect',
+          attrs: ({ coordinate, bounding, barSpace }) => {
+            const x = Number(coordinate?.current?.x)
+            if (!Number.isFinite(x)) return { x: -9999, y: -9999, width: 0, height: 0 }
+            const baseWidth = Number(barSpace?.bar ?? barSpace?.gapBar ?? 8)
+            const width = Math.max(1, (Number.isFinite(baseWidth) ? baseWidth : 8) + 1)
+            return {
+              x: x - width / 2,
+              y: Number(bounding?.top || 0),
+              width,
+              height: Math.max(0, Number(bounding?.height || 0))
+            }
+          },
+          styles: (styleData) => {
+            const current = styleData?.current?.indicatorData || {}
+            const color = current[colorKey]
+            const requestedOpacity = Number(plot.opacity)
+            const opacity = Number.isFinite(requestedOpacity)
+              ? Math.min(0.45, Math.max(0.02, requestedOpacity))
+              : 0.12
+            return {
+              style: 'fill',
+              color: color ? resolveLayerColor(color, fallbackColor, opacity) : 'rgba(0,0,0,0)',
+              borderSize: 0
+            }
+          }
+        }],
+        plotDataMap: {
+          [figureKey]: data.map(getPlotPointValue),
+          [colorKey]: data.map(getPlotPointColor)
+        }
+      }
     }
 
     const hasLampStylePlots = (plots, lampBeltMeta = null) => {
@@ -4692,7 +5053,7 @@ registerOverlay({
 
         figures.push({
           key: bgKey,
-          title: '',
+          title: undefined,
           type: 'rect',
           attrs: ({ coordinate, bounding }) => {
             const y = coordinate?.current?.[bgKey]
@@ -4718,7 +5079,7 @@ registerOverlay({
 
         figures.push({
           key: textKey,
-          title: '',
+          title: undefined,
           type: 'text',
           attrs: ({ coordinate, bounding }) => {
             const y = coordinate?.current?.[textKey]
@@ -4838,7 +5199,10 @@ registerOverlay({
     const pushLayerOverlay = (overlayConfig) => {
       if (!chartRef.value || typeof chartRef.value.createOverlay !== 'function') return
       try {
-        const overlayId = chartRef.value.createOverlay(overlayConfig, 'candle_pane')
+        const overlayId = chartRef.value.createOverlay({
+          ...overlayConfig,
+          groupId: renderingIndicatorOverlayGroupId || overlayConfig.groupId
+        }, 'candle_pane')
         if (overlayId) addedSignalOverlayIds.value.push(overlayId)
       } catch (e) {
       }
@@ -4847,6 +5211,53 @@ registerOverlay({
     const renderIndicatorLayers = (layers, internalData) => {
       if (!Array.isArray(layers) || !layers.length || !internalData.length) return
       const lastIndex = internalData.length - 1
+
+      const labelCollisionGroups = []
+      const priceExtremes = internalData.flatMap(bar => [Number(bar?.low), Number(bar?.high)]).filter(Number.isFinite)
+      const visiblePriceSpan = priceExtremes.length
+        ? Math.max(...priceExtremes) - Math.min(...priceExtremes)
+        : 0
+      const labelIndexTolerance = Math.max(4, Math.min(12, Math.round(internalData.length * 0.025)))
+
+      const resolveLabelOffsetY = (layer, price, dataIndex) => {
+        const anchor = normalizeIndicatorLabelAnchor(layer.anchor || layer.side)
+        const fontSize = normalizeIndicatorLabelFontSize(layer.fontSize)
+        const lineCount = Math.max(1, String(layer.text || layer.name || '').split(/\r?\n/).length)
+        const labelHeight = lineCount * Math.ceil(fontSize * 1.35) + 12
+        const priceTolerance = Math.max(visiblePriceSpan * 0.03, Math.abs(price) * 0.006)
+        let group = labelCollisionGroups.find(candidate => (
+          Math.abs(candidate.lastIndex - dataIndex) <= labelIndexTolerance &&
+          Math.abs(candidate.averagePrice - price) <= priceTolerance
+        ))
+        if (!group) {
+          group = { lastIndex: dataIndex, averagePrice: price, count: 0, above: 0, below: 0, center: 0 }
+          labelCollisionGroups.push(group)
+        }
+
+        group.averagePrice = (group.averagePrice * group.count + price) / (group.count + 1)
+        group.lastIndex = dataIndex
+        group.count += 1
+
+        if (anchor === 'above') {
+          const offset = -group.above
+          group.above += labelHeight
+          return offset
+        }
+        if (anchor === 'center') {
+          if (group.center === 0) {
+            group.center = 1
+            return 0
+          }
+          const lane = Math.ceil(group.center / 2)
+          const direction = group.center % 2 === 1 ? -1 : 1
+          group.center += 1
+          return direction * lane * labelHeight
+        }
+
+        const offset = group.below
+        group.below += labelHeight
+        return offset
+      }
 
       layers.forEach(layer => {
         if (!layer || typeof layer !== 'object') return
@@ -4922,10 +5333,47 @@ registerOverlay({
           return
         }
 
+        if (['polyline', 'path'].includes(type)) {
+          const points = Array.isArray(layer.points) ? layer.points : []
+          for (let pointIndex = 1; pointIndex < points.length; pointIndex++) {
+            const previous = points[pointIndex - 1] || {}
+            const current = points[pointIndex] || {}
+            const start = normalizeLayerTimestamp(
+              previous.timestamp ?? previous.time ?? previous.index,
+              internalData,
+              previous.index
+            )
+            const end = normalizeLayerTimestamp(
+              current.timestamp ?? current.time ?? current.index,
+              internalData,
+              current.index
+            )
+            const y1 = normalizeLayerPrice(previous.price, previous.value, previous.y)
+            const y2 = normalizeLayerPrice(current.price, current.value, current.y)
+            if (start == null || end == null || y1 == null || y2 == null) continue
+            pushLayerOverlay({
+              name: 'qdIndicatorLine',
+              points: [{ timestamp: start, value: y1 }, { timestamp: end, value: y2 }],
+              extendData: {
+                text: pointIndex === points.length - 1 ? (layer.text || layer.name || '') : '',
+                color: current.color || previous.color || layer.color,
+                lineWidth: layer.lineWidth,
+                dashed: layer.dashed,
+                fontSize: layer.fontSize,
+                textColor: layer.textColor
+              },
+              lock: true
+            })
+          }
+          return
+        }
+
         if (['label', 'tag', 'note'].includes(type)) {
           const timestamp = normalizeLayerTimestamp(layer.timestamp ?? layer.time ?? layer.index, internalData, layer.index ?? lastIndex)
           const price = normalizeLayerPrice(layer.price, layer.value, layer.y)
           if (timestamp == null || price == null) return
+          const dataIndex = normalizeLayerDataIndex(layer.timestamp ?? layer.time ?? layer.index, internalData, layer.index ?? lastIndex)
+          const labelOffsetY = resolveLabelOffsetY(layer, price, Number.isFinite(dataIndex) ? dataIndex : lastIndex)
           pushLayerOverlay({
             name: 'qdIndicatorLabel',
             points: [{ timestamp, value: price }],
@@ -4935,8 +5383,10 @@ registerOverlay({
               fillColor: layer.fillColor,
               borderColor: layer.borderColor,
               side: layer.side,
+              anchor: layer.anchor,
               fontSize: layer.fontSize,
-              textColor: layer.textColor
+              textColor: layer.textColor,
+              labelOffsetY
             },
             lock: true
           })
@@ -4952,6 +5402,7 @@ registerOverlay({
         try {
           const overlayId = chartRef.value.createOverlay({
             name: 'signalTag',
+            groupId: renderingIndicatorOverlayGroupId || undefined,
             points: [
               { timestamp: point.timestamp, value: point.price },
               { timestamp: point.timestamp, value: point.anchorPrice }
@@ -4962,7 +5413,8 @@ registerOverlay({
               side: point.side,
               action: point.action,
               price: point.price,
-              rawPrice: point.rawPrice
+              rawPrice: point.rawPrice,
+              lane: point.lane
             },
             lock: true
           }, 'candle_pane')
@@ -4994,6 +5446,16 @@ registerOverlay({
 
       indicatorsUpdating.value = true
       const renderCycleId = ++indicatorRenderSeq
+      const previousIndicatorOverlayGroupId = activeIndicatorOverlayGroupId
+      const nextIndicatorOverlayGroupId = `qd-indicator-runtime-${renderCycleId}`
+      renderingIndicatorOverlayGroupId = nextIndicatorOverlayGroupId
+      const assertCurrentRenderCycle = () => {
+        if (renderCycleId !== indicatorRenderSeq) {
+          const error = new Error('Stale indicator render cycle')
+          error.code = 'STALE_INDICATOR_RENDER'
+          throw error
+        }
+      }
       const previousSignalOverlayIds = [...addedSignalOverlayIds.value]
       const previousIndicatorIds = [...addedIndicatorIds.value]
       addedSignalOverlayIds.value = []
@@ -5004,6 +5466,22 @@ registerOverlay({
       const mainPaneOverlayFigures = []
       const mainPaneOverlayCalcEntries = []
       const mainPaneOverlaySignatureParts = []
+      const nextIndicatorTables = []
+      const tableCountsByPosition = {}
+      const appendIndicatorTables = (tables, indicatorIndex) => {
+        if (!Array.isArray(tables)) return
+        tables.forEach((table, tableIndex) => {
+          const position = table.position || 'top-right'
+          const positionIndex = tableCountsByPosition[position] || 0
+          tableCountsByPosition[position] = positionIndex + 1
+          nextIndicatorTables.push({
+            ...table,
+            position,
+            runtimeKey: `${renderCycleId}-${indicatorIndex}-${table.id || tableIndex}`,
+            positionIndex
+          })
+        })
+      }
       const addMainPaneOverlayEntry = ({ signature, figures, calc }) => {
         if (signature) {
           mainPaneOverlaySignatureParts.push(String(signature))
@@ -5029,6 +5507,19 @@ registerOverlay({
           const fallbackName = typeof fallbackNameForIndex === 'function'
             ? fallbackNameForIndex(plotIdx)
             : `PLOT_${plotIdx}`
+          const normalizedType = normalizeCustomFigureType(plot.type)
+          if (!forceLamp && normalizedType === 'candlestick') {
+            const candleBundle = buildCandlestickPlotBundle(plot, plotIdx, fallbackName)
+            figures.push(...candleBundle.figures)
+            Object.assign(plotDataMap, candleBundle.plotDataMap)
+            continue
+          }
+          if (!forceLamp && normalizedType === 'background') {
+            const backgroundBundle = buildBackgroundPlotBundle(plot, plotIdx, fallbackName)
+            figures.push(...backgroundBundle.figures)
+            Object.assign(plotDataMap, backgroundBundle.plotDataMap)
+            continue
+          }
           const { figureKey, figure, colorKey, sizeKey, lowerKey, figureType } = buildCustomPlotFigure(plot, plotIdx, fallbackName, {
             forceLamp,
             lampLane
@@ -5078,9 +5569,11 @@ registerOverlay({
             try {
               if (indicator.calculate && typeof indicator.calculate === 'function') {
                 const result = await indicator.calculate(internalData, resolvePythonIndicatorParams(indicator))
+                assertCurrentRenderCycle()
 
                 const renderResult = normalizeIndicatorRenderResult(result, internalData)
                 const allPlots = [...renderResult.plots]
+                appendIndicatorTables(renderResult.tables, idx)
                 renderIndicatorLayers(renderResult.layers, internalData)
                 renderIndicatorSignals(renderResult.signalPoints)
 
@@ -5167,9 +5660,11 @@ registerOverlay({
                   resolvePythonIndicatorParams(indicator),
                   decryptInfo
                 )
+                assertCurrentRenderCycle()
 
                 const renderResult = normalizeIndicatorRenderResult(pythonResult, internalData)
                 const allPlots = [...renderResult.plots]
+                appendIndicatorTables(renderResult.tables, idx)
                 renderIndicatorLayers(renderResult.layers, internalData)
                 renderIndicatorSignals(renderResult.signalPoints)
 
@@ -5810,6 +6305,7 @@ registerOverlay({
         } catch (e) {
         }
       }
+      assertCurrentRenderCycle()
       if (mainPaneOverlayFigures.length > 0) {
         try {
           const combinedName = `QD_MAIN_OVERLAY_${mainPaneOverlaySignatureParts.join('_').replace(/[^a-zA-Z0-9_]/g, '_').slice(0, 120)}_${renderCycleId}`
@@ -5845,21 +6341,35 @@ registerOverlay({
       }
       const renderedCount = addedSignalOverlayIds.value.length + addedIndicatorIds.value.length
       const activeIndicatorCount = Array.isArray(props.activeIndicators) ? props.activeIndicators.length : 0
-      if (renderedCount > 0 || activeIndicatorCount === 0) {
+      if (renderedCount > 0 || nextIndicatorTables.length > 0 || activeIndicatorCount === 0) {
         removeSignalOverlayBatch(previousSignalOverlayIds)
+        removeIndicatorOverlayGroup(previousIndicatorOverlayGroupId)
         removeIndicatorBatch(previousIndicatorIds)
+        indicatorTables.value = nextIndicatorTables
+        activeIndicatorOverlayGroupId = nextIndicatorOverlayGroupId
         renderSucceeded = true
       } else {
+        removeIndicatorOverlayGroup(nextIndicatorOverlayGroupId)
         addedSignalOverlayIds.value = previousSignalOverlayIds
         addedIndicatorIds.value = previousIndicatorIds
       }
       } catch (e) {
         removeSignalOverlayBatch(addedSignalOverlayIds.value)
+        removeIndicatorOverlayGroup(nextIndicatorOverlayGroupId)
         removeIndicatorBatch(addedIndicatorIds.value)
-        addedSignalOverlayIds.value = previousSignalOverlayIds
-        addedIndicatorIds.value = previousIndicatorIds
+        if (renderCycleId === indicatorRenderSeq) {
+          addedSignalOverlayIds.value = previousSignalOverlayIds
+          addedIndicatorIds.value = previousIndicatorIds
+        } else {
+          addedSignalOverlayIds.value = []
+          addedIndicatorIds.value = []
+          indicatorTables.value = []
+        }
       } finally {
-        if (renderSucceeded) {
+        if (renderingIndicatorOverlayGroupId === nextIndicatorOverlayGroupId) {
+          renderingIndicatorOverlayGroupId = ''
+        }
+        if (renderSucceeded && renderCycleId === indicatorRenderSeq) {
           lastIndicatorRenderSignature.value = renderSignature
         }
         indicatorsUpdating.value = false
@@ -5867,7 +6377,7 @@ registerOverlay({
         if (indicatorsUpdateQueued.value) {
           indicatorsUpdateQueued.value = false
           setTimeout(() => {
-            void updateIndicators()
+            updateIndicators().catch(() => {})
           }, 0)
         }
       }
@@ -5904,6 +6414,16 @@ registerOverlay({
     const handleRetry = () => {
       loadKlineData()
     }
+
+    const indicatorTableCellStyle = (cell = {}) => ({
+      color: cell.color || undefined,
+      backgroundColor: cell.backgroundColor || undefined,
+      textAlign: ['left', 'center', 'right'].includes(cell.align) ? cell.align : undefined
+    })
+
+    const indicatorTableStyle = (table = {}) => ({
+      '--qd-indicator-table-offset': `${Math.max(0, Number(table.positionIndex) || 0) * 116}px`
+    })
 
     watch(
       () => [
@@ -5942,9 +6462,19 @@ registerOverlay({
 
     watch(() => props.activeIndicators, (newVal, oldVal) => {
       if (chartRef.value && klineData.value.length > 0) {
+        indicatorRenderSeq += 1
+        lastIndicatorRenderSignature.value = ''
+        removeSignalOverlayBatch(addedSignalOverlayIds.value)
+        removeIndicatorOverlayGroup(activeIndicatorOverlayGroupId)
+        removeIndicatorBatch(addedIndicatorIds.value)
+        removeOrphanedMainPaneIndicators()
+        addedSignalOverlayIds.value = []
+        addedIndicatorIds.value = []
+        activeIndicatorOverlayGroupId = ''
+        indicatorTables.value = []
         nextTick(() => {
           if (chartRef.value) {
-            updateIndicators()
+            updateIndicators({ force: true })
           }
         })
       }
@@ -6252,6 +6782,9 @@ registerOverlay({
       chartContainerRef,
       wmCanvasRef,
       chartRootEl,
+      indicatorTables,
+      indicatorTableCellStyle,
+      indicatorTableStyle,
       chartModalGetContainer,
       getIndicatorColor,
       handleRetry,
@@ -6740,6 +7273,93 @@ registerOverlay({
   display: block !important;
   opacity: 1 !important;
   visibility: visible !important;
+}
+
+.qd-indicator-table {
+  position: absolute;
+  z-index: 9;
+  min-width: 148px;
+  max-width: min(360px, calc(100% - 64px));
+  color: #273142;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.09);
+  overflow: hidden;
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+}
+
+.qd-indicator-table--top-left {
+  top: calc(48px + var(--qd-indicator-table-offset, 0px));
+  left: 12px;
+}
+
+.qd-indicator-table--top-right {
+  top: calc(48px + var(--qd-indicator-table-offset, 0px));
+  right: 112px;
+}
+
+.qd-indicator-table--bottom-left {
+  bottom: calc(14px + var(--qd-indicator-table-offset, 0px));
+  left: 12px;
+}
+
+.qd-indicator-table--bottom-right {
+  right: 12px;
+  bottom: calc(14px + var(--qd-indicator-table-offset, 0px));
+}
+
+.qd-indicator-table__title {
+  padding: 6px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.25;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+}
+
+.qd-indicator-table__row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  column-gap: 1px;
+}
+
+.qd-indicator-table__row > span {
+  min-width: 0;
+  padding: 4px 7px;
+  overflow: hidden;
+  font-size: 10px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qd-indicator-table__row--header {
+  color: #667085;
+  font-weight: 600;
+  background: rgba(15, 23, 42, 0.035);
+}
+
+.qd-indicator-table--compact .qd-indicator-table__row > span {
+  padding-top: 3px;
+  padding-bottom: 3px;
+}
+
+.chart-left.theme-dark .qd-indicator-table {
+  color: rgba(255, 255, 255, 0.86);
+  background: rgba(20, 20, 20, 0.92);
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
+}
+
+.chart-left.theme-dark .qd-indicator-table__title {
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+
+.chart-left.theme-dark .qd-indicator-table__row--header {
+  color: rgba(255, 255, 255, 0.58);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .chart-left.theme-dark .indicator-toolbar {

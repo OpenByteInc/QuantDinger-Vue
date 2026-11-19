@@ -12,9 +12,12 @@ const overlays = new Map()
 const drawn = []
 const context = vm.createContext({
   chartTheme: { value: 'dark' },
+  normalizeIndicatorLabelFontSize: value => Number(value) || 11,
+  resolveIndicatorLabelTextColor: value => value || '#ffffff',
   registerOverlay: overlay => overlays.set(overlay.name, overlay),
   chartRef: { value: { createOverlay: config => { drawn.push(config); return String(drawn.length) } } },
-  addedSignalOverlayIds: { value: [] }
+  addedSignalOverlayIds: { value: [] },
+  renderingIndicatorOverlayGroupId: ''
 })
 vm.runInContext(`${helpers}\n${definitions}\n${renderer}\nthis.render = renderIndicatorLayers`, context)
 const coordinates = [{ x: 20, y: 100 }, { x: 120, y: 100 }]
