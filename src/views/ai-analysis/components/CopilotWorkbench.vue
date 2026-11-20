@@ -353,10 +353,11 @@
             :class="{ active: symbolOptionValue(item) === selectedSymbolValue }"
           >
             <button type="button" class="watch-main" @click="selectWatch(item)">
-              <span class="watch-identity">
-                <strong>{{ item.symbol }}</strong>
-                <em :title="watchlistContextLabel(item)">{{ watchlistContextLabel(item) }}</em>
+              <span class="watch-heading">
+                <span class="watch-market-tag" :class="marketPillClass(item.market)" :title="marketLabel(item.market)">{{ watchMarketLabel(item.market) }}</span>
+                <strong :title="item.symbol">{{ item.symbol }}</strong>
               </span>
+              <em class="watch-name" :title="watchlistDisplayName(item)">{{ watchlistDisplayName(item) }}</em>
               <span class="watch-market-data">
                 <strong class="watch-price">{{ formatPriceValue(priceFor(item) && priceFor(item).price, item.market) }}</strong>
                 <em :class="watchChangeClass(item)" class="watch-change">
@@ -651,7 +652,7 @@ import { buildResearchChartOption, parseResearchChartBlock } from '@/utils/resea
 import ProfessionalAnalysisReport from './ProfessionalAnalysisReport.vue'
 import { sortCopilotMarkets } from './copilotWatchlistPresets.mjs'
 import AddWatchlistModal from '@/components/Watchlist/AddWatchlistModal.vue'
-import { groupWatchlistAssets, watchlistContextLabel, watchlistPayload } from '@/utils/watchlistAssets'
+import { groupWatchlistAssets, watchlistContextLabel, watchlistDisplayName, watchlistPayload } from '@/utils/watchlistAssets'
 import {
   buildContextualFollowups,
   buildResearchStarterPrompts,
@@ -1688,6 +1689,7 @@ export default {
       } catch (_) { /* Preserve the current research context and cached list. */ }
     },
     watchlistContextLabel (item) { return watchlistContextLabel(item, key => this.$t(key)) },
+    watchlistDisplayName,
     async removeWatch (item) {
       const normalized = this.normalizeSymbolOption(item)
       if (!normalized || !normalized.symbol) return
@@ -4744,6 +4746,11 @@ export default {
     marketPillClass (market) {
       return `market-${String(market || 'default').toLowerCase()}`
     },
+    watchMarketLabel (market) {
+      const key = `watchlistAssets.marketShort.${String(market || '').toLowerCase()}`
+      const label = this.$t(key)
+      return label && label !== key ? label : this.marketLabel(market)
+    },
     cryptoProductLabel (item) {
       const productType = String((item && item.product_type) || '').trim().toLowerCase()
       if (productType && productType !== 'crypto') {
@@ -6264,33 +6271,65 @@ export default {
   border: 0;
   background: transparent;
   display: grid;
-  grid-template-columns: minmax(92px, 1fr) minmax(86px, auto);
+  grid-template-columns: minmax(0, 1fr) max-content;
+  grid-template-areas: 'identity quote' 'name quote';
   align-items: center;
-  gap: 8px;
+  gap: 4px 8px;
   padding: 8px 6px 8px 10px;
   cursor: pointer;
   text-align: left;
 }
 
-.watch-identity {
+.watch-heading {
+  grid-area: identity;
+  display: flex;
+  align-items: center;
+  gap: 4px;
   min-width: 0;
+  line-height: 20px;
 }
 
-.watch-identity em {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+.watch-market-tag {
+  flex: 0 1 auto;
+  max-width: 50%;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: var(--qd-text-muted);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 20px;
   overflow: hidden;
-  overflow-wrap: anywhere;
-  white-space: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.watch-market-tag.market-crypto { background: #fa8c16; }
+.watch-market-tag.market-usstock { background: var(--primary-color, #1890ff); }
+.watch-market-tag.market-cnstock { background: #eb2f96; }
+.watch-market-tag.market-hkstock { background: #f5222d; }
+.watch-market-tag.market-forex { background: #52c41a; }
+.watch-market-tag.market-futures { background: #722ed1; }
+
+.watch-main .watch-name {
+  grid-area: name;
+  min-width: 0;
+  margin: 0;
+  color: var(--qd-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .watch-market-data {
+  grid-area: quote;
   display: flex;
   min-width: 0;
+  align-self: stretch;
   flex-direction: column;
+  justify-content: space-between;
   align-items: flex-end;
-  gap: 3px;
+  gap: 4px;
 }
 
 .watch-price,
@@ -6306,14 +6345,16 @@ export default {
 }
 
 .watch-price {
+  max-width: none;
   color: var(--qd-text);
   font-size: 12px;
-  line-height: 1.25;
+  line-height: 20px;
 }
 
-.watch-change {
+.watch-main .watch-change {
   width: fit-content;
   max-width: 92px;
+  margin: 0;
   padding: 1px 5px;
   border-radius: 5px;
   background: rgba(107, 127, 153, 0.1);

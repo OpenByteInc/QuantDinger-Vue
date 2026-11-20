@@ -5,6 +5,7 @@ import {
   groupWatchlistAssets,
   watchlistAssetKey,
   watchlistContextLabel,
+  watchlistDisplayName,
   watchlistPayload
 } from '../../src/utils/watchlistAssets.js'
 import messages from '../../src/locales/lang/watchlist-assets.js'
@@ -133,9 +134,56 @@ test('add dialog omits the explanatory line and does not duplicate its separate 
   ]) {
     assert.match(read(path), /<add-watchlist-modal/)
   }
+})
+
+test('watchlist names contain only supplied company or asset metadata', () => {
+  assert.equal(watchlistDisplayName({ symbol: '600519', name: '贵州茅台', market_types: ['spot'] }), '贵州茅台')
+  assert.equal(watchlistDisplayName({ symbol: 'INTC', name: 'INTC', display_name: 'Intel' }), 'Intel')
+  assert.equal(watchlistDisplayName({ symbol: 'INTC', name: 'Intel', company_name: ' Intel Corporation ' }), 'Intel Corporation')
+  assert.equal(watchlistDisplayName(btc), 'Bitcoin')
+  assert.equal(watchlistDisplayName({ symbol: 'BTC/USDT', name: 'BTC' }), 'BTC')
+  assert.equal(watchlistDisplayName({ symbol: 'INTC', name: ' intc ' }), '')
+  assert.equal(watchlistDisplayName({ symbol: 'UNKNOWN', market_types: ['spot', 'swap'] }), '')
+  assert.equal(watchlistDisplayName(null), '')
+})
+
+test('watchlist cards show a market tag before the ticker and a name-only subtitle', () => {
   const workbench = read('src/views/ai-analysis/components/CopilotWorkbench.vue')
-  assert.match(workbench, /:title="watchlistContextLabel\(item\)"/)
-  assert.match(workbench, /\.watch-identity em \{[^}]*-webkit-line-clamp: 2;[^}]*white-space: normal;/)
+  const card = workbench.slice(workbench.indexOf('class="watch-main"'), workbench.indexOf('<div class="watch-actions">'))
+  assert.match(card, /class="watch-market-tag" :class="marketPillClass\(item.market\)"/)
+  assert.ok(card.indexOf('watch-market-tag') < card.indexOf('{{ item.symbol }}'))
+  assert.match(card, /class="watch-name" :title="watchlistDisplayName\(item\)"/)
+  assert.doesNotMatch(card, /watchlistContextLabel|market_types|cryptoProductLabel/)
+  assert.match(card, /:title="marketLabel\(item.market\)"[^>]*>\{\{ watchMarketLabel\(item.market\) \}\}/)
+  assert.match(workbench, /grid-template-areas: 'identity quote' 'name quote';/)
+  assert.match(workbench, /\.watch-heading \{\s*grid-area: identity;/)
+  assert.match(workbench, /\.watch-main \.watch-name \{\s*grid-area: name;/)
+  assert.match(workbench, /\.watch-market-data \{\s*grid-area: quote;/)
+  assert.match(workbench, /\.watch-main \.watch-name \{[^}]*text-overflow: ellipsis;[^}]*white-space: nowrap;/)
+  const indicator = read('src/views/indicator-ide/index.vue')
+  for (const market of ['crypto', 'usstock', 'cnstock', 'hkstock', 'forex', 'futures']) {
+    const color = indicator.match(new RegExp(`\\.wl-mkt-${market} \\{ background: ([^;]+);`))[1]
+    assert.ok(workbench.includes(`.watch-market-tag.market-${market} { background: ${color}; }`))
+  }
+})
+
+test('compact market tags are localized without changing full market names', () => {
+  const workbench = read('src/views/ai-analysis/components/CopilotWorkbench.vue')
+  const body = workbench.match(/watchMarketLabel \(market\) \{([\s\S]*?)\n {4}\},/)[1]
+  const label = new Function('market', body)
+  for (const [locale, copy] of Object.entries(messages)) {
+    const vm = { $t: key => copy[key] || key, marketLabel: market => `full:${market}` }
+    for (const market of ['Crypto', 'USStock', 'HKStock', 'CNStock', 'Forex', 'Futures', 'FUTURES', 'MOEX']) {
+      const key = `watchlistAssets.marketShort.${market.toLowerCase()}`
+      assert.ok(copy[key], `${locale} is missing ${key}`)
+      assert.equal(label.call(vm, market), copy[key])
+    }
+    assert.equal(label.call(vm, 'Unknown'), 'full:Unknown')
+  }
+  assert.equal(messages['en-US']['watchlistAssets.marketShort.crypto'], 'Crypto')
+  assert.equal(messages['en-US']['watchlistAssets.marketShort.usstock'], 'US')
+  assert.equal(messages['en-US']['watchlistAssets.marketShort.hkstock'], 'HK')
+  assert.equal(messages['zh-CN']['watchlistAssets.marketShort.crypto'], '加密')
 })
 
 test('AI watchlist normalization retains company metadata when the primary name is only a ticker', () => {

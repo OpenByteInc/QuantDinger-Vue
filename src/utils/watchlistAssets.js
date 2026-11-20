@@ -20,6 +20,14 @@ export function groupWatchlistAssets (rows = [], preferred = null) {
   return [...groups.values()]
 }
 
+export function watchlistDisplayName (item) {
+  if (!item) return ''
+  const symbol = String(item.symbol || '').trim().toUpperCase()
+  const name = [item.company_name, item.name, item.display_name]
+    .find(value => typeof value === 'string' && value.trim() && value.trim().toUpperCase() !== symbol)
+  return name ? name.trim() : ''
+}
+
 export function watchlistContextLabel (item, translate, { includeName = true } = {}) {
   if (!item) return ''
   const types = Array.isArray(item.market_types) ? item.market_types : []
@@ -27,9 +35,7 @@ export function watchlistContextLabel (item, translate, { includeName = true } =
   const product = String(item.product_type || '').toLowerCase()
   const productLabel = product && product !== 'crypto' ? translate('marketContext.product.' + product) : ''
   const symbol = String(item.symbol || '').trim()
-  const name = [item.name, item.display_name, item.company_name]
-    .find(value => typeof value === 'string' && value.trim() && value.trim().toUpperCase() !== symbol.toUpperCase())
-  const nameLabel = includeName && name ? name.trim() : ''
+  const nameLabel = includeName ? watchlistDisplayName(item) : ''
   return [productLabel, ...typeLabels, nameLabel].filter(Boolean).join(' · ') || symbol
 }
 

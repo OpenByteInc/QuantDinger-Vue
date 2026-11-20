@@ -1,5 +1,12 @@
 const messages = {
   "en-US": {
+    "watchlistAssets.marketShort.crypto": "Crypto",
+    "watchlistAssets.marketShort.usstock": "US",
+    "watchlistAssets.marketShort.hkstock": "HK",
+    "watchlistAssets.marketShort.cnstock": "CN",
+    "watchlistAssets.marketShort.forex": "FX",
+    "watchlistAssets.marketShort.futures": "Futures",
+    "watchlistAssets.marketShort.moex": "MOEX",
     "watchlistAssets.searchHint": "Enter a symbol or name to search the catalog.",
     "watchlistAssets.empty": "No matching asset. Check the market and symbol.",
     "watchlistAssets.title": "Watchlist",
@@ -26,6 +33,13 @@ const messages = {
     "strategyV2.instrumentResolutionAmbiguous": "More than one executable product matches this account. Refresh the market catalog and try again."
   },
   "zh-CN": {
+    "watchlistAssets.marketShort.crypto": "加密",
+    "watchlistAssets.marketShort.usstock": "美股",
+    "watchlistAssets.marketShort.hkstock": "港股",
+    "watchlistAssets.marketShort.cnstock": "A股",
+    "watchlistAssets.marketShort.forex": "外汇",
+    "watchlistAssets.marketShort.futures": "期货",
+    "watchlistAssets.marketShort.moex": "MOEX",
     "watchlistAssets.searchHint": "输入代码或名称，搜索标的目录。",
     "watchlistAssets.empty": "未找到匹配标的，请检查市场和代码。",
     "watchlistAssets.title": "自选",
@@ -52,6 +66,13 @@ const messages = {
     "strategyV2.instrumentResolutionAmbiguous": "该账户匹配到多个可执行产品，请刷新市场目录后重试。"
   },
   "zh-TW": {
+    "watchlistAssets.marketShort.crypto": "加密",
+    "watchlistAssets.marketShort.usstock": "美股",
+    "watchlistAssets.marketShort.hkstock": "港股",
+    "watchlistAssets.marketShort.cnstock": "A股",
+    "watchlistAssets.marketShort.forex": "外匯",
+    "watchlistAssets.marketShort.futures": "期貨",
+    "watchlistAssets.marketShort.moex": "MOEX",
     "watchlistAssets.searchHint": "輸入代碼或名稱，搜尋標的目錄。",
     "watchlistAssets.empty": "找不到符合的標的，請檢查市場及代碼。",
     "watchlistAssets.title": "自選",
@@ -78,6 +99,13 @@ const messages = {
     "strategyV2.instrumentResolutionAmbiguous": "此帳戶符合多個可執行產品，請更新市場目錄後再試。"
   },
   "ja-JP": {
+    "watchlistAssets.marketShort.crypto": "暗号",
+    "watchlistAssets.marketShort.usstock": "米株",
+    "watchlistAssets.marketShort.hkstock": "香港",
+    "watchlistAssets.marketShort.cnstock": "中国",
+    "watchlistAssets.marketShort.forex": "FX",
+    "watchlistAssets.marketShort.futures": "先物",
+    "watchlistAssets.marketShort.moex": "MOEX",
     "watchlistAssets.searchHint": "コードまたは名前を入力して銘柄を検索してください。",
     "watchlistAssets.empty": "該当する銘柄がありません。市場とコードを確認してください。",
     "watchlistAssets.title": "ウォッチリスト",
@@ -104,6 +132,13 @@ const messages = {
     "strategyV2.instrumentResolutionAmbiguous": "この口座に複数の執行商品が一致しました。市場カタログを更新して再試行してください。"
   },
   "ko-KR": {
+    "watchlistAssets.marketShort.crypto": "코인",
+    "watchlistAssets.marketShort.usstock": "미국",
+    "watchlistAssets.marketShort.hkstock": "홍콩",
+    "watchlistAssets.marketShort.cnstock": "중국",
+    "watchlistAssets.marketShort.forex": "외환",
+    "watchlistAssets.marketShort.futures": "선물",
+    "watchlistAssets.marketShort.moex": "MOEX",
     "watchlistAssets.searchHint": "코드 또는 이름을 입력하여 종목을 검색하세요.",
     "watchlistAssets.empty": "일치하는 종목이 없습니다. 시장과 코드를 확인하세요.",
     "watchlistAssets.title": "관심 목록",
@@ -130,6 +165,13 @@ const messages = {
     "strategyV2.instrumentResolutionAmbiguous": "이 계좌에 여러 실행 상품이 일치합니다. 시장 카탈로그를 새로 고친 후 다시 시도하세요."
   },
   "de-DE": {
+    "watchlistAssets.marketShort.crypto": "Krypto",
+    "watchlistAssets.marketShort.usstock": "US",
+    "watchlistAssets.marketShort.hkstock": "HK",
+    "watchlistAssets.marketShort.cnstock": "CN",
+    "watchlistAssets.marketShort.forex": "FX",
+    "watchlistAssets.marketShort.futures": "Futures",
+    "watchlistAssets.marketShort.moex": "MOEX",
     "watchlistAssets.searchHint": "Symbol oder Namen eingeben, um den Katalog zu durchsuchen.",
     "watchlistAssets.empty": "Kein passendes Asset. Markt und Symbol prüfen.",
     "watchlistAssets.title": "Watchlist",
@@ -156,6 +198,13 @@ const messages = {
     "strategyV2.instrumentResolutionAmbiguous": "Mehrere ausführbare Produkte passen zu diesem Konto. Aktualisieren Sie den Marktkatalog und versuchen Sie es erneut."
   },
   "fr-FR": {
+    "watchlistAssets.marketShort.crypto": "Crypto",
+    "watchlistAssets.marketShort.usstock": "US",
+    "watchlistAssets.marketShort.hkstock": "HK",
+    "watchlistAssets.marketShort.cnstock": "CN",
+    "watchlistAssets.marketShort.forex": "FX",
+    "watchlistAssets.marketShort.futures": "Terme",
+    "watchlistAssets.marketShort.moex": "MOEX",
     "watchlistAssets.searchHint": "Saisissez un code ou un nom pour rechercher un instrument.",
     "watchlistAssets.empty": "Aucun actif correspondant. Vérifiez le marché et le code.",
     "watchlistAssets.title": "Liste de suivi",
@@ -182,6 +231,13 @@ const messages = {
     "strategyV2.instrumentResolutionAmbiguous": "Plusieurs produits exécutables correspondent à ce compte. Actualisez le catalogue puis réessayez."
   },
   "ru-RU": {
+    "watchlistAssets.marketShort.crypto": "Крипто",
+    "watchlistAssets.marketShort.usstock": "США",
+    "watchlistAssets.marketShort.hkstock": "ГК",
+    "watchlistAssets.marketShort.cnstock": "КНР",
+    "watchlistAssets.marketShort.forex": "FX",
+    "watchlistAssets.marketShort.futures": "Фьюч.",
+    "watchlistAssets.marketShort.moex": "MOEX",
     "watchlistAssets.searchHint": "Введите код или название для поиска в каталоге.",
     "watchlistAssets.empty": "Актив не найден. Проверьте рынок и код.",
     "watchlistAssets.title": "Избранное",
@@ -208,6 +264,13 @@ const messages = {
     "strategyV2.instrumentResolutionAmbiguous": "Для этого счёта найдено несколько исполняемых продуктов. Обновите каталог и повторите попытку."
   },
   "th-TH": {
+    "watchlistAssets.marketShort.crypto": "คริปโต",
+    "watchlistAssets.marketShort.usstock": "US",
+    "watchlistAssets.marketShort.hkstock": "HK",
+    "watchlistAssets.marketShort.cnstock": "CN",
+    "watchlistAssets.marketShort.forex": "FX",
+    "watchlistAssets.marketShort.futures": "ฟิวเจอร์ส",
+    "watchlistAssets.marketShort.moex": "MOEX",
     "watchlistAssets.searchHint": "ป้อนสัญลักษณ์หรือชื่อเพื่อค้นหาในรายการ",
     "watchlistAssets.empty": "ไม่พบสินทรัพย์ที่ตรงกัน โปรดตรวจสอบตลาดและสัญลักษณ์",
     "watchlistAssets.title": "รายการเฝ้าดู",
@@ -234,6 +297,13 @@ const messages = {
     "strategyV2.instrumentResolutionAmbiguous": "พบบัญชีนี้ตรงกับผลิตภัณฑ์ที่ซื้อขายได้หลายรายการ โปรดรีเฟรชแค็ตตาล็อกแล้วลองอีกครั้ง"
   },
   "vi-VN": {
+    "watchlistAssets.marketShort.crypto": "Crypto",
+    "watchlistAssets.marketShort.usstock": "Mỹ",
+    "watchlistAssets.marketShort.hkstock": "HK",
+    "watchlistAssets.marketShort.cnstock": "CN",
+    "watchlistAssets.marketShort.forex": "FX",
+    "watchlistAssets.marketShort.futures": "HĐTL",
+    "watchlistAssets.marketShort.moex": "MOEX",
     "watchlistAssets.searchHint": "Nhập mã hoặc tên để tìm trong danh mục.",
     "watchlistAssets.empty": "Không tìm thấy tài sản phù hợp. Kiểm tra thị trường và mã.",
     "watchlistAssets.title": "Danh sách theo dõi",
@@ -260,6 +330,13 @@ const messages = {
     "strategyV2.instrumentResolutionAmbiguous": "Có nhiều sản phẩm thực thi khớp với tài khoản này. Hãy làm mới danh mục và thử lại."
   },
   "ar-SA": {
+    "watchlistAssets.marketShort.crypto": "كريبتو",
+    "watchlistAssets.marketShort.usstock": "US",
+    "watchlistAssets.marketShort.hkstock": "HK",
+    "watchlistAssets.marketShort.cnstock": "CN",
+    "watchlistAssets.marketShort.forex": "FX",
+    "watchlistAssets.marketShort.futures": "آجلة",
+    "watchlistAssets.marketShort.moex": "MOEX",
     "watchlistAssets.searchHint": "أدخل الرمز أو الاسم للبحث في الدليل.",
     "watchlistAssets.empty": "لم يتم العثور على أصل مطابق. تحقق من السوق والرمز.",
     "watchlistAssets.title": "قائمة المتابعة",
