@@ -102,9 +102,49 @@ test('watchlist labels describe product availability without showing a bound ven
     'marketContext.swap': 'perpetual',
     'marketContext.product.stock_perpetual': 'stock perpetual'
   })[key] || key
-  assert.equal(watchlistContextLabel(btc, t), 'spot · perpetual')
-  assert.equal(watchlistContextLabel(stockPerpetual, t), 'stock perpetual · perpetual')
+  assert.equal(watchlistContextLabel(btc, t), 'spot · perpetual · Bitcoin')
+  assert.equal(watchlistContextLabel(stockPerpetual, t), 'stock perpetual · perpetual · QQQ perpetual')
   assert.ok(!watchlistContextLabel(btc, t).includes('BINANCE'))
+})
+
+test('watchlist context appends the supplied company name without repeating a ticker', () => {
+  const t = key => messages['zh-CN'][key] || { 'marketContext.spot': '现货' }[key] || key
+  const stock = { market: 'CNStock', product_type: 'cnstock', symbol: '600519', market_types: ['spot'], name: '贵州茅台' }
+  assert.equal(watchlistContextLabel(stock, t), 'A股 · 现货 · 贵州茅台')
+  const usStock = { ...stock, market: 'USStock', product_type: 'usstock', symbol: 'INTC', name: 'Intel' }
+  assert.equal(watchlistContextLabel(usStock, t), '美股 · 现货 · Intel')
+  assert.equal(watchlistContextLabel({ ...usStock, name: ' intc ' }, t), '美股 · 现货')
+  assert.equal(watchlistContextLabel({ ...usStock, name: 'INTC', display_name: 'Intel' }, t), '美股 · 现货 · Intel')
+  assert.equal(watchlistContextLabel({ ...usStock, name: '', company_name: 'Intel' }, t), '美股 · 现货 · Intel')
+  assert.equal(watchlistContextLabel(stock, t, { includeName: false }), 'A股 · 现货')
+  assert.equal(watchlistContextLabel({ symbol: 'UNKNOWN' }, t), 'UNKNOWN')
+  assert.equal(watchlistContextLabel(null, t), '')
+})
+
+test('add dialog omits the explanatory line and does not duplicate its separate asset name', () => {
+  assert.doesNotMatch(modalSource, /watchlistAssets\.hint|watchlist-help/)
+  const { vm } = modal()
+  assert.ok(!vm.contextLabel(btc).includes('Bitcoin'))
+  for (const path of [
+    'src/views/indicator-ide/index.vue',
+    'src/views/strategy-ide/index.vue',
+    'src/views/strategy-center/components/LiveStrategyEditor.vue',
+    'src/views/ai-analysis/components/CopilotWorkbench.vue'
+  ]) {
+    assert.match(read(path), /<add-watchlist-modal/)
+  }
+  const workbench = read('src/views/ai-analysis/components/CopilotWorkbench.vue')
+  assert.match(workbench, /:title="watchlistContextLabel\(item\)"/)
+  assert.match(workbench, /\.watch-identity em \{[^}]*-webkit-line-clamp: 2;[^}]*white-space: normal;/)
+})
+
+test('AI watchlist normalization retains company metadata when the primary name is only a ticker', () => {
+  const workbench = read('src/views/ai-analysis/components/CopilotWorkbench.vue')
+  const body = workbench.match(/normalizeSymbolOption \(item\) \{([\s\S]*?)\n {4}\},/)[1]
+  const normalize = new Function('item', body).bind({ context: { market: 'USStock' } })
+  const item = normalize({ symbol: 'INTC', name: 'INTC', company_name: 'Intel Corporation', product_type: 'usstock', market_types: ['spot'] })
+  assert.equal(item.company_name, 'Intel Corporation')
+  assert.ok(watchlistContextLabel(item, key => key).endsWith(' · Intel Corporation'))
 })
 
 test('standard market product labels are translated in every supported locale', () => {

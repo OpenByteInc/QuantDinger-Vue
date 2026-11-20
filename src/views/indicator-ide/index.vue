@@ -1279,6 +1279,7 @@ import AddWatchlistModal from '@/components/Watchlist/AddWatchlistModal.vue'
 import { groupWatchlistAssets, watchlistAssetKey, watchlistContextLabel } from '@/utils/watchlistAssets'
 import { getPublicSettingsConfig } from '@/api/settings'
 import { extractIndicatorSignalLabels } from '@/utils/indicatorSignalOptions'
+import { extractIndicatorMetadataString } from '@/utils/indicatorMetadata'
 import { renderSafeMarkdown } from '@/utils/safeMarkdown'
 import { clampFloatingPanelPosition, snapFloatingPanelPosition } from '@/utils/floatingPanel.mjs'
 import { applyCodeEditsToCodeMirror, applyExactCodeEdits, candidateCodeEditOperations, setCodeMirrorValueWithHighlight } from '@/utils/codeEdits'
@@ -1753,15 +1754,15 @@ export default {
   },
   async activated () {
     this.reloadWatchlistOnly()
+    this.$nextTick(() => {
+      this.ensureChartReady()
+      this.applyIdeOverlayContainers()
+    })
     await this.loadTradingVenueConfig({ refreshCapabilities: true })
     if (this._saveShortcutListener) {
       window.addEventListener('keydown', this._saveShortcutListener)
     }
     this.refreshIndicatorRouteSelection()
-    this.$nextTick(() => {
-      this.ensureChartReady()
-      this.applyIdeOverlayContainers()
-    })
   },
   deactivated () {
     if (this._saveShortcutListener) {
@@ -3053,15 +3054,16 @@ export default {
     extractIndicatorNameFromCode (code) {
       const raw = String(code || '')
       if (!raw.trim()) return ''
-      const assignment = raw.match(/^\s*my_indicator_name\s*=\s*(['"])(.*?)\1\s*$/m)
-      if (assignment && assignment[2] && assignment[2].trim()) {
-        return assignment[2].trim()
-      }
+      const assignmentName = extractIndicatorMetadataString(raw, 'my_indicator_name')
+      if (assignmentName) return assignmentName
       const outputName = raw.match(/['"]name['"]\s*:\s*(['"])(.*?)\1/)
       if (outputName && outputName[2] && outputName[2].trim()) {
         return outputName[2].trim()
       }
       return ''
+    },
+    extractIndicatorDescriptionFromCode (code) {
+      return extractIndicatorMetadataString(code, 'my_indicator_description')
     },
     indicatorDisplayName (indicator) {
       const ind = indicator || {}
@@ -3074,6 +3076,10 @@ export default {
       const ind = indicator || {}
       const codeName = this.extractIndicatorNameFromCode(code)
       return codeName || ind.name || (ind.id ? `Indicator #${ind.id}` : 'New Indicator')
+    },
+    resolveIndicatorDescriptionForSave (indicator, code) {
+      const storedDescription = String((indicator && indicator.description) || '').trim()
+      return storedDescription || this.extractIndicatorDescriptionFromCode(code)
     },
     isIdePythonActiveItem (item) {
       if (!item) return false
@@ -3380,15 +3386,16 @@ export default {
     },
 
     async saveIndicator () {
-      if (!this.selectedIndicatorId || !this.userId) return
-      if (this.savingIndicator) return
+      if (!this.selectedIndicatorId || !this.userId) return false
+      if (this.savingIndicator) return false
       if (this.selectedIndicatorCodeHidden) {
         this.$message.warning(this.$t('indicatorIde.saveBlockedHiddenCode'))
-        return
+        return false
       }
       const indicator = this.selectedIndicatorObj || {}
       const code = this.cmInstance ? this.cmInstance.getValue() : this.currentCode
       const nextName = this.resolveIndicatorNameForSave(indicator, code)
+      const nextDescription = this.resolveIndicatorDescriptionForSave(indicator, code)
       this.savingIndicator = true
       try {
         const res = await request({
@@ -3398,9 +3405,14 @@ export default {
             id: this.selectedIndicatorId,
             code,
             name: nextName,
-            description: indicator.description || '',
+            description: nextDescription,
             allowEmptyDraft: true,
-            userid: this.userId
+            userid: this.userId,
+            publishToCommunity: !!indicator.publish_to_community,
+            pricingType: indicator.pricing_type || 'free',
+            price: Number(indicator.price || 0),
+            vipFree: !!indicator.vip_free,
+            codeHidden: !!indicator.is_encrypted
           }
         })
         if (res && res.code === 1) {
@@ -3411,9 +3423,11 @@ export default {
           if (ind) {
             ind.code = code
             ind.name = nextName
+            ind.description = nextDescription
           }
           this.syncSelectedIndicatorToChart(code)
           if (this.showCodeVersionDrawer) this.loadCodeVersions()
+          return true
         } else {
           const m = (res && res.msg) || ''
           if (m === 'purchased_asset_cannot_publish') {
@@ -3421,6 +3435,7 @@ export default {
           } else {
             this.$message.error(m || this.$t('indicatorIde.saveFailed'))
           }
+          return false
         }
       } catch (e) {
         const data = e && e.response && e.response.data
@@ -3430,6 +3445,7 @@ export default {
         } else {
           this.$message.error((e && e.message) || this.$t('indicatorIde.saveFailed'))
         }
+        return false
       } finally {
         this.savingIndicator = false
       }
@@ -4387,19 +4403,21 @@ export default {
         })
         if (res && res.code === 1) {
           await this.loadIndicators()
-          const newId = (res.data && res.data.id) || null
-          let targetId = newId
-          if (!targetId && this.indicators.length) {
-            targetId = this.indicators.reduce((maxId, item) => Math.max(maxId, Number(item.id) || 0), 0)
+          const targetId = Number(res.data && res.data.id)
+          let createdIndicator = Number.isFinite(targetId) && targetId > 0
+            ? this.indicators.find(item => Number(item.id) === targetId)
+            : null
+          if (!createdIndicator && Number.isFinite(targetId) && targetId > 0) {
+            await this.loadIndicators({ background: true })
+            createdIndicator = this.indicators.find(item => Number(item.id) === targetId)
           }
-          if (targetId) {
-            const tid = Number(targetId)
+          if (createdIndicator) {
+            const tid = targetId
             if (!this.chartVisibleIndicatorIds.includes(tid)) {
               this.chartVisibleIndicatorIds = [...this.chartVisibleIndicatorIds, tid]
             }
             this.selectedIndicatorId = targetId
-            const ind = this.indicators.find(i => i.id === targetId)
-            if (ind) ind.code = code
+            createdIndicator.code = code
             // A newly-created indicator owns a fresh AI workspace. Select and
             // load it immediately so the previous indicator's conversation can
             // never remain visible until a manual save/reselect cycle.
@@ -4435,13 +4453,15 @@ export default {
         if (!qualityOk) return
       }
       if (this.codeDirty) {
-        await this.saveIndicator()
+        const saved = await this.saveIndicator()
+        if (!saved) return
       }
       const name = this.resolveIndicatorNameForSave(indicator, code)
+      const description = this.resolveIndicatorDescriptionForSave(indicator, code)
       this.publishIndicator = { ...indicator, name, code }
       this.publishPricingType = indicator.pricing_type || 'free'
       this.publishPrice = indicator.price || 10
-      this.publishDescription = indicator.description || ''
+      this.publishDescription = description
       this.publishVipFree = !!indicator.vip_free
       this.publishCodeHidden = !!indicator.is_encrypted
       this.showPublishModal = true
@@ -4453,7 +4473,7 @@ export default {
       return {
         indicatorId: indicator.id || this.selectedIndicatorId || '',
         name: this.resolveIndicatorNameForSave(indicator, code),
-        description: String(indicator.description || '').trim(),
+        description: this.resolveIndicatorDescriptionForSave(indicator, code),
         code,
         params,
         market: this.market || '',

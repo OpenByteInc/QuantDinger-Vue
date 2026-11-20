@@ -276,7 +276,7 @@
 </template>
 
 <script>
-import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick, watch, shallowRef, getCurrentInstance } from 'vue'
+import { ref, reactive, computed, onMounted, onActivated, onDeactivated, onBeforeUnmount, nextTick, watch, shallowRef, getCurrentInstance } from 'vue'
 import { init, registerIndicator, registerOverlay } from 'klinecharts'
 import request from '@/utils/request'
 import { inferMarketPricePrecision } from '@/utils/marketPricePrecision.mjs'
@@ -446,10 +446,13 @@ export default {
     let volPaneId = null
     const volumeVisible = ref(true)
     const VOL_PANE_OPTIONS = { height: 112, minHeight: 64, dragEnabled: true }
+    const canLayoutChart = () => {
+      const container = chartContainerRef.value
+      return Boolean(container && container.isConnected && container.clientWidth > 0 && container.clientHeight > 0)
+    }
     const syncVolumePaneLayout = () => {
-      if (!chartRef.value) return
-      if (!volumeVisible.value) return
-      if (!volPaneEnsured && typeof chartRef.value.createIndicator === 'function') {
+      if (!chartRef.value || !canLayoutChart()) return
+      if (volumeVisible.value && !volPaneEnsured && typeof chartRef.value.createIndicator === 'function') {
         try {
           volPaneId = chartRef.value.createIndicator('VOL', false, VOL_PANE_OPTIONS) || null
         } catch (e) {
@@ -577,6 +580,7 @@ export default {
     const getIndicatorConfigSignature = () => JSON.stringify((props.activeIndicators || []).map(indicator => ({
       id: indicator && indicator.id,
       instanceId: indicator && indicator.instanceId,
+      name: indicator && indicator.name,
       type: indicator && indicator.type,
       visible: indicator && indicator.visible,
       code: indicator && indicator.code,
@@ -3644,26 +3648,7 @@ registerOverlay({
     }
 
     const initChart = () => {
-      const container = chartContainerRef.value
-      if (!container) return
-
-      if (container.clientWidth === 0 || container.clientHeight === 0) {
-        let retryCount = 0
-        const maxRetries = 10
-        const checkAndInit = () => {
-          const checkContainer = chartContainerRef.value
-          if (checkContainer && checkContainer.clientWidth > 0 && checkContainer.clientHeight > 0) {
-            initChart()
-          } else if (retryCount < maxRetries) {
-            retryCount++
-            setTimeout(checkAndInit, 200)
-          } else {
-            initChart()
-          }
-        }
-        setTimeout(checkAndInit, 200)
-        return
-      }
+      if (!canLayoutChart()) return
 
       if (chartRef.value) {
         try {
@@ -3867,18 +3852,17 @@ registerOverlay({
     }
 
     const handleResize = () => {
-      if (chartRef.value) {
-        setTimeout(() => {
-          if (chartRef.value) {
-            chartRef.value.resize()
-          }
-        }, 100)
-      } else {
-          const container = chartContainerRef.value
-        if (container && container.clientWidth > 0 && container.clientHeight > 0) {
+      if (chartResizeRafId != null) cancelAnimationFrame(chartResizeRafId)
+      chartResizeRafId = requestAnimationFrame(() => {
+        chartResizeRafId = null
+        if (!canLayoutChart()) return
+        if (chartRef.value) {
+          syncVolumePaneLayout()
+        } else if (props.symbol) {
           initChart()
         }
-      }
+        _ensureWmLayer()
+      })
     }
 
     const updateChartTheme = () => {
@@ -6461,7 +6445,8 @@ registerOverlay({
       } catch (_) {}
     })
 
-    watch(() => props.activeIndicators, (newVal, oldVal) => {
+    // Keep-alive activation rebuilds callbacks, not necessarily the indicator configuration.
+    watch(getIndicatorConfigSignature, () => {
       if (chartRef.value && klineData.value.length > 0) {
         indicatorRenderSeq += 1
         lastIndicatorRenderSignature.value = ''
@@ -6480,12 +6465,12 @@ registerOverlay({
         })
       }
       if (indicatorEditorVisible.value && indicatorEditorTargetId.value) {
-        const current = (newVal || []).find(item => item && (item.instanceId || item.id) === indicatorEditorTargetId.value)
+        const current = (props.activeIndicators || []).find(item => item && (item.instanceId || item.id) === indicatorEditorTargetId.value)
         if (!current) {
           closeIndicatorEditor()
         }
       }
-    }, { deep: true })
+    })
 
     watch(() => props.quickTradePositions, () => {
       nextTick(() => renderQuickTradePositionOverlays())
@@ -6518,21 +6503,7 @@ registerOverlay({
       nextTick(() => {
         const el = chartContainerRef.value
         if (!el || typeof ResizeObserver === 'undefined') return
-        chartResizeObserver = new ResizeObserver(() => {
-          if (chartResizeRafId != null) cancelAnimationFrame(chartResizeRafId)
-          chartResizeRafId = requestAnimationFrame(() => {
-            chartResizeRafId = null
-            if (chartRef.value && typeof chartRef.value.resize === 'function') {
-              syncVolumePaneLayout()
-            } else {
-              const c = chartContainerRef.value
-              if (c && c.clientWidth > 0 && c.clientHeight > 0) {
-                initChart()
-              }
-            }
-            _ensureWmLayer()
-          })
-        })
+        chartResizeObserver = new ResizeObserver(handleResize)
         chartResizeObserver.observe(el)
       })
 
@@ -6540,6 +6511,21 @@ registerOverlay({
         _ensureWmLayer()
         _startWmGuard()
       })
+    })
+
+    onActivated(() => {
+      nextTick(handleResize)
+    })
+
+    onDeactivated(() => {
+      if (chartResizeRafId != null) {
+        cancelAnimationFrame(chartResizeRafId)
+        chartResizeRafId = null
+      }
+      if (volEnsureRafId != null) {
+        cancelAnimationFrame(volEnsureRafId)
+        volEnsureRafId = null
+      }
     })
 
     // Watermark layer with a lightweight tamper check.

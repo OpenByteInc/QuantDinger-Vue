@@ -766,6 +766,21 @@ export default {
       this.openDetailById(listingId)
     }
   },
+  activated () {
+    if (!this._refreshOnNextActivation) return
+    this._refreshOnNextActivation = false
+    if (this.activeTab === 'review' && this.isAdmin) {
+      this.loadPendingIndicators()
+      this.loadReviewStats()
+      return
+    }
+    if (this.activeTab === 'market') {
+      this.loadIndicators()
+    }
+  },
+  deactivated () {
+    this._refreshOnNextActivation = true
+  },
   methods: {
     async loadStrategyMarketOptions () {
       this.strategyMarketOptions = await loadEnabledMarketOptions()

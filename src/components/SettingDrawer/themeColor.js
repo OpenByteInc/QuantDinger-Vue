@@ -257,7 +257,7 @@ body.realdark .ant-layout-header .ant-menu-horizontal > .ant-menu-submenu-select
 .ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled) > span,
 .ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled):hover > span,
 .ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled):focus-within > span {
-  color: #fff !important;
+  color: inherit !important;
 }
 
 .ant-input:focus,

@@ -3997,6 +3997,8 @@ export default {
         asset_class: item.asset_class || '',
         symbol: symbol.toUpperCase(),
         name: item.name || item.display_name || item.label || '',
+        display_name: item.display_name || '',
+        company_name: item.company_name || '',
         exchange_id: item.exchange_id || item.exchangeId || '',
         market_type: item.market_type || item.marketType || '',
         market_types: Array.isArray(item.market_types) ? item.market_types : [],
@@ -6272,6 +6274,15 @@ export default {
 
 .watch-identity {
   min-width: 0;
+}
+
+.watch-identity em {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .watch-market-data {

@@ -18,7 +18,6 @@
     <a-tabs :active-key="market" @change="changeMarket">
       <a-tab-pane v-for="value in orderedMarkets" :key="value" :tab="$t('dashboard.indicator.market.' + value)" :disabled="saving" />
     </a-tabs>
-    <p class="watchlist-help">{{ $t('watchlistAssets.hint') }}</p>
     <a-input-search
       v-model="keyword"
       :disabled="saving"
@@ -85,7 +84,7 @@ export default {
   beforeDestroy () { this.invalidate() },
   methods: {
     assetKey: watchlistAssetKey,
-    contextLabel (item) { return watchlistContextLabel(item, key => this.$t(key)) },
+    contextLabel (item) { return watchlistContextLabel(item, key => this.$t(key), { includeName: false }) },
     groupLabel (group) { return this.contextLabel(group.item) },
     alreadyAdded (item, rows = this.watchlist) { return rows.some(row => watchlistAssetKey(row) === watchlistAssetKey(item)) },
     invalidate () {
@@ -148,7 +147,6 @@ export default {
 
 <style lang="less">
 .watchlist-asset-modal {
-  .watchlist-help { margin: 14px 0; color: #66758b; }
   .watchlist-results { min-height: 180px; max-height: 330px; overflow-y: auto; margin: 16px 0; }
   .watchlist-result { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px; margin: 6px 0; border: 1px solid #dce3ec; border-radius: 8px; background: transparent; color: inherit; text-align: start; cursor: pointer; }
   .watchlist-result.selected, .watchlist-result:focus-visible { border-color: var(--primary-color, #1890ff); outline: 2px solid var(--primary-color, #1890ff); outline-offset: -2px; }
@@ -161,7 +159,7 @@ body.dark .watchlist-asset-modal, body.realdark .watchlist-asset-modal, .theme-d
   .ant-modal-content, .ant-modal-header { background: #1b1d20; color: #e7e9ed; }
   .ant-modal-title, .ant-modal-close { color: #e7e9ed; }
   .ant-modal-header, .ant-modal-footer, .watchlist-result { border-color: #3b4149; }
-  .watchlist-help, .watchlist-result-main > span, .watchlist-result-context { color: #abb5c4; }
+  .watchlist-result-main > span, .watchlist-result-context { color: #abb5c4; }
   .ant-input, .ant-select-selection { background: #141618; border-color: #454b55; color: #e7e9ed; }
   .watchlist-result.selected { background: #222b34; }
 }

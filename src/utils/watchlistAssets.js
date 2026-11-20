@@ -20,13 +20,17 @@ export function groupWatchlistAssets (rows = [], preferred = null) {
   return [...groups.values()]
 }
 
-export function watchlistContextLabel (item, translate) {
+export function watchlistContextLabel (item, translate, { includeName = true } = {}) {
   if (!item) return ''
   const types = Array.isArray(item.market_types) ? item.market_types : []
   const typeLabels = types.map(type => translate('marketContext.' + type))
   const product = String(item.product_type || '').toLowerCase()
   const productLabel = product && product !== 'crypto' ? translate('marketContext.product.' + product) : ''
-  return [productLabel, ...typeLabels].filter(Boolean).join(' · ') || item.name || item.symbol
+  const symbol = String(item.symbol || '').trim()
+  const name = [item.name, item.display_name, item.company_name]
+    .find(value => typeof value === 'string' && value.trim() && value.trim().toUpperCase() !== symbol.toUpperCase())
+  const nameLabel = includeName && name ? name.trim() : ''
+  return [productLabel, ...typeLabels, nameLabel].filter(Boolean).join(' · ') || symbol
 }
 
 export function watchlistPayload (item) {

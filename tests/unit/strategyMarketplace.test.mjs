@@ -359,3 +359,10 @@ test('marketplace refetches localized records after the language changes', () =>
   assert.match(market, /'\$i18n\.locale' \(\) \{[\s\S]*?this\.pagination\.current = 1[\s\S]*?this\.loadIndicators\(\)/)
   assert.match(market, /if \(this\.showMyPurchases\) \{[\s\S]*?this\.loadMyPurchases\(\)/)
 })
+
+test('marketplace refreshes counts after returning to a cached tab', () => {
+  const market = read('src/views/indicator-community/index.vue')
+
+  assert.match(market, /activated \(\) \{[\s\S]*?_refreshOnNextActivation[\s\S]*?loadReviewStats\(\)[\s\S]*?loadIndicators\(\)/)
+  assert.match(market, /deactivated \(\) \{[\s\S]*?this\._refreshOnNextActivation = true/)
+})

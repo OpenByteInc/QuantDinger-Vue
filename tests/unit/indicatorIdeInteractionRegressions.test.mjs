@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { resolveIndicatorStrategyContext } from '../../src/utils/indicatorStrategyContext.js'
+import { reactive, watch, nextTick } from 'vue'
 
 const indicatorIdePath = fileURLToPath(
   new URL('../../src/views/indicator-ide/index.vue', import.meta.url)
@@ -106,10 +107,84 @@ test('chart resize and watermark guards avoid duplicate full-canvas work', () =>
   const watermarkSource = klineChartSource.slice(watermarkStart, watermarkEnd)
 
   assert.ok(resizeStart >= 0 && resizeEnd > resizeStart)
-  assert.match(resizeSource, /syncVolumePaneLayout\(\)/)
+  assert.match(resizeSource, /new ResizeObserver\(handleResize\)/)
   assert.doesNotMatch(resizeSource, /chartRef\.value\.resize\(\)[\s\S]*?scheduleSyncVolumePaneLayout\(\)/)
   assert.match(watermarkSource, /signature === _wmPaintSignature/)
   assert.match(watermarkSource, /if \(cvs\.style\.display !== 'block'\)/)
+})
+
+test('equivalent indicator objects and new callbacks do not clear the cached chart on activation', async () => {
+  const start = klineChartSource.indexOf('const getIndicatorConfigSignature =')
+  const end = klineChartSource.indexOf('const getIndicatorRenderSignature', start)
+  assert.ok(start >= 0 && end > start)
+  const props = reactive({ activeIndicators: [{ id: 'ide-py-1', name: 'Trend', type: 'python', code: 'trend', params: { length: 20 }, calculate: () => 1 }] })
+  const signature = new Function('props', `${klineChartSource.slice(start, end)}; return getIndicatorConfigSignature`)(props)
+  let redraws = 0
+  const stop = watch(signature, () => { redraws += 1 })
+  try {
+    props.activeIndicators = props.activeIndicators.map(item => ({ ...item, calculate: () => 1 }))
+    await nextTick()
+    assert.equal(redraws, 0)
+    props.activeIndicators[0].params.length = 30
+    await nextTick()
+    assert.equal(redraws, 1)
+    props.activeIndicators[0].code = 'changed trend'
+    await nextTick()
+    assert.equal(redraws, 2)
+    props.activeIndicators[0].name = 'Renamed trend'
+    await nextTick()
+    assert.equal(redraws, 3)
+    props.activeIndicators = []
+    await nextTick()
+    assert.equal(redraws, 4)
+  } finally {
+    stop()
+  }
+  assert.match(klineChartSource, /watch\(getIndicatorConfigSignature, \(\) =>/)
+  assert.doesNotMatch(klineChartSource, /watch\(\(\) => props\.activeIndicators,/)
+})
+
+test('cached chart resize skips detached or zero-size containers and still resizes with volume hidden', () => {
+  const start = klineChartSource.indexOf('const canLayoutChart =')
+  const end = klineChartSource.indexOf('const scheduleSyncVolumePaneLayout =', start)
+  assert.ok(start >= 0 && end > start)
+  const container = { isConnected: false, clientWidth: 800, clientHeight: 500 }
+  let resized = 0
+  let created = 0
+  const chart = { resize: () => { resized += 1 }, createIndicator: () => { created += 1 } }
+  const volume = { value: true }
+  const sync = new Function('chartContainerRef', 'chartRef', 'volumeVisible', `let volPaneEnsured = false; let volPaneId; const VOL_PANE_OPTIONS = {}; ${klineChartSource.slice(start, end)}; return syncVolumePaneLayout`)(
+    { value: container }, { value: chart }, volume
+  )
+  sync()
+  assert.equal(resized, 0)
+  container.isConnected = true
+  container.clientWidth = 0
+  sync()
+  assert.equal(resized, 0)
+  container.clientWidth = 800
+  container.clientHeight = 0
+  sync()
+  assert.equal(resized, 0)
+  container.clientHeight = 500
+  sync()
+  assert.equal(resized, 1)
+  assert.equal(created, 1)
+  volume.value = false
+  sync()
+  assert.equal(resized, 2)
+  assert.equal(created, 1)
+})
+
+test('chart activation schedules layout without waiting for venue requests or rebuilding the chart', () => {
+  const activation = indicatorIdeSource.match(/async activated \(\) \{([\s\S]*?)\n {2}\},/)[1]
+  assert.ok(activation.indexOf('this.ensureChartReady()') < activation.indexOf('await this.loadTradingVenueConfig'))
+  assert.match(klineChartSource, /onActivated\(\(\) => \{\s*nextTick\(handleResize\)/)
+  const resize = klineChartSource.match(/const handleResize = \(\) => \{([\s\S]*?)\n {4}\}/)[1]
+  assert.match(resize, /requestAnimationFrame/)
+  assert.match(resize, /if \(!canLayoutChart\(\)\) return/)
+  assert.match(resize, /if \(chartRef\.value\) \{\s*syncVolumePaneLayout\(\)/)
+  assert.doesNotMatch(resize, /setTimeout|destroy|updateIndicators/)
 })
 
 test('multi-chart layout keeps each chart instance scoped to its own container and workspace state', () => {
@@ -260,4 +335,20 @@ test('converted strategy metadata follows the resolved source market context', (
     strategyIdeSource,
     /buildGeneratedMetadata \(ctx = \{\}\)[\s\S]*?const source = this\.resolveIndicatorConversionContext\(ctx\)[\s\S]*?source_indicator_instrument: source\.instrument[\s\S]*?last_run_config: lastRunConfig/
   )
+})
+
+test('indicator creation never falls back to an existing maximum id', () => {
+  const start = indicatorIdeSource.indexOf('async _createIndicatorInIde ()')
+  const end = indicatorIdeSource.indexOf('async handlePublishIndicator ()', start)
+  const createSource = indicatorIdeSource.slice(start, end)
+
+  assert.match(createSource, /const targetId = Number\(res\.data && res\.data\.id\)/)
+  assert.match(createSource, /createdIndicator = Number\.isFinite\(targetId\)[\s\S]*?Number\(item\.id\) === targetId/)
+  assert.doesNotMatch(createSource, /reduce\(\(maxId, item\) => Math\.max\(maxId, Number\(item\.id\)/)
+})
+
+test('saving an indicator preserves its marketplace publication settings', () => {
+  assert.match(indicatorIdeSource, /async saveIndicator \(\)[\s\S]*?publishToCommunity: !!indicator\.publish_to_community/)
+  assert.match(indicatorIdeSource, /pricingType: indicator\.pricing_type \|\| 'free'/)
+  assert.match(indicatorIdeSource, /const saved = await this\.saveIndicator\(\)[\s\S]*?if \(!saved\) return/)
 })

@@ -20,7 +20,7 @@ test('indicator overlay groups can be removed independently from other chart ove
 })
 
 test('indicator changes clear the active runtime group before rendering the replacement', () => {
-  const watcherStart = source.indexOf('    watch(() => props.activeIndicators')
+  const watcherStart = source.indexOf('    watch(getIndicatorConfigSignature')
   const watcherEnd = source.indexOf('    watch(() => props.quickTradePositions', watcherStart)
   const watcher = source.slice(watcherStart, watcherEnd)
 
