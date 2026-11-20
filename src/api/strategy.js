@@ -282,11 +282,18 @@ export function getIndicatorListForStrategy (params = {}) {
 }
 
 export function getStrategyReviewReport (id, data = {}) {
+  const payload = { ...data }
+  const configuredTimeout = Number(payload.timeout)
+  const timeout = Number.isFinite(configuredTimeout) && configuredTimeout > 0
+    ? configuredTimeout
+    : AI_GENERATE_TIMEOUT
+  delete payload.timeout
   return request({
     url: api.reviewReport,
     method: 'post',
     params: { id },
-    data
+    data: payload,
+    timeout
   })
 }
 
