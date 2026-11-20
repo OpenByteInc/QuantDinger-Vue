@@ -157,11 +157,7 @@ body.realdark .ant-layout-header .ant-menu-horizontal > .ant-menu-submenu-select
 .ant-menu-submenu-popup .ant-menu-item-selected .ant-menu-title-content,
 .ant-select-dropdown-menu-item-active:not(.ant-select-dropdown-menu-item-disabled),
 .ant-select-dropdown-menu-item-selected,
-.ant-radio-button-wrapper:hover,
-.ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled),
-.ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled):hover,
-.ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled):first-child,
-.ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled):focus-within,
+.ant-radio-button-wrapper:not(.ant-radio-button-wrapper-checked):not(.ant-radio-button-wrapper-disabled):hover,
 .ant-pagination-item:hover a,
 .ant-pagination-item-active a,
 .ant-pagination-prev:hover .ant-pagination-item-link,
@@ -171,7 +167,6 @@ body.realdark .ant-layout-header .ant-menu-horizontal > .ant-menu-submenu-select
 }
 
 .ant-btn-primary,
-.ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled),
 .ant-switch-checked,
 .ant-checkbox-checked .ant-checkbox-inner,
 .ant-radio-checked .ant-radio-inner::after,
@@ -251,6 +246,7 @@ body.realdark .ant-layout-header .ant-menu-horizontal > .ant-menu-submenu-select
 
 .ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled) {
   box-shadow: -1px 0 0 0 ${color} !important;
+  background-color: ${color} !important;
   color: #fff !important;
 }
 

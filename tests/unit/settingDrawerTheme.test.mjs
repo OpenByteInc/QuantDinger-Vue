@@ -2,11 +2,50 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
+import postcss from 'postcss'
+import themeColor from '../../src/components/SettingDrawer/themeColor.js'
 
 const componentPath = fileURLToPath(
   new URL('../../src/components/SettingDrawer/SettingDrawer.vue', import.meta.url)
 )
 const source = fs.readFileSync(componentPath, 'utf8')
+
+async function themeRules (color) {
+  const previousDocument = globalThis.document
+  const style = { textContent: '' }
+  globalThis.document = {
+    documentElement: { style: { setProperty () {} } },
+    getElementById: () => style
+  }
+  try {
+    await themeColor.changeColor(color)
+    return postcss.parse(style.textContent).nodes.filter(node => node.type === 'rule')
+  } finally {
+    if (previousDocument === undefined) delete globalThis.document
+    else globalThis.document = previousDocument
+  }
+}
+
+test('theme accent text never overrides the filled radio foreground in first, hover or focus states', async () => {
+  for (const color of ['#52c41a', '#1890ff', '#ff4d4f']) {
+    const rules = await themeRules(color)
+    const accentSelectors = rules
+      .filter(rule => rule.nodes.some(node => node.prop === 'color' && node.value === color))
+      .flatMap(rule => rule.selectors)
+      .filter(selector => selector.includes('.ant-radio-button-wrapper'))
+    assert.deepEqual(accentSelectors, [
+      '.ant-radio-button-wrapper:not(.ant-radio-button-wrapper-checked):not(.ant-radio-button-wrapper-disabled):hover'
+    ])
+
+    const filled = rules.find(rule => rule.selector === '.ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled)')
+    assert.ok(filled, 'one shared checked rule covers first-child, hover and focus without raising specificity')
+    for (const [property, value] of [['background-color', color], ['color', '#fff']]) {
+      const declaration = filled.nodes.find(node => node.prop === property)
+      assert.equal(declaration?.value, value)
+      assert.equal(declaration?.important, true)
+    }
+  }
+})
 
 test('selected radio labels inherit their wrapper color for both solid and tinted controls', () => {
   const theme = fs.readFileSync(new URL('../../src/components/SettingDrawer/themeColor.js', import.meta.url), 'utf8')
