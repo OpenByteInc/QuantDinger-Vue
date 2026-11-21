@@ -466,50 +466,50 @@ const executionReviewKeys = [
 
 const executionReviewValues = {
   'ar-SA': [
-    'أداة التداول', 'غير مؤكد', 'ملخص محسوب بواسطة النظام', 'الربح والخسارة المحققة من المنصة (الأمر)',
-    'صافي الربح والخسارة للنظام', 'صافي عائد أزواج الشبكة',
+    'أداة التداول', 'غير مؤكد', 'ملخص سجل الاستراتيجية', 'الربح والخسارة المحققة من المنصة (الأمر)',
+    'صافي الربح والخسارة للاستراتيجية', 'صافي عائد أزواج الشبكة',
     'توجد {count} سجلات غير مكتملة في مطابقة الأوامر أو الرسوم. لا يزال إجمالي الربح والخسارة المحققة غير مؤكد، وتُستبعد هذه السجلات من عينة معدل الفوز.',
     '{wins} رابحة / {total} مكتملة'
   ],
   'de-DE': [
-    'Instrument', 'Unbestätigt', 'Systemberechnete Übersicht', 'Realisierter Börsen-P&L (Auftrag)',
-    'System-Netto-P&L', 'Nettoertrag aus Grid-Paaren',
+    'Instrument', 'Unbestätigt', 'Strategiebuch-Übersicht', 'Realisierter Börsen-P&L (Auftrag)',
+    'Strategie-Netto-P&L', 'Nettoertrag aus Grid-Paaren',
     'Bei {count} Datensätzen fehlen Auftragszuordnung oder Gebühren. Der gesamte realisierte P&L ist noch unbestätigt; diese Datensätze werden von der Gewinnquotenstichprobe ausgeschlossen.',
     'Profitabel {wins} / abgeschlossen {total}'
   ],
   'fr-FR': [
-    'Instrument', 'Non confirmé', 'Récapitulatif calculé par le système', 'P&L réalisé de la plateforme (ordre)',
-    'P&L net du système', 'Rendement net des paires de grille',
+    'Instrument', 'Non confirmé', 'Récapitulatif du registre de la stratégie', 'P&L réalisé de la plateforme (ordre)',
+    'P&L net de la stratégie', 'Rendement net des paires de grille',
     '{count} enregistrements ont un appariement d’ordres ou des frais incomplets. Le P&L réalisé total reste non confirmé ; ces enregistrements sont exclus de l’échantillon du taux de réussite.',
     'Rentables {wins} / terminées {total}'
   ],
   'ja-JP': [
-    '銘柄', '未確認', 'システム計算サマリー', '取引所実現損益（注文）',
-    'システム純損益', 'グリッドペア純損益',
+    '銘柄', '未確認', '戦略台帳サマリー', '取引所実現損益（注文）',
+    '戦略純損益', 'グリッドペア純損益',
     '注文の対応付けまたは手数料が未確定の記録が {count} 件あります。実現損益の合計は未確定で、これらの記録は勝率の集計対象から除外されます。',
     '利益 {wins} / 完了 {total}'
   ],
   'ko-KR': [
-    '종목', '미확정', '시스템 계산 요약', '거래소 실현 손익(주문)',
-    '시스템 순손익', '그리드 매칭 순손익',
+    '종목', '미확정', '전략 원장 요약', '거래소 실현 손익(주문)',
+    '전략 순손익', '그리드 매칭 순손익',
     '주문 매칭 또는 수수료 정보가 불완전한 기록이 {count}건 있습니다. 총 실현 손익은 아직 확정되지 않았으며, 해당 기록은 승률 표본에서 제외됩니다.',
     '수익 {wins} / 완료 {total}'
   ],
   'ru-RU': [
-    'Инструмент', 'Не подтверждено', 'Сводка расчётов системы', 'Реализованный P&L биржи (ордер)',
-    'Чистый P&L системы', 'Чистая доходность пар сетки',
+    'Инструмент', 'Не подтверждено', 'Сводка учёта стратегии', 'Реализованный P&L биржи (ордер)',
+    'Чистый P&L стратегии', 'Чистая доходность пар сетки',
     'В {count} записях не завершено сопоставление ордеров или комиссий. Общий реализованный P&L пока не подтверждён; эти записи исключены из выборки для расчёта доли прибыльных сделок.',
     'Прибыльных {wins} / завершено {total}'
   ],
   'th-TH': [
-    'ตราสาร', 'ยังไม่ยืนยัน', 'สรุปผลคำนวณโดยระบบ', 'กำไร/ขาดทุนที่รับรู้จากตลาด (คำสั่ง)',
-    'กำไร/ขาดทุนสุทธิของระบบ', 'ผลตอบแทนสุทธิจากคู่กริด',
+    'ตราสาร', 'ยังไม่ยืนยัน', 'สรุปบัญชีกลยุทธ์', 'กำไร/ขาดทุนที่รับรู้จากตลาด (คำสั่ง)',
+    'กำไร/ขาดทุนสุทธิของกลยุทธ์', 'ผลตอบแทนสุทธิจากคู่กริด',
     'มี {count} รายการที่การจับคู่คำสั่งหรือค่าธรรมเนียมไม่สมบูรณ์ ยอดกำไร/ขาดทุนที่รับรู้รวมยังไม่ได้รับการยืนยัน และรายการเหล่านี้จะไม่รวมในตัวอย่างอัตราชนะ',
     'กำไร {wins} / เสร็จสิ้น {total}'
   ],
   'vi-VN': [
-    'Mã giao dịch', 'Chưa xác nhận', 'Tóm tắt do hệ thống tính', 'Lãi/lỗ đã thực hiện từ sàn (lệnh)',
-    'Lãi/lỗ ròng của hệ thống', 'Lợi nhuận ròng của cặp lưới',
+    'Mã giao dịch', 'Chưa xác nhận', 'Tóm tắt sổ chiến lược', 'Lãi/lỗ đã thực hiện từ sàn (lệnh)',
+    'Lãi/lỗ ròng của chiến lược', 'Lợi nhuận ròng của cặp lưới',
     'Có {count} bản ghi chưa hoàn tất ghép lệnh hoặc phí. Tổng lãi/lỗ đã thực hiện vẫn chưa được xác nhận; các bản ghi này bị loại khỏi mẫu tính tỷ lệ thắng.',
     'Có lãi {wins} / hoàn tất {total}'
   ]

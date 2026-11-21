@@ -53,6 +53,22 @@ test('reviewed execution labels replace malformed generated translations', () =>
   assert.equal(reviewedMessages['ja-JP']['strategyCenter.console.winRateSample'], '利益 {wins} / 完了 {total}')
 })
 
+test('P&L copy distinguishes the strategy ledger from shared venue positions', () => {
+  const key = 'trading-assistant.execution.'
+  assert.equal(messages['zh-CN'][key + 'systemPnl'], '策略净盈亏')
+  assert.match(messages['zh-CN'][key + 'note'], /手动交易/)
+  assert.match(messages['en-US'][key + 'note'], /manual trades/)
+  for (const [language, locale] of Object.entries(messages)) {
+    assert.ok(Object.hasOwn(locale, key + 'exchangePnlHint'), language)
+    if (language !== 'en-US') {
+      assert.notEqual(locale[key + 'note'], messages['en-US'][key + 'note'], language)
+      assert.notEqual(locale[key + 'exchangePnlHint'], messages['en-US'][key + 'exchangePnlHint'], language)
+    }
+  }
+  assert.equal(reviewedMessages['ja-JP'][key + 'systemPnl'], '戦略純損益')
+  assert.equal(reviewedMessages['de-DE'][key + 'systemPnl'], 'Strategie-Netto-P&L')
+})
+
 test('reconciliation alert reserves space for its icon', async () => {
   const { readFileSync } = await import('node:fs')
   const source = readFileSync(new URL('../../src/views/strategy-center/components/TradingRecords.vue', import.meta.url), 'utf8')

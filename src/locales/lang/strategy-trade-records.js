@@ -4,11 +4,11 @@ const locale = {
   'trading-assistant.table.marketValue': 'Market value',
   'trading-assistant.table.averageEntryPrice': 'Average entry price',
   'trading-assistant.fees.pending': 'Unconfirmed',
-  'trading-assistant.execution.systemSummary': 'System-calculated summary',
+  'trading-assistant.execution.systemSummary': 'Strategy ledger summary',
   'trading-assistant.execution.exchangePnl': 'Exchange realized P&L (order)',
-  'trading-assistant.execution.systemPnl': 'System net P&L',
+  'trading-assistant.execution.systemPnl': 'Strategy net P&L',
   'trading-assistant.execution.gridNetPnl': 'Grid paired net return',
-  'trading-assistant.execution.exchangePnlHint': 'Original venue-reported P&L, summed once per order. No fees are subtracted again here. It can differ from grid paired return because the venue uses its own position cost basis.',
+  'trading-assistant.execution.exchangePnlHint': 'Original venue P&L, shown once per order with its reported fee basis. Manual trades sharing the same position can change the venue average cost. This is not the strategy’s net return and does not replace its ledger.',
   'trading-assistant.execution.excluding_fees': 'Excludes trading fees',
   'trading-assistant.execution.venue_defined': 'Original venue settlement basis; no further deductions',
   'trading-assistant.execution.reportPending': 'Awaiting venue reconciliation',
@@ -24,7 +24,7 @@ const locale = {
   'trading-assistant.execution.deviation': 'Slippage',
   'trading-assistant.execution.fillSummary': 'Fill / Qty · Value',
   'trading-assistant.execution.qualitySummary': 'Reference / Slippage',
-  'trading-assistant.execution.note': 'Live fills use venue execution reports. Venue-reported P&L and system-calculated net P&L are shown separately. If a venue does not return order-level P&L, the available system result remains displayed.',
+  'trading-assistant.execution.note': 'Strategy net P&L uses its own fills and trading fees. Venue order P&L uses the venue position cost, which can differ when manual trades share the position. Strategy equity and sizing use the strategy ledger, not venue order P&L.',
   'trading-assistant.execution.deviationHint': 'Execution slippage versus the saved signal or instruction price (grid orders use the limit price). Positive means a worse fill; negative means a better fill. Fees are excluded and missing reference prices are left blank.',
   'trading-assistant.execution.gridPnlHint': 'Grid P&L uses linked opening and closing exchange fills and their actual fees. It is calculated from those executions, not grid levels or the account-wide average. Funding is shown separately.',
   'trading-assistant.execution.entryOrders': 'Opening exchange orders',
@@ -51,7 +51,8 @@ export default {
     'trading-assistant.execution.deviation': 'الانزلاق السعري',
     'trading-assistant.execution.fillSummary': 'التنفيذ / الكمية · القيمة',
     'trading-assistant.execution.qualitySummary': 'السعر المرجعي / الانزلاق',
-    'trading-assistant.execution.note': 'تعتمد الصفقات الحية على تقارير تنفيذ المنصة. يُعرض ربح وخسارة المنصة وصافي الربح والخسارة المحسوب في النظام بشكل منفصل، ويظل ناتج النظام متاحًا إذا لم تُرجع المنصة ربحًا أو خسارة على مستوى الطلب.',
+    'trading-assistant.execution.note': 'يُحسب صافي ربح وخسارة الاستراتيجية من تنفيذاتها ورسومها. يعتمد ربح وخسارة أمر المنصة على تكلفة المركز لديها، وقد يختلف عند مشاركة الصفقات اليدوية للمركز. تعتمد قيمة الاستراتيجية وحجم أوامرها على سجلها، لا على ربح وخسارة أمر المنصة.',
+    'trading-assistant.execution.exchangePnlHint': 'ربح وخسارة المنصة الأصلي، يُعرض مرة واحدة لكل أمر وفق أساس الرسوم المبلّغ عنه. قد تغيّر الصفقات اليدوية المشتركة متوسط تكلفة المركز. لا يحل هذا الرقم محل سجل الاستراتيجية أو صافي عائدها.',
     'trading-assistant.execution.deviationHint': 'الانزلاق التنفيذي مقارنة بسعر الإشارة أو الأمر المحفوظ (تستخدم أوامر الشبكة السعر المحدد). القيمة الموجبة تعني تنفيذًا أسوأ والسالبة تعني تنفيذًا أفضل. لا يشمل الرسوم.'
   },
   'de-DE': {
@@ -65,7 +66,8 @@ export default {
     'trading-assistant.execution.deviation': 'Slippage',
     'trading-assistant.execution.fillSummary': 'Ausführung / Menge · Wert',
     'trading-assistant.execution.qualitySummary': 'Referenzpreis / Slippage',
-    'trading-assistant.execution.note': 'Live-Ausführungen basieren auf Börsenmeldungen. Börsen-P&L und systemseitig berechneter Netto-P&L werden getrennt angezeigt. Fehlt ein Auftrags-P&L der Börse, bleibt das Systemergebnis sichtbar.',
+    'trading-assistant.execution.note': 'Der Strategie-Netto-P&L basiert auf eigenen Ausführungen und Handelsgebühren. Der Börsen-Auftrags-P&L nutzt die Positionskosten der Börse; manuelle Trades in derselben Position können Abweichungen verursachen. Eigenkapital und Ordergrößen verwenden das Strategiebuch, nicht den Börsen-Auftrags-P&L.',
+    'trading-assistant.execution.exchangePnlHint': 'Originaler Börsen-P&L, einmal je Auftrag mit der gemeldeten Gebührenbasis angezeigt. Manuelle Trades in derselben Position können die durchschnittlichen Börsenkosten ändern. Der Wert ersetzt weder Strategiebuch noch Strategie-Nettoertrag.',
     'trading-assistant.execution.deviationHint': 'Ausführungs-Slippage gegenüber dem gespeicherten Signal- oder Auftragspreis (Grid-Aufträge verwenden den Limitpreis). Positiv bedeutet schlechtere, negativ bessere Ausführung. Gebühren sind nicht enthalten.'
   },
   'fr-FR': {
@@ -79,7 +81,8 @@ export default {
     'trading-assistant.execution.deviation': 'Glissement',
     'trading-assistant.execution.fillSummary': 'Exécution / Qté · Valeur',
     'trading-assistant.execution.qualitySummary': 'Prix de référence / Glissement',
-    'trading-assistant.execution.note': 'Les exécutions réelles utilisent les rapports de la plateforme. Le P&L de la plateforme et le P&L net calculé par le système sont affichés séparément. Le résultat système reste visible si le P&L par ordre n’est pas fourni.',
+    'trading-assistant.execution.note': 'Le P&L net de la stratégie repose sur ses propres exécutions et frais. Le P&L par ordre de la plateforme utilise le coût de sa position, qui peut différer en présence de transactions manuelles sur cette même position. Les fonds propres et la taille des ordres utilisent le registre de la stratégie.',
+    'trading-assistant.execution.exchangePnlHint': 'P&L original de la plateforme, affiché une fois par ordre selon son traitement des frais. Les transactions manuelles partageant la position peuvent modifier son coût moyen. Ce montant ne remplace ni le registre ni le rendement net de la stratégie.',
     'trading-assistant.execution.deviationHint': 'Glissement d’exécution par rapport au prix de signal ou d’instruction enregistré (les ordres de grille utilisent le prix limite). Une valeur positive est défavorable, une valeur négative est favorable. Frais exclus.'
   },
   'ja-JP': {
@@ -93,7 +96,8 @@ export default {
     'trading-assistant.execution.deviation': 'スリッページ',
     'trading-assistant.execution.fillSummary': '約定価格 / 数量・金額',
     'trading-assistant.execution.qualitySummary': '参照価格 / スリッページ',
-    'trading-assistant.execution.note': '実取引の約定は取引所レポートに基づきます。取引所損益とシステム計算の純損益は分けて表示し、注文単位の損益が返らない場合もシステム結果を表示します。',
+    'trading-assistant.execution.note': '戦略純損益は戦略自身の約定と取引手数料から計算します。取引所の注文損益は取引所側の建値に基づくため、同じポジションに手動取引が混在すると差が生じます。戦略資産と注文数量には取引所の注文損益ではなく戦略台帳を使用します。',
+    'trading-assistant.execution.exchangePnlHint': '取引所が報告した損益を、報告された手数料基準のまま注文ごとに一度だけ表示します。同じポジションの手動取引で平均建値が変わることがあります。戦略台帳や戦略純損益を置き換える値ではありません。',
     'trading-assistant.execution.deviationHint': '保存済みのシグナル価格または指示価格に対する約定スリッページです（グリッド注文は指値を使用）。プラスは不利、マイナスは有利な約定を示し、手数料は含みません。'
   },
   'ko-KR': {
@@ -107,7 +111,8 @@ export default {
     'trading-assistant.execution.deviation': '슬리피지',
     'trading-assistant.execution.fillSummary': '체결가 / 수량 · 금액',
     'trading-assistant.execution.qualitySummary': '기준가 / 슬리피지',
-    'trading-assistant.execution.note': '실거래 체결은 거래소 보고를 기준으로 합니다. 거래소 손익과 시스템 계산 순손익은 별도로 표시되며, 거래소가 주문별 손익을 제공하지 않아도 시스템 결과는 계속 표시됩니다.',
+    'trading-assistant.execution.note': '전략 순손익은 전략 자체 체결과 거래 수수료로 계산합니다. 거래소 주문 손익은 거래소의 포지션 원가를 사용하므로 같은 포지션에 수동 거래가 섞이면 차이가 날 수 있습니다. 전략 순자산과 주문 수량은 거래소 주문 손익이 아닌 전략 원장을 기준으로 합니다.',
+    'trading-assistant.execution.exchangePnlHint': '거래소 원본 손익을 보고된 수수료 기준 그대로 주문당 한 번 표시합니다. 같은 포지션의 수동 거래는 거래소 평균 원가를 바꿀 수 있습니다. 이 값은 전략 원장이나 전략 순수익을 대체하지 않습니다.',
     'trading-assistant.execution.deviationHint': '저장된 신호가 또는 주문 기준가 대비 체결 슬리피지입니다(그리드 주문은 지정가 사용). 양수는 불리한 체결, 음수는 유리한 체결이며 수수료는 제외됩니다.'
   },
   'ru-RU': {
@@ -121,7 +126,8 @@ export default {
     'trading-assistant.execution.deviation': 'Проскальзывание',
     'trading-assistant.execution.fillSummary': 'Исполнение / Кол-во · Сумма',
     'trading-assistant.execution.qualitySummary': 'Цена-ориентир / Проскальзывание',
-    'trading-assistant.execution.note': 'Реальные исполнения основаны на отчётах биржи. Биржевой P&L и рассчитанный системой чистый P&L показаны отдельно. Если биржа не возвращает P&L по ордеру, системный результат остаётся доступен.',
+    'trading-assistant.execution.note': 'Чистый P&L стратегии рассчитан по её исполнениям и торговым комиссиям. Биржевой P&L ордера использует стоимость позиции на бирже; ручные сделки в той же позиции могут вызывать расхождения. Капитал и размер ордеров стратегии определяются её учётом, а не биржевым P&L ордера.',
+    'trading-assistant.execution.exchangePnlHint': 'Исходный P&L биржи показан один раз на ордер с указанным биржей учётом комиссий. Ручные сделки в общей позиции могут изменить её среднюю стоимость. Этот показатель не заменяет учёт или чистую доходность стратегии.',
     'trading-assistant.execution.deviationHint': 'Проскальзывание исполнения относительно сохранённой цены сигнала или поручения (для сетки используется лимитная цена). Положительное значение означает худшее исполнение, отрицательное — лучшее. Комиссии не включены.'
   },
   'th-TH': {
@@ -135,7 +141,8 @@ export default {
     'trading-assistant.execution.deviation': 'สลิปเพจ',
     'trading-assistant.execution.fillSummary': 'ราคาที่จับคู่ / จำนวน · มูลค่า',
     'trading-assistant.execution.qualitySummary': 'ราคาอ้างอิง / สลิปเพจ',
-    'trading-assistant.execution.note': 'การจับคู่คำสั่งจริงอ้างอิงรายงานจากตลาด กำไรขาดทุนจากตลาดและกำไรขาดทุนสุทธิที่ระบบคำนวณจะแสดงแยกกัน หากตลาดไม่ส่งข้อมูลระดับคำสั่งซื้อ ผลลัพธ์ของระบบยังคงแสดงอยู่',
+    'trading-assistant.execution.note': 'กำไรขาดทุนสุทธิของกลยุทธ์คำนวณจากรายการที่จับคู่และค่าธรรมเนียมของกลยุทธ์เอง กำไรขาดทุนต่อคำสั่งจากตลาดใช้ต้นทุนสถานะของตลาด จึงอาจต่างกันเมื่อมีรายการซื้อขายด้วยตนเองในสถานะเดียวกัน มูลค่าสุทธิและขนาดคำสั่งใช้บัญชีของกลยุทธ์ ไม่ใช่กำไรขาดทุนต่อคำสั่งจากตลาด',
+    'trading-assistant.execution.exchangePnlHint': 'แสดงกำไรขาดทุนต้นฉบับจากตลาดครั้งเดียวต่อคำสั่งตามเกณฑ์ค่าธรรมเนียมที่รายงาน รายการซื้อขายด้วยตนเองในสถานะเดียวกันอาจเปลี่ยนต้นทุนเฉลี่ย ตัวเลขนี้ไม่ใช้แทนบัญชีหรือผลตอบแทนสุทธิของกลยุทธ์',
     'trading-assistant.execution.deviationHint': 'สลิปเพจของราคาที่จับคู่เทียบกับราคาสัญญาณหรือราคาอ้างอิงที่บันทึกไว้ (คำสั่งกริดใช้ราคาลิมิต) ค่าบวกหมายถึงแย่กว่า ค่าลบหมายถึงดีกว่า และไม่รวมค่าธรรมเนียม'
   },
   'vi-VN': {
@@ -149,7 +156,8 @@ export default {
     'trading-assistant.execution.deviation': 'Trượt giá',
     'trading-assistant.execution.fillSummary': 'Giá khớp / SL · Giá trị',
     'trading-assistant.execution.qualitySummary': 'Giá tham chiếu / Trượt giá',
-    'trading-assistant.execution.note': 'Khớp lệnh thực dùng báo cáo từ sàn. P&L do sàn báo cáo và P&L ròng do hệ thống tính được hiển thị riêng. Nếu sàn không trả về P&L theo lệnh, kết quả hệ thống vẫn được hiển thị.',
+    'trading-assistant.execution.note': 'Lãi/lỗ ròng của chiến lược dựa trên khớp lệnh và phí giao dịch riêng. Lãi/lỗ theo lệnh của sàn dùng giá vốn vị thế tại sàn, nên có thể khác khi giao dịch thủ công dùng chung vị thế. Vốn hiện tại và khối lượng lệnh dựa trên sổ chiến lược, không dùng lãi/lỗ theo lệnh của sàn.',
+    'trading-assistant.execution.exchangePnlHint': 'Lãi/lỗ gốc từ sàn, hiển thị một lần mỗi lệnh theo cách tính phí được báo cáo. Giao dịch thủ công dùng chung vị thế có thể thay đổi giá vốn bình quân. Số này không thay thế sổ hoặc lợi nhuận ròng của chiến lược.',
     'trading-assistant.execution.deviationHint': 'Trượt giá khớp lệnh so với giá tín hiệu hoặc giá chỉ thị đã lưu (lệnh lưới dùng giá giới hạn). Giá trị dương là khớp bất lợi hơn, giá trị âm là khớp tốt hơn; không bao gồm phí.'
   },
   'zh-CN': {
@@ -159,11 +167,11 @@ export default {
     'trading-assistant.table.marketValue': '当前市值',
     'trading-assistant.table.averageEntryPrice': '持仓均价',
     'trading-assistant.fees.pending': '待确认',
-    'trading-assistant.execution.systemSummary': '系统核算汇总',
+    'trading-assistant.execution.systemSummary': '策略核算汇总',
     'trading-assistant.execution.exchangePnl': '交易所已实现盈亏（订单）',
-    'trading-assistant.execution.systemPnl': '系统净盈亏',
+    'trading-assistant.execution.systemPnl': '策略净盈亏',
     'trading-assistant.execution.gridNetPnl': '网格配对净收益',
-    'trading-assistant.execution.exchangePnlHint': '交易所原始盈亏回报，按订单汇总且只展示一次，此处不再重复扣费。交易所使用自己的持仓成本口径，因此可能与网格配对收益不同。',
+    'trading-assistant.execution.exchangePnlHint': '保留交易所原始盈亏及费用口径，每个订单只展示一次。同一持仓混入手动交易时，交易所均价可能改变；此值不代表策略净收益，也不会覆盖策略账本。',
     'trading-assistant.execution.excluding_fees': '未扣交易手续费',
     'trading-assistant.execution.venue_defined': '保留交易所结算口径，未再次扣费',
     'trading-assistant.execution.reportPending': '待交易所核对',
@@ -179,7 +187,7 @@ export default {
     'trading-assistant.execution.deviation': '滑点',
     'trading-assistant.execution.fillSummary': '成交价 / 数量 · 金额',
     'trading-assistant.execution.qualitySummary': '指令参考价 / 滑点',
-    'trading-assistant.execution.note': '实盘成交以交易所回报为依据。交易所回报盈亏与系统计算净盈亏分开展示；交易所未返回订单级盈亏时，仍展示系统已计算的结果。',
+    'trading-assistant.execution.note': '策略净盈亏按自身成交和交易手续费计算；交易所订单盈亏按交易所持仓成本计算，混入手动交易时可能不同。策略净值与下单资金使用策略账本，不使用交易所订单盈亏。',
     'trading-assistant.execution.deviationHint': '成交价相对保存的信号价或指令参考价产生的执行滑点（网格挂单使用委托限价）。正值表示成交更不利，负值表示更有利；不含手续费，缺少参考价时留空。',
     'trading-assistant.execution.gridPnlHint': '网格盈亏按关联的开仓、平仓订单实际成交和实际手续费计算，不使用网格设定价或账户整体均价。资金费用单独汇总。',
     'trading-assistant.execution.entryOrders': '开仓交易所订单',
@@ -197,11 +205,11 @@ export default {
     'trading-assistant.table.marketValue': '目前市值',
     'trading-assistant.table.averageEntryPrice': '持倉均價',
     'trading-assistant.fees.pending': '待確認',
-    'trading-assistant.execution.systemSummary': '系統核算彙總',
+    'trading-assistant.execution.systemSummary': '策略核算彙總',
     'trading-assistant.execution.exchangePnl': '交易所已實現盈虧（訂單）',
-    'trading-assistant.execution.systemPnl': '系統淨盈虧',
+    'trading-assistant.execution.systemPnl': '策略淨盈虧',
     'trading-assistant.execution.gridNetPnl': '網格配對淨收益',
-    'trading-assistant.execution.exchangePnlHint': '交易所原始盈虧回報，按訂單彙總且只展示一次，此處不再重複扣費。交易所使用自己的持倉成本口徑，因此可能與網格配對收益不同。',
+    'trading-assistant.execution.exchangePnlHint': '保留交易所原始盈虧及費用口徑，每個訂單只展示一次。同一持倉混入手動交易時，交易所均價可能改變；此值不代表策略淨收益，也不會覆蓋策略帳本。',
     'trading-assistant.execution.excluding_fees': '未扣交易手續費',
     'trading-assistant.execution.venue_defined': '保留交易所結算口徑，未再次扣費',
     'trading-assistant.execution.reportPending': '待交易所核對',
@@ -217,7 +225,7 @@ export default {
     'trading-assistant.execution.deviation': '滑點',
     'trading-assistant.execution.fillSummary': '成交價 / 數量 · 金額',
     'trading-assistant.execution.qualitySummary': '指令參考價 / 滑點',
-    'trading-assistant.execution.note': '實盤成交以交易所回報為依據。交易所回報盈虧與系統計算淨盈虧分開顯示；交易所未回傳訂單級盈虧時，仍顯示系統已計算的結果。',
+    'trading-assistant.execution.note': '策略淨盈虧按自身成交和交易手續費計算；交易所訂單盈虧按交易所持倉成本計算，混入手動交易時可能不同。策略淨值與下單資金使用策略帳本，不使用交易所訂單盈虧。',
     'trading-assistant.execution.deviationHint': '成交價相對保存的訊號價或指令參考價產生的執行滑點（網格掛單使用委託限價）。正值表示成交更不利，負值表示更有利；不含手續費，缺少參考價時留空。',
     'trading-assistant.execution.gridPnlHint': '網格盈虧按關聯的開倉、平倉訂單實際成交和實際手續費計算，不使用網格設定價或帳戶整體均價。資金費用單獨彙總。',
     'trading-assistant.execution.entryOrders': '開倉交易所訂單',
