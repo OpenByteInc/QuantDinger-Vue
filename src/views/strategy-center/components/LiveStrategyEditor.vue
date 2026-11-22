@@ -1635,7 +1635,7 @@ export default {
   .strategy-runtime-editor { display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 14px; border: 0; background: transparent; }
   .strategy-runtime-editor__controls { display: grid; grid-template-columns: minmax(230px, 1.35fr) minmax(150px, .65fr); gap: 14px; }
   .strategy-runtime-field { display: flex !important; flex-direction: column; gap: 7px; min-width: 0; color: #354052; font-size: 12px; font-weight: 600; }
-  .strategy-runtime-field--exchange { grid-column: 1 / -1; }
+  .strategy-runtime-field--exchange { grid-column: ~"1 / -1"; }
   .strategy-runtime-field .ant-select { width: 100%; }
   .strategy-runtime-field__label { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   .strategy-runtime-field__label small { color: #d48806; font-size: 11px; font-weight: 500; white-space: nowrap; }
@@ -1684,7 +1684,7 @@ export default {
   .leverage-panel__control { display: flex; align-items: center; gap: 8px; flex: 0 0 138px; margin-left: auto; }
   .leverage-panel__control .ant-input-number { width: 108px; }
   .leverage-panel__control b { color: #4b5563; font-size: 16px; }
-  .leverage-risk-alert { grid-column: 1 / -1; }
+  .leverage-risk-alert { grid-column: ~"1 / -1"; }
   .execution-panel { padding: 14px; border: 0; border-radius: 0; background: transparent; }
   .execution-panel--live { border-top: 1px solid #e7eaf0; }
   .execution-panel__head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; }

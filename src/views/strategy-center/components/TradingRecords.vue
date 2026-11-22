@@ -344,18 +344,18 @@ export default {
         this.reportRefreshAttempts = 0
         this.cancelRecordsRequest()
         if (val) {
-          this.loadRecords()
+          this.loadRecords().catch(() => null)
         }
       },
       immediate: true
     },
     '$i18n.locale' () {
-      this.loadRecords()
+      this.loadRecords().catch(() => null)
     }
   },
   activated () {
     this.pageActive = true
-    if (!this.recordsLoading && this.strategyId) this.loadRecords()
+    if (!this.recordsLoading && this.strategyId) this.loadRecords().catch(() => null)
   },
   deactivated () {
     this.pageActive = false
@@ -378,7 +378,7 @@ export default {
       if (pagination.current === this.recordsPage) return
       this.recordsPage = pagination.current
       this.reportRefreshAttempts = 0
-      this.loadRecords()
+      this.loadRecords().catch(() => null)
     },
     formatExecutionNumber,
     formatExecutionPrice,
@@ -461,7 +461,7 @@ export default {
           if (this.records.some(row => row.exchange_pnl?.status === 'pending') && this.reportRefreshAttempts < 3) {
             this.reportRefreshAttempts += 1
             this.reportRefreshTimer = setTimeout(() => {
-              if (!document.hidden && this.pageActive) this.loadRecords()
+              if (!document.hidden && this.pageActive) this.loadRecords().catch(() => null)
             }, 5000)
           }
         } else {
