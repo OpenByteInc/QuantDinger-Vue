@@ -30,7 +30,8 @@
       :columns="columns"
       :data-source="records"
       :loading="isRecordsLoading"
-      :pagination="{ pageSize: 10 }"
+      :pagination="{ current: recordsPage, pageSize: 10, total: recordsTotal, showSizeChanger: false }"
+      @change="handlePageChange"
       size="small"
       rowKey="id"
       :scroll="{ x: 1370 }"
@@ -324,20 +325,61 @@ export default {
       records: [],
       costSummary: null,
       recordsLoading: false,
-      recordsRequestId: 0
+      recordsRequestId: 0,
+      recordsPage: 1,
+      recordsTotal: 0,
+      recordsController: null,
+      reportRefreshTimer: null,
+      reportRefreshAttempts: 0,
+      pageActive: true
     }
   },
   watch: {
     strategyId: {
       handler (val) {
+        this.recordsPage = 1
+        this.recordsTotal = 0
+        this.records = []
+        this.costSummary = null
+        this.reportRefreshAttempts = 0
+        this.cancelRecordsRequest()
         if (val) {
           this.loadRecords()
         }
       },
       immediate: true
+    },
+    '$i18n.locale' () {
+      this.loadRecords()
     }
   },
+  activated () {
+    this.pageActive = true
+    if (!this.recordsLoading && this.strategyId) this.loadRecords()
+  },
+  deactivated () {
+    this.pageActive = false
+    this.cancelRecordsRequest()
+  },
+  beforeDestroy () {
+    this.pageActive = false
+    this.cancelRecordsRequest()
+  },
   methods: {
+    cancelRecordsRequest () {
+      this.recordsRequestId += 1
+      if (this.recordsController) this.recordsController.abort()
+      this.recordsController = null
+      clearTimeout(this.reportRefreshTimer)
+      this.reportRefreshTimer = null
+      this.recordsLoading = false
+    },
+    handlePageChange (pagination) {
+      if (pagination.current === this.recordsPage) return
+      this.recordsPage = pagination.current
+      this.reportRefreshAttempts = 0
+      this.loadRecords()
+    },
     formatExecutionNumber,
     formatExecutionPrice,
     formatPriceDeviation,
@@ -373,15 +415,20 @@ export default {
         .replace(/@(spot|swap|future|futures)$/i, '')
     },
     async loadRecords () {
-      if (!this.strategyId) return
+      if (!this.strategyId || !this.pageActive) return
 
+      this.cancelRecordsRequest()
       const requestId = ++this.recordsRequestId
+      this.recordsController = new AbortController()
       this.recordsLoading = true
       try {
-        const res = await getStrategyTrades(this.strategyId, this.$i18n && this.$i18n.locale)
+        const res = await getStrategyTrades(this.strategyId, this.$i18n && this.$i18n.locale, {
+          page: this.recordsPage, page_size: 10, signal: this.recordsController.signal
+        })
         if (requestId !== this.recordsRequestId) return
         if (res.code === 1) {
           const list = res.data.trades || res.data.items || []
+          this.recordsTotal = Number(res.data.total ?? list.length)
           this.costSummary = res.data.cost_summary || null
           this.records = list.map(trade => {
             const t = { ...trade }
@@ -411,10 +458,19 @@ export default {
             }
             return t
           })
+          if (this.records.some(row => row.exchange_pnl?.status === 'pending') && this.reportRefreshAttempts < 3) {
+            this.reportRefreshAttempts += 1
+            this.reportRefreshTimer = setTimeout(() => {
+              if (!document.hidden && this.pageActive) this.loadRecords()
+            }, 5000)
+          }
         } else {
           this.$message.error(res.msg || this.$t('trading-assistant.messages.loadTradesFailed'))
         }
       } catch (error) {
+        if (requestId === this.recordsRequestId && error?.code !== 'ERR_CANCELED') {
+          this.$message.error(this.$t('trading-assistant.messages.loadTradesFailed'))
+        }
       } finally {
         if (requestId === this.recordsRequestId) this.recordsLoading = false
       }

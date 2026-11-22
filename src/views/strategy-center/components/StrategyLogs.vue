@@ -41,7 +41,7 @@
       </div>
       <div
         v-for="(log, idx) in displayLogs"
-        :key="idx"
+        :key="log.id || idx"
         class="log-entry"
         :class="'level-' + normalizeLogLevel(log.level)"
       >
@@ -83,6 +83,7 @@
 
 <script>
 import request from '@/utils/request'
+import { mergeStrategyLogs } from '@/utils/strategyLogPage'
 import { formatStrategyLogTime } from '@/utils/userTime'
 import {
   normalizeStrategyLogLevel,
@@ -103,7 +104,11 @@ export default {
       filterLevel: 'all',
       autoRefresh: false,
       refreshTimer: null,
-      loading: false
+      loading: false,
+      lastLogId: 0,
+      logsRequestId: 0,
+      logsController: null,
+      pageActive: true
     }
   },
   computed: {
@@ -125,15 +130,36 @@ export default {
   watch: {
     strategyId: {
       handler (val) {
+        this.cancelLogRequest()
+        this.logs = []
+        this.lastLogId = 0
         if (val) this.loadLogs()
       },
       immediate: true
     }
   },
-  beforeDestroy () {
+  activated () {
+    this.pageActive = true
+    this.loadLogs()
+    this.toggleAutoRefresh(this.autoRefresh)
+  },
+  deactivated () {
+    this.pageActive = false
     this.stopAutoRefresh()
+    this.cancelLogRequest()
+  },
+  beforeDestroy () {
+    this.pageActive = false
+    this.stopAutoRefresh()
+    this.cancelLogRequest()
   },
   methods: {
+    cancelLogRequest () {
+      this.logsRequestId += 1
+      if (this.logsController) this.logsController.abort()
+      this.logsController = null
+      this.loading = false
+    },
     formatLogMessage (log) {
       const message = typeof log === 'string' ? log : log?.message
       return translateStrategyRuntimeMessage(
@@ -144,28 +170,35 @@ export default {
     },
 
     async loadLogs () {
-      if (!this.strategyId) return
+      if (!this.strategyId || this.loading || !this.pageActive || document.hidden) return
+      const requestId = ++this.logsRequestId
+      this.logsController = new AbortController()
       this.loading = true
       try {
         const res = await request({
           url: '/api/strategies/logs',
           method: 'get',
-          params: { id: this.strategyId, limit: 200 }
+          params: { id: this.strategyId, limit: 200, after_id: this.lastLogId },
+          signal: this.logsController.signal
         })
-        if (res && res.data) {
-          this.logs = res.data
-          this.$nextTick(() => this.scrollToTop())
+        if (requestId !== this.logsRequestId) return
+        if (res && res.code === 1 && Array.isArray(res.data)) {
+          const atTop = !this.$refs.logsContainer || this.$refs.logsContainer.scrollTop < 8
+          if (res.data.length) this.logs = mergeStrategyLogs(this.logs, res.data)
+          this.lastLogId = Math.max(this.lastLogId, Number(res.last_id || 0), ...res.data.map(row => Number(row.id)))
+          if (atTop && res.data.length) this.$nextTick(() => this.scrollToTop())
         }
       } catch (e) {
         console.warn('Load logs failed:', e)
       } finally {
-        this.loading = false
+        if (requestId === this.logsRequestId) this.loading = false
       }
     },
 
     toggleAutoRefresh (checked) {
+      this.stopAutoRefresh()
       this.autoRefresh = checked
-      if (checked) {
+      if (checked && this.pageActive) {
         this.refreshTimer = setInterval(() => this.loadLogs(), 5000)
       } else {
         this.stopAutoRefresh()

@@ -115,13 +115,16 @@ export function deleteStrategy (id) {
   })
 }
 
-export function getStrategyTrades (id, lang) {
+export function getStrategyTrades (id, lang, { page, page_size: pageSize, signal } = {}) {
   const params = { id }
   if (lang) params.lang = lang
+  if (page !== undefined) params.page = page
+  if (pageSize !== undefined) params.page_size = pageSize
   return request({
     url: api.trades,
     method: 'get',
-    params
+    params,
+    signal
   })
 }
 
