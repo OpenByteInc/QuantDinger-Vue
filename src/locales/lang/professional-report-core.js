@@ -161,7 +161,7 @@ const japaneseExtras = {
   'aiAssetAnalysis.copilot.shareSaveFailed': '共有する前にレポートを保存してください'
 }
 
-export default {
+const messages = {
   'en-US': locale(
     cryptoSummary(['Trading activity is expanding', 'Trading activity is easing', 'Trading activity is stable', 'Trading-activity data is limited'], ['the overall structure is bullish', 'the overall structure is bearish', 'the overall structure is neutral'], ['crowding risk is high', 'crowding risk is elevated', 'crowding risk is low', 'crowding risk is unknown']),
     macroSummary('Available macro evidence shows: {facts}. These observations describe {context} and are not a standalone trade signal without an asset-specific transmission mechanism.', 'Macro observations were unavailable within the collection window, so this dimension is excluded from the directional view.', ['VIX', 'DXY', 'US 10-year yield', 'Risk-sentiment index', '1-month HIBOR'], ['global and Hong Kong funding conditions', 'global and US risk-asset conditions', 'global liquidity and crypto risk-sentiment conditions', 'global risk-asset conditions'])
@@ -250,3 +250,198 @@ export default {
     shareExtras('مشاركة التقرير', 'تم نسخ رابط المشاركة العام', 'تعذر إنشاء رابط المشاركة', 'يرجى حفظ التقرير قبل مشاركته')
   )
 }
+
+const dimensionCoverageCopy = {
+  'zh-CN': ['部分数据可用', '覆盖率 {value}%'],
+  'zh-TW': ['部分資料可用', '覆蓋率 {value}%'],
+  'en-US': ['Partial data', 'Coverage {value}%'],
+  'ja-JP': ['一部のデータあり', 'カバー率 {value}%'],
+  'ko-KR': ['일부 데이터 사용 가능', '커버리지 {value}%'],
+  'de-DE': ['Teilweise Daten verfügbar', 'Abdeckung {value}%'],
+  'fr-FR': ['Données partielles', 'Couverture {value}%'],
+  'ru-RU': ['Частичные данные', 'Покрытие {value}%'],
+  'th-TH': ['มีข้อมูลบางส่วน', 'ความครอบคลุม {value}%'],
+  'vi-VN': ['Có một phần dữ liệu', 'Độ bao phủ {value}%'],
+  'ar-SA': ['بيانات جزئية', 'التغطية {value}%']
+}
+for (const [language, [partial, coverage]] of Object.entries(dimensionCoverageCopy)) {
+  messages[language]['fastAnalysis.partialData'] = partial
+  messages[language]['fastAnalysis.capabilityCoverage'] = coverage
+}
+
+const eventCopy = {
+  "zh-CN": {
+    "news": "新闻与公告",
+    "positioning": "情绪与持仓证据",
+    "available": "已取得证据",
+    "headline_only": "仅有标题线索",
+    "fetch_failed": "采集失败",
+    "checked_empty": "查询范围内无匹配",
+    "not_checked": "未取得证据",
+    "date_unknown": "发布时间未提供",
+    "headline": "仅标题",
+    "snippet": "摘要片段",
+    "document_excerpt": "公告正文摘录"
+  },
+  "zh-TW": {
+    "news": "新聞與公告",
+    "positioning": "情緒與持倉證據",
+    "available": "已取得證據",
+    "headline_only": "僅有標題線索",
+    "fetch_failed": "擷取失敗",
+    "checked_empty": "查詢範圍內無符合結果",
+    "not_checked": "未取得證據",
+    "date_unknown": "未提供發布時間",
+    "headline": "僅標題",
+    "snippet": "摘要片段",
+    "document_excerpt": "公告正文摘錄"
+  },
+  "en-US": {
+    "news": "News & disclosures",
+    "positioning": "Sentiment & positioning",
+    "available": "Evidence available",
+    "headline_only": "Headline leads only",
+    "fetch_failed": "Collection failed",
+    "checked_empty": "No matches in queried scope",
+    "not_checked": "No evidence collected",
+    "date_unknown": "Publication date unavailable",
+    "headline": "Headline only",
+    "snippet": "Summary excerpt",
+    "document_excerpt": "Disclosure excerpt"
+  },
+  "ja-JP": {
+    "news": "ニュースと開示",
+    "positioning": "センチメントと保有状況",
+    "available": "証拠を取得済み",
+    "headline_only": "見出し情報のみ",
+    "fetch_failed": "取得失敗",
+    "checked_empty": "検索範囲内に該当なし",
+    "not_checked": "証拠未取得",
+    "date_unknown": "公開日時不明",
+    "headline": "見出しのみ",
+    "snippet": "要約抜粋",
+    "document_excerpt": "開示本文の抜粋"
+  },
+  "ko-KR": {
+    "news": "뉴스 및 공시",
+    "positioning": "심리 및 포지션 근거",
+    "available": "근거 확보",
+    "headline_only": "제목 단서만 있음",
+    "fetch_failed": "수집 실패",
+    "checked_empty": "조회 범위 내 일치 없음",
+    "not_checked": "근거 미확보",
+    "date_unknown": "게시 일시 미제공",
+    "headline": "제목만",
+    "snippet": "요약 발췌",
+    "document_excerpt": "공시 본문 발췌"
+  },
+  "de-DE": {
+    "news": "Nachrichten und Meldungen",
+    "positioning": "Stimmung und Positionierung",
+    "available": "Belege verfügbar",
+    "headline_only": "Nur Schlagzeilen",
+    "fetch_failed": "Abruf fehlgeschlagen",
+    "checked_empty": "Keine Treffer im Suchbereich",
+    "not_checked": "Keine Belege erfasst",
+    "date_unknown": "Veröffentlichungsdatum unbekannt",
+    "headline": "Nur Überschrift",
+    "snippet": "Zusammenfassungsauszug",
+    "document_excerpt": "Meldungsauszug"
+  },
+  "fr-FR": {
+    "news": "Actualités et publications",
+    "positioning": "Sentiment et positionnement",
+    "available": "Éléments disponibles",
+    "headline_only": "Titres uniquement",
+    "fetch_failed": "Collecte échouée",
+    "checked_empty": "Aucun résultat dans le périmètre",
+    "not_checked": "Aucun élément recueilli",
+    "date_unknown": "Date de publication inconnue",
+    "headline": "Titre uniquement",
+    "snippet": "Extrait du résumé",
+    "document_excerpt": "Extrait de publication"
+  },
+  "ru-RU": {
+    "news": "Новости и раскрытия",
+    "positioning": "Настроения и позиции",
+    "available": "Данные получены",
+    "headline_only": "Только заголовки",
+    "fetch_failed": "Ошибка сбора",
+    "checked_empty": "Нет совпадений в области поиска",
+    "not_checked": "Данные не получены",
+    "date_unknown": "Дата публикации неизвестна",
+    "headline": "Только заголовок",
+    "snippet": "Фрагмент резюме",
+    "document_excerpt": "Фрагмент раскрытия"
+  },
+  "th-TH": {
+    "news": "ข่าวและประกาศ",
+    "positioning": "หลักฐานอารมณ์ตลาดและสถานะ",
+    "available": "มีหลักฐานแล้ว",
+    "headline_only": "มีเฉพาะพาดหัว",
+    "fetch_failed": "รวบรวมไม่สำเร็จ",
+    "checked_empty": "ไม่พบในขอบเขตที่ค้นหา",
+    "not_checked": "ยังไม่มีหลักฐาน",
+    "date_unknown": "ไม่ทราบวันเผยแพร่",
+    "headline": "เฉพาะพาดหัว",
+    "snippet": "ข้อความสรุปบางส่วน",
+    "document_excerpt": "เนื้อหาประกาศบางส่วน"
+  },
+  "vi-VN": {
+    "news": "Tin tức và công bố",
+    "positioning": "Tâm lý và vị thế",
+    "available": "Đã có bằng chứng",
+    "headline_only": "Chỉ có tiêu đề",
+    "fetch_failed": "Thu thập thất bại",
+    "checked_empty": "Không có kết quả trong phạm vi tìm kiếm",
+    "not_checked": "Chưa có bằng chứng",
+    "date_unknown": "Chưa rõ ngày xuất bản",
+    "headline": "Chỉ tiêu đề",
+    "snippet": "Trích đoạn tóm tắt",
+    "document_excerpt": "Trích đoạn công bố"
+  },
+  "ar-SA": {
+    "news": "الأخبار والإفصاحات",
+    "positioning": "المعنويات والمراكز",
+    "available": "أدلة متاحة",
+    "headline_only": "عناوين فقط",
+    "fetch_failed": "فشل جمع البيانات",
+    "checked_empty": "لا نتائج ضمن نطاق البحث",
+    "not_checked": "لم تُجمع أدلة",
+    "date_unknown": "تاريخ النشر غير متاح",
+    "headline": "عنوان فقط",
+    "snippet": "مقتطف من الملخص",
+    "document_excerpt": "مقتطف من الإفصاح"
+  }
+}
+const newsWarningCopy = {
+  "zh-CN": "新闻采集失败，事件风险尚未核实",
+  "zh-TW": "新聞擷取失敗，事件風險尚未核實",
+  "en-US": "News collection failed; event risk remains unverified",
+  "ja-JP": "ニュース取得失敗、イベントリスクは未検証",
+  "ko-KR": "뉴스 수집 실패: 이벤트 위험 미검증",
+  "de-DE": "Nachrichtenabruf fehlgeschlagen; Ereignisrisiko ungeprüft",
+  "fr-FR": "Collecte des actualités échouée ; risque événementiel non vérifié",
+  "ru-RU": "Сбор новостей не удался; событийный риск не проверен",
+  "th-TH": "รวบรวมข่าวไม่สำเร็จ ยังไม่ได้ตรวจสอบความเสี่ยงจากเหตุการณ์",
+  "vi-VN": "Thu thập tin thất bại; chưa xác minh rủi ro sự kiện",
+  "ar-SA": "فشل جمع الأخبار؛ مخاطر الأحداث لم تُتحقق"
+}
+for (const [language, copy] of Object.entries(eventCopy)) {
+  for (const [key, value] of Object.entries(copy)) messages[language]['fastAnalysis.events.' + key] = value
+  messages[language]['fastAnalysis.warning.news_collection_failed'] = newsWarningCopy[language]
+}
+
+messages['zh-CN']['fastAnalysis.warning.news_content_limited'] = '新闻仅有标题线索，尚未核实正文'
+messages['zh-TW']['fastAnalysis.warning.news_content_limited'] = '新聞僅有標題線索，尚未核實正文'
+messages['en-US']['fastAnalysis.warning.news_content_limited'] = 'Only news headlines collected; article content unverified'
+messages['ja-JP']['fastAnalysis.warning.news_content_limited'] = 'ニュースは見出しのみで、本文は未検証'
+messages['ko-KR']['fastAnalysis.warning.news_content_limited'] = '뉴스 제목만 수집됨: 본문 미검증'
+messages['de-DE']['fastAnalysis.warning.news_content_limited'] = 'Nur Schlagzeilen erfasst; Artikelinhalt ungeprüft'
+messages['fr-FR']['fastAnalysis.warning.news_content_limited'] = 'Titres collectés uniquement ; contenu des articles non vérifié'
+messages['ru-RU']['fastAnalysis.warning.news_content_limited'] = 'Получены только заголовки; содержание статей не проверено'
+messages['th-TH']['fastAnalysis.warning.news_content_limited'] = 'มีเฉพาะพาดหัวข่าว ยังไม่ได้ตรวจสอบเนื้อหา'
+messages['vi-VN']['fastAnalysis.warning.news_content_limited'] = 'Chỉ có tiêu đề tin; nội dung bài chưa được xác minh'
+messages['ar-SA']['fastAnalysis.warning.news_content_limited'] = 'جُمعت العناوين فقط؛ محتوى المقالات غير متحقق'
+
+export default messages

@@ -194,11 +194,26 @@
           <article v-for="item in dimensions" :key="item.key" class="dimension-card">
             <header>
               <strong>{{ dimensionLabel(item.key) }}</strong>
-              <a-tag :color="item.status === 'available' ? scoreColor(item.score) : 'orange'">
-                {{ item.status === 'available' ? formatNumber(item.score, 0) : $t('fastAnalysis.insufficientData') }}
+              <a-tag :color="item.score_kind === 'evidence_coverage' ? 'blue' : item.status === 'available' ? scoreColor(item.score) : 'orange'">
+                <template v-if="item.status === 'partial'">{{ $t('fastAnalysis.partialData') }}</template>
+                <template v-else-if="item.status !== 'available'">{{ $t('fastAnalysis.insufficientData') }}</template>
+                <template v-else-if="item.score_kind === 'capability_coverage'">{{ $t('fastAnalysis.capabilityCoverage', { value: formatNumber(item.score, 0) }) }}</template>
+                <template v-else-if="item.score_kind === 'evidence_coverage'">{{ $t('fastAnalysis.events.available') }}</template>
+                <template v-else>{{ formatNumber(item.score, 0) }}</template>
               </a-tag>
             </header>
             <p>{{ dimensionNarrative(item) || $t('fastAnalysis.noNarrative') }}</p>
+            <div v-if="item.news_status" class="event-status">
+              <span>{{ $t('fastAnalysis.events.news') }} · {{ eventStatus(item.news_status) }}</span>
+              <span>{{ $t('fastAnalysis.events.positioning') }} · {{ eventStatus(item.sentiment_status) }}</span>
+            </div>
+            <ul v-if="item.events && item.events.length" class="event-list">
+              <li v-for="event in item.events" :key="event.evidence_id">
+                <a v-if="safeUrl(event.url)" :href="safeUrl(event.url)" target="_blank" rel="noopener noreferrer">{{ event.title }}</a>
+                <span v-else>{{ event.title }}</span>
+                <small>{{ event.source }} · {{ event.published_at ? formatTimestamp(event.published_at) : $t('fastAnalysis.events.date_unknown') }} · {{ $t('fastAnalysis.events.' + (event.evidence_depth || 'headline')) }}</small>
+              </li>
+            </ul>
             <div v-if="item.missing_data && item.missing_data.length" class="tag-list compact">
               <a-tag v-for="missing in item.missing_data" :key="missing">{{ capabilityLabel(missing) }}</a-tag>
             </div>
@@ -680,6 +695,10 @@ export default {
         .replace(/\brevenue_growth\b/gi, this.capabilityLabel('revenue_growth'))
         .replace(/\bGreed\b/g, this.$t('globalMarket.greed'))
     },
+    eventStatus (status) {
+      const key = ['available', 'headline_only', 'fetch_failed', 'checked_empty'].includes(status) ? status : 'not_checked'
+      return this.$t('fastAnalysis.events.' + key)
+    },
     dimensionNarrative (item) {
       const code = item?.narrative_code || (
         item?.key === 'crypto_market_structure'
@@ -1076,6 +1095,10 @@ export default {
 .dimension-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .dimension-card, .scenario-grid article, .claim-list article { min-width: 0; padding: 13px; border: 1px solid var(--report-border); border-radius: 9px; background: var(--report-bg); overflow-wrap: anywhere; }
 .dimension-card header { display: flex; align-items: center; justify-content: space-between; }
+.event-status { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 12px; color: var(--report-muted); font-size: 12px; }
+.event-list { margin: 12px 0 0; padding: 0; list-style: none; border-top: 1px solid var(--report-border); }
+.event-list li { padding: 9px 0; line-height: 1.5; }
+.event-list small { display: block; margin-top: 3px; color: var(--report-muted); font-size: 11px; }
 .scenario-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .scenario-grid article { display: grid; gap: 5px; border-top-width: 3px; }
 .scenario-bull { border-top-color: #10b981 !important; }

@@ -6,6 +6,30 @@ import reportLocales from '../../src/locales/professional-report-overrides.js'
 
 const supportedLocales = ['ar-SA', 'de-DE', 'fr-FR', 'ja-JP', 'ko-KR', 'ru-RU', 'th-TH', 'vi-VN']
 
+test('event evidence depth and collection status are localized in every locale', () => {
+  for (const [locale, copy] of Object.entries(reportLocales)) {
+    for (const key of ['news', 'positioning', 'available', 'headline_only', 'fetch_failed', 'checked_empty', 'not_checked', 'date_unknown', 'headline', 'snippet', 'document_excerpt']) {
+      assert.ok(copy['fastAnalysis.events.' + key], `${locale}.${key}`)
+    }
+    assert.ok(copy['fastAnalysis.warning.news_collection_failed'])
+    assert.ok(copy['fastAnalysis.warning.news_content_limited'])
+  }
+  const source = fs.readFileSync(new URL('../../src/views/ai-analysis/components/ProfessionalAnalysisReport.vue', import.meta.url), 'utf8')
+  assert.match(source, /safeUrl\(event.url\)/)
+  assert.match(source, /formatTimestamp\(event.published_at\)/)
+  assert.match(source, /item.score_kind === 'evidence_coverage'/)
+})
+
+test('partial capability coverage is localized and not presented as a directional score', () => {
+  for (const [language, copy] of Object.entries(reportLocales)) {
+    assert.ok(copy['fastAnalysis.partialData'], language)
+    assert.match(copy['fastAnalysis.capabilityCoverage'], /\{value\}/, language)
+  }
+  const source = fs.readFileSync(new URL('../../src/views/ai-analysis/components/ProfessionalAnalysisReport.vue', import.meta.url), 'utf8')
+  assert.match(source, /item.status === 'partial'/)
+  assert.match(source, /item.score_kind === 'capability_coverage'/)
+})
+
 test('professional report core labels are localized outside English', () => {
   for (const locale of supportedLocales) {
     assert.notEqual(
