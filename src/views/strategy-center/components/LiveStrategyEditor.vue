@@ -1684,7 +1684,7 @@ export default {
   .leverage-panel__control { display: flex; align-items: center; gap: 8px; flex: 0 0 138px; margin-left: auto; }
   .leverage-panel__control .ant-input-number { width: 108px; }
   .leverage-panel__control b { color: #4b5563; font-size: 16px; }
-  .leverage-risk-alert { grid-column: 1 / -1; }
+  .leverage-risk-alert { grid-column: ~"1 / -1"; }
   .execution-panel { padding: 14px; border: 0; border-radius: 0; background: transparent; }
   .execution-panel--live { border-top: 1px solid #e7eaf0; }
   .execution-panel__head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
