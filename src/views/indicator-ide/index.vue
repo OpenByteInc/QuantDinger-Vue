@@ -24,18 +24,17 @@
         <!-- Code Editor -->
         <div class="code-panel">
           <div class="panel-title">
-            <div class="panel-title__leading">
-              <button
-                type="button"
-                class="code-panel-icon-toggle"
-                :title="$t('indicatorIde.hideCode')"
-                :aria-label="$t('indicatorIde.hideCode')"
-                :aria-expanded="codeDrawerVisible"
-                @click="toggleCodeDrawer"
-              >
-                <a-icon type="code" />
-              </button>
-              <a-tag v-if="codeDirty && !selectedIndicatorCodeHidden" color="orange" size="small">{{ $t('indicatorIde.modified') }}</a-tag>
+            <div class="panel-title__collapse">
+              <a-tooltip :title="$t('indicatorIde.hideCode')">
+                <a-button
+                  class="code-panel-collapse"
+                  size="small"
+                  :aria-label="$t('indicatorIde.hideCode')"
+                  @click="toggleCodeDrawer"
+                >
+                  <a-icon type="double-left" />
+                </a-button>
+              </a-tooltip>
             </div>
             <div class="panel-title__trailing">
               <div class="panel-title-actions" @click.stop>
@@ -73,6 +72,7 @@
                     <a-button size="small" :disabled="!selectedIndicatorId" @click="openCodeVersionDrawer"><a-icon type="history" /></a-button>
                   </a-tooltip>
                 </div>
+                <a-tag v-if="codeDirty && !selectedIndicatorCodeHidden" color="orange" size="small">{{ $t('indicatorIde.modified') }}</a-tag>
                 <a-tooltip :title="selectedIndicatorCodeHidden ? $t('indicatorIde.saveBlockedHiddenCode') : $t('indicatorIde.saveShortcutHint')">
                   <a-button
                     class="ide-save-button"
@@ -85,16 +85,6 @@
                     {{ $t('indicatorIde.save') }}
                   </a-button>
                 </a-tooltip>
-                <button
-                  type="button"
-                  class="code-panel-collapse"
-                  :title="$t('indicatorIde.hideCode')"
-                  :aria-label="$t('indicatorIde.hideCode')"
-                  @click="toggleCodeDrawer"
-                >
-                  <a-icon type="double-left" />
-                  <span>{{ $t('indicatorIde.hideCode') }}</span>
-                </button>
               </div>
             </div>
           </div>
@@ -359,7 +349,10 @@
           >
             <div class="ide-chart-fs-row">
               <div ref="chartPanel" class="chart-panel">
-                <div class="chart-panel-toolbar">
+                <div
+                  :key="chartFullscreen ? 'chart-toolbar-fullscreen' : 'chart-toolbar-windowed'"
+                  class="chart-panel-toolbar"
+                >
                   <div class="chart-panel-toolbar-top">
                     <span class="chart-panel-toolbar-title">{{ $t('indicatorIde.chartWindow') }}</span>
                     <div class="chart-panel-toolbar-top-actions">
@@ -1300,6 +1293,9 @@ const TF_MAX_DAYS = {
   '1W': 7300
 }
 
+const DEFAULT_WORKSPACE_SPLIT_RATIO = 28
+const LEGACY_WORKSPACE_SPLIT_RATIO = 38
+
 function ideUiCacheStorageKey (userId) {
   const u = userId != null && userId !== '' ? String(userId) : '0'
   return `qd_indicator_ide_ui_v2_${u}`
@@ -1465,7 +1461,7 @@ export default {
       codeQualityChecked: false,
       codeAiSplitRatio: 58,
       codeAiResizing: false,
-      workspaceSplitRatio: 38,
+      workspaceSplitRatio: DEFAULT_WORKSPACE_SPLIT_RATIO,
       workspaceResizing: false,
 
       // Quick Trade drawer reuse
@@ -2038,7 +2034,7 @@ export default {
       const width = container ? container.getBoundingClientRect().width : 0
       if (!width) return { min: 28, max: 68 }
       const usableWidth = Math.max(1, width - 10)
-      const codeMin = Math.min(420, Math.max(320, usableWidth * 0.3))
+      const codeMin = Math.min(380, Math.max(320, usableWidth * 0.28))
       const chartMin = Math.min(520, Math.max(360, usableWidth * 0.36))
       const min = Math.max(24, (codeMin / usableWidth) * 100)
       const max = Math.min(72, 100 - ((chartMin / usableWidth) * 100))
@@ -2046,15 +2042,15 @@ export default {
     },
     clampWorkspaceSplit (ratio = this.workspaceSplitRatio) {
       const bounds = this.workspaceSplitBounds()
-      this.workspaceSplitRatio = Math.max(bounds.min, Math.min(bounds.max, Number(ratio) || 38))
+      this.workspaceSplitRatio = Math.max(bounds.min, Math.min(bounds.max, Number(ratio) || DEFAULT_WORKSPACE_SPLIT_RATIO))
       this.scheduleWorkspaceResizeRefresh()
     },
     adjustWorkspaceSplit (delta) {
-      this.clampWorkspaceSplit(Number(this.workspaceSplitRatio || 38) + Number(delta || 0))
+      this.clampWorkspaceSplit(Number(this.workspaceSplitRatio || DEFAULT_WORKSPACE_SPLIT_RATIO) + Number(delta || 0))
       this.schedulePersistIdeUiState()
     },
     resetWorkspaceSplit () {
-      this.clampWorkspaceSplit(38)
+      this.clampWorkspaceSplit(DEFAULT_WORKSPACE_SPLIT_RATIO)
       this.schedulePersistIdeUiState()
     },
     scheduleWorkspaceResizeRefresh () {
@@ -2261,7 +2257,11 @@ export default {
         if (typeof s.quickTradePinned === 'boolean') this.quickTradePinned = s.quickTradePinned
         if (typeof s.codeDrawerVisible === 'boolean') this.codeDrawerVisible = s.codeDrawerVisible
         if (Number.isFinite(Number(s.workspaceSplitRatio))) {
-          this.workspaceSplitRatio = Math.max(24, Math.min(72, Number(s.workspaceSplitRatio)))
+          const persistedRatio = Number(s.workspaceSplitRatio)
+          const restoredRatio = Math.abs(persistedRatio - LEGACY_WORKSPACE_SPLIT_RATIO) < 0.01
+            ? DEFAULT_WORKSPACE_SPLIT_RATIO
+            : persistedRatio
+          this.workspaceSplitRatio = Math.max(24, Math.min(72, restoredRatio))
         }
         if (s.quickTradePosition && Number.isFinite(Number(s.quickTradePosition.x)) && Number.isFinite(Number(s.quickTradePosition.y))) {
           this.quickTradePosition = {
@@ -5960,7 +5960,7 @@ body.dark .ide-signal-alert-modal-wrap {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   min-height: 38px;
   padding: 5px 10px;
   font-size: 12px;
@@ -5971,14 +5971,6 @@ body.dark .ide-signal-alert-modal-wrap {
   user-select: none;
   transition: color 0.15s;
 }
-.panel-title__leading {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  flex: 0 0 auto;
-  overflow: hidden;
-}
 .panel-title__trailing {
   display: flex;
   align-items: center;
@@ -5987,59 +5979,11 @@ body.dark .ide-signal-alert-modal-wrap {
   min-width: 0;
   justify-content: flex-end;
 }
-
-.code-panel-icon-toggle {
-  display: inline-flex;
+.panel-title__collapse {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  padding: 0;
-  border: 0;
-  border-radius: 4px;
-  color: inherit;
-  background: transparent;
-  font-size: inherit;
-  cursor: pointer;
-
-  &:hover,
-  &:focus-visible {
-    color: var(--primary-color, @primary-color);
-    background: color-mix(in srgb, var(--primary-color, #1890ff) 10%, transparent);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--primary-color, @primary-color);
-    outline-offset: -2px;
-  }
-}
-
-.code-panel-collapse {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: auto;
-  min-width: 78px;
-  height: 24px;
-  gap: 5px;
-  padding: 0 8px;
-  border: 1px solid color-mix(in srgb, var(--primary-color, #1890ff) 24%, #dbe3ee);
-  border-radius: 6px;
-  color: #64748b;
-  background: color-mix(in srgb, var(--primary-color, #1890ff) 4%, #fff);
-  cursor: pointer;
-  font-size: 11px;
-  font-weight: 600;
-  white-space: nowrap;
-  transition: color .16s ease, border-color .16s ease, background .16s ease;
-
-  &:hover,
-  &:focus-visible {
-    color: var(--primary-color, @primary-color);
-    border-color: color-mix(in srgb, var(--primary-color, #1890ff) 54%, #dbe3ee);
-    background: color-mix(in srgb, var(--primary-color, #1890ff) 10%, transparent);
-    outline: none;
-  }
+  justify-content: flex-start;
+  flex: 0 0 auto;
 }
 .panel-title-actions {
   display: flex;
@@ -6048,14 +5992,17 @@ body.dark .ide-signal-alert-modal-wrap {
   gap: 6px;
   flex: 1;
   min-width: 0;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 .panel-title-icon-actions {
   display: flex;
   align-items: center;
   gap: 4px;
   min-width: 0;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+}
+.panel-title__collapse,
+.panel-title-icon-actions {
   ::v-deep .ant-btn-sm {
     width: 26px;
     min-width: 26px;
@@ -8195,17 +8142,6 @@ body.dark .ide-signal-alert-modal-wrap {
       color: var(--primary-color, #1890ff);
     }
   }
-  .code-panel-collapse {
-    color: rgba(255, 255, 255, .48);
-    border-color: color-mix(in srgb, var(--primary-color, #1890ff) 28%, #303030);
-    background: color-mix(in srgb, var(--primary-color, #1890ff) 6%, #1f1f1f);
-    &:hover,
-    &:focus-visible {
-      color: var(--primary-color, #1890ff);
-      border-color: color-mix(in srgb, var(--primary-color, #1890ff) 58%, #303030);
-      background: color-mix(in srgb, var(--primary-color, #1890ff) 12%, #1f1f1f);
-    }
-  }
   .ide-workspace-resizer {
     background: #181818;
   }
@@ -8662,6 +8598,7 @@ body.dark .ide-signal-alert-modal-wrap {
   .trades-table ::v-deep .ant-table-thead > tr:first-child > th {
     border-top-color: #303030 !important;
   }
+  .panel-title__collapse ::v-deep .ant-btn:not(.ant-btn-primary),
   .panel-title-actions ::v-deep .ant-btn:not(.ant-btn-primary) {
     background: #1f1f1f;
     border-color: #434343;
@@ -8852,13 +8789,12 @@ body.dark .ide-signal-alert-modal-wrap {
     font-family: "Fira Code", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   }
 
-  .code-panel-icon-toggle,
+  .panel-title__collapse ::v-deep .ant-btn-sm,
   .panel-title-icon-actions ::v-deep .ant-btn-sm {
     border-radius: var(--ide-radius-icon) !important;
   }
 
   .panel-title-actions ::v-deep .ide-save-button,
-  .code-panel-collapse,
   .code-quality-top-button,
   .ide-guide-link,
   .ide-market-type-fixed,
@@ -8873,8 +8809,7 @@ body.dark .ide-signal-alert-modal-wrap {
     border-radius: var(--ide-radius-control) !important;
   }
 
-  .panel-title-actions ::v-deep .ide-save-button,
-  .code-panel-collapse {
+  .panel-title-actions ::v-deep .ide-save-button {
     height: 26px !important;
     box-sizing: border-box;
   }

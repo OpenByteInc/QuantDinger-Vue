@@ -18,15 +18,21 @@ const indicatorIdeSource = fs.readFileSync(indicatorIdePath, 'utf8')
 const klineChartSource = fs.readFileSync(klineChartPath, 'utf8')
 const strategyIdeSource = fs.readFileSync(strategyIdePath, 'utf8')
 
-test('editor leading code icon is an accessible collapse button using the existing toggle', () => {
-  const button = indicatorIdeSource.match(/<button\s+[^>]*class="code-panel-icon-toggle"[\s\S]*?<\/button>/)?.[0]
+test('editor toolbar exposes one compact accessible collapse action', () => {
+  const button = indicatorIdeSource.match(/<a-button\s+[\s\S]*?class="code-panel-collapse"[\s\S]*?<\/a-button>/)?.[0]
+  const collapseGroup = indicatorIdeSource.match(/<div class="panel-title__collapse">([\s\S]*?)<\/div>/)?.[1]
+  const actionGroup = indicatorIdeSource.match(/<div class="panel-title-icon-actions">([\s\S]*?)<\/div>/)?.[1]
   assert.ok(button)
-  assert.match(button, /type="button"/)
-  assert.match(button, /:title="\$t\('indicatorIde.hideCode'\)"/)
+  assert.ok(collapseGroup)
+  assert.ok(actionGroup)
+  assert.match(button, /size="small"/)
   assert.match(button, /:aria-label="\$t\('indicatorIde.hideCode'\)"/)
-  assert.match(button, /:aria-expanded="codeDrawerVisible"/)
   assert.match(button, /@click="toggleCodeDrawer"/)
-  assert.match(button, /<a-icon type="code"/)
+  assert.match(button, /<a-icon type="double-left"/)
+  assert.match(collapseGroup, /code-panel-collapse/)
+  assert.doesNotMatch(actionGroup, /code-panel-collapse/)
+  assert.match(indicatorIdeSource, /\.panel-title__collapse ::v-deep \.ant-btn:not\(\.ant-btn-primary\),\s*\.panel-title-actions ::v-deep \.ant-btn:not\(\.ant-btn-primary\)/)
+  assert.doesNotMatch(indicatorIdeSource, /code-panel-icon-toggle/)
 })
 
 test('indicator workspace exposes a constrained and persistent horizontal resizer', () => {
@@ -34,10 +40,12 @@ test('indicator workspace exposes a constrained and persistent horizontal resize
   assert.match(indicatorIdeSource, /@mousedown="startWorkspaceResize"/)
   assert.match(indicatorIdeSource, /@dblclick="resetWorkspaceSplit"/)
   assert.match(indicatorIdeSource, /workspaceSplitBounds \(\)/)
-  assert.match(indicatorIdeSource, /const codeMin = Math\.min\(420/)
+  assert.match(indicatorIdeSource, /const codeMin = Math\.min\(380/)
   assert.match(indicatorIdeSource, /const chartMin = Math\.min\(520/)
   assert.match(indicatorIdeSource, /workspaceSplitRatio: this\.workspaceSplitRatio/)
-  assert.match(indicatorIdeSource, /<span>\{\{ \$t\('indicatorIde\.hideCode'\) \}\}<\/span>/)
+  assert.match(indicatorIdeSource, /const DEFAULT_WORKSPACE_SPLIT_RATIO = 28/)
+  assert.match(indicatorIdeSource, /Math\.abs\(persistedRatio - LEGACY_WORKSPACE_SPLIT_RATIO\) < 0\.01/)
+  assert.equal((indicatorIdeSource.match(/class="code-panel-collapse"/g) || []).length, 1)
 })
 
 test('indicator-to-strategy conversion has a parameter parser', () => {

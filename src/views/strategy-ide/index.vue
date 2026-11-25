@@ -34,9 +34,12 @@
           :runtime-watchlist-count="strategyWatchlistOptions.length"
           :runtime-capabilities="strategyRuntimeContract"
           :runtime-available-market-types="strategyAvailableMarketTypes"
+          :first-run-empty="showStrategyOnboarding"
           side-mode="split"
           @verified="handleStrategyVerified"
           @template-change="handleTemplateChange"
+          @starter-selected="handleStrategyStarterSelected"
+          @start-ai="handleStrategyStartAi"
           @runtime-change="handleRuntimeConfigChange"
           @runtime-symbol-change="handleRuntimeSymbolChange"
           @runtime-symbol-open="loadStrategyWatchlistOptions"
@@ -809,7 +812,8 @@ export default {
       strategyProductContexts: [],
       strategyAddMarketKeys: [],
       showStrategyAddWatchlist: false,
-      lastSavedSnapshot: ''
+      lastSavedSnapshot: '',
+      strategyOnboardingDismissed: false
     }
   },
   computed: {
@@ -884,6 +888,14 @@ export default {
     },
     scriptOptions () {
       return this.allScriptOptions.filter(item => item.asset_type === this.currentAssetType)
+    },
+    showStrategyOnboarding () {
+      return !this.loadingScripts &&
+        !this.strategyOnboardingDismissed &&
+        !this.currentSourceId &&
+        !this.scriptCodeHidden &&
+        this.scriptOptions.length === 0 &&
+        !String(this.scriptCode || '').trim()
     },
     selectedScriptLabel () {
       const selected = this.scriptOptions.find(item => String(item.id) === String(this.selectedScriptId || ''))
@@ -1720,10 +1732,13 @@ export default {
         return
       }
       if (this.isDraftRoute() || this.hasCopilotScriptDraft()) {
+        const routeAssetType = this.getRouteAssetType()
+        const hasRouteAssetSources = this.allScriptOptions.some(item => item.asset_type === routeAssetType)
         this.createNewDraft({
           openTemplate: this.shouldOpenTemplateFromRoute(),
           updateRoute: false,
-          assetType: this.getRouteAssetType()
+          assetType: routeAssetType,
+          showOnboarding: !hasRouteAssetSources && !this.hasCopilotScriptDraft()
         })
         this.applyCopilotScriptDraft()
         if (this.isLegacyAiDraftRoute() || this.hasRouteSourceId()) {
@@ -1740,7 +1755,7 @@ export default {
       } else if (firstId) {
         await this.openSource(firstId, { updateRoute: true })
       } else {
-        this.createNewDraft({ openTemplate: false })
+        this.createNewDraft({ openTemplate: false, showOnboarding: true })
       }
       this.applyIndicatorConvertRouteOnce()
     },
@@ -1920,8 +1935,9 @@ export default {
       this.editorKeySeed += 1
       this.scriptVerified = !!(metadata.lifecycle_verified || metadata.script_verified)
       this.lastSavedSnapshot = this.scriptSnapshot()
+      this.strategyOnboardingDismissed = true
     },
-    createNewDraft ({ openTemplate = false, updateRoute = true, assetType = this.currentAssetType } = {}) {
+    createNewDraft ({ openTemplate = false, updateRoute = true, assetType = this.currentAssetType, showOnboarding = false } = {}) {
       this.currentSource = null
       this.currentSourceId = null
       this.selectedScriptId = undefined
@@ -1940,6 +1956,7 @@ export default {
         universe_name: ''
       }
       this.lastSavedSnapshot = ''
+      this.strategyOnboardingDismissed = !showOnboarding
       this.editorKeySeed += 1
       if (updateRoute) this.writeDraftRoute({ openTemplate })
       if (openTemplate) {
@@ -1951,6 +1968,18 @@ export default {
         })
       }
     },
+    handleStrategyStarterSelected () {
+      this.strategyOnboardingDismissed = true
+    },
+    handleStrategyStartAi () {
+      this.strategyOnboardingDismissed = true
+      this.aiPanelExpanded = true
+      this.$nextTick(() => {
+        const input = this.$refs.strategyAiPrompt && this.$refs.strategyAiPrompt.$el
+        const textarea = input && input.querySelector('textarea')
+        if (textarea) textarea.focus()
+      })
+    },
     handleAssetTypeChange (assetType) {
       const target = assetType === 'portfolio_strategy' ? 'portfolio_strategy' : 'script'
       if (target === this.currentAssetType) return
@@ -1958,7 +1987,7 @@ export default {
         this.currentAssetType = target
         const first = this.allScriptOptions.find(item => item.asset_type === target)
         if (first) await this.openSource(first.id, { updateRoute: true })
-        else this.createNewDraft({ openTemplate: false, updateRoute: true, assetType: target })
+        else this.createNewDraft({ openTemplate: false, updateRoute: true, assetType: target, showOnboarding: true })
       }
       const shouldConfirm = this.currentSourceId
         ? this.hasUnsavedScriptChanges

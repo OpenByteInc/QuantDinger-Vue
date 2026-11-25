@@ -11,7 +11,7 @@
       }"
     >
       <div class="code-col">
-        <div class="code-section">
+        <div class="code-section" :class="{ 'code-section--first-run': firstRunEmpty && !hiddenSource }">
           <div class="section-header">
             <div class="section-title-wrap">
               <span class="section-title">
@@ -61,6 +61,47 @@
             <span>{{ hiddenDescription || $t('trading-assistant.editor.hiddenCodeDesc') }}</span>
           </div>
           <div v-else ref="editorContainer" class="code-editor-container"></div>
+          <div v-if="firstRunEmpty && !hiddenSource" class="strategy-first-run">
+            <div class="strategy-first-run__content">
+              <span class="strategy-first-run__eyebrow">
+                <a-icon type="rocket" /> Strategy API V2
+              </span>
+              <h2>{{ $t('strategyIde.onboarding.title') }}</h2>
+              <p>{{ $t('strategyIde.onboarding.description') }}</p>
+
+              <div class="strategy-first-run__actions">
+                <button type="button" class="strategy-start-card strategy-start-card--primary" @click="openTemplatePicker">
+                  <span class="strategy-start-card__icon"><a-icon type="appstore" /></span>
+                  <span class="strategy-start-card__copy">
+                    <strong>{{ $t('strategyIde.onboarding.templateTitle') }}</strong>
+                    <small>{{ $t('strategyIde.onboarding.templateDescription') }}</small>
+                  </span>
+                  <a-icon type="arrow-right" class="strategy-start-card__arrow" />
+                </button>
+                <button type="button" class="strategy-start-card" @click="startWithAi">
+                  <span class="strategy-start-card__icon"><a-icon type="robot" /></span>
+                  <span class="strategy-start-card__copy">
+                    <strong>{{ $t('strategyIde.onboarding.aiTitle') }}</strong>
+                    <small>{{ $t('strategyIde.onboarding.aiDescription') }}</small>
+                  </span>
+                  <a-icon type="arrow-right" class="strategy-start-card__arrow" />
+                </button>
+              </div>
+
+              <button type="button" class="strategy-first-run__blank" @click="startBlankStrategy">
+                <a-icon type="code" />
+                <span>
+                  <strong>{{ $t('strategyIde.onboarding.blankTitle') }}</strong>
+                  <small>{{ $t('strategyIde.onboarding.blankDescription') }}</small>
+                </span>
+              </button>
+
+              <div class="strategy-first-run__workflow">
+                <a-icon type="check-circle" />
+                {{ $t('strategyIde.onboarding.workflowHint') }}
+              </div>
+            </div>
+          </div>
         </div>
         <div v-if="!isSplitSideMode && $slots['ai-workspace']" class="strategy-ai-workspace-host">
           <slot name="ai-workspace"></slot>
@@ -418,55 +459,67 @@
     </div>
     <a-modal
       :visible="showTemplatePicker"
-      :title="$t('trading-assistant.editor.templateTab')"
       :footer="null"
-      :width="1040"
+      :width="980"
       :destroy-on-close="false"
       :get-container="templateModalGetContainer"
       :wrap-class-name="isDark ? 'script-template-picker script-template-picker--dark' : 'script-template-picker'"
       @cancel="showTemplatePicker = false"
     >
-      <div class="panel-intro panel-intro--compact">
-        <div class="panel-intro__title">
-          {{ templatePickerTitle }}
-          <a-tag color="green">{{ visibleTemplates.length }}</a-tag>
+      <div slot="title" class="template-modal-heading">
+        <span class="template-modal-heading__icon"><a-icon type="appstore" /></span>
+        <div class="template-modal-heading__copy">
+          <strong>{{ templatePickerTitle }}</strong>
+          <small>{{ templatePickerDescription }}</small>
         </div>
-        <div class="panel-intro__desc">{{ templatePickerDescription }}</div>
+        <span class="template-modal-heading__count">{{ visibleTemplates.length + 1 }}</span>
       </div>
 
-      <div class="template-picker-layout">
+      <div class="template-grid template-grid--modal">
         <div
-          class="blank-card"
+          class="template-card template-card--blank"
           :class="{ active: isBlankScript }"
+          role="button"
+          tabindex="0"
           @click="loadBlankTemplate"
+          @keydown.enter="loadBlankTemplate"
+          @keydown.space.prevent="loadBlankTemplate"
         >
-          <div class="blank-card__body">
-            <div class="blank-card__title">{{ $t('trading-assistant.editor.blankTemplate') }}</div>
-            <div class="blank-card__desc">{{ blankTemplateDescription }}</div>
+          <div class="template-card__head">
+            <span class="template-card__icon"><a-icon type="code" /></span>
+            <span class="template-card__name">{{ $t('trading-assistant.editor.blankTemplate') }}</span>
+            <a-icon v-if="isBlankScript" type="check-circle" theme="filled" class="template-card__check" />
           </div>
-          <a-icon v-if="isBlankScript" type="check-circle" theme="filled" class="blank-card__check" />
+          <div class="template-card__desc">{{ blankTemplateDescription }}</div>
+          <div class="template-card__meta">
+            <span>{{ $t('strategyIde.onboarding.blankMeta') }}</span>
+            <span>Strategy API V2</span>
+          </div>
+          <div class="template-card__foot">
+            <span class="template-card__action">
+              {{ $t('strategyIde.onboarding.useBlank') }}
+              <a-icon type="arrow-right" />
+            </span>
+          </div>
         </div>
-      </div>
-
-      <div class="template-section-label">
-        {{ templateSectionTitle }}
-      </div>
-
-      <a-empty v-if="!visibleTemplates.length" class="template-empty" :description="$t('trading-assistant.editor.templateEmpty')" />
-      <div v-else class="template-grid template-grid--modal">
         <div
           v-for="tpl in visibleTemplates"
           :key="tpl.key"
           class="template-card"
           :data-testid="`strategy-template-${tpl.key}`"
           :class="[`template-card--${tpl.accent || 'blue'}`, { active: selectedTemplateKey === tpl.key, disabled: readonly }]"
+          role="button"
+          tabindex="0"
           @click="loadTemplate(tpl.key, { focusParams: true, resetParams: true })"
+          @keydown.enter="loadTemplate(tpl.key, { focusParams: true, resetParams: true })"
+          @keydown.space.prevent="loadTemplate(tpl.key, { focusParams: true, resetParams: true })"
         >
           <div class="template-card__head">
             <span class="template-card__icon">
               <a-icon :type="safeTemplateIcon(tpl)" />
             </span>
             <span class="template-card__name">{{ getTemplateTitle(tpl) }}</span>
+            <a-icon v-if="selectedTemplateKey === tpl.key" type="check-circle" theme="filled" class="template-card__check" />
           </div>
           <div class="template-card__desc">{{ getTemplateDesc(tpl) }}</div>
           <div class="template-card__meta">
@@ -540,7 +593,8 @@ export default {
     runtimeSymbolLoading: { type: Boolean, default: false },
     runtimeWatchlistCount: { type: Number, default: 0 },
     runtimeCapabilities: { type: Object, default: () => ({}) },
-    runtimeAvailableMarketTypes: { type: Array, default: () => ['spot', 'swap'] }
+    runtimeAvailableMarketTypes: { type: Array, default: () => ['spot', 'swap'] },
+    firstRunEmpty: { type: Boolean, default: false }
   },
   data () {
     return {
@@ -934,6 +988,7 @@ export default {
       this.templateDirty = false
       this.setCode('')
       this.$emit('template-change', { key: '', params: {} })
+      this.$emit('starter-selected', 'blank')
       this.activeTab = this.isSplitSideMode ? 'params' : 'templates'
       this.showTemplatePicker = false
       if (!silent) {
@@ -944,6 +999,15 @@ export default {
     openTemplatePicker () {
       if (this.readonly || this.hiddenSource) return
       this.showTemplatePicker = true
+    },
+
+    startWithAi () {
+      this.$emit('start-ai')
+    },
+
+    startBlankStrategy () {
+      this.$emit('starter-selected', 'blank')
+      this.scheduleEditorRefresh()
     },
 
     openTemplateEntry () {
@@ -965,6 +1029,7 @@ export default {
       }
       this.templateDirty = true
       this.applySelectedTemplateToCode({ silent: true })
+      this.$emit('starter-selected', 'template')
       if (focusParams) {
         this.activeTab = 'params'
       }
@@ -1391,6 +1456,7 @@ export default {
 }
 
 .code-section {
+  position: relative;
   border: 1px solid #e8e8e8;
   border-radius: 8px;
   overflow: hidden;
@@ -1398,6 +1464,178 @@ export default {
   display: flex;
   flex-direction: column;
   min-width: 0;
+}
+
+.strategy-first-run {
+  position: absolute;
+  z-index: 4;
+  inset: 41px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(24px, 4vw, 56px);
+  background: #f8fafc;
+}
+
+.strategy-first-run__content {
+  width: 100%;
+  max-width: 720px;
+  text-align: center;
+
+  h2 {
+    margin: 14px 0 8px;
+    color: #172033;
+    font-size: clamp(22px, 2vw, 28px);
+    font-weight: 650;
+    line-height: 1.25;
+  }
+
+  > p {
+    max-width: 560px;
+    margin: 0 auto;
+    color: #667085;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+}
+
+.strategy-first-run__eyebrow {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  border: 1px solid color-mix(in srgb, var(--primary-color, #1890ff) 24%, transparent);
+  border-radius: 999px;
+  color: var(--primary-color, #1890ff);
+  background: color-mix(in srgb, var(--primary-color, #1890ff) 7%, #fff);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.strategy-first-run__actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.strategy-start-card {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 92px;
+  padding: 16px;
+  border: 1px solid #dfe4ea;
+  border-radius: 10px;
+  color: #344054;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+
+  &:hover,
+  &:focus-visible {
+    border-color: color-mix(in srgb, var(--primary-color, #1890ff) 54%, #dfe4ea);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+    outline: 0;
+    transform: translateY(-1px);
+  }
+
+  &--primary {
+    border-color: color-mix(in srgb, var(--primary-color, #1890ff) 42%, #dfe4ea);
+    background: color-mix(in srgb, var(--primary-color, #1890ff) 5%, #fff);
+  }
+}
+
+.strategy-start-card__icon {
+  display: inline-flex;
+  width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  color: var(--primary-color, #1890ff);
+  background: color-mix(in srgb, var(--primary-color, #1890ff) 11%, transparent);
+  font-size: 17px;
+}
+
+.strategy-start-card__copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+
+  strong {
+    color: #202939;
+    font-size: 13px;
+    font-weight: 650;
+    line-height: 1.35;
+  }
+
+  small {
+    color: #7a8494;
+    font-size: 11px;
+    line-height: 1.45;
+  }
+}
+
+.strategy-start-card__arrow {
+  color: #98a2b3;
+  font-size: 12px;
+}
+
+.strategy-first-run__blank {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 14px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 6px;
+  color: #667085;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+
+  &:hover,
+  &:focus-visible {
+    color: var(--primary-color, #1890ff);
+    background: color-mix(in srgb, var(--primary-color, #1890ff) 6%, transparent);
+    outline: 0;
+  }
+
+  > span {
+    display: flex;
+    flex-direction: column;
+  }
+
+  strong {
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  small {
+    margin-top: 1px;
+    color: #98a2b3;
+    font-size: 10px;
+  }
+}
+
+.strategy-first-run__workflow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 18px;
+  color: #98a2b3;
+  font-size: 10px;
+
+  .anticon {
+    color: #52c41a;
+  }
 }
 
 .editor-layout--split .code-section {
@@ -2170,7 +2408,7 @@ export default {
   position: relative;
   padding: 11px 12px 10px 12px;
   border-radius: 8px;
-  border: 1px solid #262626;
+  border: 1px solid #e1e6ec;
   background: #fff;
   cursor: pointer;
   overflow: hidden;
@@ -2291,14 +2529,102 @@ export default {
 }
 
 .template-grid--modal .template-card {
-  min-height: 136px;
+  min-height: 142px;
   display: flex;
   flex-direction: column;
+  padding: 14px;
+  border-radius: 10px;
+
+  &::before {
+    display: none;
+  }
+
+  &:hover,
+  &:focus-visible {
+    border-color: color-mix(in srgb, var(--primary-color, #1890ff) 48%, #e1e6ec);
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
+    outline: 0;
+    transform: translateY(-1px);
+  }
+
+  &.active {
+    border-color: var(--primary-color, #1890ff);
+    background: color-mix(in srgb, var(--primary-color, #1890ff) 5%, #fff);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary-color, #1890ff) 18%, transparent);
+  }
 }
 
 .template-grid--modal .template-card__foot {
   margin-top: auto;
   padding-top: 7px;
+}
+
+.template-card--blank .template-card__icon {
+  color: #475467;
+  background: #eef1f5;
+}
+
+.template-card__check {
+  flex: 0 0 auto;
+  color: var(--primary-color, #1890ff);
+  font-size: 15px;
+}
+
+.template-modal-heading {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding-right: 26px;
+}
+
+.template-modal-heading__icon {
+  display: inline-flex;
+  width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  color: var(--primary-color, #1890ff);
+  background: color-mix(in srgb, var(--primary-color, #1890ff) 10%, transparent);
+  font-size: 17px;
+}
+
+.template-modal-heading__copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+
+  strong {
+    color: #202939;
+    font-size: 16px;
+    font-weight: 650;
+    line-height: 1.3;
+  }
+
+  small {
+    overflow: hidden;
+    color: #7a8494;
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 1.4;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.template-modal-heading__count {
+  display: inline-flex;
+  min-width: 28px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: var(--primary-color, #1890ff);
+  background: color-mix(in srgb, var(--primary-color, #1890ff) 9%, transparent);
+  font-size: 11px;
+  font-weight: 650;
 }
 
 @media (max-width: 900px) {
@@ -2411,23 +2737,56 @@ export default {
   min-height: 200px;
 }
 
-.script-template-picker {
-  .ant-modal {
-    top: 42px;
-    padding-bottom: 42px;
-  }
-
-  .ant-modal-body {
-    padding: 16px;
-    max-height: calc(100vh - 156px);
-    overflow-y: auto;
-  }
-}
-
 .theme-dark {
   .code-section {
     border-color: #2a2a2a;
     background: #111111;
+  }
+
+  .strategy-first-run {
+    background: #0d0d0d;
+  }
+
+  .strategy-first-run__content {
+    h2 { color: rgba(255, 255, 255, 0.92); }
+    > p { color: rgba(255, 255, 255, 0.48); }
+  }
+
+  .strategy-first-run__eyebrow {
+    background: color-mix(in srgb, var(--primary-color, #1890ff) 11%, #111);
+  }
+
+  .strategy-start-card {
+    border-color: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.76);
+    background: #171717;
+
+    &:hover,
+    &:focus-visible {
+      border-color: color-mix(in srgb, var(--primary-color, #1890ff) 60%, rgba(255, 255, 255, 0.14));
+      background: #1b1b1b;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+    }
+
+    &--primary {
+      border-color: color-mix(in srgb, var(--primary-color, #1890ff) 45%, rgba(255, 255, 255, 0.12));
+      background: color-mix(in srgb, var(--primary-color, #1890ff) 7%, #171717);
+    }
+  }
+
+  .strategy-start-card__copy {
+    strong { color: rgba(255, 255, 255, 0.9); }
+    small { color: rgba(255, 255, 255, 0.42); }
+  }
+
+  .strategy-first-run__blank {
+    color: rgba(255, 255, 255, 0.58);
+
+    small { color: rgba(255, 255, 255, 0.32); }
+  }
+
+  .strategy-first-run__workflow {
+    color: rgba(255, 255, 255, 0.34);
   }
 
   .section-header {
@@ -2681,8 +3040,124 @@ export default {
     }
   }
 }
+
+@media (max-width: 760px) {
+  .strategy-first-run {
+    position: relative;
+    inset: auto;
+    min-height: 420px;
+    padding: 28px 18px;
+  }
+
+  .strategy-first-run__actions {
+    grid-template-columns: 1fr;
+  }
+
+  .template-modal-heading__copy small {
+    white-space: normal;
+  }
+}
 </style>
 
 <style lang="less">
 @import '../../../components/Watchlist/watchlist-select.less';
+
+.script-template-picker {
+  .ant-modal {
+    top: 36px;
+    padding-bottom: 36px;
+  }
+
+  .ant-modal-content {
+    overflow: hidden;
+    border: 1px solid #e5e9ef;
+    border-radius: 12px;
+    box-shadow: 0 22px 64px rgba(15, 23, 42, 0.18);
+  }
+
+  .ant-modal-header {
+    padding: 18px 20px;
+    border-bottom-color: #e8ebf0;
+  }
+
+  .ant-modal-close-x {
+    width: 56px;
+    height: 56px;
+    line-height: 56px;
+  }
+
+  .ant-modal-body {
+    max-height: calc(100vh - 156px);
+    padding: 18px 20px 20px;
+    overflow-y: auto;
+    background: #f8fafc;
+  }
+}
+
+.script-template-picker--dark {
+  .ant-modal-content {
+    border-color: #303030;
+    background: #151515;
+    box-shadow: 0 24px 72px rgba(0, 0, 0, 0.48);
+  }
+
+  .ant-modal-header {
+    border-bottom-color: #2c2c2c;
+    background: #171717;
+  }
+
+  .ant-modal-close {
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  .ant-modal-body {
+    background: #111;
+  }
+
+  .template-modal-heading__copy strong {
+    color: rgba(255, 255, 255, 0.92);
+  }
+
+  .template-modal-heading__copy small {
+    color: rgba(255, 255, 255, 0.42);
+  }
+
+  .template-card {
+    border-color: #303030;
+    background: #181818;
+  }
+
+  .template-card:hover,
+  .template-card:focus-visible,
+  .template-card.active {
+    border-color: var(--primary-color, #1890ff);
+    background: #1d1d1d;
+  }
+
+  .template-card.active {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary-color, #1890ff) 22%, transparent);
+  }
+
+  .template-card__name {
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  .template-card__desc {
+    color: rgba(255, 255, 255, 0.43);
+  }
+
+  .template-card__meta span {
+    color: rgba(255, 255, 255, 0.54);
+    background: rgba(255, 255, 255, 0.07);
+  }
+
+  .template-card--blank .template-card__icon {
+    color: rgba(255, 255, 255, 0.68);
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .ant-empty-description {
+    color: rgba(255, 255, 255, 0.44);
+  }
+}
 </style>
