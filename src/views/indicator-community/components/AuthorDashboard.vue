@@ -401,14 +401,14 @@ export default {
       }
     },
     onPublishedTableChange (pagination) {
-      this.loadPublished(pagination.current)
+      return this.loadPublished(pagination.current)
     },
     applyPublishedFilters () {
-      this.loadPublished(1)
+      return this.loadPublished(1)
     },
     onPublishedKeywordChange (event) {
       if (!event || !event.target || event.target.value === '') {
-        this.loadPublished(1)
+        return this.loadPublished(1)
       }
     },
     resetPublishedFilters () {
@@ -418,7 +418,7 @@ export default {
         reviewStatus: '',
         sort: 'updated_desc'
       }
-      this.loadPublished(1)
+      return this.loadPublished(1)
     },
     onSalesTableChange (pagination) {
       this.loadSales(pagination.current)
