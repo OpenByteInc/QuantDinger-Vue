@@ -9,8 +9,14 @@
     </header>
 
     <a-alert
-      v-if="summary.sync_requested && !summary.sync_ok"
-      type="error"
+      v-if="summary.sync_pending"
+      type="info"
+      show-icon
+      :message="$t('strategyCenter.gridOrders.syncPending')"
+    />
+    <a-alert
+      v-else-if="summary.sync_requested && !summary.sync_ok"
+      type="warning"
       show-icon
       :message="$t('strategyCenter.gridOrders.syncFailed')"
       :description="syncErrorDescription"
@@ -23,7 +29,7 @@
     </div>
     <div v-else class="grid-order-summary">
       <div><span>{{ $t('strategyCenter.gridOrders.open') }}</span><strong>{{ summary.total || orders.length }}</strong></div>
-      <div><span>{{ $t('strategyCenter.gridOrders.verified') }}</span><strong>{{ summary.exchange_audit_completed ? (summary.verified_exchange_orders || 0) : '-' }}</strong></div>
+      <div><span>{{ $t('strategyCenter.gridOrders.verified') }}</span><strong>{{ summary.verified_exchange_orders || 0 }}</strong></div>
       <div :class="{ danger: Number(summary.unverified_orders || 0) > 0 }"><span>{{ $t('strategyCenter.gridOrders.unverified') }}</span><strong>{{ summary.unverified_orders || 0 }}</strong></div>
       <div><span>{{ $t('strategyCenter.gridOrders.lastSync') }}</span><strong>{{ formatTime(summary.last_reconciled_at) }}</strong></div>
     </div>
@@ -40,8 +46,9 @@
       <template slot="side" slot-scope="value, row">
         <a-tag :color="String(row.side).toLowerCase() === 'buy' ? 'green' : 'red'">{{ row.side || '-' }}</a-tag>
       </template>
-      <template slot="status" slot-scope="value">
+      <template slot="status" slot-scope="value, row">
         <a-tag :color="statusColor(value)">{{ statusLabel(value) }}</a-tag>
+        <a-tag v-if="row.reconciliation_pending" color="orange">{{ $t('strategyCenter.gridOrders.reconciliationPending') }}</a-tag>
       </template>
       <template slot="price" slot-scope="value">
         <span class="number-with-unit"><span>{{ formatPrice(value) }}</span><small v-if="displayUnits.quote">{{ displayUnits.quote }}</small></span>
@@ -100,7 +107,7 @@ export default {
     },
     syncErrorDescription () {
       const code = String(this.summary.sync_error || '')
-      const known = ['grid_runner_not_available', 'grid_exchange_client_unavailable', 'grid_exchange_audit_rate_limited', 'grid_exchange_orders_unverified', 'grid_exchange_snapshot_failed']
+      const known = ['grid_runner_not_available', 'grid_exchange_client_unavailable', 'grid_exchange_audit_rate_limited', 'grid_exchange_orders_unverified', 'grid_exchange_snapshot_failed', 'grid_exchange_reconciliation_pending']
       return known.includes(code) ? this.$t(`strategyCenter.gridOrders.errors.${code}`) : code
     },
     columns () {

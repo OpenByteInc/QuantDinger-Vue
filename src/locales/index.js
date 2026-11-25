@@ -9,7 +9,7 @@ import brokerAccountWorkspaceMessages from './lang/broker-account-workspace'
 import strategyV2Messages from './lang/strategy-v2'
 import strategyLaunchMessages from './lang/strategy-launch'
 import fundamentalSyncMessages from './lang/fundamental-sync'
-import strategyLiveRiskMessages from './lang/strategy-live-risk'
+import strategyLiveRiskMessages, { gridOrderAuditMessages } from './lang/strategy-live-risk'
 import robotBuilderMessages from './lang/robot-builder-overrides'
 import billingPaymentMessages from './billing-payment-overrides'
 import referralRewardMessages from './referral-reward-overrides'
@@ -130,7 +130,8 @@ const messages = {
     ...(strategyRunMessages[defaultLang] || {}),
     ...(agentManagementMessages[defaultLang] || {}),
     ...(strategyEvolutionReportMessages[defaultLang] || {}),
-    ...(watchlistAssetMessages[defaultLang] || {})
+    ...(watchlistAssetMessages[defaultLang] || {}),
+    ...(gridOrderAuditMessages[defaultLang] || {})
   }
 }
 
@@ -257,7 +258,8 @@ function mergeLocaleOverrides (lang) {
     ...(strategyRunMessages[lang] || {}),
     ...(agentManagementMessages[lang] || {}),
     ...(strategyEvolutionReportMessages[lang] || {}),
-    ...(watchlistAssetMessages[lang] || {})
+    ...(watchlistAssetMessages[lang] || {}),
+    ...(gridOrderAuditMessages[lang] || {})
   }
   i18n.setLocaleMessage(lang, {
     ...(i18n.getLocaleMessage(lang) || {}),
@@ -335,7 +337,8 @@ export async function loadLanguageAsync (lang = defaultLang) {
       ...(strategyRunMessages[lang] || {}),
       ...(agentManagementMessages[lang] || {}),
       ...(strategyEvolutionReportMessages[lang] || {}),
-      ...(watchlistAssetMessages[lang] || {})
+      ...(watchlistAssetMessages[lang] || {}),
+      ...(gridOrderAuditMessages[lang] || {})
     })
     i18n.setLocaleMessage(lang, locale)
     loadedLanguages.push(lang)

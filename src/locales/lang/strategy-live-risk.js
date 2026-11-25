@@ -1026,6 +1026,29 @@ Object.entries(deploymentControlLocales).forEach(([localeKey, values]) => {
   messages['liveMonitor.starting'] = values[3]
 })
 
+const gridAuditKeys = ['syncPending', 'reconciliationPending', 'exchangeStatus.filled', 'exchangeStatus.cancelled', 'errors.grid_exchange_reconciliation_pending', 'unverified']
+const gridAuditLocales = {
+  'en-US': ['Verification queued; results update in bounded batches.', 'Ledger reconciliation pending', 'Confirmed filled', 'Confirmed cancelled', 'Exchange status is confirmed, but local fill accounting is not complete. Check the order and strategy ledger.', 'Unverified orders'],
+  'zh-CN': ['核验已排队，结果将分批更新。', '账本待对账', '已确认成交', '已确认撤销', '已确认交易所状态，但本地成交尚未完成入账。请检查订单及策略账本。', '未核实订单'],
+  'zh-TW': ['核驗已排隊，結果將分批更新。', '帳本待對帳', '已確認成交', '已確認撤銷', '已確認交易所狀態，但本地成交尚未完成入帳。請檢查訂單及策略帳本。', '未核實訂單'],
+  'ja-JP': ['検証を予約しました。結果は分割して更新されます。', '台帳照合待ち', '約定確認済み', '取消確認済み', '取引所の状態は確認済みですが、ローカル台帳への約定記録は未完了です。注文と戦略台帳を確認してください。', '未検証の注文'],
+  'ko-KR': ['검증이 대기열에 추가되었습니다. 결과는 나누어 갱신됩니다.', '원장 대조 대기', '체결 확인됨', '취소 확인됨', '거래소 상태는 확인됐지만 로컬 체결 기록은 완료되지 않았습니다. 주문과 전략 원장을 확인하세요.', '미확인 주문'],
+  'de-DE': ['Prüfung eingereiht; Ergebnisse werden in begrenzten Gruppen aktualisiert.', 'Buchabgleich ausstehend', 'Ausführung bestätigt', 'Stornierung bestätigt', 'Der Börsenstatus ist bestätigt, die lokale Verbuchung aber noch nicht abgeschlossen. Prüfen Sie Auftrag und Strategiebuch.', 'Ungeprüfte Aufträge'],
+  'fr-FR': ['Vérification en attente ; les résultats sont actualisés par lots limités.', 'Rapprochement en attente', 'Exécution confirmée', 'Annulation confirmée', 'Le statut de la plateforme est confirmé, mais la comptabilisation locale reste incomplète. Vérifiez l’ordre et le registre de la stratégie.', 'Ordres non vérifiés'],
+  'ru-RU': ['Проверка поставлена в очередь; результаты обновляются ограниченными пакетами.', 'Ожидает сверки учёта', 'Исполнение подтверждено', 'Отмена подтверждена', 'Статус биржи подтверждён, но локальный учёт исполнения ещё не завершён. Проверьте ордер и журнал стратегии.', 'Непроверенные ордера'],
+  'vi-VN': ['Đã xếp hàng xác minh; kết quả sẽ cập nhật theo từng nhóm giới hạn.', 'Chờ đối soát sổ', 'Đã xác nhận khớp', 'Đã xác nhận hủy', 'Đã xác nhận trạng thái trên sàn nhưng chưa ghi nhận xong khớp lệnh cục bộ. Hãy kiểm tra lệnh và sổ chiến lược.', 'Lệnh chưa xác minh'],
+  'th-TH': ['เข้าคิวตรวจสอบแล้ว ผลลัพธ์จะอัปเดตเป็นชุดที่จำกัด', 'รอกระทบยอดบัญชี', 'ยืนยันการจับคู่แล้ว', 'ยืนยันการยกเลิกแล้ว', 'ยืนยันสถานะจากตลาดแล้ว แต่ยังบันทึกการจับคู่ในบัญชีภายในไม่เสร็จ โปรดตรวจสอบคำสั่งและบัญชีกลยุทธ์', 'คำสั่งที่ยังไม่ยืนยัน'],
+  'ar-SA': ['أُدرج التحقق في قائمة الانتظار؛ تُحدّث النتائج على دفعات محدودة.', 'مطابقة السجل معلّقة', 'تم تأكيد التنفيذ', 'تم تأكيد الإلغاء', 'تم تأكيد حالة المنصة، لكن تسجيل التنفيذ محليًا لم يكتمل. راجع الأمر وسجل الاستراتيجية.', 'أوامر غير متحقق منها']
+}
+export const gridOrderAuditMessages = {}
+Object.entries(gridAuditLocales).forEach(([localeKey, values]) => {
+  gridOrderAuditMessages[localeKey] = {}
+  gridAuditKeys.forEach((key, index) => {
+    healthReasonTargets[localeKey][`strategyCenter.gridOrders.${key}`] = values[index]
+    gridOrderAuditMessages[localeKey][`strategyCenter.gridOrders.${key}`] = values[index]
+  })
+})
+
 export default {
   'en-US': locale,
   'zh-CN': zhCN,
