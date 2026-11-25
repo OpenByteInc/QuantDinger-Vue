@@ -3297,7 +3297,8 @@ export default {
         name: entities.name || (fallbackTarget && fallbackTarget.name),
         exchange_id: entities.exchange_id || (fallbackTarget && fallbackTarget.exchange_id),
         market_type: entities.market_type || (fallbackTarget && fallbackTarget.market_type),
-        instrument_id: entities.instrument_id || (fallbackTarget && fallbackTarget.instrument_id)
+        instrument_id: entities.instrument_id || (fallbackTarget && fallbackTarget.instrument_id),
+        product_type: entities.product_type || (fallbackTarget && fallbackTarget.product_type)
       })
       return target || this.normalizeSymbolOption(fallbackTarget)
     },
@@ -3322,7 +3323,11 @@ export default {
       const marketType = String(entities.market_type || target.market_type || 'spot').trim().toLowerCase() === 'swap'
         ? 'swap'
         : 'spot'
-      const exchangeId = String(entities.exchange_id || target.exchange_id || '').trim().toLowerCase()
+      const productType = String(entities.product_type || target.product_type || '').trim().toLowerCase()
+      const venueSpecificProduct = ['direct_equity', 'tokenized_equity', 'stock_perpetual'].includes(productType)
+      const exchangeId = String(
+        entities.exchange_id || (venueSpecificProduct ? target.exchange_id : '') || ''
+      ).trim().toLowerCase()
       return `Crypto:${symbol}@${exchangeId ? `${exchangeId}:` : ''}${marketType}`
     },
     buildExecutableStrategyPrompt (plan, message, target) {
@@ -3348,6 +3353,7 @@ export default {
         : [
             promptText('ruleScriptDraft', '- Generate one executable Python Strategy API V2 draft using explicit position intents and runtime-safe sizing.'),
             promptText('ruleScriptOwnership', '- The strategy source owns its canonical instrument, market type, subscription frequency, direction, sizing, entries, exits, risk rules, and schedules. The run panel owns only initial capital, date range, and permitted Crypto @swap leverage.'),
+            promptText('ruleCryptoVenue', '- Ordinary Crypto source uses @spot or @swap without an exchange name; live deployment resolves the venue from the selected execution account. Preserve @venue:market_type only when the user explicitly pins a venue or the selected catalog product is venue-specific.'),
             promptText('ruleScriptApis', '- Use only Strategy API V2 runtime APIs. Read current prices with data.current(...), positions through amount/avg_cost, and global order/schedule helpers; never use get_current_data, quantity/cost_basis, or context.run_daily.')
           ]
       const memoryLines = (this.userMemories || [])

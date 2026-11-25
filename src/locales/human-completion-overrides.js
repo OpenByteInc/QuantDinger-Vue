@@ -1,7 +1,7 @@
 const messages = {
   'ko-KR': {
     'settings.universeSync.description': '모든 사용자가 공유하는 시스템 유니버스입니다. 구성 종목과 표시 상태를 관리하거나 지원되는 데이터 소스를 동기화할 수 있습니다.',
-    'marketData.invalidCryptoIdentifier': '암호화폐 종목 형식이 올바르지 않습니다. Crypto:BASE/QUOTE@exchange:spot 또는 Crypto:BASE/QUOTE@exchange:swap 형식을 사용하세요.',
+    'marketData.invalidCryptoIdentifier': '암호화폐 종목 형식이 올바르지 않습니다. 일반 종목은 Crypto:BASE/QUOTE@spot 또는 Crypto:BASE/QUOTE@swap을 사용하고, 거래소를 명시적으로 고정할 때만 @exchange:spot 또는 @exchange:swap을 추가하세요.',
     'marketData.invalidCryptoExchange': '암호화폐 거래소 식별자가 올바르지 않습니다.',
     'marketData.invalidCryptoProduct': '암호화폐 상품 유형이 올바르지 않습니다. spot 또는 swap을 사용하세요.',
     'marketData.invalidCryptoSettlement': '암호화폐 결제 통화 형식이 올바르지 않습니다.',
@@ -272,7 +272,7 @@ const messages = {
   },
   'ja-JP': {
     'settings.universeSync.description': 'すべてのユーザーが共有するシステムユニバースです。構成銘柄と表示状態を管理するか、対応データソースを同期できます。',
-    'marketData.invalidCryptoIdentifier': '暗号資産の銘柄形式が無効です。Crypto:BASE/QUOTE@exchange:spot または Crypto:BASE/QUOTE@exchange:swap を使用してください。',
+    'marketData.invalidCryptoIdentifier': '暗号資産の銘柄形式が無効です。通常は Crypto:BASE/QUOTE@spot または Crypto:BASE/QUOTE@swap を使用し、取引所を明示的に固定する場合のみ @exchange:spot または @exchange:swap を追加してください。',
     'marketData.invalidCryptoExchange': '暗号資産取引所の識別子が無効です。',
     'marketData.invalidCryptoProduct': '暗号資産の商品タイプが無効です。spot または swap を使用してください。',
     'marketData.invalidCryptoSettlement': '暗号資産の決済通貨形式が無効です。',
@@ -542,7 +542,7 @@ const messages = {
   },
   'fr-FR': {
     'settings.universeSync.description': 'Univers système partagés par tous les utilisateurs. Gérez les composants et la visibilité, ou synchronisez les sources de données prises en charge.',
-    'marketData.invalidCryptoIdentifier': 'Le format de l’instrument crypto est invalide. Utilisez Crypto:BASE/QUOTE@exchange:spot ou Crypto:BASE/QUOTE@exchange:swap.',
+    'marketData.invalidCryptoIdentifier': 'Le format de l’instrument crypto est invalide. Utilisez Crypto:BASE/QUOTE@spot ou Crypto:BASE/QUOTE@swap, et ajoutez @exchange:spot ou @exchange:swap uniquement pour imposer explicitement une plateforme.',
     'marketData.invalidCryptoExchange': 'L’identifiant de la plateforme crypto est invalide.',
     'marketData.invalidCryptoProduct': 'Le type de produit crypto est invalide. Utilisez spot ou swap.',
     'marketData.invalidCryptoSettlement': 'Le format de la devise de règlement crypto est invalide.',
@@ -813,7 +813,7 @@ const messages = {
   },
   'de-DE': {
     'settings.universeSync.description': 'Gemeinsam genutzte Systemuniversen für alle Benutzer. Verwalten Sie Bestandteile und Sichtbarkeit oder synchronisieren Sie unterstützte Datenquellen.',
-    'marketData.invalidCryptoIdentifier': 'Das Format des Krypto-Instruments ist ungültig. Verwenden Sie Crypto:BASE/QUOTE@exchange:spot oder Crypto:BASE/QUOTE@exchange:swap.',
+    'marketData.invalidCryptoIdentifier': 'Das Format des Krypto-Instruments ist ungültig. Verwenden Sie Crypto:BASE/QUOTE@spot oder Crypto:BASE/QUOTE@swap und fügen Sie @exchange:spot oder @exchange:swap nur hinzu, wenn eine Börse ausdrücklich festgelegt werden soll.',
     'marketData.invalidCryptoExchange': 'Die Kennung der Krypto-Börse ist ungültig.',
     'marketData.invalidCryptoProduct': 'Der Krypto-Produkttyp ist ungültig. Verwenden Sie spot oder swap.',
     'marketData.invalidCryptoSettlement': 'Das Format der Abrechnungswährung ist ungültig.',
@@ -1093,7 +1093,7 @@ function addCompletionLocale(locale, values) {
 
 addCompletionLocale('ru-RU', [
   'Общая системная вселенная для всех пользователей. Управляйте составом и видимостью или синхронизируйте поддерживаемые источники данных.',
-  'Недопустимый формат криптовалютного инструмента. Используйте Crypto:BASE/QUOTE@exchange:spot или Crypto:BASE/QUOTE@exchange:swap.',
+  'Недопустимый формат криптовалютного инструмента. Используйте Crypto:BASE/QUOTE@spot или Crypto:BASE/QUOTE@swap, а @exchange:spot или @exchange:swap добавляйте только при явной привязке к бирже.',
   'Недопустимый идентификатор криптовалютной биржи.',
   'Недопустимый тип криптовалютного продукта. Используйте spot или swap.',
   'Недопустимый формат валюты расчётов для криптовалюты.',
@@ -1370,7 +1370,7 @@ Object.assign(messages['ru-RU'], {
 
 addCompletionLocale('ar-SA', [
   'كون نظامي مشترك بين جميع المستخدمين. يمكنك إدارة مكوناته وظهوره أو مزامنته من مصادر البيانات المدعومة.',
-  'تنسيق معرّف العملة المشفرة غير صالح. استخدم Crypto:BASE/QUOTE@exchange:spot أو Crypto:BASE/QUOTE@exchange:swap.',
+  'تنسيق معرّف العملة المشفرة غير صالح. استخدم Crypto:BASE/QUOTE@spot أو Crypto:BASE/QUOTE@swap، وأضف @exchange:spot أو @exchange:swap فقط عند تثبيت منصة تداول بشكل صريح.',
   'معرّف منصة العملات المشفرة غير صالح.',
   'نوع منتج العملة المشفرة غير صالح. استخدم spot أو swap.',
   'تنسيق عملة تسوية العملة المشفرة غير صالح.',
@@ -1647,7 +1647,7 @@ Object.assign(messages['ar-SA'], {
 
 addCompletionLocale('th-TH', [
   'จักรวาลระบบที่ผู้ใช้ทุกคนใช้ร่วมกัน จัดการสมาชิกและการแสดงผล หรือซิงค์จากแหล่งข้อมูลที่รองรับ',
-  'รูปแบบสินทรัพย์คริปโตไม่ถูกต้อง ใช้ Crypto:BASE/QUOTE@exchange:spot หรือ Crypto:BASE/QUOTE@exchange:swap',
+  'รูปแบบสินทรัพย์คริปโตไม่ถูกต้อง ใช้ Crypto:BASE/QUOTE@spot หรือ Crypto:BASE/QUOTE@swap และเพิ่ม @exchange:spot หรือ @exchange:swap เฉพาะเมื่อต้องการล็อกตลาดซื้อขายอย่างชัดเจน',
   'รหัสตลาดซื้อขายคริปโตไม่ถูกต้อง',
   'ประเภทผลิตภัณฑ์คริปโตไม่ถูกต้อง ใช้ spot หรือ swap',
   'รูปแบบสกุลเงินชำระราคาคริปโตไม่ถูกต้อง',
@@ -1743,7 +1743,7 @@ Object.assign(messages['th-TH'], {
 
 addCompletionLocale('vi-VN', [
   'Danh mục hệ thống dùng chung cho mọi người dùng. Quản lý thành phần, trạng thái hiển thị hoặc đồng bộ từ nguồn dữ liệu được hỗ trợ.',
-  'Định dạng mã tiền mã hóa không hợp lệ. Dùng Crypto:BASE/QUOTE@exchange:spot hoặc Crypto:BASE/QUOTE@exchange:swap.',
+  'Định dạng mã tiền mã hóa không hợp lệ. Dùng Crypto:BASE/QUOTE@spot hoặc Crypto:BASE/QUOTE@swap; chỉ thêm @exchange:spot hoặc @exchange:swap khi cần ghim rõ một sàn giao dịch.',
   'Mã sàn tiền mã hóa không hợp lệ.', 'Loại sản phẩm tiền mã hóa không hợp lệ. Dùng spot hoặc swap.',
   'Định dạng tiền tệ thanh toán không hợp lệ.', 'Tiền tệ thanh toán phải khớp với tiền tệ định giá.', 'Hãy chọn một cặp tiền mã hóa hợp lệ.',
   'Nghiên cứu một yếu tố', 'Nghiên cứu đa yếu tố', 'Chạy nghiên cứu đa yếu tố', 'Chọn quy trình nghiên cứu',
