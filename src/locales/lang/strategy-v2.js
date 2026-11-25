@@ -1,5 +1,5 @@
 const locale = {
-  'marketData.invalidCryptoIdentifier': 'The crypto instrument format is invalid. Use Crypto:BASE/QUOTE@exchange:spot or Crypto:BASE/QUOTE@exchange:swap.',
+  'marketData.invalidCryptoIdentifier': 'The crypto instrument format is invalid. Use Crypto:BASE/QUOTE@spot or Crypto:BASE/QUOTE@swap. Add @exchange:spot or @exchange:swap only when explicitly pinning a venue.',
   'marketData.invalidCryptoExchange': 'The crypto exchange identifier is invalid.',
   'marketData.invalidCryptoProduct': 'The crypto product type is invalid. Use spot or swap.',
   'marketData.invalidCryptoSettlement': 'The crypto settlement currency format is invalid.',
@@ -12,7 +12,12 @@ const locale = {
   'strategyV2.backtest.mode.portfolio': 'Portfolio Backtest',
   'strategyV2.backtest.mode.factor': 'Factor Research',
   'strategyV2.backtest.portfolioDashboard': 'Portfolio performance and risk',
-  'strategyV2.backtest.chartInteractionHint': 'Long exposure is above zero · short exposure is below zero · hover for linked values',
+  'strategyV2.backtest.chartInteractionHint': 'Gross exposure shows total risk · net exposure shows direction · cash is shown as a share of equity · hover for linked values',
+  'strategyV2.backtest.strategyScope': 'Strategy: {symbol}',
+  'strategyV2.backtest.benchmarkScope': 'Benchmark: {symbol}',
+  'strategyV2.backtest.scaleMode': 'Equity scale',
+  'strategyV2.backtest.linearScale': 'Linear',
+  'strategyV2.backtest.logScale': 'Log',
   'strategyV2.backtest.strategyNormalized': 'Strategy (normalized)',
   'strategyV2.backtest.benchmarkNormalized': 'Benchmark (normalized)',
   'strategyV2.backtest.normalizedBase': 'Base 100',
@@ -24,6 +29,8 @@ const locale = {
   'strategyV2.backtest.latestCash': 'Latest cash',
   'strategyV2.backtest.ledgerCash': 'Ledger cash',
   'strategyV2.backtest.ledgerCashHint': 'Cash balance in the backtest ledger after trades and fees. For derivatives, it is an accounting balance rather than broker free margin.',
+  'strategyV2.backtest.cashAllocation': 'Cash allocation',
+  'strategyV2.backtest.cashAllocationHint': 'Ledger cash divided by portfolio equity. It stays comparable with gross and net exposure and may exceed 100% for short or leveraged portfolios.',
   'strategyV2.backtest.grossExposure': 'Gross exposure',
   'strategyV2.backtest.grossExposureHint': 'Total absolute position value divided by portfolio equity. It measures total capital at risk without offsetting long and short positions.',
   'strategyV2.backtest.netExposure': 'Net exposure',
@@ -325,6 +332,7 @@ const locale = {
   'strategyV2.factorResearch.longShortNetValue': 'Long-short net value',
   'strategyV2.sourceTitle': 'Strategy source',
   'strategyV2.manifestTitle': 'Controlled by strategy code',
+  'strategyV2.backtest.resultContractTitle': 'Contract used by this backtest',
   'strategyV2.manifestHint': 'Symbols, markets, schedules, and data subscriptions come from this source and stay identical in backtest and live execution.',
   'strategyV2.deploymentContractTitle': 'Instrument and timeframe',
   'strategyV2.deploymentContractHint': 'Declared fields can be changed here. Changes are saved back to the strategy source and recompiled before deployment.',
@@ -685,11 +693,11 @@ const locale = {
   'community.market.Futures': 'Futures',
   'strategyV2.backtest.fixtureData': 'Test fixture',
   'strategyV2.backtest.strategyEquity': 'Strategy equity',
-  'strategyV2.backtest.spotBenchmark': 'Spot buy & hold',
+  'strategyV2.backtest.spotBenchmark': 'Same-period buy and hold',
   'strategyV2.backtest.equityValue': 'Account equity',
   'strategyV2.backtest.benchmarkUnavailable': 'Spot benchmark data is unavailable for this run.',
-  'strategyV2.backtest.benchmarkPartial': '{symbol} spot benchmark is only available through {end}; the chart stops there instead of extending stale data.',
-  'strategyV2.backtest.comparedWith': 'Compared with {symbol} spot buy-and-hold',
+  'strategyV2.backtest.benchmarkPartial': 'The buy-and-hold benchmark for {symbol} is only available through {end}; the chart stops there instead of extending stale data.',
+  'strategyV2.backtest.comparedWith': 'Benchmark: buy and hold {symbol} for the same period, without timing trades',
   'strategyV2.backtest.status.completed_trades': 'Completed-trade result',
   'strategyV2.backtest.status.completed_tradesHint': 'Fills, fees, positions, cash, and final equity passed independent ledger reconciliation.',
   'strategyV2.backtest.status.open_position_only': 'Open position only',
@@ -767,7 +775,7 @@ const enUSFallback = locale
 
 const zhCN = {
   ...enUSFallback,
-  'marketData.invalidCryptoIdentifier': '加密资产标的格式无效，请使用 Crypto:基础币/计价币@交易所:spot 或 Crypto:基础币/计价币@交易所:swap。',
+  'marketData.invalidCryptoIdentifier': '加密资产标的格式无效。普通标的请使用 Crypto:基础币/计价币@spot 或 Crypto:基础币/计价币@swap；仅在明确锁定交易所时添加 @交易所:spot 或 @交易所:swap。',
   'marketData.invalidCryptoExchange': '加密资产交易所标识无效。',
   'marketData.invalidCryptoProduct': '加密资产产品类型无效，请使用 spot 或 swap。',
   'marketData.invalidCryptoSettlement': '加密资产结算币种格式无效。',
@@ -792,11 +800,18 @@ const zhCN = {
   'strategyV2.backtest.mode.portfolio': '组合回测',
   'strategyV2.backtest.mode.factor': '因子研究',
   'strategyV2.backtest.portfolioDashboard': '组合表现与风险',
-  'strategyV2.backtest.chartInteractionHint': '零轴上方为多头仓位 · 下方为空头仓位 · 悬停联动查看数据',
+  'strategyV2.backtest.chartInteractionHint': '总敞口表示整体风险规模 · 净敞口表示方向 · 现金按权益占比展示 · 悬停联动查看数据',
+  'strategyV2.backtest.strategyScope': '策略：{symbol}',
+  'strategyV2.backtest.benchmarkScope': '基准：{symbol}',
+  'strategyV2.backtest.scaleMode': '权益坐标模式',
+  'strategyV2.backtest.linearScale': '线性',
+  'strategyV2.backtest.logScale': '对数',
   'strategyV2.backtest.totalReturnHint': '期末权益相对初始资金的净变化，已包含已实现盈亏、浮动盈亏以及已扣除的交易手续费。',
   'strategyV2.backtest.maxDrawdownHint': '组合权益从历史高点到随后低点的最大跌幅，基准是历史峰值，不是初始资金。',
   'strategyV2.backtest.ledgerCash': '账面现金',
   'strategyV2.backtest.ledgerCashHint': '回测账本在成交和扣费后的现金余额。对于合约，它是会计余额，不等同于交易所可用保证金。',
+  'strategyV2.backtest.cashAllocation': '现金占权益',
+  'strategyV2.backtest.cashAllocationHint': '账面现金除以组合权益，与总敞口和净敞口保持同一百分比口径；做空或使用杠杆时可能超过 100%。',
   'strategyV2.backtest.grossExposureHint': '所有持仓市值绝对值之和除以组合权益，表示不抵消多空方向时实际承担风险的仓位规模。',
   'strategyV2.backtest.netExposureHint': '带方向的持仓市值除以组合权益。正数表示净做多，负数表示净做空。',
   'strategyV2.backtest.longExposure': '多头仓位',
@@ -1360,11 +1375,11 @@ const zhCN = {
   'strategyV2.backtest.marketData': '真实市场行情',
   'strategyV2.backtest.fixtureData': '测试夹具数据',
   'strategyV2.backtest.strategyEquity': '策略权益',
-  'strategyV2.backtest.spotBenchmark': '现货买入持有',
+  'strategyV2.backtest.spotBenchmark': '同期买入并持有',
   'strategyV2.backtest.equityValue': '账户权益',
   'strategyV2.backtest.benchmarkUnavailable': '本次回测无法取得现货基准数据。',
-  'strategyV2.backtest.benchmarkPartial': '{symbol} 现货基准仅覆盖至 {end}，图表已在真实数据末端停止，不再用旧价格向后延伸。',
-  'strategyV2.backtest.comparedWith': '对比 {symbol} 现货买入持有',
+  'strategyV2.backtest.benchmarkPartial': '{symbol} 的同期买入持有基准仅覆盖至 {end}，图表已在真实数据末端停止，不再用旧价格向后延伸。',
+  'strategyV2.backtest.comparedWith': '基准：同期买入并持有 {symbol}，不做择时交易',
   'strategyV2.backtest.status.completed_trades': '完整交易结果',
   'strategyV2.backtest.status.completed_tradesHint': '成交、费用、持仓、现金和期末权益已通过独立账本复算。',
   'strategyV2.backtest.status.open_position_only': '仅有未平仓持仓',
@@ -1375,6 +1390,7 @@ const zhCN = {
   'strategyV2.backtest.status.unknownHint': '该历史记录不包含当前版本的账本复算元数据。',
   'strategyV2.sourceTitle': '策略源码',
   'strategyV2.manifestTitle': '由策略源码统一控制',
+  'strategyV2.backtest.resultContractTitle': '本次回测使用的冻结契约',
   'strategyV2.manifestHint': '标的、市场、调度和数据订阅均来自策略源码，回测与实盘使用同一份运行契约。',
   'strategyV2.deploymentContractTitle': '本次运行标的与周期',
   'strategyV2.deploymentContractHint': '源码已声明的字段可在这里修改；改动会保存回策略源码，并在创建实盘前重新编译。',
@@ -1534,7 +1550,7 @@ const zhTW = {
   ...zhCN,
   'strategyV2.signalSourceHint': '僅通知模式使用系統行情來源和虛擬帳戶記帳，不需要選擇執行帳戶。',
   'strategyV2.leverageExceedsStrategyLimit': '槓桿倍數不能超過策略原始碼聲明的 {max} 倍上限。',
-  'marketData.invalidCryptoIdentifier': '加密資產標的格式無效，請使用 Crypto:基礎幣/計價幣@交易所:spot 或 Crypto:基礎幣/計價幣@交易所:swap。',
+  'marketData.invalidCryptoIdentifier': '加密資產標的格式無效。一般標的請使用 Crypto:基礎幣/計價幣@spot 或 Crypto:基礎幣/計價幣@swap；僅在明確鎖定交易所時加入 @交易所:spot 或 @交易所:swap。',
   'marketData.invalidCryptoExchange': '加密資產交易所識別碼無效。',
   'marketData.invalidCryptoProduct': '加密資產產品類型無效，請使用 spot 或 swap。',
   'marketData.invalidCryptoSettlement': '加密資產結算幣種格式無效。',
@@ -1585,7 +1601,14 @@ const zhTW = {
   'strategyV2.backtest.persisted': '結果自動儲存',
   'strategyV2.backtest.equityCurve': '權益曲線',
   'strategyV2.backtest.finalEquity': '期末權益',
-  'strategyV2.backtest.chartInteractionHint': '零軸上方為多頭部位 · 下方為空頭部位 · 懸停聯動查看資料',
+  'strategyV2.backtest.chartInteractionHint': '總曝險表示整體風險規模 · 淨曝險表示方向 · 現金按權益占比顯示 · 懸停聯動查看資料',
+  'strategyV2.backtest.strategyScope': '策略：{symbol}',
+  'strategyV2.backtest.benchmarkScope': '基準：{symbol}',
+  'strategyV2.backtest.scaleMode': '權益座標模式',
+  'strategyV2.backtest.linearScale': '線性',
+  'strategyV2.backtest.logScale': '對數',
+  'strategyV2.backtest.cashAllocation': '現金占權益',
+  'strategyV2.backtest.cashAllocationHint': '帳面現金除以組合權益，與總曝險和淨曝險保持同一百分比口徑；做空或使用槓桿時可能超過 100%。',
   'strategyV2.backtest.totalReturnHint': '期末權益相對初始資金的淨變化，已包含已實現盈虧、浮動盈虧以及已扣除的交易手續費。',
   'strategyV2.backtest.maxDrawdownHint': '組合權益從歷史高點到隨後低點的最大跌幅，基準是歷史峰值，不是初始資金。',
   'strategyV2.backtest.ledgerCash': '帳面現金',
@@ -1602,6 +1625,9 @@ const zhTW = {
   'strategyV2.backtest.excessReturnHint': '策略總收益率減去基準總收益率，以百分點差值展示，不是複合計算的相對收益。',
   'strategyV2.backtest.benchmarkReturn': '現貨基準收益',
   'strategyV2.backtest.benchmarkReturnHint': '同一回測區間內現貨基準的總收益率，從基準首個可用資料點歸一化計算。',
+  'strategyV2.backtest.spotBenchmark': '同期買入並持有',
+  'strategyV2.backtest.benchmarkPartial': '{symbol} 的同期買入持有基準僅覆蓋至 {end}，圖表已在真實資料末端停止，不再用舊價格向後延伸。',
+  'strategyV2.backtest.comparedWith': '基準：同期買入並持有 {symbol}，不做擇時交易',
   'strategyV2.backtest.riskMetrics.title': '下行風險與恢復',
   'strategyV2.backtest.riskMetrics.subtitle': '聚焦虧損波動，並衡量組合從回撤中恢復所需的時間。',
   'strategyV2.backtest.riskMetrics.periodsPerYear': '每年 {count} 個週期',
@@ -1675,6 +1701,7 @@ const zhTW = {
   'strategyV2.backtest.noHistory': '暫無已儲存的回測記錄。',
   'strategyV2.sourceTitle': '策略原始碼',
   'strategyV2.manifestTitle': '由策略原始碼統一控制',
+  'strategyV2.backtest.resultContractTitle': '本次回測使用的凍結契約',
   'strategyV2.manifestHint': '標的、市場、排程和資料訂閱均來自策略原始碼，回測與實盤使用同一份執行契約。',
   'strategyV2.deploymentContractTitle': '本次執行標的與週期',
   'strategyV2.deploymentContractHint': '原始碼已宣告的欄位可在這裡修改；變更會儲存回策略原始碼，並在建立實盤前重新編譯。',
@@ -2509,6 +2536,67 @@ Object.entries(factorResearchSampleLocales).forEach(([localeKey, messages]) => {
 })
 Object.values(additionalAiContractErrors).forEach(messages => {
   messages['strategyV2.aiHistoryWindowClockUnsupported'] = locale['strategyV2.aiHistoryWindowClockUnsupported']
+})
+
+const chartControlKeys = [
+  'strategyScope', 'benchmarkScope', 'scaleMode', 'linearScale', 'logScale',
+  'cashAllocation', 'cashAllocationHint', 'resultContractTitle'
+]
+const chartControlLocales = {
+  'ar-SA': [
+    'الاستراتيجية: {symbol}', 'المؤشر المرجعي: {symbol}', 'مقياس حقوق الحساب', 'خطي', 'لوغاريتمي',
+    'النقد كنسبة من حقوق الحساب',
+    'النقد الدفتري مقسومًا على حقوق المحفظة، على نفس المقياس النسبي للتعرض الإجمالي والصافي. قد يتجاوز 100% في محافظ البيع على المكشوف أو الرافعة المالية.',
+    'العقد المستخدم في هذا الاختبار التاريخي'
+  ],
+  'de-DE': [
+    'Strategie: {symbol}', 'Vergleichsindex: {symbol}', 'Skala des Portfoliowerts', 'Lineare Skala', 'Logarithmisch',
+    'Barbestand in % des Portfoliowerts',
+    'Buchhalterischer Barbestand geteilt durch den Portfoliowert, auf derselben Prozentskala wie Brutto- und Nettoexposure. Bei Short- oder gehebelten Portfolios sind Werte über 100 % möglich.',
+    'Für diesen Backtest verwendeter Vertrag'
+  ],
+  'fr-FR': [
+    'Stratégie : {symbol}', 'Référence : {symbol}', 'Échelle des capitaux', 'Linéaire', 'Logarithmique',
+    'Part de liquidités',
+    'Liquidités comptables divisées par les capitaux du portefeuille, sur la même échelle en pourcentage que les expositions brute et nette. Ce ratio peut dépasser 100 % avec des positions courtes ou à effet de levier.',
+    'Contrat utilisé pour ce backtest'
+  ],
+  'ja-JP': [
+    '戦略：{symbol}', 'ベンチマーク：{symbol}', '純資産の目盛り', '線形', '対数',
+    '純資産に対する現金比率',
+    '帳簿上の現金をポートフォリオ純資産で割った比率です。グロス・ネットエクスポージャーと同じ百分率で比較でき、空売りやレバレッジを利用する場合は100%を超えることがあります。',
+    'このバックテストで使用した契約'
+  ],
+  'ko-KR': [
+    '전략: {symbol}', '벤치마크: {symbol}', '순자산 눈금', '선형', '로그',
+    '순자산 대비 현금 비율',
+    '장부상 현금을 포트폴리오 순자산으로 나눈 비율로, 총 노출 및 순 노출과 같은 백분율 기준으로 비교합니다. 공매도 또는 레버리지 포트폴리오에서는 100%를 초과할 수 있습니다.',
+    '이 백테스트에 사용된 계약'
+  ],
+  'ru-RU': [
+    'Стратегия: {symbol}', 'Бенчмарк: {symbol}', 'Шкала капитала', 'Линейная', 'Логарифмическая',
+    'Доля денежных средств',
+    'Денежный остаток по учёту, делённый на капитал портфеля, в той же процентной шкале, что и валовая и чистая экспозиция. При коротких позициях или кредитном плече доля может превышать 100%.',
+    'Контракт, использованный в этом бэктесте'
+  ],
+  'th-TH': [
+    'กลยุทธ์: {symbol}', 'เกณฑ์อ้างอิง: {symbol}', 'มาตราส่วนมูลค่าสุทธิ', 'เชิงเส้น', 'ลอการิทึม',
+    'สัดส่วนเงินสดต่อมูลค่าสุทธิ',
+    'เงินสดตามบัญชีหารด้วยมูลค่าสุทธิของพอร์ต ใช้ฐานเปอร์เซ็นต์เดียวกับความเสี่ยงรวมและสุทธิ และอาจเกิน 100% เมื่อมีสถานะขายชอร์ตหรือใช้เลเวอเรจ',
+    'ข้อกำหนดที่ใช้ในการทดสอบย้อนหลังนี้'
+  ],
+  'vi-VN': [
+    'Chiến lược: {symbol}', 'Chuẩn tham chiếu: {symbol}', 'Thang giá trị tài sản ròng', 'Tuyến tính', 'Logarit',
+    'Tỷ lệ tiền mặt trên tài sản ròng',
+    'Tiền mặt sổ sách chia cho tài sản ròng của danh mục, cùng thang phần trăm với mức phơi nhiễm gộp và ròng. Tỷ lệ có thể vượt 100% khi bán khống hoặc sử dụng đòn bẩy.',
+    'Hợp đồng được sử dụng trong lần kiểm thử này'
+  ]
+}
+
+Object.entries(chartControlLocales).forEach(([localeKey, values]) => {
+  chartControlKeys.forEach((key, index) => {
+    additionalAiContractErrors[localeKey][`strategyV2.backtest.${key}`] = values[index]
+  })
 })
 
 const leverageLimitLocales = {

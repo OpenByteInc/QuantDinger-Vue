@@ -51,136 +51,159 @@
       </div>
     </div>
 
-    <section v-if="hasDownsideRiskAnalysis" class="benchmark-analysis-card risk-analysis-card">
-      <div class="benchmark-analysis-heading">
-        <button
-          type="button"
-          class="benchmark-analysis-toggle"
-          :aria-expanded="riskAnalysisExpanded ? 'true' : 'false'"
-          :aria-label="$t('strategyV2.backtest.riskMetrics.title')"
-          @click="riskAnalysisExpanded = !riskAnalysisExpanded">
-          <a-icon :type="riskAnalysisExpanded ? 'down' : 'right'" />
-        </button>
-        <div class="benchmark-analysis-title">
-          <h3>{{ $t('strategyV2.backtest.riskMetrics.title') }}</h3>
-          <p v-if="riskAnalysisExpanded">{{ $t('strategyV2.backtest.riskMetrics.subtitle') }}</p>
-        </div>
-        <div v-if="!riskAnalysisExpanded" class="benchmark-analysis-preview">
-          <span v-for="item in riskMetricCards.slice(0, 3)" :key="item.key">
-            <small>{{ item.label }}</small>
-            <strong :class="item.tone">{{ item.value }}</strong>
-          </span>
-        </div>
-        <div class="benchmark-analysis-meta">
-          <a-tag v-if="hasTailRiskAnalysis" class="analysis-accent-tag">
-            {{ tailRiskStatusLabel }}
-          </a-tag>
-          <a-tag v-if="hasTailRiskAnalysis">
-            {{ $t('strategyV2.backtest.riskMetrics.tailObservations', { count: result.tailRiskObservations || 0 }) }}
-          </a-tag>
-          <a-tag class="analysis-accent-tag">
-            {{ $t('strategyV2.backtest.riskMetrics.periodsPerYear', { count: formatNumber(result.periodsPerYear, 0) }) }}
-          </a-tag>
-        </div>
-      </div>
-      <template v-if="riskAnalysisExpanded">
-        <div class="benchmark-analysis-grid">
-          <article v-for="item in riskMetricCards" :key="item.key" class="benchmark-analysis-metric">
-            <span>
-              {{ item.label }}
-              <a-tooltip :title="item.hint"><a-icon type="info-circle" /></a-tooltip>
-            </span>
-            <strong :class="item.tone">{{ item.value }}</strong>
-            <small>{{ item.detail }}</small>
-          </article>
-        </div>
-        <template v-if="hasTailRiskAnalysis">
-          <h4 class="benchmark-analysis-subheading">{{ $t('strategyV2.backtest.riskMetrics.tailTitle') }}</h4>
-          <div class="benchmark-analysis-grid benchmark-analysis-grid--advanced">
-            <article v-for="item in tailRiskMetricCards" :key="item.key" class="benchmark-analysis-metric">
+    <div class="analysis-workspace">
+      <div class="analysis-summary-column">
+        <section v-if="hasDownsideRiskAnalysis" class="benchmark-analysis-card risk-analysis-card">
+          <div class="benchmark-analysis-heading">
+            <div class="benchmark-analysis-title">
+              <h3>
+                {{ $t('strategyV2.backtest.riskMetrics.title') }}
+                <a-tooltip :title="$t('strategyV2.backtest.riskMetrics.subtitle')">
+                  <a-icon
+                    class="section-help-icon"
+                    type="exclamation-circle"
+                    tabindex="0"
+                    :aria-label="$t('strategyV2.backtest.riskMetrics.subtitle')" />
+                </a-tooltip>
+              </h3>
+            </div>
+            <div class="benchmark-analysis-meta">
+              <a-tag v-if="hasTailRiskAnalysis" class="analysis-accent-tag">
+                {{ tailRiskStatusLabel }}
+              </a-tag>
+              <a-tag v-if="hasTailRiskAnalysis">
+                {{ $t('strategyV2.backtest.riskMetrics.tailObservations', { count: result.tailRiskObservations || 0 }) }}
+              </a-tag>
+              <a-tag class="analysis-accent-tag">
+                {{ $t('strategyV2.backtest.riskMetrics.periodsPerYear', { count: formatNumber(result.periodsPerYear, 0) }) }}
+              </a-tag>
+            </div>
+          </div>
+          <div class="benchmark-analysis-grid">
+            <article v-for="item in riskMetricCards" :key="item.key" class="benchmark-analysis-metric">
               <span>
                 {{ item.label }}
                 <a-tooltip :title="item.hint"><a-icon type="info-circle" /></a-tooltip>
               </span>
               <strong :class="item.tone">{{ item.value }}</strong>
-              <small>{{ item.detail }}</small>
             </article>
           </div>
-          <p class="benchmark-analysis-note">{{ $t('strategyV2.backtest.riskMetrics.tailNote') }}</p>
-        </template>
-      </template>
-    </section>
+          <template v-if="hasTailRiskAnalysis">
+            <h4 class="benchmark-analysis-subheading">
+              {{ $t('strategyV2.backtest.riskMetrics.tailTitle') }}
+              <a-tooltip :title="$t('strategyV2.backtest.riskMetrics.tailNote')">
+                <a-icon
+                  class="section-help-icon"
+                  type="exclamation-circle"
+                  tabindex="0"
+                  :aria-label="$t('strategyV2.backtest.riskMetrics.tailNote')" />
+              </a-tooltip>
+            </h4>
+            <div class="benchmark-analysis-grid benchmark-analysis-grid--advanced">
+              <article v-for="item in tailRiskMetricCards" :key="item.key" class="benchmark-analysis-metric">
+                <span>
+                  {{ item.label }}
+                  <a-tooltip :title="item.hint"><a-icon type="info-circle" /></a-tooltip>
+                </span>
+                <strong :class="item.tone">{{ item.value }}</strong>
+              </article>
+            </div>
+          </template>
+        </section>
 
-    <section v-if="hasBenchmarkRelativeAnalysis" class="benchmark-analysis-card">
-      <div class="benchmark-analysis-heading">
-        <button
-          type="button"
-          class="benchmark-analysis-toggle"
-          :aria-expanded="benchmarkAnalysisExpanded ? 'true' : 'false'"
-          :aria-label="$t('strategyV2.backtest.benchmarkMetrics.title')"
-          @click="benchmarkAnalysisExpanded = !benchmarkAnalysisExpanded">
-          <a-icon :type="benchmarkAnalysisExpanded ? 'down' : 'right'" />
-        </button>
-        <div class="benchmark-analysis-title">
-          <h3>{{ $t('strategyV2.backtest.benchmarkMetrics.title') }}</h3>
-          <p v-if="benchmarkAnalysisExpanded">{{ $t('strategyV2.backtest.benchmarkMetrics.subtitle') }}</p>
-        </div>
-        <div v-if="!benchmarkAnalysisExpanded" class="benchmark-analysis-preview">
-          <span v-for="item in benchmarkMetricCards.slice(0, 3)" :key="item.key">
-            <small>{{ item.label }}</small>
-            <strong :class="item.tone">{{ item.value }}</strong>
-          </span>
-        </div>
-        <div class="benchmark-analysis-meta">
-          <a-tag class="analysis-accent-tag">
-            {{ $t('strategyV2.backtest.benchmarkMetrics.observations', { count: benchmarkRelativeMetrics.observations || 0 }) }}
-          </a-tag>
-          <a-tag>{{ benchmarkRelativeMetrics.frequency || '-' }}</a-tag>
-          <a-tooltip :title="$t('strategyV2.backtest.benchmarkMetrics.riskFreeHint')">
-            <a-tag>
-              {{ $t('strategyV2.backtest.benchmarkMetrics.riskFreeRate', { value: formatMetricRate(benchmarkRelativeMetrics.riskFreeRate, false) }) }}
-            </a-tag>
-          </a-tooltip>
-        </div>
-      </div>
-      <template v-if="benchmarkAnalysisExpanded">
-        <div class="benchmark-analysis-grid">
-          <article v-for="item in benchmarkMetricCards" :key="item.key" class="benchmark-analysis-metric">
-            <span>
-              {{ item.label }}
-              <a-tooltip :title="item.hint"><a-icon type="info-circle" /></a-tooltip>
-            </span>
-            <strong :class="item.tone">{{ item.value }}</strong>
-            <small>{{ item.detail }}</small>
-          </article>
-        </div>
-        <template v-if="hasAdvancedBenchmarkMetrics">
-          <h4 class="benchmark-analysis-subheading">{{ $t('strategyV2.backtest.benchmarkMetrics.advancedTitle') }}</h4>
-          <div class="benchmark-analysis-grid benchmark-analysis-grid--advanced">
-            <article v-for="item in advancedBenchmarkMetricCards" :key="item.key" class="benchmark-analysis-metric">
+        <section v-if="hasBenchmarkRelativeAnalysis" class="benchmark-analysis-card">
+          <div class="benchmark-analysis-heading">
+            <div class="benchmark-analysis-title">
+              <h3>
+                {{ $t('strategyV2.backtest.benchmarkMetrics.title') }}
+                <a-tooltip :title="$t('strategyV2.backtest.benchmarkMetrics.subtitle')">
+                  <a-icon
+                    class="section-help-icon"
+                    type="exclamation-circle"
+                    tabindex="0"
+                    :aria-label="$t('strategyV2.backtest.benchmarkMetrics.subtitle')" />
+                </a-tooltip>
+              </h3>
+            </div>
+            <div class="benchmark-analysis-meta">
+              <a-tag class="analysis-accent-tag">
+                {{ $t('strategyV2.backtest.benchmarkMetrics.observations', { count: benchmarkRelativeMetrics.observations || 0 }) }}
+              </a-tag>
+              <a-tag>{{ benchmarkRelativeMetrics.frequency || '-' }}</a-tag>
+              <a-tooltip :title="$t('strategyV2.backtest.benchmarkMetrics.riskFreeHint')">
+                <a-tag>
+                  {{ $t('strategyV2.backtest.benchmarkMetrics.riskFreeRate', { value: formatMetricRate(benchmarkRelativeMetrics.riskFreeRate, false) }) }}
+                </a-tag>
+              </a-tooltip>
+            </div>
+          </div>
+          <div class="benchmark-analysis-grid">
+            <article v-for="item in benchmarkMetricCards" :key="item.key" class="benchmark-analysis-metric">
               <span>
                 {{ item.label }}
                 <a-tooltip :title="item.hint"><a-icon type="info-circle" /></a-tooltip>
               </span>
               <strong :class="item.tone">{{ item.value }}</strong>
-              <small>{{ item.detail }}</small>
             </article>
           </div>
-        </template>
-        <p class="benchmark-analysis-note">{{ $t('strategyV2.backtest.benchmarkMetrics.assumption') }}</p>
-      </template>
-    </section>
-
-    <section class="chart-card">
-      <div class="chart-heading">
-        <div>
-          <h3>{{ $t('strategyV2.backtest.portfolioDashboard') }}</h3>
-          <span>{{ benchmarkCaption }}</span>
-        </div>
-        <div class="chart-legend-note">{{ $t('strategyV2.backtest.chartInteractionHint') }}</div>
+          <template v-if="hasAdvancedBenchmarkMetrics">
+            <h4 class="benchmark-analysis-subheading">
+              {{ $t('strategyV2.backtest.benchmarkMetrics.advancedTitle') }}
+              <a-tooltip :title="$t('strategyV2.backtest.benchmarkMetrics.assumption')">
+                <a-icon
+                  class="section-help-icon"
+                  type="exclamation-circle"
+                  tabindex="0"
+                  :aria-label="$t('strategyV2.backtest.benchmarkMetrics.assumption')" />
+              </a-tooltip>
+            </h4>
+            <div class="benchmark-analysis-grid benchmark-analysis-grid--advanced">
+              <article v-for="item in advancedBenchmarkMetricCards" :key="item.key" class="benchmark-analysis-metric">
+                <span>
+                  {{ item.label }}
+                  <a-tooltip :title="item.hint"><a-icon type="info-circle" /></a-tooltip>
+                </span>
+                <strong :class="item.tone">{{ item.value }}</strong>
+              </article>
+            </div>
+          </template>
+        </section>
       </div>
-      <div ref="chart" class="portfolio-chart" role="img" />
-    </section>
+
+      <section class="chart-card">
+        <div class="chart-heading">
+          <div class="chart-title-group">
+            <h3>
+              {{ $t('strategyV2.backtest.portfolioDashboard') }}
+              <a-tooltip :title="joinHelpText(benchmarkCaption, $t('strategyV2.backtest.chartInteractionHint'))">
+                <a-icon
+                  class="section-help-icon"
+                  type="exclamation-circle"
+                  tabindex="0"
+                  :aria-label="joinHelpText(benchmarkCaption, $t('strategyV2.backtest.chartInteractionHint'))" />
+              </a-tooltip>
+            </h3>
+            <div class="chart-context" aria-label="Backtest chart context">
+              <span>{{ $t('strategyV2.backtest.strategyScope', { symbol: strategyScopeLabel }) }}</span>
+              <span v-if="benchmarkScopeLabel">{{ $t('strategyV2.backtest.benchmarkScope', { symbol: benchmarkScopeLabel }) }}</span>
+              <span>{{ chartFrequency }}</span>
+            </div>
+          </div>
+          <a-radio-group
+            class="chart-scale-toggle"
+            :value="equityScale"
+            button-style="solid"
+            size="small"
+            :aria-label="$t('strategyV2.backtest.scaleMode')"
+            @change="handleEquityScaleChange"
+          >
+            <a-radio-button value="value">{{ $t('strategyV2.backtest.linearScale') }}</a-radio-button>
+            <a-radio-button value="log" :disabled="!logScaleAvailable">{{ $t('strategyV2.backtest.logScale') }}</a-radio-button>
+          </a-radio-group>
+        </div>
+        <div ref="chart" class="portfolio-chart" role="img" />
+      </section>
+    </div>
 
     <div v-if="result.executionAssumptions" class="assumption-strip">
       <div><span>{{ $t('strategyV2.backtest.engine') }}</span><strong>{{ $t('strategyV2.backtest.engineV2') }}</strong></div>
@@ -355,8 +378,16 @@
     <section v-if="hasTradeReview" class="trade-review-card">
       <div class="trade-review-heading">
         <div>
-          <h3>{{ $t(isPortfolioStrategy ? 'strategyV2.backtest.portfolioReviewOverview' : 'strategyV2.backtest.tradeReviewOverview') }}</h3>
-          <span>{{ $t(isPortfolioStrategy ? 'strategyV2.backtest.portfolioReviewHint' : 'strategyV2.backtest.tradeReviewHint') }}</span>
+          <h3>
+            {{ $t(isPortfolioStrategy ? 'strategyV2.backtest.portfolioReviewOverview' : 'strategyV2.backtest.tradeReviewOverview') }}
+            <a-tooltip :title="$t(isPortfolioStrategy ? 'strategyV2.backtest.portfolioReviewHint' : 'strategyV2.backtest.tradeReviewHint')">
+              <a-icon
+                class="section-help-icon"
+                type="exclamation-circle"
+                tabindex="0"
+                :aria-label="$t(isPortfolioStrategy ? 'strategyV2.backtest.portfolioReviewHint' : 'strategyV2.backtest.tradeReviewHint')" />
+            </a-tooltip>
+          </h3>
         </div>
         <a-select
           v-if="reviewSymbols.length > 1"
@@ -467,8 +498,7 @@ export default {
       resizeObserver: null,
       activeReviewSymbol: '',
       reviewMarkerTimer: null,
-      riskAnalysisExpanded: false,
-      benchmarkAnalysisExpanded: false,
+      equityScale: 'value',
       orderStatuses: ['filled', 'partial', 'deferred', 'rejected']
     }
   },
@@ -525,6 +555,28 @@ export default {
       if (this.effectiveBenchmarkStatus !== 'available') return this.$t('strategyV2.backtest.benchmarkUnavailable')
       const item = this.result.benchmark || {}
       return this.$t('strategyV2.backtest.comparedWith', { symbol: item.symbol || '-' })
+    },
+    strategyScopeLabel () {
+      const manifest = this.result.manifest || {}
+      const universe = manifest.universe || {}
+      const instruments = Array.isArray(universe.instruments) ? universe.instruments : []
+      if (universe.reference) return universe.reference
+      if (instruments.length === 1) return this.formatInstrumentSpec(instruments[0])
+      if (instruments.length > 1) return this.$t('strategyV2.symbolCount', { count: instruments.length })
+      return this.reviewSymbols[0] || '-'
+    },
+    benchmarkScopeLabel () {
+      return this.result.benchmark ? this.formatInstrumentSpec(this.result.benchmark) : ''
+    },
+    chartFrequency () {
+      return (this.result.manifest && this.result.manifest.primaryFrequency) || '-'
+    },
+    logScaleAvailable () {
+      const rows = [...(this.result.equityCurve || []), ...this.benchmarkCurveRows]
+      return rows.length > 0 && rows.every(item => {
+        const value = Number(item && item.value)
+        return Number.isFinite(value) && value > 0
+      })
     },
     benchmarkCoverageEnd () {
       return this.result.benchmarkCoverageEnd ||
@@ -1155,9 +1207,10 @@ export default {
     }
   },
   watch: {
-    result: { deep: true, handler () { this.syncReviewSymbol(); this.$nextTick(this.renderChart) } },
+    result: { deep: true, handler () { if (!this.logScaleAvailable) this.equityScale = 'value'; this.syncReviewSymbol(); this.$nextTick(this.renderChart) } },
     effectiveReviewSymbol () { this.$nextTick(this.renderReviewMarkers) },
-    isDark () { this.$nextTick(this.renderChart) }
+    isDark () { this.$nextTick(this.renderChart) },
+    equityScale () { this.$nextTick(this.renderChart) }
   },
   mounted () { this.syncReviewSymbol(); this.renderChart(); window.addEventListener('resize', this.resizeChart) },
   beforeDestroy () {
@@ -1167,6 +1220,44 @@ export default {
     if (this.chart) this.chart.dispose()
   },
   methods: {
+    joinHelpText (...items) {
+      return items.filter(item => typeof item === 'string' && item.trim()).join(' · ')
+    },
+    formatChartAxisTick (value, rangeMilliseconds) {
+      const timestamp = timestampMillisecondsUtc(value)
+      if (!Number.isFinite(timestamp)) return ''
+      const dayMilliseconds = 24 * 60 * 60 * 1000
+      const locale = String((this.$i18n && this.$i18n.locale) || 'en-US')
+      const options = rangeMilliseconds >= 730 * dayMilliseconds
+        ? { year: 'numeric', month: 'short' }
+        : rangeMilliseconds >= 120 * dayMilliseconds
+          ? { year: '2-digit', month: 'short' }
+          : rangeMilliseconds >= 3 * dayMilliseconds
+            ? { month: 'short', day: 'numeric' }
+            : { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }
+      const format = activeLocale => new Intl.DateTimeFormat(activeLocale, { ...options, timeZone: 'UTC' }).format(new Date(timestamp))
+      try {
+        return format(locale)
+      } catch (error) {
+        return format('en-US')
+      }
+    },
+    formatInstrumentSpec (instrument) {
+      if (!instrument || !instrument.symbol) return '-'
+      const market = String(instrument.market || '')
+      const symbol = String(instrument.symbol || '')
+      if (market.toLowerCase() !== 'crypto') return market ? `${market}:${symbol}` : symbol
+      const exchange = String(instrument.exchange_id || instrument.exchangeId || '')
+      const marketType = String(instrument.market_type || instrument.marketType || '')
+      const suffix = exchange
+        ? `@${exchange}${marketType ? `:${marketType}` : ''}`
+        : (marketType ? `@${marketType}` : '')
+      return `${market || 'Crypto'}:${symbol}${suffix}`
+    },
+    handleEquityScaleChange (event) {
+      const value = event && event.target && event.target.value
+      if (value === 'value' || (value === 'log' && this.logScaleAvailable)) this.equityScale = value
+    },
     sampleReviewRows (rows, limit) {
       if (!Array.isArray(rows) || rows.length <= limit) return rows || []
       const step = (rows.length - 1) / (limit - 1)
@@ -1186,6 +1277,7 @@ export default {
       const base = this.initialCapital > 0 ? this.initialCapital : (firstValue > 0 ? firstValue : 1)
       let peak = base
       const normalized = curve.map(item => [timestampMillisecondsUtc(item.time), Number(item.value) / base * 100])
+      const chartRangeMilliseconds = Math.max(0, normalized[normalized.length - 1][0] - normalized[0][0])
       const drawdown = curve.map(item => {
         const value = Number(item.value)
         peak = Math.max(peak, value)
@@ -1198,54 +1290,94 @@ export default {
       const benchmarkRaw = this.benchmarkCurveRows
       const benchmarkBase = benchmarkRaw.length ? Number(benchmarkRaw[0].value || 1) : 1
       const benchmark = benchmarkRaw.map(item => [timestampMillisecondsUtc(item.time), Number(item.value) / benchmarkBase * 100])
-      const cash = curve.map(item => [timestampMillisecondsUtc(item.time), Number(item.cash || 0)])
-      const longExposure = curve.map(item => {
-        const gross = Number(item.grossExposure || 0)
-        const net = Number(item.netExposure || 0)
-        return [timestampMillisecondsUtc(item.time), Math.max(0, (gross + net) / 2) * 100]
+      const equityAxisType = this.equityScale === 'log' && this.logScaleAvailable ? 'log' : 'value'
+      const equityAxisValues = [...normalized, ...benchmark]
+        .map(item => Number(item[1]))
+        .filter(value => Number.isFinite(value) && value > 0)
+      const equityAxisMinimum = equityAxisValues.length ? Math.min(...equityAxisValues) : 1
+      const equityAxisMaximum = equityAxisValues.length ? Math.max(...equityAxisValues) : 100
+      const equityAxisSpan = Math.max(equityAxisMaximum - equityAxisMinimum, equityAxisMaximum * 0.01)
+      const equityAxisPadding = equityAxisSpan * 0.08
+      const equityAxisBounds = equityAxisType === 'log'
+        ? {
+            min: Math.max(Number.MIN_VALUE, equityAxisMinimum - equityAxisPadding),
+            max: equityAxisMaximum + equityAxisPadding
+          }
+        : {}
+      const grossExposure = curve.map(item => [timestampMillisecondsUtc(item.time), Number(item.grossExposure || 0) * 100])
+      const netExposure = curve.map(item => [timestampMillisecondsUtc(item.time), Number(item.netExposure || 0) * 100])
+      const cashAllocation = curve.map(item => {
+        const equity = Number(item.value || 0)
+        const cash = Number(item.cash || 0)
+        return [timestampMillisecondsUtc(item.time), equity > 0 ? cash / equity * 100 : null]
       })
-      const shortExposure = curve.map(item => {
-        const gross = Number(item.grossExposure || 0)
-        const net = Number(item.netExposure || 0)
-        return [timestampMillisecondsUtc(item.time), -Math.max(0, (gross - net) / 2) * 100]
-      })
-      const maxExposure = [...longExposure, ...shortExposure].reduce((maximum, item) => Math.max(maximum, Math.abs(item[1])), 0)
+      const maxExposure = [...grossExposure, ...netExposure, ...cashAllocation].reduce((maximum, item) => {
+        const value = Number(item[1])
+        return Number.isFinite(value) ? Math.max(maximum, Math.abs(value)) : maximum
+      }, 0)
       const exposureLimit = Math.max(100, Math.ceil(maxExposure / 25) * 25)
       const text = this.isDark ? '#8c8c8c' : '#64748b'
-      const grid = this.isDark ? '#242424' : '#e8edf3'
+      const strongText = this.isDark ? '#d4d4d4' : '#334155'
+      const grid = this.isDark ? '#282828' : '#e7ebf0'
+      const panel = this.isDark ? '#121212' : '#fbfcfd'
+      const panelQuiet = this.isDark ? '#101010' : '#f8fafc'
+      const strategyColor = this.isDark ? '#2dd4bf' : '#0f9d8a'
+      const benchmarkColor = this.isDark ? '#94a3b8' : '#7b8798'
+      const drawdownColor = this.isDark ? '#fb7185' : '#e45461'
+      const grossColor = this.isDark ? '#4ade80' : '#22a65a'
+      const netColor = this.isDark ? '#60a5fa' : '#2563eb'
+      const cashColor = this.isDark ? '#737373' : '#9aa4b2'
       const strategyName = this.$t('strategyV2.backtest.strategyNormalized')
       const benchmarkName = this.$t('strategyV2.backtest.benchmarkNormalized')
       const drawdownName = this.$t('strategyV2.backtest.drawdown')
-      const longExposureName = this.$t('strategyV2.backtest.longExposure')
-      const shortExposureName = this.$t('strategyV2.backtest.shortExposure')
-      const cashName = this.$t('strategyV2.backtest.ledgerCash')
-      const percentageSeries = new Set([drawdownName, longExposureName, shortExposureName])
+      const grossExposureName = this.$t('strategyV2.backtest.grossExposure')
+      const netExposureName = this.$t('strategyV2.backtest.netExposure')
+      const cashAllocationName = this.$t('strategyV2.backtest.cashAllocation')
+      const percentageSeries = new Set([drawdownName, grossExposureName, netExposureName, cashAllocationName])
       const formatTooltipValue = item => {
         const rawValue = Array.isArray(item.value) ? item.value[1] : item.value
         const value = Number(rawValue)
         if (!Number.isFinite(value)) return '-'
         if (percentageSeries.has(item.seriesName)) return `${value.toFixed(2)}%`
-        if (item.seriesName === cashName) return this.formatNumber(value, 2)
         return value.toFixed(2)
       }
       this.chart.setOption({
-        animationDuration: 260,
-        color: ['#17b3a3', '#f5a623', '#ff5a64', '#22c55e', '#f43f5e', '#94a3b8'],
-        legend: {
-          top: 6,
-          left: 8,
-          right: 8,
-          itemGap: 16,
-          selected: { [cashName]: false },
-          textStyle: { color: text }
-        },
+        animationDuration: 180,
+        animationEasing: 'cubicOut',
+        color: [strategyColor, benchmarkColor, drawdownColor, grossColor, netColor, cashColor],
+        legend: [
+          {
+            type: 'plain',
+            data: [strategyName, benchmarkName],
+            top: 4,
+            left: 54,
+            itemWidth: 16,
+            itemHeight: 6,
+            itemGap: 14,
+            textStyle: { color: strongText, fontSize: 10, fontWeight: 500 }
+          },
+          {
+            type: 'plain',
+            data: [grossExposureName, netExposureName, cashAllocationName],
+            top: '71.5%',
+            right: 64,
+            itemWidth: 14,
+            itemHeight: 6,
+            itemGap: 10,
+            textStyle: { color: strongText, fontSize: 10, fontWeight: 500 }
+          }
+        ],
         tooltip: {
           trigger: 'axis',
           confine: true,
-          axisPointer: { type: 'cross', snap: true },
+          transitionDuration: 0,
+          axisPointer: { type: 'line', snap: true, lineStyle: { color: cashColor, type: 'dashed', width: 1, opacity: 0.8 } },
           backgroundColor: this.isDark ? 'rgba(14,14,14,.98)' : '#fff',
           borderColor: grid,
-          textStyle: { color: this.isDark ? '#f5f5f5' : '#1f2937' },
+          borderWidth: 1,
+          padding: [8, 10],
+          textStyle: { color: this.isDark ? '#f5f5f5' : '#1f2937', fontSize: 11, lineHeight: 18 },
+          extraCssText: this.isDark ? 'box-shadow:0 8px 24px rgba(0,0,0,.32);border-radius:6px' : 'box-shadow:0 8px 24px rgba(15,23,42,.12);border-radius:6px',
           formatter: values => {
             const items = Array.isArray(values) ? values : [values]
             const first = items.find(item => Array.isArray(item.value))
@@ -1256,25 +1388,34 @@ export default {
         },
         axisPointer: { link: [{ xAxisIndex: [0, 1, 2] }] },
         grid: [
-          { left: 58, right: 56, top: 58, height: 184 },
-          { left: 58, right: 56, top: 278, height: 74 },
-          { left: 58, right: 56, top: 388, height: 76 }
+          { show: true, left: 54, right: 64, top: '11%', height: '39%', borderWidth: 0, backgroundColor: panel },
+          { show: true, left: 54, right: 64, top: '55%', height: '14%', borderWidth: 0, backgroundColor: panelQuiet },
+          { show: true, left: 54, right: 64, top: '75%', height: '16%', borderWidth: 0, backgroundColor: panelQuiet }
         ],
-        xAxis: [0, 1, 2].map((value, index) => ({ type: 'time', gridIndex: index, axisLabel: { show: index === 2, color: text }, axisLine: { lineStyle: { color: grid } }, splitLine: { show: false } })),
+        xAxis: [0, 1, 2].map((value, index) => ({
+          type: 'time',
+          gridIndex: index,
+          axisLabel: { show: index === 2, color: text, fontSize: 10, margin: 9, hideOverlap: true, formatter: value => this.formatChartAxisTick(value, chartRangeMilliseconds) },
+          axisLine: { show: false },
+          axisTick: { show: false },
+          splitLine: { show: false }
+        })),
         yAxis: [
-          { type: 'value', gridIndex: 0, scale: true, name: this.$t('strategyV2.backtest.normalizedBase'), nameTextStyle: { color: text }, axisLabel: { color: text }, splitLine: { lineStyle: { color: grid, type: 'dashed' } } },
-          { type: 'value', gridIndex: 1, max: 0, name: this.$t('strategyV2.backtest.drawdown'), nameTextStyle: { color: text }, axisLabel: { color: text, formatter: '{value}%' }, splitLine: { lineStyle: { color: grid, type: 'dashed' } } },
-          { type: 'value', gridIndex: 2, min: -exposureLimit, max: exposureLimit, name: this.$t('strategyV2.backtest.positionExposure'), nameTextStyle: { color: text }, axisLabel: { color: text, formatter: '{value}%' }, splitLine: { lineStyle: { color: grid, type: 'dashed' } } },
-          { type: 'value', gridIndex: 2, position: 'right', name: this.$t('strategyV2.backtest.ledgerCash'), nameTextStyle: { color: text }, axisLabel: { color: text }, splitLine: { show: false } }
+          { type: equityAxisType, ...equityAxisBounds, logBase: 10, gridIndex: 0, scale: true, splitNumber: 4, name: this.$t('strategyV2.backtest.normalizedBase'), nameGap: 10, nameTextStyle: { color: strongText, fontSize: 10, fontWeight: 500, align: 'left' }, axisLabel: { color: text, fontSize: 10, formatter: value => equityAxisType === 'log' ? Number(value).toFixed(2) : value }, axisLine: { show: false }, axisTick: { show: false }, splitLine: { lineStyle: { color: grid, width: 1, type: 'dashed', opacity: 0.8 } } },
+          { type: 'value', gridIndex: 1, max: 0, splitNumber: 3, name: this.$t('strategyV2.backtest.drawdown'), nameGap: 10, nameTextStyle: { color: strongText, fontSize: 10, fontWeight: 500, align: 'left' }, axisLabel: { color: text, fontSize: 10, formatter: '{value}%' }, axisLine: { show: false }, axisTick: { show: false }, splitLine: { lineStyle: { color: grid, width: 1, type: 'dashed', opacity: 0.72 } } },
+          { type: 'value', gridIndex: 2, min: -exposureLimit, max: exposureLimit, splitNumber: 2, name: this.$t('strategyV2.backtest.positionExposure'), nameGap: 10, nameTextStyle: { color: strongText, fontSize: 10, fontWeight: 500, align: 'left' }, axisLabel: { color: text, fontSize: 10, formatter: '{value}%' }, axisLine: { show: false }, axisTick: { show: false }, splitLine: { lineStyle: { color: grid, width: 1, type: 'dashed', opacity: 0.72 } } }
         ],
-        dataZoom: [{ type: 'inside', xAxisIndex: [0, 1, 2], filterMode: 'none' }, { type: 'slider', xAxisIndex: [0, 1, 2], bottom: 0, height: 22, showDetail: false }],
+        dataZoom: [
+          { type: 'inside', xAxisIndex: [0, 1, 2], filterMode: 'none' },
+          { type: 'slider', xAxisIndex: [0, 1, 2], bottom: 4, height: 12, showDetail: false, showDataShadow: false, brushSelect: false, borderColor: 'transparent', backgroundColor: this.isDark ? '#1a1a1a' : '#eef2f5', fillerColor: this.isDark ? 'rgba(45,212,191,.16)' : 'rgba(15,157,138,.12)', handleSize: '80%', handleStyle: { color: strategyColor, borderColor: strategyColor, borderWidth: 0 } }
+        ],
         series: [
-          { name: strategyName, type: 'line', data: normalized, xAxisIndex: 0, yAxisIndex: 0, showSymbol: false, lineStyle: { width: 2.2 }, areaStyle: { opacity: 0.06 } },
-          { name: benchmarkName, type: 'line', data: benchmark, xAxisIndex: 0, yAxisIndex: 0, showSymbol: false, lineStyle: { width: 1.6, type: 'dashed' } },
-          { name: drawdownName, type: 'line', data: drawdown, xAxisIndex: 1, yAxisIndex: 1, showSymbol: false, areaStyle: { opacity: 0.22 }, lineStyle: { width: 1.4 } },
-          { name: longExposureName, type: 'line', data: longExposure, xAxisIndex: 2, yAxisIndex: 2, showSymbol: false, step: 'end', sampling: 'lttb', lineStyle: { width: 1.2, color: '#22c55e' }, areaStyle: { opacity: 0.2, color: '#22c55e' }, markLine: { silent: true, symbol: 'none', label: { show: false }, lineStyle: { width: 1, color: grid }, data: [{ yAxis: 0 }] } },
-          { name: shortExposureName, type: 'line', data: shortExposure, xAxisIndex: 2, yAxisIndex: 2, showSymbol: false, step: 'end', sampling: 'lttb', lineStyle: { width: 1.2, color: '#f43f5e' }, areaStyle: { opacity: 0.2, color: '#f43f5e' } },
-          { name: cashName, type: 'line', data: cash, xAxisIndex: 2, yAxisIndex: 3, showSymbol: false, sampling: 'lttb', lineStyle: { width: 1.2, type: 'dotted', color: '#94a3b8' } }
+          { name: strategyName, type: 'line', data: normalized, xAxisIndex: 0, yAxisIndex: 0, showSymbol: false, smooth: 0.08, sampling: 'lttb', lineStyle: { width: 2.4, color: strategyColor }, areaStyle: { opacity: 0.055, color: strategyColor }, endLabel: { show: true, color: strategyColor, fontSize: 10, fontWeight: 600, formatter: params => Number(params.value[1]).toFixed(1) }, labelLayout: { moveOverlap: 'shiftY' }, markLine: { silent: true, symbol: 'none', label: { show: false }, lineStyle: { width: 1, color: grid, type: 'dashed' }, data: [{ yAxis: 100 }] }, emphasis: { lineStyle: { width: 3 } } },
+          { name: benchmarkName, type: 'line', data: benchmark, xAxisIndex: 0, yAxisIndex: 0, showSymbol: false, smooth: 0.08, sampling: 'lttb', lineStyle: { width: 1.4, type: 'dashed', color: benchmarkColor }, endLabel: { show: true, color: benchmarkColor, fontSize: 10, fontWeight: 600, formatter: params => Number(params.value[1]).toFixed(1) }, labelLayout: { moveOverlap: 'shiftY' }, emphasis: { lineStyle: { width: 2 } } },
+          { name: drawdownName, type: 'line', data: drawdown, xAxisIndex: 1, yAxisIndex: 1, showSymbol: false, smooth: 0.05, sampling: 'lttb', areaStyle: { opacity: 0.13, color: drawdownColor }, lineStyle: { width: 1.35, color: drawdownColor } },
+          { name: grossExposureName, type: 'line', data: grossExposure, xAxisIndex: 2, yAxisIndex: 2, showSymbol: false, step: 'end', sampling: 'lttb', lineStyle: { width: 1.35, color: grossColor }, areaStyle: { opacity: 0.045, color: grossColor }, markLine: { silent: true, symbol: 'none', label: { show: false }, lineStyle: { width: 1, color: grid }, data: [{ yAxis: 0 }] } },
+          { name: netExposureName, type: 'line', data: netExposure, xAxisIndex: 2, yAxisIndex: 2, showSymbol: false, step: 'end', sampling: 'lttb', lineStyle: { width: 1.35, color: netColor } },
+          { name: cashAllocationName, type: 'line', data: cashAllocation, xAxisIndex: 2, yAxisIndex: 2, showSymbol: false, step: 'end', sampling: 'lttb', lineStyle: { width: 1.35, type: 'dotted', color: cashColor }, emphasis: { lineStyle: { width: 2 } } }
         ]
       }, true)
     },
@@ -1447,10 +1588,11 @@ export default {
 </script>
 
 <style lang="less" scoped>
-.portfolio-result { display: flex; min-width: 0; flex-direction: column; container-type: inline-size; }
+.portfolio-result { --type-caption: 10px; --type-body: 11px; --type-metric: 12px; --type-title: 14px; --type-hero: 20px; --section-accent: var(--primary-color, #1890ff); display: flex; min-width: 0; flex-direction: column; font-family: inherit; font-size: var(--type-body); line-height: 1.4; font-variant-numeric: tabular-nums; container-type: inline-size; }
+.portfolio-result h3, .portfolio-result h4, .portfolio-result strong { font-weight: 600; }
 .result-trustbar { order: 1; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; padding: 8px 10px; border: 1px solid; border-radius: 7px; }
 .result-trustbar > div { display: flex; align-items: center; gap: 8px; }
-.result-trustbar span { color: #64748b; font-size: 12px; }
+.result-trustbar span { color: #64748b; font-size: var(--type-body); }
 .result-trustbar.is-success { border-color: #b7eb8f; background: #f6ffed; color: #3f8600; }
 .result-trustbar.is-warning { border-color: #ffe58f; background: #fffbe6; color: #ad6800; }
 .result-trustbar.is-error { border-color: #ffccc7; background: #fff2f0; color: #cf1322; }
@@ -1460,81 +1602,98 @@ export default {
 .metrics-grid .metric-card { border-width: 0 1px 0 0; border-radius: 0; background: #fbfcfd; }
 .metrics-grid .metric-card:last-child { border-right: 0; }
 .metric-card { display: flex; flex-direction: column; gap: 3px; }
-.metric-card span, .overview-card span, .status-card span { color: #7c8ca1; font-size: 11px; }
+.metric-card span, .overview-card span, .status-card span { color: #7c8ca1; font-size: var(--type-body); }
 .metric-label { display: inline-flex; align-items: center; gap: 5px; }
 .metric-label .anticon { cursor: help; }
-.metric-card strong { color: #20324a; font-size: 20px; font-variant-numeric: tabular-nums; }
+.metric-card strong { color: #20324a; font-size: var(--type-hero); }
 .positive { color: #16a34a !important; }
 .negative { color: #dc2626 !important; }
 .neutral { color: #94a3b8 !important; }
 .chart-card, .trade-review-card { margin-top: 10px; padding: 12px; border: 1px solid #e5e9ee; border-radius: 8px; background: #fff; }
-.benchmark-analysis-card { --analysis-accent: var(--primary-color, #1890ff); order: 4; margin-top: 8px; padding: 10px 12px; border: 1px solid color-mix(in srgb, var(--analysis-accent) 24%, #e5e9ee); border-left: 3px solid var(--analysis-accent); border-radius: 8px; background: linear-gradient(135deg, color-mix(in srgb, var(--analysis-accent) 4%, #fff) 0%, #fff 100%); }
+.analysis-workspace { order: 4; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; gap: 10px; min-width: 0; margin-top: 8px; }
+.analysis-summary-column { order: 2; display: flex; min-width: 0; flex-direction: column; gap: 8px; }
+.benchmark-analysis-card { --analysis-accent: var(--primary-color, #1890ff); order: 4; margin-top: 8px; padding: 10px 12px; border: 1px solid #e5e9ee; border-radius: 8px; background: #fff; }
+.analysis-summary-column .benchmark-analysis-card { order: initial; margin-top: 0; padding: 7px 8px; }
+.analysis-summary-column .benchmark-analysis-heading { grid-template-columns: minmax(0, 1fr) auto; gap: 4px 8px; min-height: 0; }
+.analysis-summary-column .benchmark-analysis-title { grid-row: 1; grid-column: 1; }
+.analysis-summary-column .benchmark-analysis-heading h3 { font-size: var(--type-title); line-height: 1.3; }
+.analysis-summary-column .benchmark-analysis-meta { grid-row: 1; grid-column: 2; flex-wrap: nowrap; justify-content: flex-end; gap: 3px; }
+.analysis-summary-column .benchmark-analysis-meta /deep/ .ant-tag { height: 20px; margin-right: 0; padding: 0 5px; font-size: var(--type-caption); font-weight: 500; line-height: 18px; white-space: nowrap; }
+.analysis-summary-column .benchmark-analysis-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin-top: 5px; }
+.analysis-summary-column .benchmark-analysis-subheading { margin-top: 5px; padding-top: 4px; font-size: var(--type-body); }
+.analysis-summary-column .benchmark-analysis-grid--advanced { margin-top: 4px; }
+.analysis-summary-column .benchmark-analysis-metric { align-items: center; gap: 0 6px; min-height: 38px; box-sizing: border-box; padding: 0 8px; border-radius: 4px; }
+.analysis-summary-column .benchmark-analysis-metric > span { align-self: center; font-size: var(--type-caption); line-height: 1.2; }
+.analysis-summary-column .benchmark-analysis-metric .anticon { margin-left: 2px; }
+.analysis-summary-column .benchmark-analysis-metric strong { grid-row: 1; align-self: center; font-size: var(--type-metric); line-height: 1.2; }
+.analysis-workspace .chart-card { order: 1; display: flex; min-width: 0; overflow: hidden; flex-direction: column; margin-top: 0; padding: 0; }
+.analysis-workspace .portfolio-chart { flex: 1; min-height: 440px; height: auto; }
 .risk-analysis-card { --analysis-accent: var(--primary-color, #1890ff); }
-.benchmark-analysis-heading { display: grid; grid-template-columns: 24px minmax(190px, .7fr) minmax(420px, 1.3fr); gap: 8px 14px; align-items: center; min-height: 56px; }
-.benchmark-analysis-toggle { display: inline-flex; grid-row: 1 / span 2; align-items: center; align-self: stretch; justify-content: center; width: 24px; min-height: 34px; padding: 0; border: 0; border-radius: 5px; outline: none; background: transparent; color: var(--analysis-accent); cursor: pointer; transition: background .15s ease; }
-.benchmark-analysis-toggle:hover, .benchmark-analysis-toggle:focus-visible { background: color-mix(in srgb, var(--analysis-accent) 10%, transparent); }
-.benchmark-analysis-title { grid-row: 1 / span 2; grid-column: 2; min-width: 0; }
-.benchmark-analysis-heading h3 { margin: 0; color: #20324a; font-size: 14px; }
-.benchmark-analysis-heading p, .benchmark-analysis-note { margin: 3px 0 0; color: #7c8ca1; font-size: 11px; }
-.benchmark-analysis-preview { display: grid; grid-row: 1; grid-column: 3; grid-template-columns: repeat(3, minmax(120px, 1fr)); align-items: center; min-width: 0; width: 100%; }
-.benchmark-analysis-preview > span { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 10px; min-width: 0; padding: 2px 12px; border-right: 1px solid #e5edf6; }
-.benchmark-analysis-preview > span:last-child { border-right: 0; }
-.benchmark-analysis-preview small { overflow: hidden; color: #7c8ca1; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-.benchmark-analysis-preview strong { flex: none; color: #20324a; font-size: 14px; font-variant-numeric: tabular-nums; }
-.benchmark-analysis-meta { display: flex; grid-row: 2; grid-column: 3; flex-wrap: wrap; justify-content: flex-end; gap: 6px; min-width: 0; margin-left: 0; }
+.benchmark-analysis-heading { display: grid; grid-template-columns: minmax(190px, .7fr) minmax(420px, 1.3fr); gap: 8px 14px; align-items: center; min-height: 40px; }
+.benchmark-analysis-title { grid-row: 1; grid-column: 1; min-width: 0; }
+.benchmark-analysis-heading h3 { margin: 0; color: #20324a; font-size: var(--type-title); }
+.benchmark-analysis-meta { display: flex; grid-row: 1; grid-column: 2; flex-wrap: wrap; justify-content: flex-end; gap: 6px; min-width: 0; margin-left: 0; }
 .benchmark-analysis-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 9px; }
-.benchmark-analysis-subheading { margin: 10px 0 0; padding-top: 9px; border-top: 1px solid #e5edf6; color: #334155; font-size: 11px; }
+.benchmark-analysis-subheading { display: flex; align-items: center; gap: 5px; margin: 10px 0 0; padding-top: 9px; border-top: 1px solid #e5edf6; color: #334155; font-size: var(--type-body); }
 .benchmark-analysis-grid--advanced { margin-top: 6px; }
 .benchmark-analysis-metric { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; min-width: 0; padding: 7px 9px; border: 1px solid #e5edf6; border-radius: 6px; background: rgba(255, 255, 255, .86); }
-.benchmark-analysis-metric > span { overflow: hidden; color: #64748b; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.benchmark-analysis-metric > span { overflow: hidden; color: #64748b; font-size: var(--type-caption); text-overflow: ellipsis; white-space: nowrap; }
 .benchmark-analysis-metric .anticon { margin-left: 4px; cursor: help; }
-.benchmark-analysis-metric strong { grid-row: 1 / 3; grid-column: 2; align-self: center; color: #20324a; font-size: 15px; font-variant-numeric: tabular-nums; }
-.benchmark-analysis-metric small { overflow: hidden; color: #94a3b8; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-.benchmark-analysis-note { margin-top: 7px; }
+.benchmark-analysis-metric strong { grid-row: 1 / 3; grid-column: 2; align-self: center; color: #20324a; font-size: var(--type-metric); }
 .benchmark-analysis-meta /deep/ .analysis-accent-tag { border-color: color-mix(in srgb, var(--analysis-accent) 34%, transparent); color: var(--analysis-accent); background: color-mix(in srgb, var(--analysis-accent) 8%, transparent); }
 .chart-card { order: 5; }
 .trade-review-card { order: 6; }
 .assumption-strip { order: 7; }
 .result-tabs { order: 8; }
-.chart-heading { display: flex; justify-content: space-between; gap: 16px; }
-.chart-heading h3, .trade-review-heading h3 { margin: 0; color: #26364c; font-size: 14px; }
-.chart-heading span, .chart-legend-note { color: #7c8ca1; font-size: 11px; }
+.chart-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 40px; padding: 8px 12px; border-bottom: 1px solid #edf0f4; background: #fff; }
+.chart-title-group { display: flex; min-width: 0; flex-direction: column; gap: 3px; }
+.chart-context { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; gap: 4px 12px; color: #718096; font-size: var(--type-caption); line-height: 1.25; }
+.chart-context span { position: relative; white-space: nowrap; }
+.chart-context span + span::before { position: absolute; left: -7px; color: #c2cad4; content: '·'; }
+.chart-scale-toggle { display: inline-flex; flex: none; padding: 2px; border: 1px solid #d9e0e8; border-radius: 7px; background: #f5f7fa; }
+.chart-scale-toggle /deep/ .ant-radio-button-wrapper { height: 24px; padding: 0 10px; border: 0 !important; border-radius: 5px !important; background: transparent; box-shadow: none !important; color: #64748b; font-size: var(--type-caption); line-height: 24px; transition: color .15s ease, background-color .15s ease; }
+.chart-scale-toggle /deep/ .ant-radio-button-wrapper::before { display: none !important; }
+.chart-scale-toggle /deep/ .ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled) { background: var(--section-accent); box-shadow: none !important; color: #fff; }
+.chart-scale-toggle /deep/ .ant-radio-button-wrapper:focus-within { box-shadow: none !important; }
+.benchmark-analysis-heading h3, .chart-heading h3, .trade-review-heading h3 { display: flex; align-items: center; gap: 7px; margin: 0; color: #26364c; font-size: var(--type-title); font-weight: 600; line-height: 1.3; }
+.benchmark-analysis-heading h3::before, .chart-heading h3::before, .trade-review-heading h3::before { flex: none; width: 3px; height: 13px; border-radius: 2px; background: var(--section-accent); content: ''; }
+.section-help-icon { color: #8b99aa; font-size: 11px; font-weight: 400; cursor: help; transition: color .15s ease; }
+.section-help-icon:hover, .section-help-icon:focus { color: var(--section-accent); outline: none; }
 .trade-review-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-.trade-review-heading span { color: #7c8ca1; font-size: 11px; }
 .review-symbol-select { min-width: 230px; }
 .portfolio-contribution-panel { margin-top: 12px; padding: 10px; border: 1px solid #edf0f4; border-radius: 8px; background: #fbfcfe; }
 .contribution-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
-.contribution-heading strong { color: #334155; font-size: 12px; }
-.contribution-heading span { color: #7c8ca1; font-size: 10px; }
+.contribution-heading strong { color: #334155; font-size: var(--type-metric); }
+.contribution-heading span { color: #7c8ca1; font-size: var(--type-caption); }
 .contribution-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; max-height: 250px; overflow: auto; }
 .contribution-item { display: grid; grid-template-columns: minmax(155px, 1.5fr) .62fr .7fr .85fr 18px; align-items: center; gap: 8px; width: 100%; padding: 8px 10px; border: 1px solid #e7ebf0; border-radius: 7px; outline: none; background: #fff; color: #334155; text-align: left; cursor: pointer; transition: border-color .15s ease, background .15s ease, box-shadow .15s ease; }
 .contribution-item:hover { border-color: #95de64; }
 .contribution-item.active { border-color: #52c41a; background: #f6ffed; box-shadow: 0 0 0 1px rgba(82,196,26,.08); }
 .contribution-item > span { min-width: 0; }
-.contribution-item small { display: block; color: #8b99aa; font-size: 9px; }
-.contribution-item b { display: block; overflow: hidden; color: #334155; font-size: 11px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
-.contribution-symbol { display: flex; align-items: center; gap: 6px; overflow: hidden; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.contribution-item small { display: block; color: #8b99aa; font-size: var(--type-caption); }
+.contribution-item b { display: block; overflow: hidden; color: #334155; font-size: var(--type-body); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.contribution-symbol { display: flex; align-items: center; gap: 6px; overflow: hidden; font-size: var(--type-body); font-weight: 600; white-space: nowrap; }
 .contribution-symbol-text { overflow: hidden; text-overflow: ellipsis; }
-.open-position-tag { flex: none; margin: 0; padding: 0 5px; border-color: rgba(250, 173, 20, .32); border-radius: 999px; background: rgba(250, 173, 20, .08); color: #ad6800; font-size: 8px; font-weight: 600; line-height: 16px; }
+.open-position-tag { flex: none; margin: 0; padding: 0 5px; border-color: rgba(250, 173, 20, .32); border-radius: 999px; background: rgba(250, 173, 20, .08); color: #ad6800; font-size: var(--type-caption); font-weight: 500; line-height: 18px; }
 .contribution-item > .anticon { color: #52c41a; }
 .review-facts { display: grid; grid-template-columns: 1.25fr .7fr .7fr .8fr 1.8fr; gap: 8px; margin-top: 10px; }
 .review-facts div { min-width: 0; padding: 8px 10px; border-radius: 7px; background: #f8fafc; }
-.review-facts span { display: block; color: #7c8ca1; font-size: 10px; }
-.review-facts strong { display: block; overflow: hidden; color: #334155; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.review-facts span { display: block; color: #7c8ca1; font-size: var(--type-caption); }
+.review-facts strong { display: block; overflow: hidden; color: #334155; font-size: var(--type-metric); text-overflow: ellipsis; white-space: nowrap; }
 .inline-review-chart { width: 100%; height: 520px; margin-top: 10px; overflow: hidden; border-radius: 8px; }
 .review-snapshot-empty { margin: 16px 0 4px; padding: 28px 12px; border: 1px dashed #d9e2ec; border-radius: 8px; background: #fafcff; }
 .inline-review-chart /deep/ .chart-left { width: 100% !important; height: 100% !important; }
 .inline-review-chart /deep/ .kline-chart-container { height: auto !important; min-height: 0; }
-.portfolio-chart { width: 100%; height: 520px; }
+.portfolio-chart { width: 100%; height: 520px; background: #fbfcfd; }
 .assumption-strip, .overview-grid, .status-grid { display: grid; gap: 8px; margin-top: 12px; }
 .assumption-strip { grid-template-columns: repeat(8, minmax(104px, 1fr)); overflow: hidden; border: 1px solid #e5e9ee; border-radius: 8px; }
 .assumption-strip div { min-width: 0; padding: 8px 9px; border-right: 1px solid #e5e9ee; background: #f8fafc; }
 .assumption-strip div:last-child { border-right: 0; }
-.assumption-strip span { display: block; color: #7c8ca1; font-size: 11px; }
-.assumption-strip strong { display: block; color: #334155; font-size: 11px; }
+.assumption-strip span { display: block; color: #7c8ca1; font-size: var(--type-body); }
+.assumption-strip strong { display: block; color: #334155; font-size: var(--type-body); }
 .overview-grid { grid-template-columns: repeat(4, 1fr); }
 .overview-card, .status-card { display: flex; justify-content: space-between; align-items: center; }
-.overview-card strong, .status-card strong { font-size: 18px; }
+.overview-card strong, .status-card strong { font-size: var(--type-hero); }
 .status-grid { grid-template-columns: repeat(4, 1fr); }
 .status-card.status-partial { border-color: rgba(250, 173, 20, .45); }
 .status-card.status-deferred { border-color: rgba(24, 144, 255, .45); }
@@ -1564,15 +1723,13 @@ export default {
 .audit-summary.passed { color: #52c41a; background: rgba(82, 196, 26, .08); }
 .audit-summary.failed { color: #ff4d4f; background: rgba(255, 77, 79, .08); }
 .audit-summary div { display: flex; flex-direction: column; }
-.audit-summary span { color: #7c8ca1; font-size: 11px; }
+.audit-summary span { color: #7c8ca1; font-size: var(--type-body); }
 .portfolio-result.theme-dark .metrics-grid, .portfolio-result.theme-dark .assumption-strip { border-color: #2d2d2d; }
-.portfolio-result.theme-dark .benchmark-analysis-card { border-color: color-mix(in srgb, var(--analysis-accent) 30%, #2d2d2d); border-left-color: var(--analysis-accent); background: linear-gradient(135deg, color-mix(in srgb, var(--analysis-accent) 7%, #101010) 0%, #101010 72%); }
-.portfolio-result.theme-dark .benchmark-analysis-heading h3, .portfolio-result.theme-dark .benchmark-analysis-metric strong, .portfolio-result.theme-dark .benchmark-analysis-preview strong { color: #e8e8e8; }
-.portfolio-result.theme-dark .benchmark-analysis-heading p, .portfolio-result.theme-dark .benchmark-analysis-note, .portfolio-result.theme-dark .benchmark-analysis-metric > span { color: #8c8c8c; }
-.portfolio-result.theme-dark .benchmark-analysis-preview > span { border-right-color: #303030; }
-.portfolio-result.theme-dark .benchmark-analysis-preview small { color: #8c8c8c; }
+.portfolio-result.theme-dark .benchmark-analysis-card { border-color: #2d2d2d; background: #111111; }
+.portfolio-result.theme-dark .benchmark-analysis-heading h3, .portfolio-result.theme-dark .benchmark-analysis-metric strong { color: #e8e8e8; }
+.portfolio-result.theme-dark .benchmark-analysis-metric > span { color: #8c8c8c; }
 .portfolio-result.theme-dark .benchmark-analysis-metric { border-color: #303030; background: #171717; }
-.portfolio-result.theme-dark .benchmark-analysis-metric small, .portfolio-result.theme-dark .benchmark-analysis-metric .anticon { color: #737373; }
+.portfolio-result.theme-dark .benchmark-analysis-metric .anticon { color: #737373; }
 .portfolio-result.theme-dark .benchmark-analysis-subheading { border-top-color: #303030; color: #bfbfbf; }
 .portfolio-result.theme-dark .benchmark-analysis-meta /deep/ .ant-tag { border-color: #3a3a3a; color: #bfbfbf; background: #1f1f1f; }
 .portfolio-result.theme-dark .benchmark-analysis-meta /deep/ .analysis-accent-tag { border-color: color-mix(in srgb, var(--analysis-accent) 40%, #303030); color: var(--analysis-accent); background: color-mix(in srgb, var(--analysis-accent) 10%, #151515); }
@@ -1586,6 +1743,13 @@ export default {
 .portfolio-result.theme-dark .metric-card strong, .portfolio-result.theme-dark .overview-card strong, .portfolio-result.theme-dark .status-card strong, .portfolio-result.theme-dark .chart-heading h3, .portfolio-result.theme-dark .trade-review-heading h3, .portfolio-result.theme-dark .review-facts strong, .portfolio-result.theme-dark .assumption-strip strong { color: #e5e7eb; }
 .liquidation-alert { margin-top: 0; margin-bottom: 10px; }
 .portfolio-result.theme-dark .chart-card, .portfolio-result.theme-dark .trade-review-card { border-color: #2d2d2d; background: #111111; }
+.portfolio-result.theme-dark .chart-heading { border-bottom-color: #242424; background: #111111; }
+.portfolio-result.theme-dark .chart-context { color: #7f8a99; }
+.portfolio-result.theme-dark .chart-context span + span::before { color: #4b5563; }
+.portfolio-result.theme-dark .chart-scale-toggle { border-color: #343434; background: #1a1a1a; }
+.portfolio-result.theme-dark .chart-scale-toggle /deep/ .ant-radio-button-wrapper { color: #a3a3a3; }
+.portfolio-result.theme-dark .chart-scale-toggle /deep/ .ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled) { color: #fff; }
+.portfolio-result.theme-dark .portfolio-chart { background: #101010; }
 .portfolio-result.theme-dark .review-snapshot-empty { border-color: rgba(255,255,255,.12); background: rgba(255,255,255,.025); }
 .portfolio-result.theme-dark .result-trustbar.is-success { border-color: #315d22; background: #13200f; color: #73d13d; }
 .portfolio-result.theme-dark .result-trustbar.is-warning { border-color: #664d03; background: #211b08; color: #ffc53d; }
@@ -1602,12 +1766,18 @@ export default {
 @media (max-width: 900px) { .benchmark-analysis-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .benchmark-analysis-grid { grid-template-columns: 1fr; } }
 
+@container (max-width: 920px) {
+  .analysis-workspace { grid-template-columns: 1fr; }
+  .analysis-workspace .portfolio-chart { height: 520px; }
+}
+
 @container (max-width: 860px) {
-  .benchmark-analysis-heading { grid-template-columns: 24px minmax(0, 1fr); gap: 8px 12px; }
-  .benchmark-analysis-toggle { grid-row: 1 / span 3; }
-  .benchmark-analysis-title { grid-row: 1; grid-column: 2; }
-  .benchmark-analysis-preview { grid-row: 2; grid-column: 2; }
-  .benchmark-analysis-meta { grid-row: 3; grid-column: 2; justify-content: flex-start; }
+  .chart-heading { align-items: flex-start; }
+  .chart-context span { white-space: normal; }
+  .benchmark-analysis-heading { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .benchmark-analysis-title { grid-row: 1; grid-column: 1; }
+  .benchmark-analysis-meta { grid-row: 2; grid-column: 1; justify-content: flex-start; }
+  .analysis-summary-column .benchmark-analysis-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (max-width: 900px) { .review-facts { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 1150px) { .contribution-list { grid-template-columns: 1fr; } }

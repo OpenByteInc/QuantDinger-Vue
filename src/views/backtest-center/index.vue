@@ -147,16 +147,16 @@
                   <div><span>{{ $t('strategyV2.frequency') }}</span><strong>{{ manifestFrequency }}</strong></div>
                 </div>
               </div>
-              <div v-else-if="mode === 'portfolio' && manifest" class="manifest-card">
+              <div v-else-if="mode === 'portfolio' && summaryManifest" class="manifest-card">
                 <div class="manifest-title">
                   <a-icon type="safety-certificate" />
-                  {{ $t('strategyV2.manifestTitle') }}
+                  {{ resultManifest ? $t('strategyV2.backtest.resultContractTitle') : $t('strategyV2.manifestTitle') }}
                 </div>
                 <div class="manifest-grid">
-                  <div><span>{{ $t('strategyV2.strategyType') }}</span><strong>{{ strategyTypeLabel }}</strong></div>
-                  <div><span>{{ $t('strategyV2.frequency') }}</span><strong>{{ manifestFrequency }}</strong></div>
-                  <div><span>{{ $t('strategyV2.markets') }}</span><strong>{{ (manifest.markets || []).join(', ') || '-' }}</strong></div>
-                  <div><span>{{ $t('strategyV2.universe') }}</span><strong>{{ universeLabel }}</strong></div>
+                  <div><span>{{ $t('strategyV2.strategyType') }}</span><strong>{{ summaryStrategyTypeLabel }}</strong></div>
+                  <div><span>{{ $t('strategyV2.frequency') }}</span><strong>{{ summaryManifestFrequency }}</strong></div>
+                  <div><span>{{ $t('strategyV2.markets') }}</span><strong>{{ summaryMarketLabel }}</strong></div>
+                  <div><span>{{ $t('strategyV2.universe') }}</span><strong>{{ summaryUniverseLabel }}</strong></div>
                 </div>
               </div>
             </section>
@@ -165,10 +165,18 @@
                 <div class="panel-heading config-section__heading config-step-heading">
                   <div>
                     <span class="step-badge">2</span>
-                    <h2>{{ mode === 'factor' ? $t('strategyV2.factorResearch.runtimeTitle') : $t('strategyV2.runtimeTitle') }}</h2>
+                    <h2>
+                      {{ mode === 'factor' ? $t('strategyV2.factorResearch.runtimeTitle') : $t('strategyV2.runtimeTitle') }}
+                      <a-tooltip :title="mode === 'factor' ? $t('strategyV2.factorResearch.runtimeHint') : $t('strategyV2.runtimeHint')">
+                        <a-icon
+                          class="config-title-help-icon"
+                          type="exclamation-circle"
+                          tabindex="0"
+                          :aria-label="mode === 'factor' ? $t('strategyV2.factorResearch.runtimeHint') : $t('strategyV2.runtimeHint')" />
+                      </a-tooltip>
+                    </h2>
                   </div>
                 </div>
-                <p class="section-hint config-section__hint">{{ mode === 'factor' ? $t('strategyV2.factorResearch.runtimeHint') : $t('strategyV2.runtimeHint') }}</p>
                 <div class="date-range-card">
                   <div class="range-presets" data-testid="backtest-range-presets">
                     <span class="range-presets__label">{{ $t('backtest-center.quickRange.label') }}</span>
@@ -244,7 +252,16 @@
                 <div class="panel-heading config-section__heading config-step-heading">
                   <div>
                     <span class="step-badge">3</span>
-                    <h2>{{ $t('backtest-center.codeParams') }}</h2>
+                    <h2>
+                      {{ $t('backtest-center.codeParams') }}
+                      <a-tooltip :title="$t('strategyBuilder.sourceContractHint')">
+                        <a-icon
+                          class="config-title-help-icon"
+                          type="exclamation-circle"
+                          tabindex="0"
+                          :aria-label="$t('strategyBuilder.sourceContractHint')" />
+                      </a-tooltip>
+                    </h2>
                   </div>
                   <span class="source-param-count config-step-heading__meta">{{ $t('strategyV2.backtest.paramCount', { count: paramDefinitions.length }) }}</span>
                 </div>
@@ -300,7 +317,6 @@
                     </a-tooltip>
                   </a-popconfirm>
                 </div>
-                <p class="section-hint source-param-contract-hint">{{ $t('strategyBuilder.sourceContractHint') }}</p>
               </section>
 
               <section v-if="mode === 'factor'" class="config-section params-section factor-settings">
@@ -900,6 +916,33 @@ export default {
     },
     maxLeverage () {
       return Number((this.manifest && this.manifest.maxLeverage) || 1)
+    },
+    resultManifest () {
+      const manifest = this.result && this.result.manifest
+      return this.selectedRun && manifest && typeof manifest === 'object' ? manifest : null
+    },
+    summaryManifest () {
+      return this.resultManifest || this.manifest
+    },
+    summaryStrategyTypeLabel () {
+      const type = String((this.summaryManifest && this.summaryManifest.strategyType) || 'cta')
+      return this.$t(type === 'portfolio' ? 'strategyV2.portfolio' : 'strategyV2.cta')
+    },
+    summaryManifestFrequency () {
+      const manifest = this.summaryManifest || {}
+      const subscriptions = manifest.subscriptions || []
+      return manifest.primaryFrequency || (subscriptions[0] && subscriptions[0].frequency) || '-'
+    },
+    summaryMarketLabel () {
+      return ((this.summaryManifest && this.summaryManifest.markets) || []).join(', ') || '-'
+    },
+    summaryUniverseLabel () {
+      const manifest = this.summaryManifest || {}
+      const universe = manifest.universe || {}
+      if (universe.reference) return universe.reference
+      const instruments = Array.isArray(universe.instruments) ? universe.instruments : []
+      if (manifest.strategyType === 'cta' && instruments.length) return instruments.map(this.formatInstrument).join(', ')
+      return this.$t('strategyV2.symbolCount', { count: instruments.length })
     },
     manifestFrequency () {
       if (this.mode === 'factor') return this.factorForm.frequency || '1d'
@@ -2096,7 +2139,9 @@ export default {
 .config-step-heading > div { min-width: 0; justify-content: flex-start; }
 .config-section__heading h2,
 .config-section__heading h3 { overflow: hidden; margin: 0; color: #26364c; font-size: 14px; font-weight: 700; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
-.config-step-heading h2 { min-width: 0; overflow: visible; text-overflow: clip; white-space: normal; overflow-wrap: anywhere; }
+.config-step-heading h2 { display: flex; align-items: center; gap: 6px; min-width: 0; overflow: visible; text-overflow: clip; white-space: normal; overflow-wrap: anywhere; }
+.config-title-help-icon { color: var(--workspace-muted); font-size: 12px; font-weight: 400; cursor: help; transition: color .15s ease; }
+.config-title-help-icon:hover, .config-title-help-icon:focus { color: var(--primary-color, #1890ff); outline: none; }
 .config-section__heading > span:last-child { flex: 0 0 auto; color: var(--workspace-muted); font-size: 11px; }
 .config-step-heading__meta { max-width: 124px; margin: 0; overflow: hidden; line-height: 1.3; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
 .source-param-count { flex: 0 0 auto; color: var(--workspace-muted); font-size: 11px; white-space: nowrap; }
@@ -2105,8 +2150,6 @@ export default {
 .source-param-save-row /deep/ .ant-btn { display: block; width: 100%; }
 .source-param-save-row /deep/ .ant-btn { height: 38px; border-radius: 8px; font-size: 13px; font-weight: 700; box-shadow: 0 5px 14px color-mix(in srgb, var(--primary-color, #52c41a) 20%, transparent); }
 .source-param-save-row /deep/ .ant-btn[disabled] { border-color: #e0e5ea; color: var(--workspace-faint); background: #f2f4f6; box-shadow: none; }
-.source-param-contract-hint { margin-top: 14px; padding-top: 12px; border-top: 1px solid #e5eaf0; }
-.config-section__hint { margin: -2px 0 10px; }
 .config-section /deep/ .ant-form-item-label > label { color: #445269; font-size: 12px; font-weight: 600; }
 .full-width { width: 100%; }
 .manifest-card { margin-top: 10px; padding: 11px; border: 1px solid #e5e9ee; border-left: 3px solid var(--primary-color, #52c41a); border-radius: 8px; background: #fff; }

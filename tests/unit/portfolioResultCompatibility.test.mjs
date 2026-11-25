@@ -47,11 +47,13 @@ test('completed-trade table uses the shared compact scrollbar treatment', () => 
   assert.match(source, /scrollbar-color: var\(--qd-scrollbar-thumb/)
 })
 
-test('portfolio chart separates directional exposure and hides ledger cash by default', () => {
-  assert.match(source, /const longExposure = curve\.map/)
-  assert.match(source, /const shortExposure = curve\.map/)
+test('portfolio chart compares gross, net and cash allocation on the same percentage scale', () => {
+  assert.match(source, /const grossExposure = curve\.map/)
+  assert.match(source, /const netExposure = curve\.map/)
+  assert.match(source, /const cashAllocation = curve\.map/)
+  assert.match(source, /equity > 0 \? cash \/ equity \* 100 : null/)
   assert.match(source, /step: 'end'/)
-  assert.match(source, /selected: \{ \[cashName\]: false \}/)
+  assert.match(source, /data: \[grossExposureName, netExposureName, cashAllocationName\]/)
   assert.match(source, /formatPercentagePointValue\(this\.result\.excessReturn\)/)
 })
 
