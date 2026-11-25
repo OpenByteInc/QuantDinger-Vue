@@ -1049,6 +1049,23 @@ Object.entries(gridAuditLocales).forEach(([localeKey, values]) => {
   })
 })
 
+const rebalanceReplayLocales = {
+  'en-US': "This rebalance is already recorded; duplicate submission was skipped. Existing orders will continue reconciliation. If the previous attempt was interrupted, review any unqueued legs.",
+  'zh-CN': "本次调仓已有记录，已跳过重复提交；已有订单继续对账。如上次执行中断，请核查尚未入队的部分。",
+  'zh-TW': "本次調倉已有記錄，已跳過重複提交；已有訂單繼續對帳。如上次執行中斷，請核查尚未入隊的部分。",
+  'ja-JP': "このリバランスは記録済みのため、重複送信をスキップしました。既存注文の照合は継続します。前回の処理が中断された場合は、未登録の注文を確認してください。",
+  'ko-KR': "이미 기록된 리밸런싱이므로 중복 제출을 건너뛰었습니다. 기존 주문 대조는 계속됩니다. 이전 실행이 중단됐다면 대기열에 등록되지 않은 주문을 확인하세요.",
+  'de-DE': "Diese Umschichtung ist bereits erfasst; die erneute Übermittlung wurde übersprungen. Bestehende Aufträge werden weiter abgeglichen. Prüfen Sie bei einem früheren Abbruch die noch nicht eingereihten Aufträge.",
+  'fr-FR': "Ce rééquilibrage est déjà enregistré ; le nouvel envoi a été ignoré. Le rapprochement des ordres existants continue. Si la tentative précédente a été interrompue, vérifiez les ordres non mis en file.",
+  'ru-RU': "Эта ребалансировка уже записана; повторная отправка пропущена. Сверка существующих ордеров продолжается. Если предыдущая попытка прервалась, проверьте ордера, не попавшие в очередь.",
+  'vi-VN': "Lần tái cân bằng này đã được ghi nhận; đã bỏ qua gửi trùng. Các lệnh hiện có tiếp tục được đối soát. Nếu lần trước bị gián đoạn, hãy kiểm tra các lệnh chưa vào hàng đợi.",
+  'th-TH': "บันทึกการปรับพอร์ตครั้งนี้แล้ว จึงข้ามการส่งซ้ำ คำสั่งเดิมจะยังได้รับการกระทบยอด หากครั้งก่อนถูกขัดจังหวะ โปรดตรวจสอบคำสั่งที่ยังไม่ได้เข้าคิว",
+  'ar-SA': "سُجلت إعادة الموازنة هذه بالفعل، لذا تم تخطي الإرسال المكرر. تستمر مطابقة الأوامر الحالية. إذا توقفت المحاولة السابقة، فراجع الأوامر التي لم تدخل قائمة الانتظار."
+}
+Object.entries(rebalanceReplayLocales).forEach(([localeKey, message]) => {
+  healthReasonTargets[localeKey]['strategyV2.rebalanceReplaySkipped'] = message
+})
+
 export default {
   'en-US': locale,
   'zh-CN': zhCN,

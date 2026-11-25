@@ -88,8 +88,11 @@ export const translateStrategyRuntimeMessage = (message, translate, exchangeErro
   match = text.match(/^Exchange order failed \(([^)]+)\):/i)
   if (match) return localize('trading-assistant.logs.message.exchangeOrderFailed', { context: match[1] }) || text
 
-  match = text.match(/^Runtime cycle failed:/i)
-  if (match) return localize('trading-assistant.logs.message.runtimeCycleFailed') || text
+  match = text.match(/^Runtime cycle failed:\s*([\s\S]*)/i)
+  if (match) {
+    const summary = localize('trading-assistant.logs.message.runtimeCycleFailed')
+    return summary ? `${summary} ${match[1]}`.trim() : text
+  }
 
   match = text.match(/^Order queued:\s*(\w+)\s+(\S+)\s+quantity=([^\s]+)[\s\S]*?pending_id=([^\s]+)/i)
   if (match) {

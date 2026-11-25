@@ -1,7 +1,24 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+
 import messages from '../../src/locales/lang/strategy-live-risk.js'
 import { translateStrategyRuntimeMessage } from '../../src/utils/strategyLogs.js'
+
+test('runtime failures retain the actual cause and replay notices are localized', () => {
+  const key = 'strategyV2.rebalanceReplaySkipped'
+  for (const locale of Object.keys(messages)) {
+    const translate = value => messages[locale][value] || value
+    const raw = 'Runtime cycle failed: strategyV2.rebalanceBatchClosed'
+    assert.match(translateStrategyRuntimeMessage(raw, translate), /strategyV2.rebalanceBatchClosed/)
+    const multiline = 'Runtime cycle failed: example error\ncontext detail'
+    assert.match(translateStrategyRuntimeMessage(multiline, translate), /example error\ncontext detail/)
+    assert.equal(translateStrategyRuntimeMessage(raw, value => value), raw)
+    assert.ok(messages[locale][key])
+    const replay = translateStrategyRuntimeMessage(`${key}:2026-11-25T14:35:49Z`, translate)
+    assert.ok(replay.includes(messages[locale][key]))
+    assert.ok(replay.includes('2026-11-25T14:35:49Z'))
+  }
+})
 
 test('Gate stock account environment errors are readable in logs', () => {
   const key = 'strategyV2.gateStockTestnetUnsupported'
