@@ -23,6 +23,7 @@ test('marketplace defaults to the visual grid before the compact catalog option'
   assert.match(marketplace, /value="grid"[\s\S]*?value="compact"/)
   assert.match(marketplace, /<market-catalog-list/)
   assert.match(marketplace, /filters:\s*\{[\s\S]*?sortBy: 'recommended'/)
+  assert.match(marketplace, /requestSortBy \(\)[\s\S]*?return this\.filters\.sortBy/)
   assert.match(marketplace, /pageSize: 24/)
   assert.match(marketplace, /loadMoreMarketItems/)
   assert.match(marketplace, /community\.catalog\.newArrivals/)

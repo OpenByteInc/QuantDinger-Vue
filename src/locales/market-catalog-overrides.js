@@ -68,7 +68,21 @@ const en = {
   'community.lastUpdated': 'Last updated',
   'community.vipFree': 'VIP Free',
   'community.free': 'Free',
-  'community.credits': 'Credits'
+  'community.credits': 'Credits',
+  'authorDashboard.searchPlaceholder': 'Search name, description, or listing ID',
+  'authorDashboard.filterAllTypes': 'All types',
+  'authorDashboard.filterAllStatuses': 'All statuses',
+  'authorDashboard.sortUpdatedDesc': 'Recently updated',
+  'authorDashboard.sortCreatedDesc': 'Recently published',
+  'authorDashboard.sortNameAsc': 'Name A–Z',
+  'authorDashboard.sortSalesDesc': 'Most sales',
+  'authorDashboard.sortRevenueDesc': 'Highest revenue',
+  'authorDashboard.sortRatingDesc': 'Highest rated',
+  'authorDashboard.sortPriceDesc': 'Price: high to low',
+  'authorDashboard.sortPriceAsc': 'Price: low to high',
+  'authorDashboard.resetFilters': 'Reset',
+  'authorDashboard.col.publishedAt': 'Published',
+  'authorDashboard.col.updatedAt': 'Updated'
 }
 
 const detailTranslations = {
@@ -87,7 +101,21 @@ const detailTranslations = {
     'community.manualSyncUpdates': '手动同步作者更新',
     'community.compatibility': '兼容性',
     'community.chartIndicatorCompatibility': '图表指标',
-    'community.lastUpdated': '最近更新'
+    'community.lastUpdated': '最近更新',
+    'authorDashboard.searchPlaceholder': '搜索名称、描述或发布编号',
+    'authorDashboard.filterAllTypes': '全部类型',
+    'authorDashboard.filterAllStatuses': '全部状态',
+    'authorDashboard.sortUpdatedDesc': '最近更新',
+    'authorDashboard.sortCreatedDesc': '最近发布',
+    'authorDashboard.sortNameAsc': '名称 A–Z',
+    'authorDashboard.sortSalesDesc': '销量最高',
+    'authorDashboard.sortRevenueDesc': '收入最高',
+    'authorDashboard.sortRatingDesc': '评分最高',
+    'authorDashboard.sortPriceDesc': '价格从高到低',
+    'authorDashboard.sortPriceAsc': '价格从低到高',
+    'authorDashboard.resetFilters': '重置',
+    'authorDashboard.col.publishedAt': '发布时间',
+    'authorDashboard.col.updatedAt': '更新时间'
   },
   'zh-TW': {
     'community.backtestRange': '回測區間',
@@ -104,7 +132,21 @@ const detailTranslations = {
     'community.manualSyncUpdates': '手動同步作者更新',
     'community.compatibility': '相容性',
     'community.chartIndicatorCompatibility': '圖表指標',
-    'community.lastUpdated': '最近更新'
+    'community.lastUpdated': '最近更新',
+    'authorDashboard.searchPlaceholder': '搜尋名稱、描述或發布編號',
+    'authorDashboard.filterAllTypes': '全部類型',
+    'authorDashboard.filterAllStatuses': '全部狀態',
+    'authorDashboard.sortUpdatedDesc': '最近更新',
+    'authorDashboard.sortCreatedDesc': '最近發布',
+    'authorDashboard.sortNameAsc': '名稱 A–Z',
+    'authorDashboard.sortSalesDesc': '銷量最高',
+    'authorDashboard.sortRevenueDesc': '收入最高',
+    'authorDashboard.sortRatingDesc': '評分最高',
+    'authorDashboard.sortPriceDesc': '價格由高至低',
+    'authorDashboard.sortPriceAsc': '價格由低至高',
+    'authorDashboard.resetFilters': '重設',
+    'authorDashboard.col.publishedAt': '發布時間',
+    'authorDashboard.col.updatedAt': '更新時間'
   },
   'ja-JP': {
     'community.backtestRange': 'バックテスト期間',

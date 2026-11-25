@@ -592,12 +592,9 @@ export default {
       }
       return { min, max }
     },
-    defaultMarketSort () {
-      return this.marketAssetType === 'indicator' ? 'hot' : 'score'
-    },
     requestSortBy () {
       if (this.catalogSort.key) return this.catalogSort.key
-      return this.filters.sortBy === 'recommended' ? this.defaultMarketSort : this.filters.sortBy
+      return this.filters.sortBy
     },
     requestSortOrder () {
       return this.catalogSort.key ? this.catalogSort.order : undefined

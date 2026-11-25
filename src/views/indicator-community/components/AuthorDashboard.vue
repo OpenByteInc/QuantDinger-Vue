@@ -68,6 +68,41 @@
       </div>
 
       <div v-show="subTab === 'published'">
+        <div class="author-dashboard-published-toolbar">
+          <a-input-search
+            v-model="publishedFilters.keyword"
+            class="author-dashboard-search"
+            allow-clear
+            :placeholder="$t('authorDashboard.searchPlaceholder')"
+            @search="applyPublishedFilters"
+            @change="onPublishedKeywordChange"
+          />
+          <a-select v-model="publishedFilters.assetType" class="author-dashboard-filter" @change="applyPublishedFilters">
+            <a-select-option value="">{{ $t('authorDashboard.filterAllTypes') }}</a-select-option>
+            <a-select-option value="indicator">{{ $t('community.tabIndicators') }}</a-select-option>
+            <a-select-option value="script_template">{{ $t('community.tabScriptTemplates') }}</a-select-option>
+          </a-select>
+          <a-select v-model="publishedFilters.reviewStatus" class="author-dashboard-filter" @change="applyPublishedFilters">
+            <a-select-option value="">{{ $t('authorDashboard.filterAllStatuses') }}</a-select-option>
+            <a-select-option value="approved">{{ $t('community.statusApproved') }}</a-select-option>
+            <a-select-option value="pending">{{ $t('community.statusPending') }}</a-select-option>
+            <a-select-option value="rejected">{{ $t('community.statusRejected') }}</a-select-option>
+          </a-select>
+          <a-select v-model="publishedFilters.sort" class="author-dashboard-sort" @change="applyPublishedFilters">
+            <a-select-option value="updated_desc">{{ $t('authorDashboard.sortUpdatedDesc') }}</a-select-option>
+            <a-select-option value="created_desc">{{ $t('authorDashboard.sortCreatedDesc') }}</a-select-option>
+            <a-select-option value="name_asc">{{ $t('authorDashboard.sortNameAsc') }}</a-select-option>
+            <a-select-option value="sales_desc">{{ $t('authorDashboard.sortSalesDesc') }}</a-select-option>
+            <a-select-option value="revenue_desc">{{ $t('authorDashboard.sortRevenueDesc') }}</a-select-option>
+            <a-select-option value="rating_desc">{{ $t('authorDashboard.sortRatingDesc') }}</a-select-option>
+            <a-select-option value="price_desc">{{ $t('authorDashboard.sortPriceDesc') }}</a-select-option>
+            <a-select-option value="price_asc">{{ $t('authorDashboard.sortPriceAsc') }}</a-select-option>
+          </a-select>
+          <a-button icon="reload" @click="resetPublishedFilters">
+            {{ $t('authorDashboard.resetFilters') }}
+          </a-button>
+        </div>
+
         <a-alert
           v-if="publishedError"
           class="author-dashboard-load-error"
@@ -82,7 +117,7 @@
           :loading="publishedLoading"
           :pagination="publishedPagination"
           :row-key="row => row.id"
-          :scroll="{ x: 820 }"
+          :scroll="{ x: 1500 }"
           size="middle"
           class="author-dashboard-table"
           @change="onPublishedTableChange"
@@ -135,6 +170,14 @@
               <span class="author-dashboard-rating-count">({{ record.rating_count }})</span>
             </span>
             <span v-else class="author-dashboard-stat-empty">—</span>
+          </template>
+
+          <template slot="publishedAt" slot-scope="text, record">
+            {{ formatTime(record.created_at) }}
+          </template>
+
+          <template slot="updatedAt" slot-scope="text, record">
+            {{ formatTime(record.updated_at || record.created_at) }}
           </template>
 
           <template slot="actions" slot-scope="text, record">
@@ -205,12 +248,14 @@ export default {
   computed: {
     publishedColumns () {
       return [
-        { title: this.$t('authorDashboard.col.name'), dataIndex: 'name', key: 'name', scopedSlots: { customRender: 'nameCol' } },
+        { title: this.$t('authorDashboard.col.name'), dataIndex: 'name', key: 'name', width: 320, scopedSlots: { customRender: 'nameCol' } },
         { title: this.$t('authorDashboard.col.status'), dataIndex: 'review_status', key: 'review_status', width: 180, scopedSlots: { customRender: 'status' } },
         { title: this.$t('authorDashboard.col.price'), dataIndex: 'price', key: 'price', width: 130, scopedSlots: { customRender: 'price' } },
-        { title: this.$t('authorDashboard.col.sales'), dataIndex: 'purchase_count', key: 'purchase_count', width: 80, align: 'right', sorter: (a, b) => a.purchase_count - b.purchase_count },
-        { title: this.$t('authorDashboard.col.revenue'), dataIndex: 'revenue', key: 'revenue', width: 110, align: 'right', scopedSlots: { customRender: 'revenue' }, sorter: (a, b) => a.revenue - b.revenue },
+        { title: this.$t('authorDashboard.col.sales'), dataIndex: 'purchase_count', key: 'purchase_count', width: 80, align: 'right' },
+        { title: this.$t('authorDashboard.col.revenue'), dataIndex: 'revenue', key: 'revenue', width: 110, align: 'right', scopedSlots: { customRender: 'revenue' } },
         { title: this.$t('authorDashboard.col.rating'), dataIndex: 'avg_rating', key: 'avg_rating', width: 130, scopedSlots: { customRender: 'rating' } },
+        { title: this.$t('authorDashboard.col.publishedAt'), dataIndex: 'created_at', key: 'created_at', width: 155, scopedSlots: { customRender: 'publishedAt' } },
+        { title: this.$t('authorDashboard.col.updatedAt'), dataIndex: 'updated_at', key: 'updated_at', width: 155, scopedSlots: { customRender: 'updatedAt' } },
         { title: this.$t('authorDashboard.col.actions'), key: 'actions', width: 230, scopedSlots: { customRender: 'actions' } }
       ]
     },
@@ -259,6 +304,12 @@ export default {
         rating_count: 0
       },
       published: { items: [], total: 0, page: 1, page_size: 20, total_pages: 0 },
+      publishedFilters: {
+        keyword: '',
+        assetType: '',
+        reviewStatus: '',
+        sort: 'updated_desc'
+      },
       sales: { items: [], total: 0, page: 1, page_size: 20, total_pages: 0 },
       salesIndicatorFilter: null
     }
@@ -295,10 +346,30 @@ export default {
       this.publishedLoading = true
       this.publishedError = false
       try {
+        const sortMap = {
+          updated_desc: ['updated_at', 'desc'],
+          created_desc: ['created_at', 'desc'],
+          name_asc: ['name', 'asc'],
+          sales_desc: ['sales', 'desc'],
+          revenue_desc: ['revenue', 'desc'],
+          rating_desc: ['rating', 'desc'],
+          price_desc: ['price', 'desc'],
+          price_asc: ['price', 'asc']
+        }
+        const selectedSort = sortMap[this.publishedFilters.sort] || sortMap.updated_desc
+        const params = {
+          page,
+          page_size: this.published.page_size,
+          keyword: this.publishedFilters.keyword.trim() || undefined,
+          asset_type: this.publishedFilters.assetType || undefined,
+          review_status: this.publishedFilters.reviewStatus || undefined,
+          sort_by: selectedSort[0],
+          sort_order: selectedSort[1]
+        }
         const res = await request({
           url: '/api/community/author/published',
           method: 'get',
-          params: { page, page_size: this.published.page_size }
+          params
         })
         if (res && res.code === 1 && res.data) {
           this.published = res.data
@@ -331,6 +402,23 @@ export default {
     },
     onPublishedTableChange (pagination) {
       this.loadPublished(pagination.current)
+    },
+    applyPublishedFilters () {
+      this.loadPublished(1)
+    },
+    onPublishedKeywordChange (event) {
+      if (!event || !event.target || event.target.value === '') {
+        this.loadPublished(1)
+      }
+    },
+    resetPublishedFilters () {
+      this.publishedFilters = {
+        keyword: '',
+        assetType: '',
+        reviewStatus: '',
+        sort: 'updated_desc'
+      }
+      this.loadPublished(1)
     },
     onSalesTableChange (pagination) {
       this.loadSales(pagination.current)
@@ -497,6 +585,27 @@ export default {
   border-radius: 0 6px 6px 0;
 }
 
+.author-dashboard-published-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.author-dashboard-search {
+  width: 320px;
+  max-width: 100%;
+}
+
+.author-dashboard-filter {
+  width: 150px;
+}
+
+.author-dashboard-sort {
+  width: 190px;
+}
+
 .author-dashboard-load-error {
   margin-bottom: 12px;
 }
@@ -506,13 +615,19 @@ export default {
 }
 
 .author-dashboard-name-col {
-  min-width: 220px;
+  min-width: 0;
 }
 
 .author-dashboard-name {
+  display: inline-block;
+  max-width: 220px;
   font-weight: 500;
   color: var(--primary-color, #1890ff);
   cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+  white-space: nowrap;
 }
 
 .author-dashboard-asset-tag {
@@ -638,5 +753,18 @@ export default {
 
   .author-dashboard-filter-banner { background: rgba(24, 144, 255, 0.15); color: rgba(255, 255, 255, 0.85); }
   .author-dashboard-name { color: var(--primary-color-hover, #40a9ff); }
+}
+
+@media (max-width: 767px) {
+  .author-dashboard-published-toolbar {
+    align-items: stretch;
+  }
+
+  .author-dashboard-search,
+  .author-dashboard-filter,
+  .author-dashboard-sort,
+  .author-dashboard-published-toolbar > .ant-btn {
+    width: 100%;
+  }
 }
 </style>
