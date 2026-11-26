@@ -4385,8 +4385,9 @@ export default {
   }
 }
 
-@import './profile-typography.less';
 </style>
+
+<style lang="less" scoped src="./profile-typography.less"></style>
 
 <style lang="less">
 .profile-mfa-modal {

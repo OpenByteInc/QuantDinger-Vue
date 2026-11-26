@@ -4906,6 +4906,7 @@ export default {
   }
 }
 
-@import './market-settings.less';
-@import './data-sync.less';
 </style>
+
+<style lang="less" scoped src="./market-settings.less"></style>
+<style lang="less" scoped src="./data-sync.less"></style>

@@ -10,7 +10,7 @@
     <p class="connection-hint">{{ $t('brokerAccounts.forthright.autoDiscover') }}</p>
     <a-form-item :label="$t('brokerAccounts.forthright.appId')"><a-input v-model="form.appId" :disabled="disabled" autocomplete="off" /></a-form-item>
     <a-form-item :label="$t('brokerAccounts.forthright.privateKey')"><a-textarea v-model="form.privateKey" :disabled="disabled" :auto-size="{ minRows: 3, maxRows: 8 }" autocomplete="new-password" /></a-form-item>
-    <a-form-item :label="$t('brokerAccounts.forthright.tradePassword')"><a-input-password v-model="form.tradePassword" :disabled="disabled" autocomplete="new-password" /></a-form-item>
+    <a-form-item :label="$t('brokerAccounts.forthright.tradingCredentialLabel')"><a-input-password v-model="form.tradePassword" :disabled="disabled" autocomplete="new-password" /></a-form-item>
     <a-form-item :label="$t('brokerAccounts.forthright.currency')">
       <a-select v-model="form.currency" :disabled="disabled"><a-select-option v-for="currency in ['USD', 'HKD']" :key="currency" :value="currency">{{ currency }}</a-select-option></a-select>
     </a-form-item>

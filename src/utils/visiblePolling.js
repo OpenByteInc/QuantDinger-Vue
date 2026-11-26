@@ -16,7 +16,7 @@ export function startVisiblePolling (refresh, { interval = 15000, enabled = () =
   function resume () {
     if (page.hidden || stopped || running) return
     cancel(timer)
-    tick()
+    return tick()
   }
   page.addEventListener('visibilitychange', resume)
   timer = schedule(tick, interval)

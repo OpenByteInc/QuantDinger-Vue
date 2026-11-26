@@ -90,12 +90,12 @@ export default {
       this.market = this.orderedMarkets.includes(this.initialMarket) ? this.initialMarket : this.orderedMarkets[0]
       this.keyword = ''
       this.futuresCatalog = null
-      this.search()
+      return this.search()
     }
   },
   beforeDestroy () { this.invalidate() },
   methods: {
-    chooseFuturesProduct (value) { this.keyword = value || ''; this.search() },
+    chooseFuturesProduct (value) { this.keyword = value || ''; return this.search() },
     assetKey: watchlistAssetKey,
     contextLabel (item) { return watchlistContextLabel(item, key => this.$t(key), { includeName: false }) },
     groupLabel (group) { return this.contextLabel(group.item) },

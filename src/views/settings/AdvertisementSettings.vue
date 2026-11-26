@@ -48,7 +48,7 @@
 
 <script>
 import { getAdvertisements, saveAdvertisements } from '@/api/advertisements'
-import { AD_POSITIONS, isAdvertisementUrl, validAdvertisement } from '@/utils/advertisements.mjs'
+import { AD_POSITIONS, createAdvertisementId, isAdvertisementUrl, validAdvertisement } from '@/utils/advertisements.mjs'
 
 export default {
   name: 'AdvertisementSettings',
@@ -72,7 +72,7 @@ export default {
       this.$confirm({ title: this.$t('advertisements.discard'), onOk: () => this.load() })
     },
     add () {
-      const id = window.crypto?.randomUUID?.() || `ad-${Date.now()}-${Math.random().toString(36).slice(2)}`
+      const id = createAdvertisementId()
       this.items.push({ id, name: '', image_url: '', target_url: '', position: 'sidebar', sort_order: Math.min(9999, this.items.length * 10), enabled: false })
     },
     remove (ad) { this.items = this.items.filter(item => item.id !== ad.id) },

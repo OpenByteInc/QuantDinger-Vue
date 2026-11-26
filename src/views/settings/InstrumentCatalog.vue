@@ -42,12 +42,12 @@ export default {
         { title: this.$t('instrumentCatalog.status'), key: 'status', width: 110, scopedSlots: { customRender: 'status' } }]
     }
   },
-  watch: { syncing (value, old) { if (old && !value) this.load() } },
-  mounted () { this.load() },
+  watch: { syncing (value, old) { if (old && !value) return this.load() } },
+  mounted () { return this.load() },
   beforeDestroy () { this.requestId++ },
   methods: {
-    reset () { this.page = 1; this.load() },
-    changePage (pagination) { this.page = pagination.current; this.load() },
+    reset () { this.page = 1; return this.load() },
+    changePage (pagination) { this.page = pagination.current; return this.load() },
     async load () {
       const requestId = ++this.requestId
       this.loading = true; this.error = ''

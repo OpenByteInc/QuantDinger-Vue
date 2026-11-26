@@ -2,7 +2,16 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { runInNewContext } from 'node:vm'
-import { activeAdvertisements, isAdvertisementUrl, validAdvertisement, showSidebarAdvertisement } from '../../src/utils/advertisements.mjs'
+import { activeAdvertisements, createAdvertisementId, isAdvertisementUrl, validAdvertisement, showSidebarAdvertisement } from '../../src/utils/advertisements.mjs'
+
+test('advertisement IDs use Web Crypto even when randomUUID is unavailable on HTTP', () => {
+  assert.equal(createAdvertisementId({ randomUUID: () => 'uuid' }), 'uuid')
+  assert.equal(createAdvertisementId({ getRandomValues: bytes => {
+    assert.equal(bytes.length, 16)
+    bytes.set(Array.from({ length: 16 }, (_, i) => i))
+    return bytes
+  } }), 'ad-000102030405060708090a0b0c0d0e0f')
+})
 
 const ad = { id: 'a', name: 'Partner', image_url: 'https://example.com/a.png', target_url: 'https://example.com/signup', position: 'sidebar', enabled: true, sort_order: 10 }
 test('only explicit HTTP(S) URLs without credentials or whitespace are accepted', () => {

@@ -30,7 +30,7 @@ test('universe rows share a table header and preserve management actions', () =>
 
 test('all tabs share isolated theme-aware spacing and compact tables', () => {
   assert.match(settings, /'data-sync-panel': activeGroupKey === 'market_catalog'/)
-  assert.match(settings, /@import '\.\/data-sync.less'/)
+  assert.match(settings, /<style lang="less" scoped src="\.\/data-sync.less"><\/style>/)
   assert.match(styles, /\.settings-page\.theme-dark \.data-sync-panel/)
   assert.match(styles, /@container data-sync/)
   assert.match(read('InstrumentCatalog.vue'), /size="small"/)

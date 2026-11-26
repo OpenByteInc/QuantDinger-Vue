@@ -1,5 +1,11 @@
 export const AD_POSITIONS = ['sidebar', 'accounts']
 
+export function createAdvertisementId (crypto = globalThis.crypto) {
+  if (crypto.randomUUID) return crypto.randomUUID()
+  const bytes = crypto.getRandomValues(new Uint8Array(16))
+  return `ad-${Array.from(bytes, value => value.toString(16).padStart(2, '0')).join('')}`
+}
+
 export function isAdvertisementUrl (value) {
   if (typeof value !== 'string' || !value || value.length > 2048 || /[\s\\]/.test(value) || Array.from(value).some(char => char.charCodeAt(0) < 32)) return false
   try {
