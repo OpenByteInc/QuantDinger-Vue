@@ -39,6 +39,17 @@ test('strategy AI workspace keeps memory source-bound and uses explicit candidat
   assert.match(page, /currentAssetType \(\) \{[\s\S]*this\.aiStrategyPrompt = ''[\s\S]*this\.aiInteractionMode = 'auto'/)
 })
 
+test('strategy AI workspace exposes explicit account and API-key modes without fallback', () => {
+  const api = read('src/api/strategy.js')
+  const page = read('src/views/strategy-ide/index.vue')
+  assert.match(page, /value="chatgpt_account">ChatGPT account/)
+  assert.match(page, /value="api_key">API key/)
+  assert.match(page, /no API-key fallback/)
+  assert.match(page, /authMode: this\.aiAuthMode/)
+  assert.match(page, /model: this\.aiAuthMode === 'chatgpt_account'/)
+  assert.match(api, /aiWorkspaceAccountModels: '\/api\/strategies\/ai-workspace\/account-models'/)
+})
+
 test('hidden purchased strategies show a locked AI workspace and never load or send source context', () => {
   const page = read('src/views/strategy-ide/index.vue')
   assert.match(page, /v-if="scriptCodeHidden" class="strategy-ai-locked"/)
