@@ -208,132 +208,157 @@
             </div>
           </template>
 
-          <template #ai-workspace>
-            <div
-              class="strategy-ai-workspace"
-              :class="{ 'strategy-ai-workspace--collapsed': !aiPanelExpanded }"
-            >
-              <div class="strategy-ai-header" @click="toggleStrategyAiPanel">
-                <div class="strategy-ai-header__title">
-                  <a-icon type="robot" />
-                  <strong>{{ aiWorkspaceText.title }}</strong>
-                  <span class="strategy-ai-contract-badge">
-                    {{ currentAssetType === 'portfolio_strategy' ? aiWorkspaceText.portfolioContract : aiWorkspaceText.ctaContract }}
-                  </span>
-                  <span class="strategy-ai-memory-badge">
-                    <a-icon :type="scriptCodeHidden ? 'lock' : (currentSourceId ? 'link' : 'clock-circle')" />
-                    {{ scriptCodeHidden ? aiWorkspaceText.hiddenSourceBadge : (currentSourceId ? aiWorkspaceText.memoryActive : aiWorkspaceText.temporaryMemory) }}
-                  </span>
-                </div>
-                <div class="strategy-ai-header__actions">
-                  <a-button
-                    v-if="!scriptCodeHidden && currentSourceId && (aiMessages.length || aiCandidate)"
-                    type="link"
-                    size="small"
-                    :disabled="aiStrategyGenerating"
-                    @click.stop="clearStrategyAiConversation"
-                  >{{ aiWorkspaceText.clear }}</a-button>
-                  <a-icon :type="aiPanelExpanded ? 'up' : 'down'" />
-                </div>
-              </div>
-
-              <div v-show="aiPanelExpanded" class="strategy-ai-body">
-                <div v-if="scriptCodeHidden" class="strategy-ai-locked">
-                  <a-icon type="lock" />
-                  <strong>{{ aiWorkspaceText.hiddenSourceTitle }}</strong>
-                  <span>{{ aiWorkspaceText.hiddenSourceUnavailable }}</span>
-                </div>
-                <template v-else>
-                  <div ref="strategyAiConversation" class="strategy-ai-conversation">
-                    <div v-if="aiWorkspaceLoading" class="strategy-ai-empty">
-                      <a-icon type="loading" spin />
-                      <span>{{ aiWorkspaceText.loading }}</span>
-                    </div>
-                    <div v-else-if="!displayedAiMessages.length" class="strategy-ai-empty">
-                      <a-icon type="message" />
-                      <strong>{{ aiWorkspaceText.emptyTitle }}</strong>
-                      <span>{{ currentAssetType === 'portfolio_strategy' ? aiWorkspaceText.portfolioEmptyDesc : aiWorkspaceText.ctaEmptyDesc }}</span>
-                      <div class="strategy-ai-quick-prompts">
-                        <button
-                          v-for="item in aiStrategyQuickPrompts"
-                          :key="item.label"
-                          type="button"
-                          @click="useStrategyAiQuickPrompt(item)"
-                        >{{ item.label }}</button>
-                      </div>
-                    </div>
-
-                    <div
-                      v-for="messageItem in displayedAiMessages"
-                      :key="messageItem.localId || messageItem.id"
-                      :class="[
-                        'strategy-ai-message',
-                        `strategy-ai-message--${messageItem.role || 'assistant'}`,
-                        { 'strategy-ai-message--error': messageItem.message_type === 'error' }
-                      ]"
-                    >
-                      <div class="strategy-ai-message__role">
-                        {{ messageItem.role === 'user' ? aiWorkspaceText.you : 'AI' }}
-                        <span
-                          v-if="messageItem.role !== 'user'"
-                          class="strategy-ai-message__badge"
-                          :class="{ 'strategy-ai-message__badge--error': messageItem.message_type === 'error' }"
-                        >
-                          {{ messageItem.message_type === 'candidate' ? aiWorkspaceText.candidateBadge : (messageItem.message_type === 'error' ? aiWorkspaceText.errorBadge : aiWorkspaceText.discussionBadge) }}
-                        </span>
-                      </div>
-                      <div class="strategy-ai-message__content" v-html="renderStrategyAiMessage(messageItem)" />
-                      <div
-                        v-if="isActiveStrategyCandidateMessage(messageItem)"
-                        class="strategy-ai-candidate"
-                        :class="{ 'strategy-ai-candidate--warning': !aiCandidateValidationPassed }"
-                      >
-                        <div>
-                          <a-icon :type="aiCandidateValidationPassed ? 'check-circle' : 'exclamation-circle'" />
-                          <span>{{ aiCandidateValidationPassed ? aiWorkspaceText.candidateValid : aiWorkspaceText.candidateNeedsReview }}</span>
-                        </div>
-                        <div class="strategy-ai-candidate__actions">
-                          <a-button size="small" @click="previewStrategyAiCandidate"><a-icon type="eye" /> {{ aiWorkspaceText.preview }}</a-button>
-                          <a-button size="small" type="primary" :disabled="!aiCandidateValidationPassed" @click="applyStrategyAiCandidate"><a-icon type="check" /> {{ aiWorkspaceText.apply }}</a-button>
-                          <a-button size="small" type="link" @click="discardStrategyAiCandidate">{{ aiWorkspaceText.discard }}</a-button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div v-if="aiStrategyGenerating" class="strategy-ai-message strategy-ai-message--assistant strategy-ai-message--thinking">
-                      <div class="strategy-ai-message__role">AI</div>
-                      <div class="strategy-ai-message__content"><a-icon type="loading" spin /> {{ aiWorkspaceText.thinking }}</div>
-                    </div>
-                  </div>
-
-                  <div class="strategy-ai-composer">
-                    <a-textarea
-                      ref="strategyAiPrompt"
-                      v-model="aiStrategyPrompt"
-                      :rows="2"
-                      :placeholder="aiWorkspaceText.placeholder"
-                      :disabled="aiStrategyGenerating || scriptCodeHidden"
-                      @input="aiInteractionMode = 'auto'"
-                      @pressEnter="handleStrategyAiEnter"
-                    />
-                    <div class="strategy-ai-composer__footer">
-                      <span>{{ aiWorkspaceText.shortcut }}</span>
-                      <a-button
-                        type="primary"
-                        class="strategy-ai-send"
-                        :loading="aiStrategyGenerating"
-                        :disabled="!String(aiStrategyPrompt || '').trim() || scriptCodeHidden"
-                        @click="sendStrategyAiTurn"
-                      >{{ aiWorkspaceText.send }}</a-button>
-                    </div>
-                  </div>
-                </template>
-              </div>
-            </div>
-          </template>
-
         </strategy-editor>
       </section>
+    </div>
+
+    <button
+      v-show="!aiPanelExpanded"
+      ref="strategyAiLauncher"
+      class="strategy-ai-launcher"
+      type="button"
+      aria-haspopup="dialog"
+      aria-controls="strategy-ai-dialog"
+      :aria-busy="aiStrategyGenerating ? 'true' : 'false'"
+      :aria-expanded="aiPanelExpanded ? 'true' : 'false'"
+      @click="toggleStrategyAiPanel"
+    >
+      <a-icon v-if="aiStrategyGenerating" type="loading" spin />
+      <QuantCatIcon v-else />
+      <span>{{ aiWorkspaceText.title }}</span>
+    </button>
+
+    <div
+      v-show="aiPanelExpanded"
+      id="strategy-ai-dialog"
+      ref="strategyAiDialog"
+      role="dialog"
+      tabindex="-1"
+      :aria-label="aiWorkspaceText.title"
+      class="strategy-ai-workspace strategy-ai-floating"
+      @keydown.esc.stop="closeStrategyAiPanel"
+    >
+      <div class="strategy-ai-header">
+        <div class="strategy-ai-header__title">
+          <a-icon type="code" />
+          <strong>{{ aiWorkspaceText.title }}</strong>
+          <span class="strategy-ai-contract-badge">
+            {{ currentAssetType === 'portfolio_strategy' ? aiWorkspaceText.portfolioContract : aiWorkspaceText.ctaContract }}
+          </span>
+          <span class="strategy-ai-memory-badge">
+            <a-icon :type="scriptCodeHidden ? 'lock' : (currentSourceId ? 'link' : 'clock-circle')" />
+            {{ scriptCodeHidden ? aiWorkspaceText.hiddenSourceBadge : (currentSourceId ? aiWorkspaceText.memoryActive : aiWorkspaceText.temporaryMemory) }}
+          </span>
+        </div>
+        <div class="strategy-ai-header__actions">
+          <a-button
+            v-if="!scriptCodeHidden && currentSourceId && (aiMessages.length || aiCandidate)"
+            type="link"
+            size="small"
+            :disabled="aiStrategyGenerating"
+            @click.stop="clearStrategyAiConversation"
+          >{{ aiWorkspaceText.clear }}</a-button>
+          <a-button
+            size="small"
+            class="strategy-ai-close"
+            :title="$t('common.close')"
+            :aria-label="$t('common.close')"
+            @click="closeStrategyAiPanel"
+          ><a-icon type="close" /></a-button>
+        </div>
+      </div>
+
+      <div v-show="aiPanelExpanded" class="strategy-ai-body">
+        <div v-if="scriptCodeHidden" class="strategy-ai-locked">
+          <a-icon type="lock" />
+          <strong>{{ aiWorkspaceText.hiddenSourceTitle }}</strong>
+          <span>{{ aiWorkspaceText.hiddenSourceUnavailable }}</span>
+        </div>
+        <template v-else>
+          <div ref="strategyAiConversation" class="strategy-ai-conversation">
+            <div v-if="aiWorkspaceLoading" class="strategy-ai-empty">
+              <a-icon type="loading" spin />
+              <span>{{ aiWorkspaceText.loading }}</span>
+            </div>
+            <div v-else-if="!displayedAiMessages.length" class="strategy-ai-empty">
+              <a-icon type="code" />
+              <strong>{{ aiWorkspaceText.emptyTitle }}</strong>
+              <div class="strategy-ai-quick-prompts">
+                <button
+                  v-for="item in aiStrategyQuickPrompts"
+                  :key="item.label"
+                  type="button"
+                  @click="useStrategyAiQuickPrompt(item)"
+                >{{ item.label }}</button>
+              </div>
+            </div>
+
+            <div
+              v-for="messageItem in displayedAiMessages"
+              :key="messageItem.localId || messageItem.id"
+              :class="[
+                'strategy-ai-message',
+                `strategy-ai-message--${messageItem.role || 'assistant'}`,
+                { 'strategy-ai-message--error': messageItem.message_type === 'error' }
+              ]"
+            >
+              <div class="strategy-ai-message__role">
+                {{ messageItem.role === 'user' ? aiWorkspaceText.you : 'AI' }}
+                <span
+                  v-if="messageItem.role !== 'user'"
+                  class="strategy-ai-message__badge"
+                  :class="{ 'strategy-ai-message__badge--error': messageItem.message_type === 'error' }"
+                >
+                  {{ messageItem.message_type === 'candidate' ? aiWorkspaceText.candidateBadge : (messageItem.message_type === 'error' ? aiWorkspaceText.errorBadge : aiWorkspaceText.discussionBadge) }}
+                </span>
+              </div>
+              <div class="strategy-ai-message__content" v-html="renderStrategyAiMessage(messageItem)" />
+              <div
+                v-if="isActiveStrategyCandidateMessage(messageItem)"
+                class="strategy-ai-candidate"
+                :class="{ 'strategy-ai-candidate--warning': !aiCandidateValidationPassed }"
+              >
+                <div>
+                  <a-icon :type="aiCandidateValidationPassed ? 'check-circle' : 'exclamation-circle'" />
+                  <span>{{ aiCandidateValidationPassed ? aiWorkspaceText.candidateValid : aiWorkspaceText.candidateNeedsReview }}</span>
+                </div>
+                <div class="strategy-ai-candidate__actions">
+                  <a-button size="small" @click="previewStrategyAiCandidate"><a-icon type="eye" /> {{ aiWorkspaceText.preview }}</a-button>
+                  <a-button size="small" type="primary" :disabled="!aiCandidateValidationPassed" @click="applyStrategyAiCandidate"><a-icon type="check" /> {{ aiWorkspaceText.apply }}</a-button>
+                  <a-button size="small" type="link" @click="discardStrategyAiCandidate">{{ aiWorkspaceText.discard }}</a-button>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="aiStrategyGenerating" class="strategy-ai-message strategy-ai-message--assistant strategy-ai-message--thinking">
+              <div class="strategy-ai-message__role">AI</div>
+              <div class="strategy-ai-message__content"><a-icon type="loading" spin /> {{ aiWorkspaceText.thinking }}</div>
+            </div>
+          </div>
+
+          <div class="strategy-ai-composer">
+            <a-textarea
+              ref="strategyAiPrompt"
+              v-model="aiStrategyPrompt"
+              :rows="2"
+              :placeholder="aiWorkspaceText.placeholder"
+              :disabled="aiStrategyGenerating || scriptCodeHidden"
+              @input="aiInteractionMode = 'auto'"
+              @pressEnter="handleStrategyAiEnter"
+            />
+            <div class="strategy-ai-composer__footer">
+              <span>{{ aiWorkspaceText.shortcut }}</span>
+              <a-button
+                type="primary"
+                class="strategy-ai-send"
+                :loading="aiStrategyGenerating"
+                :disabled="!String(aiStrategyPrompt || '').trim() || scriptCodeHidden"
+                @click="sendStrategyAiTurn"
+              >{{ aiWorkspaceText.send }}</a-button>
+            </div>
+          </div>
+        </template>
+      </div>
     </div>
 
     <a-modal
@@ -680,6 +705,7 @@ import UniverseLibraryModal from './UniverseLibraryModal.vue'
 import ExecutorStrategies from '@/views/executor-strategies'
 import IndicatorMarketPicker from '@/views/indicator-ide/components/IndicatorMarketPicker.vue'
 import AddWatchlistModal from '@/components/Watchlist/AddWatchlistModal.vue'
+import QuantCatIcon from '@/components/QuantCatIcon.vue'
 import { resolveIndicatorStrategyContext } from '@/utils/indicatorStrategyContext'
 import { renderSafeMarkdown } from '@/utils/safeMarkdown'
 import { applyExactCodeEdits, candidateCodeEditOperations } from '@/utils/codeEdits'
@@ -734,6 +760,7 @@ export default {
   name: 'StrategyIde',
   components: {
     StrategyEditor,
+    QuantCatIcon,
     FactorLibraryModal,
     UniverseLibraryModal,
     ExecutorStrategies,
@@ -782,7 +809,7 @@ export default {
       showUniverseLibrary: false,
       showRobotBuilder: false,
       strategyMarketVisible: false,
-      aiPanelExpanded: true,
+      aiPanelExpanded: false,
       aiWorkspaceLoading: false,
       aiWorkspaceLoadToken: 0,
       aiThread: null,
@@ -1450,10 +1477,17 @@ export default {
         this.$nextTick(() => {
           this.scrollStrategyAiConversation()
           const input = this.$refs.strategyAiPrompt && this.$refs.strategyAiPrompt.$el
-          const textarea = input && input.querySelector('textarea')
+          const textarea = input && (input.tagName === 'TEXTAREA' ? input : input.querySelector('textarea'))
           if (textarea) textarea.focus()
+          else if (this.$refs.strategyAiDialog) this.$refs.strategyAiDialog.focus()
         })
       }
+    },
+    closeStrategyAiPanel () {
+      this.aiPanelExpanded = false
+      this.$nextTick(() => {
+        if (this.$refs.strategyAiLauncher) this.$refs.strategyAiLauncher.focus()
+      })
     },
     resetStrategyAiWorkspace () {
       this.aiWorkspaceLoadToken += 1
@@ -1599,7 +1633,6 @@ export default {
           const autoApplied = await this.autoApplyStrategyAiCandidate()
           if (!autoApplied) this.$message.success(this.aiWorkspaceText.candidateReady)
         }
-        this.aiPanelExpanded = true
         this.$nextTick(this.scrollStrategyAiConversation)
       } catch (e) {
         const message = this.localizeStrategyAiError(e)
@@ -1976,7 +2009,7 @@ export default {
       this.aiPanelExpanded = true
       this.$nextTick(() => {
         const input = this.$refs.strategyAiPrompt && this.$refs.strategyAiPrompt.$el
-        const textarea = input && input.querySelector('textarea')
+        const textarea = input && (input.tagName === 'TEXTAREA' ? input : input.querySelector('textarea'))
         if (textarea) textarea.focus()
       })
     },
@@ -3060,12 +3093,12 @@ export default {
 }
 
 .script-panel ::v-deep .editor-layout--split {
-  grid-template-columns: minmax(260px, 17%) minmax(620px, 1fr) minmax(300px, 24%);
+  grid-template-columns: minmax(260px, 20%) minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
 }
 
 .script-panel ::v-deep .editor-layout--split.editor-layout--split-no-params {
-  grid-template-columns: minmax(620px, 1fr) minmax(300px, 24%);
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .script-panel ::v-deep .editor-layout--split-no-params .code-col {
@@ -3887,13 +3920,19 @@ export default {
 }
 
 .script-panel ::v-deep .runtime-setup__head {
+  align-items: center;
   margin-bottom: 12px;
 }
 
-.script-panel ::v-deep .runtime-setup__head strong {
+.script-panel ::v-deep .runtime-setup__head strong,
+.script-panel ::v-deep .params-toolbar .panel-intro__title {
+  min-height: 22px;
   color: var(--strategy-text-primary);
+  font-family: inherit;
   font-size: var(--strategy-font-title);
   font-weight: 600;
+  line-height: 22px;
+  letter-spacing: normal;
 }
 
 .script-panel ::v-deep .runtime-market-badge {
@@ -3912,10 +3951,14 @@ export default {
   gap: 4px;
 }
 
-.script-panel ::v-deep .runtime-field > span {
+.script-panel ::v-deep .runtime-field > span,
+.script-panel ::v-deep .param-item__label {
   color: var(--strategy-text-secondary);
-  font-size: var(--strategy-font-meta);
+  font-family: inherit;
+  font-size: var(--strategy-font-body);
   font-weight: 500;
+  line-height: 18px;
+  letter-spacing: normal;
 }
 
 .script-panel ::v-deep .runtime-field .ant-select-selection,
@@ -3952,18 +3995,13 @@ export default {
   background: var(--strategy-surface-raised);
 }
 
-.script-panel ::v-deep .params-toolbar .panel-intro__title,
-.script-panel ::v-deep .param-item__label {
-  color: var(--strategy-text-primary);
-  font-size: var(--strategy-font-body);
-  font-weight: 600;
-}
-
 .script-panel ::v-deep .params-toolbar .panel-intro__desc,
 .script-panel ::v-deep .param-item__desc,
 .script-panel ::v-deep .param-item__type {
   color: var(--strategy-text-muted);
+  font-family: inherit;
   font-size: var(--strategy-font-meta);
+  font-weight: 400;
   line-height: 1.5;
 }
 
@@ -4036,12 +4074,12 @@ export default {
   }
 
   .script-panel ::v-deep .editor-layout--split {
-    grid-template-columns: minmax(250px, 27%) minmax(480px, 1fr);
-    grid-template-rows: minmax(420px, 1fr) minmax(320px, auto);
+    grid-template-columns: minmax(250px, 27%) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
   }
 
   .script-panel ::v-deep .editor-layout--split.editor-layout--split-no-params {
-    grid-template-columns: minmax(480px, 1fr) minmax(320px, 36%);
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: minmax(420px, 1fr);
   }
 
@@ -4108,6 +4146,101 @@ export default {
   .script-panel ::v-deep .editor-layout--split .strategy-ai-workspace-host--primary { grid-row: 3; }
   .script-panel ::v-deep .editor-layout--split-no-params .code-col { grid-row: 1; }
   .script-panel ::v-deep .editor-layout--split-no-params .strategy-ai-workspace-host--primary { grid-row: 2; }
+}
+
+.strategy-ide-shell .strategy-ai-header__title > .anticon { color: var(--ide-text-secondary, #7d899b); }
+.strategy-ide-shell .strategy-ai-empty > .anticon { font-size: 24px; color: var(--ide-text-muted, #7d899b); }
+.strategy-ide-shell .strategy-ai-empty strong { font-size: 14px; font-weight: 500; }
+.strategy-ide-shell .strategy-ai-empty > span { font-size: 12px; line-height: 1.65; }
+.strategy-ide-shell .strategy-ai-quick-prompts button {
+  font-size: 12px;
+  font-weight: 400;
+  border-radius: 6px;
+  border: 1px solid rgba(127, 127, 127, 0.28);
+  &:hover { border-color: rgba(127, 127, 127, 0.55); }
+}
+.strategy-ide-shell .strategy-ai-conversation,
+.strategy-ide-shell .strategy-ai-composer { border-radius: 6px; }
+.strategy-ide-shell .strategy-ai-composer ::v-deep textarea.ant-input {
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+.strategy-ide-shell .strategy-ai-send { font-weight: 500; border-radius: 6px; }
+
+.strategy-ide-shell .strategy-ai-floating {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 100;
+  width: min(460px, calc(100vw - 32px));
+  height: min(680px, calc(100vh - 112px));
+  height: min(680px, calc(100dvh - 112px));
+  min-height: 0;
+  border: 1px solid var(--strategy-border, #dce3ec);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  .strategy-ai-header { cursor: default; flex: 0 0 auto; }
+  .strategy-ai-header__title { flex-wrap: wrap; }
+  .strategy-ai-header__actions { flex-shrink: 0; }
+  .strategy-ai-empty { gap: 16px; padding: 24px 8px; }
+  .strategy-ai-empty > .anticon { font-size: 28px; }
+  .strategy-ai-empty strong { font-size: 15px; line-height: 1.6; }
+  .strategy-ai-quick-prompts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 8px;
+  }
+  .strategy-ai-quick-prompts button {
+    min-height: 52px;
+    padding: 12px;
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .strategy-ai-close { color: inherit; background: transparent; border: 0; box-shadow: none; }
+}
+.strategy-ide-shell .strategy-ai-launcher {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 100;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 8px 14px;
+  border: 1px solid var(--primary-color, #3154e8);
+  border-radius: 21px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(0, 0, 0, 0.05)), var(--primary-color, #3154e8);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.14),
+    0 3px 0 color-mix(in srgb, var(--primary-color, #3154e8) 75%, #000),
+    0 8px 18px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  font: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+  > .anticon { font-size: 18px; }
+  cursor: pointer;
+  &:hover { transform: translateY(-1px); }
+  &:active {
+    transform: translateY(2px);
+    box-shadow:
+      inset 0 1px 3px rgba(0, 0, 0, 0.16),
+      0 1px 0 color-mix(in srgb, var(--primary-color, #3154e8) 75%, #000),
+      0 3px 8px rgba(0, 0, 0, 0.16);
+  }
+  @media (prefers-reduced-motion: reduce) { transition: none; }
+  &:focus-visible { outline: 2px solid var(--primary-color, #3154e8); outline-offset: 3px; }
+}
+@media (max-width: 480px) {
+  .strategy-ide-shell .strategy-ai-floating { right: 12px; bottom: 12px; width: calc(100vw - 24px); height: calc(100dvh - 88px); }
+  .strategy-ide-shell .strategy-ai-launcher { right: 16px; bottom: 16px; }
 }
 </style>
 

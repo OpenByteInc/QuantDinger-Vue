@@ -3,6 +3,7 @@
     <a-drawer
       v-if="visible"
       :width="drawerWidth"
+      :title="$t('app.setting.tooltip')"
       placement="right"
       @close="onClose"
       :closable="true"
@@ -14,7 +15,6 @@
 
         <section class="setting-section">
           <div class="setting-section__heading">
-            <span class="setting-section__icon"><a-icon type="layout" /></span>
             <h3 class="setting-drawer-index-title">{{ $t('app.setting.pagestyle') }}</h3>
           </div>
 
@@ -28,9 +28,14 @@
                 class="setting-drawer-index-item"
                 :class="{ 'setting-drawer-index-item--active': isDarkNavTheme }"
                 :aria-label="$t('app.setting.pagestyle.dark')"
+                :aria-pressed="isDarkNavTheme"
                 @click="handleMenuTheme('realdark')"
               >
-                <img src="https://gw.alipayobjects.com/zos/rmsportal/LCkqqYNmvBEbokSDscrm.svg" alt="dark" />
+                <span class="appearance-preview appearance-preview--dark" aria-hidden="true">
+                  <span class="appearance-preview__sidebar"></span>
+                  <span class="appearance-preview__toolbar"></span>
+                  <span class="appearance-preview__chart"></span>
+                </span>
                 <span>{{ $t('app.setting.pagestyle.dark') }}</span>
                 <div class="setting-drawer-index-selectIcon" v-if="isDarkNavTheme">
                   <a-icon type="check"/>
@@ -47,9 +52,14 @@
                 class="setting-drawer-index-item"
                 :class="{ 'setting-drawer-index-item--active': currentNavTheme === 'light' }"
                 :aria-label="$t('app.setting.pagestyle.light')"
+                :aria-pressed="currentNavTheme === 'light'"
                 @click="handleMenuTheme('light')"
               >
-                <img src="https://gw.alipayobjects.com/zos/rmsportal/jpRkZQMyYRryryPNtyIC.svg" alt="light" />
+                <span class="appearance-preview appearance-preview--light" aria-hidden="true">
+                  <span class="appearance-preview__sidebar"></span>
+                  <span class="appearance-preview__toolbar"></span>
+                  <span class="appearance-preview__chart"></span>
+                </span>
                 <span>{{ $t('app.setting.pagestyle.light') }}</span>
                 <div class="setting-drawer-index-selectIcon" v-if="currentNavTheme === 'light'">
                   <a-icon type="check"/>
@@ -62,7 +72,6 @@
         <!-- Theme color selector controls app-level accent styles. -->
         <section class="setting-section">
           <div class="setting-section__heading">
-            <span class="setting-section__icon"><a-icon type="bg-colors" /></span>
             <h3 class="setting-drawer-index-title">{{ $t('app.setting.themecolor') }}</h3>
           </div>
 
@@ -75,7 +84,9 @@
                 type="button"
                 class="setting-drawer-theme-color-swatch"
                 :class="{ 'setting-drawer-theme-color-swatch--active': item.color === currentPrimaryColor }"
-                :style="{ backgroundColor: item.color }"
+                :style="{ '--swatch-color': item.color }"
+                :aria-label="item.key"
+                :aria-pressed="item.color === currentPrimaryColor"
                 @click="changeColor(item.color)"
               >
                 <a-icon type="check" v-if="item.color === currentPrimaryColor"></a-icon>
@@ -156,19 +167,18 @@
         </div>
         <section class="setting-section setting-section--compact">
           <div class="setting-section__heading">
-            <span class="setting-section__icon"><a-icon type="sliders" /></span>
             <h3 class="setting-drawer-index-title">{{ $t('app.setting.othersettings') }}</h3>
           </div>
           <div>
             <a-list :split="false">
               <a-list-item>
-                <a-switch slot="actions" size="small" :defaultChecked="currentColorWeak" @change="onColorWeak" />
+                <a-switch slot="actions" size="small" :aria-label="$t('app.setting.weakmode')" :checked="currentColorWeak" @change="onColorWeak" />
                 <a-list-item-meta>
                   <div slot="title">{{ $t('app.setting.weakmode') }}</div>
                 </a-list-item-meta>
               </a-list-item>
               <a-list-item>
-                <a-switch slot="actions" size="small" :defaultChecked="currentMultiTab" @change="onMultiTab" />
+                <a-switch slot="actions" size="small" :aria-label="$t('app.setting.multitab')" :checked="currentMultiTab" @change="onMultiTab" />
                 <a-list-item-meta>
                   <div slot="title">{{ $t('app.setting.multitab') }}</div>
                 </a-list-item-meta>
@@ -239,7 +249,7 @@ export default {
       return this.isDarkNavTheme
     },
     drawerWidth () {
-      return this.isMobile ? '100%' : 420
+      return this.isMobile ? '100%' : 380
     },
     isDarkNavTheme () {
       return this.currentNavTheme === 'dark' || this.currentNavTheme === 'realdark'
@@ -350,458 +360,212 @@ export default {
 }
 </script>
 
-<style lang="less" scoped>
-  :deep(.ant-drawer-handle),
-  :deep(.setting-drawer-index-handle) {
-    display: none !important;
+<style lang="less">
+.setting-drawer {
+  --setting-drawer-bg: #ffffff;
+  --setting-drawer-panel: #f5f5f5;
+  --setting-drawer-border: #e8e8e8;
+  --setting-drawer-text: #262626;
+  --setting-drawer-muted: #737373;
+
+  &.setting-drawer--dark {
+    --setting-drawer-bg: #080808;
+    --setting-drawer-panel: #111111;
+    --setting-drawer-border: #292929;
+    --setting-drawer-text: #e6e6e6;
+    --setting-drawer-muted: #a3a3a3;
   }
 
-  :deep(.ant-drawer-content),
-  :deep(.ant-drawer-wrapper-body),
-  :deep(.ant-drawer-body) {
-    color: #1f2937;
-    background: #f5f6f8;
+  .ant-drawer-content,
+  .ant-drawer-header,
+  .ant-drawer-body {
+    background: var(--setting-drawer-bg) !important;
+    color: var(--setting-drawer-text);
   }
 
-  :deep(.ant-drawer-body) {
-    padding: 20px 18px 28px !important;
+  .ant-drawer-header {
+    padding: 20px 56px 20px 24px;
+    border-bottom: 1px solid var(--setting-drawer-border);
+    border-radius: 0;
   }
 
-  :deep(.ant-drawer-close) {
-    top: 14px;
-    right: 14px;
+  .ant-drawer-title {
+    color: var(--setting-drawer-text) !important;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 24px;
+  }
+
+  .ant-drawer-close {
+    top: 12px;
+    right: 12px;
+    width: 40px;
+    height: 40px;
+    color: var(--setting-drawer-muted);
+    line-height: 40px;
+    border-radius: 4px;
+
+    &:hover { background: var(--setting-drawer-panel); }
+  }
+
+  .ant-drawer-body { padding: 0 24px 24px !important; }
+  .ant-drawer-handle,
+  .setting-drawer-index-handle { display: none !important; }
+
+  .setting-section {
+    padding: 24px 0;
+    border-bottom: 1px solid var(--setting-drawer-border);
+  }
+
+  .setting-drawer-index-title {
+    margin: 0 0 16px;
+    color: var(--setting-drawer-text) !important;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 20px;
+  }
+
+  .setting-drawer-index-blockChecbox {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .setting-drawer-index-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    min-width: 0;
+    padding: 8px;
+    color: var(--setting-drawer-muted);
+    background: transparent;
+    border: 1px solid var(--setting-drawer-border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: border-color 0.16s ease;
+
+    > span:not(.appearance-preview) {
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 20px;
+      white-space: nowrap;
+      text-align: left;
+    }
+
+    &:hover,
+    &--active { border-color: var(--primary-color); }
+    &--active { color: var(--setting-drawer-text); }
+  }
+
+  .appearance-preview {
+    position: relative;
+    display: block;
+    height: 68px;
+    overflow: hidden;
+    background: #f4f4f4;
+    border: 1px solid #e0e0e0;
+    border-radius: 3px;
+
+    &__sidebar {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 22%;
+      background: #e7e7e7;
+      border-right: 1px solid #d9d9d9;
+    }
+    &__toolbar {
+      position: absolute;
+      inset: 0 0 auto 22%;
+      height: 12px;
+      background: #fff;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    &__chart {
+      position: absolute;
+      inset: 24px 10px 10px 32%;
+      background: var(--primary-color);
+      opacity: 0.7;
+      clip-path: polygon(0 78%, 19% 56%, 36% 65%, 57% 28%, 75% 39%, 100% 0, 100% 8%, 75% 47%, 57% 36%, 36% 73%, 19% 64%, 0 86%);
+    }
+    &--dark {
+      background: #171717;
+      border-color: #353535;
+      .appearance-preview__sidebar { background: #222; border-color: #353535; }
+      .appearance-preview__toolbar { background: #292929; border-color: #353535; }
+    }
+  }
+
+  .setting-drawer-index-selectIcon {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    color: var(--primary-color);
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  .setting-drawer-theme-color-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .setting-drawer-theme-color-swatch {
+    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     width: 32px;
     height: 32px;
     padding: 0;
-    color: #64748b;
-    background: rgba(15, 23, 42, 0.05);
-    border-radius: 9px;
-
-    &:hover {
-      color: var(--primary-color, #1890ff);
-      background: color-mix(in srgb, var(--primary-color, #1890ff) 9%, #fff);
-    }
-  }
-
-  .setting-drawer-index-content {
-    display: grid;
-    gap: 16px;
-    padding-top: 4px;
-  }
-
-  .setting-section {
-    padding: 16px;
-    background: #fff;
-    border: 1px solid #e6e9ee;
-    border-radius: 12px;
-    box-shadow: 0 5px 18px rgba(15, 23, 42, 0.045);
-  }
-
-  .setting-section__heading {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    min-height: 30px;
-    margin-bottom: 14px;
-    padding-right: 34px;
-  }
-
-  .setting-section__icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    flex: 0 0 28px;
-    color: var(--primary-color, #1890ff);
-    background: color-mix(in srgb, var(--primary-color, #1890ff) 10%, #fff);
-    border-radius: 8px;
-  }
-
-  .setting-drawer-index-title {
-    margin: 0;
-    color: #1f2937;
-    font-size: 14px;
-    font-weight: 700;
-    line-height: 1.4;
-  }
-
-  .setting-drawer-index-blockChecbox {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-  }
-
-  .setting-drawer-index-item {
-    position: relative;
-    display: grid;
-    grid-template-columns: 58px minmax(0, 1fr);
-    align-items: center;
-    gap: 9px;
-    min-width: 0;
-    min-height: 72px;
-    padding: 10px;
-    color: #64748b;
-    font: inherit;
-    font-size: 12px;
-    line-height: 1.35;
-    text-align: left;
-    background: #f8fafc;
-    border: 1px solid #e5e9ef;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
-
-    &:hover {
-      border-color: color-mix(in srgb, var(--primary-color, #1890ff) 38%, #dce2ea);
-      transform: translateY(-1px);
-    }
-
-    &--active {
-      color: #1f2937;
-      background: color-mix(in srgb, var(--primary-color, #1890ff) 6%, #fff);
-      border-color: color-mix(in srgb, var(--primary-color, #1890ff) 52%, #dce2ea);
-      box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color, #1890ff) 10%, transparent);
-    }
-
-    img {
-      width: 58px;
-      height: 44px;
-      object-fit: cover;
-      border-radius: 6px;
-    }
-
-    > span {
-      min-width: 0;
-      font-weight: 600;
-      white-space: nowrap;
-    }
-  }
-
-  .setting-drawer-index-selectIcon {
-    position: absolute;
-    top: 7px;
-    right: 7px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 18px;
-    height: 18px;
     color: #fff;
-    font-size: 10px;
-    background: var(--primary-color, #1890ff);
-    border: 2px solid #fff;
+    background: transparent;
+    border: 1px solid transparent;
     border-radius: 50%;
-    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.2);
-  }
-
-  .setting-drawer-theme-color-list {
-    display: grid;
-    grid-template-columns: repeat(8, minmax(0, 1fr));
-    align-items: center;
-    gap: 8px;
-  }
-
-  .setting-drawer-theme-color-colorBlock {
-    display: inline-flex;
-    justify-content: center;
-  }
-
-  .setting-drawer-theme-color-swatch {
-    position: relative;
-    width: 28px;
-    height: 28px;
-    padding: 0;
-    color: #fff;
-    font-weight: 700;
-    line-height: 26px;
-    text-align: center;
-    border: 2px solid transparent;
-    border-radius: 8px;
-    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.14);
     cursor: pointer;
-    transition: transform 0.16s ease, box-shadow 0.16s ease;
 
-    &:hover {
-      transform: translateY(-2px) scale(1.04);
-      box-shadow: 0 6px 14px rgba(15, 23, 42, 0.18);
+    &::before {
+      position: absolute;
+      inset: 3px;
+      background: var(--swatch-color);
+      border-radius: 50%;
+      content: '';
     }
+    .anticon { position: relative; font-size: 12px; }
+    &:hover { border-color: var(--setting-drawer-muted); }
+    &--active { border-color: var(--swatch-color); }
+  }
 
-    &--active {
-      border-color: #fff;
-      box-shadow: 0 0 0 2px currentColor, 0 5px 12px rgba(15, 23, 42, 0.2);
-    }
-
-    i {
-      font-size: 13px;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
-    }
+  button:focus-visible,
+  a:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 3px;
   }
 
   .setting-section--compact {
-    :deep(.ant-list-item) {
-      min-height: 42px;
-      padding: 10px 11px;
-      background: #f8fafc;
-      border: 1px solid #e8ebf0;
-    }
-
-    :deep(.ant-list-item:first-child) {
-      border-radius: 9px 9px 0 0;
-    }
-
-    :deep(.ant-list-item:last-child) {
-      margin-top: -1px;
-      border-radius: 0 0 9px 9px;
-    }
-
-    :deep(.ant-list-item-meta-title) {
+    .setting-drawer-index-title { margin-bottom: 8px; }
+    .ant-list-item { min-height: 44px; padding: 10px 0; }
+    .ant-list-item-meta-title {
       margin: 0;
-      color: #475569;
-      font-size: 12px;
+      color: var(--setting-drawer-text) !important;
+      font-size: 14px;
+      font-weight: 400;
+      line-height: 24px;
     }
+    .ant-switch:not(.ant-switch-checked) {
+      background: var(--setting-drawer-muted) !important;
+    }
+    .ant-list-item-action { margin-left: 16px; }
+    .ant-list-item-action > li { padding: 0; }
   }
-
-  &.setting-drawer--dark {
-    :deep(.ant-drawer-content),
-    :deep(.ant-drawer-wrapper-body),
-    :deep(.ant-drawer-body) {
-      background: #080808 !important;
-      color: rgba(226, 232, 240, 0.86) !important;
-    }
+}
+@media (max-width: 767px) {
+  .setting-drawer .ant-drawer-content-wrapper { max-width: 100vw !important; }
+  .setting-drawer .setting-drawer-theme-color-list { gap: 4px; }
+  .basic-layout-wrapper:has(.setting-drawer .ant-drawer-open) > .mobile-menu-close {
+    display: none !important;
   }
-
-  body.dark &,
-  body.realdark &,
-  .basic-layout-wrapper.dark &,
-  .basic-layout-wrapper.realdark & {
-    :deep(.ant-drawer-content),
-    :deep(.ant-drawer-wrapper-body),
-    :deep(.ant-drawer-body) {
-      color: #e6e6e6 !important;
-      background: #080808 !important;
-    }
-
-    :deep(.ant-drawer-close) {
-      color: #a8a8a8 !important;
-      background: #171717;
-
-      &:hover {
-        color: var(--primary-color, #1890ff) !important;
-        background: color-mix(in srgb, var(--primary-color, #1890ff) 13%, #171717);
-      }
-    }
-
-    .setting-section {
-      background: #111;
-      border-color: #2d2d2d;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
-    }
-
-    .setting-section__icon {
-      background: color-mix(in srgb, var(--primary-color, #1890ff) 14%, #151515);
-    }
-
-    .setting-drawer-index-title {
-      color: #ededed;
-    }
-
-    .setting-drawer-index-item {
-      color: #a8a8a8;
-      background: #181818;
-      border-color: #303030;
-
-      &:hover {
-        border-color: color-mix(in srgb, var(--primary-color, #1890ff) 46%, #303030);
-      }
-
-      &--active {
-        color: #ededed;
-        background: color-mix(in srgb, var(--primary-color, #1890ff) 10%, #171717);
-        border-color: color-mix(in srgb, var(--primary-color, #1890ff) 58%, #303030);
-      }
-
-      img {
-        opacity: 0.92;
-      }
-    }
-
-    .setting-drawer-index-selectIcon {
-      border-color: #111;
-    }
-
-    .setting-drawer-theme-color-swatch {
-      box-shadow: 0 3px 9px rgba(0, 0, 0, 0.42);
-
-      &--active {
-        border-color: #111;
-      }
-    }
-
-    .setting-section--compact {
-      :deep(.ant-list-item) {
-        color: #b8b8b8 !important;
-        background: #181818;
-        border-color: #2d2d2d;
-      }
-
-      :deep(.ant-list-item-meta-title),
-      :deep(.ant-list-item-meta-title > div) {
-        color: #b8b8b8 !important;
-      }
-    }
-  }
-
-  @media (max-width: 520px) {
-    :deep(.ant-drawer-body) {
-      padding: 18px 14px 24px !important;
-    }
-
-    .setting-section {
-      padding: 14px;
-    }
-
-    .setting-drawer-index-item {
-      grid-template-columns: 50px minmax(0, 1fr);
-      min-height: 66px;
-      padding: 8px;
-
-      img {
-        width: 50px;
-        height: 38px;
-      }
-    }
-  }
-
-</style>
-
-<style lang="less">
-body.dark .setting-drawer,
-body.realdark .setting-drawer,
-.setting-drawer.setting-drawer--dark {
-  --setting-drawer-bg: #080808;
-  --setting-drawer-panel: #111111;
-  --setting-drawer-panel-soft: #181818;
-  --setting-drawer-border: #2d2d2d;
-  --setting-drawer-text: #e6e6e6;
-  --setting-drawer-muted: #a8a8a8;
-  --setting-drawer-subtle: #737373;
-}
-
-body.dark .setting-drawer .ant-drawer-content,
-body.dark .setting-drawer .ant-drawer-wrapper-body,
-body.dark .setting-drawer .ant-drawer-body,
-body.realdark .setting-drawer .ant-drawer-content,
-body.realdark .setting-drawer .ant-drawer-wrapper-body,
-body.realdark .setting-drawer .ant-drawer-body,
-.setting-drawer.setting-drawer--dark .ant-drawer-content,
-.setting-drawer.setting-drawer--dark .ant-drawer-wrapper-body,
-.setting-drawer.setting-drawer--dark .ant-drawer-body {
-  background: var(--setting-drawer-bg) !important;
-  color: var(--setting-drawer-text) !important;
-}
-
-body.dark .setting-drawer .ant-drawer-body,
-body.realdark .setting-drawer .ant-drawer-body,
-.setting-drawer.setting-drawer--dark .ant-drawer-body {
-  border-left: 1px solid var(--setting-drawer-border);
-}
-
-body.dark .setting-drawer .ant-drawer-close,
-body.realdark .setting-drawer .ant-drawer-close,
-.setting-drawer.setting-drawer--dark .ant-drawer-close {
-  color: var(--setting-drawer-muted) !important;
-}
-
-body.dark .setting-drawer .ant-drawer-close:hover,
-body.realdark .setting-drawer .ant-drawer-close:hover,
-.setting-drawer.setting-drawer--dark .ant-drawer-close:hover {
-  color: var(--primary-color, #1890ff) !important;
-}
-
-body.dark .setting-drawer .setting-drawer-index-title,
-body.realdark .setting-drawer .setting-drawer-index-title,
-.setting-drawer.setting-drawer--dark .setting-drawer-index-title {
-  color: var(--setting-drawer-text) !important;
-}
-
-body.dark .setting-drawer .ant-divider,
-body.realdark .setting-drawer .ant-divider,
-.setting-drawer.setting-drawer--dark .ant-divider {
-  background: var(--setting-drawer-border) !important;
-}
-
-body.dark .setting-drawer .ant-list-item,
-body.dark .setting-drawer .ant-list-item-meta-title,
-body.dark .setting-drawer .ant-list-item-meta-title > div,
-body.realdark .setting-drawer .ant-list-item,
-body.realdark .setting-drawer .ant-list-item-meta-title,
-body.realdark .setting-drawer .ant-list-item-meta-title > div,
-.setting-drawer.setting-drawer--dark .ant-list-item,
-.setting-drawer.setting-drawer--dark .ant-list-item-meta-title,
-.setting-drawer.setting-drawer--dark .ant-list-item-meta-title > div {
-  color: var(--setting-drawer-muted) !important;
-}
-
-body.dark .setting-drawer .setting-drawer-index-item,
-body.realdark .setting-drawer .setting-drawer-index-item,
-.setting-drawer.setting-drawer--dark .setting-drawer-index-item {
-  background: var(--setting-drawer-panel-soft);
-  box-shadow: inset 0 0 0 1px var(--setting-drawer-border);
-}
-
-body.dark .setting-drawer .setting-drawer-index-selectIcon,
-body.realdark .setting-drawer .setting-drawer-index-selectIcon,
-.setting-drawer.setting-drawer--dark .setting-drawer-index-selectIcon {
-  color: var(--primary-color, #1890ff) !important;
-}
-
-body.dark .setting-drawer .setting-drawer-theme-color-swatch,
-body.realdark .setting-drawer .setting-drawer-theme-color-swatch,
-.setting-drawer.setting-drawer--dark .setting-drawer-theme-color-swatch {
-  border-color: rgba(255, 255, 255, 0.16) !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
-}
-
-body.dark .setting-drawer .setting-drawer-support,
-body.realdark .setting-drawer .setting-drawer-support,
-.setting-drawer.setting-drawer--dark .setting-drawer-support {
-  border-top-color: var(--setting-drawer-border) !important;
-  color: var(--setting-drawer-muted) !important;
-}
-
-body.dark .setting-drawer .setting-drawer-support .support-title,
-body.realdark .setting-drawer .setting-drawer-support .support-title,
-.setting-drawer.setting-drawer--dark .setting-drawer-support .support-title {
-  color: var(--setting-drawer-text) !important;
-}
-
-body.dark .setting-drawer .setting-drawer-support a,
-body.realdark .setting-drawer .setting-drawer-support a,
-.setting-drawer.setting-drawer--dark .setting-drawer-support a {
-  color: var(--primary-color, #1890ff) !important;
-}
-
-body.dark .setting-drawer .setting-drawer-support .separator,
-body.dark .setting-drawer .setting-drawer-support .support-copy,
-body.dark .setting-drawer .setting-drawer-support .support-version,
-body.realdark .setting-drawer .setting-drawer-support .separator,
-body.realdark .setting-drawer .setting-drawer-support .support-copy,
-body.realdark .setting-drawer .setting-drawer-support .support-version,
-.setting-drawer.setting-drawer--dark .setting-drawer-support .separator,
-.setting-drawer.setting-drawer--dark .setting-drawer-support .support-copy,
-.setting-drawer.setting-drawer--dark .setting-drawer-support .support-version {
-  color: var(--setting-drawer-subtle) !important;
-}
-
-body.dark .setting-drawer .setting-drawer-support .support-social,
-body.realdark .setting-drawer .setting-drawer-support .support-social,
-.setting-drawer.setting-drawer--dark .setting-drawer-support .support-social {
-  background: var(--setting-drawer-panel);
-  border-color: var(--setting-drawer-border);
-  color: var(--setting-drawer-muted);
 }
 </style>

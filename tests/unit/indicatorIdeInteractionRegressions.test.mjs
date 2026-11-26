@@ -208,8 +208,8 @@ test('multi-chart layout keeps each chart instance scoped to its own container a
 })
 
 test('multi-chart layout uses one compact dropdown instead of three persistent toolbar buttons', () => {
-  assert.match(indicatorIdeSource, /<a-button\s+size="small"\s+class="ide-chart-layout-trigger"/)
-  assert.match(indicatorIdeSource, /class="ide-chart-layout-trigger"/)
+  assert.match(indicatorIdeSource, /<a-button\s+size="small"\s+class="chart-tool-button ide-chart-layout-trigger"/)
+  assert.match(indicatorIdeSource, /:aria-label="\$t\('indicatorIde.multiChart.layout'\)"/)
   assert.match(indicatorIdeSource, /class="ide-chart-layout-menu-item"/)
   assert.match(indicatorIdeSource, /@click="onChartLayoutMenuClick"/)
   assert.match(indicatorIdeSource, /\.ide-chart-layout-trigger\s*\{[\s\S]*?height:\s*30px !important;/)

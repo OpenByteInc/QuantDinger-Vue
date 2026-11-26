@@ -9,9 +9,15 @@ import strategyV2Messages from '../../src/locales/lang/strategy-v2.js'
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const read = relative => fs.readFileSync(path.join(root, relative), 'utf8')
 
-test('strategy AI collaboration is inline, candidate-first and available to both workspaces', () => {
+test('strategy AI collaboration floats independently and remains available to both workspaces', () => {
   const page = read('src/views/strategy-ide/index.vue')
-  assert.match(page, /<template #ai-workspace>/)
+  assert.doesNotMatch(page, /<template #ai-workspace>/)
+  assert.match(page, /role="dialog"/)
+  assert.match(page, /v-show="aiPanelExpanded"/)
+  assert.match(page, /v-show="!aiPanelExpanded"/)
+  assert.doesNotMatch(page, /<span>\{\{ currentAssetType === 'portfolio_strategy' \? aiWorkspaceText\.portfolioEmptyDesc/)
+  assert.match(page, /aiPanelExpanded: false/)
+  assert.match(page, /@keydown\.esc\.stop="closeStrategyAiPanel"/)
   assert.match(page, /currentAssetType === 'portfolio_strategy' \? aiWorkspaceText\.portfolioContract : aiWorkspaceText\.ctaContract/)
   assert.match(page, /runStrategyAiTurn/)
   assert.match(page, /previewStrategyAiCandidate/)
@@ -108,7 +114,7 @@ test('strategy toolbar typography keeps related actions in matching pairs', () =
   assert.match(page, /\.robot-template-button,\n\.factor-library-button,[\s\S]*font-weight: 700;/)
 })
 
-test('desktop strategy workspace uses full-height parameter, code, and AI columns', () => {
+test('strategy page keeps only configuration and code columns while the shared editor retains its optional AI slot', () => {
   const editor = read('src/views/strategy-ide/components/StrategyEditor.vue')
   const page = read('src/views/strategy-ide/index.vue')
   const aiColumn = editor.indexOf('strategy-ai-workspace-host--primary')
@@ -123,7 +129,7 @@ test('desktop strategy workspace uses full-height parameter, code, and AI column
   assert.match(editor, /\.editor-layout--split \.side-col \{[\s\S]*grid-column-start: 1;[\s\S]*height: 100%;/)
   assert.match(editor, /editor-layout--split-no-params/)
   assert.match(editor, /v-if="!isSplitSideMode \|\| hasStrategyConfiguration" class="side-col"/)
-  assert.match(page, /grid-template-columns: minmax\(260px, 17%\) minmax\(620px, 1fr\) minmax\(300px, 24%\)/)
+  assert.match(page, /grid-template-columns: minmax\(260px, 20%\) minmax\(0, 1fr\)/)
   assert.match(page, /editor-layout--split\.editor-layout--split-no-params/)
 })
 
@@ -215,4 +221,35 @@ test('indicator conversion displays the underlying localized validation failure'
   assert.equal(vm.indicatorConvertError, strategyV2Messages['zh-CN']['strategyV2.aiPersistentStateRequired'])
   assert.ok(vm.indicatorConvertError)
   assert.equal(vm.indicatorConvertLoading, false)
+})
+
+
+test('floating AI opens with focus and closing preserves draft and in-flight work', () => {
+  const page = read('src/views/strategy-ide/index.vue')
+  const openBody = page.split('    toggleStrategyAiPanel () {')[1].split('\n    closeStrategyAiPanel () {')[0].replace(/},\s*$/, '')
+  const closeBody = page.split('    closeStrategyAiPanel () {')[1].split('\n    resetStrategyAiWorkspace () {')[0].replace(/},\s*$/, '')
+  let inputFocused = false
+  let launcherFocused = false
+  const context = {
+    aiPanelExpanded: false,
+    aiStrategyPrompt: 'Keep this draft',
+    aiMessages: [{ role: 'user', content: 'Existing conversation' }],
+    aiStrategyGenerating: true,
+    scrollStrategyAiConversation () {},
+    $nextTick (callback) { callback() },
+    $refs: {
+      strategyAiPrompt: { $el: { tagName: 'TEXTAREA', focus () { inputFocused = true } } },
+      strategyAiLauncher: { focus () { launcherFocused = true } }
+    }
+  }
+  new Function(openBody).call(context)
+  assert.equal(context.aiPanelExpanded, true)
+  assert.equal(inputFocused, true)
+  new Function(closeBody).call(context)
+  assert.equal(context.aiPanelExpanded, false)
+  assert.equal(launcherFocused, true)
+  assert.equal(context.aiStrategyPrompt, 'Keep this draft')
+  assert.equal(context.aiMessages.length, 1)
+  assert.equal(context.aiStrategyGenerating, true)
+  assert.doesNotMatch(page, /this\.aiPanelExpanded = true\s*this\.\$nextTick\(this\.scrollStrategyAiConversation\)/)
 })

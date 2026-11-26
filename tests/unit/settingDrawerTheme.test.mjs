@@ -57,7 +57,8 @@ test('selected radio labels inherit their wrapper color for both solid and tinte
 
 test('dark setting drawer uses the app black surface from its own theme state', () => {
   assert.match(source, /:class="\{ 'setting-drawer--dark': isDarkDrawer \}"/)
-  assert.match(source, /&\.setting-drawer--dark \{[\s\S]*?background: #080808 !important;/)
+  assert.match(source, /&\.setting-drawer--dark \{[\s\S]*?--setting-drawer-bg: #080808;/)
+  assert.match(source, /background: var\(--setting-drawer-bg\) !important;/)
   assert.match(source, /--setting-drawer-bg: #080808;/)
   assert.match(source, /--setting-drawer-panel: #111111;/)
   assert.doesNotMatch(source, /--setting-drawer-bg: #11161c;/)
@@ -66,7 +67,7 @@ test('dark setting drawer uses the app black surface from its own theme state', 
 
 test('setting drawer uses a responsive desktop width and keeps page style labels on one line', () => {
   assert.match(source, /:width="drawerWidth"/)
-  assert.match(source, /drawerWidth \(\) \{\s*return this\.isMobile \? '100%' : 420\s*\}/)
-  assert.match(source, /> span \{[\s\S]*?font-weight: 600;[\s\S]*?white-space: nowrap;/)
-  assert.doesNotMatch(source, /> span \{[\s\S]*?text-overflow: ellipsis;/)
+  assert.match(source, /drawerWidth \(\) \{\s*return this\.isMobile \? '100%' : 380\s*\}/)
+  assert.match(source, /> span:not\(\.appearance-preview\) \{[\s\S]*?font-weight: 600;[\s\S]*?white-space: nowrap;/)
+  assert.doesNotMatch(source, /> span:not\(\.appearance-preview\) \{[\s\S]*?text-overflow: ellipsis;/)
 })

@@ -337,23 +337,6 @@
 
       <!-- Tab 2: System Strategy Overview (forceRender keeps pane mounted for programmatic filters) -->
       <a-tab-pane key="strategies" forceRender :tab="$t('systemOverview.tabTitle') || 'System Overview'">
-        <section class="strategy-contract-banner">
-          <div class="strategy-contract-copy">
-            <span class="strategy-contract-icon"><a-icon type="deployment-unit" /></span>
-            <div>
-              <div class="strategy-contract-title">{{ $t('systemOverview.contractTitle') }}</div>
-              <p>{{ $t('systemOverview.contractDesc') }}</p>
-            </div>
-          </div>
-          <div class="strategy-contract-status">
-            <a-tag color="green">Strategy API V2</a-tag>
-            <span>{{ $t('systemOverview.contractReady') }} <strong>{{ strategySummary ? strategySummary.contract_ready_strategies || 0 : 0 }}</strong></span>
-            <span v-if="strategySummary && strategySummary.legacy_strategies">
-              {{ $t('systemOverview.legacyRecords') }} <strong>{{ strategySummary.legacy_strategies }}</strong>
-            </span>
-          </div>
-        </section>
-
         <!-- Summary Cards -->
         <div class="summary-cards" v-if="strategySummary">
           <div class="summary-card">

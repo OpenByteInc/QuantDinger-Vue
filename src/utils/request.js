@@ -269,14 +269,6 @@ request.interceptors.request.use(config => {
     config.headers.Authorization = `Bearer ${token}`
     config.headers[ACCESS_TOKEN] = token
     config.headers.token = token
-  } else {
-    if (config.url && config.url.includes('/api/auth/info')) {
-      const rawToken = storage.get(ACCESS_TOKEN)
-      console.warn('Token missing for /api/auth/info request')
-      console.warn('Raw token from storage:', rawToken)
-      console.warn('Token type:', typeof rawToken)
-      console.warn('Token value:', rawToken)
-    }
   }
 
   config.headers['Cache-Control'] = 'no-cache'

@@ -95,6 +95,7 @@
             </span>
           </button>
         </div>
+        <advertisement-slot class="ba-advertisement" position="accounts" />
       </aside>
 
       <main class="ba-detail" :class="{ 'ba-detail--crypto': !selectedBroker }">
@@ -148,10 +149,11 @@ import BrokerPanel from './components/BrokerPanel.vue'
 import CryptoExchangeAccountsCard from './components/CryptoExchangeAccountsCard.vue'
 import ExchangeSignupModal from '@/components/ExchangeSignupModal/ExchangeSignupModal.vue'
 import ProviderLogo from '@/components/ProviderLogo/ProviderLogo.vue'
+import AdvertisementSlot from '@/components/AdvertisementSlot.vue'
 import { baseMixin } from '@/store/app-mixin'
 import { normalizeEnabledTradingVenues } from '@/utils/tradingVenueConfig'
 
-const ALL_TRADING_VENUE_IDS = ['alpaca', 'ibkr', 'tiger', 'webull', 'binance', 'okx', 'bybit', 'bitget', 'gate', 'htx']
+const ALL_TRADING_VENUE_IDS = ['alpaca', 'ibkr', 'tiger', 'webull', 'forthright', 'binance', 'okx', 'bybit', 'bitget', 'gate', 'htx']
 
 const CRYPTO_PROVIDERS = [
   { id: 'binance', name: 'Binance', color: '#f0b90b' },
@@ -164,7 +166,7 @@ const CRYPTO_PROVIDERS = [
 
 export default {
   name: 'BrokerAccounts',
-  components: { BrokerPanel, CryptoExchangeAccountsCard, ExchangeSignupModal, ProviderLogo },
+  components: { BrokerPanel, CryptoExchangeAccountsCard, ExchangeSignupModal, ProviderLogo, AdvertisementSlot },
   mixins: [baseMixin],
   data () {
     return {
@@ -380,6 +382,7 @@ export default {
         connected: !!payload.connected,
         accountId: payload.account_id || payload.account || payload.login || null,
         paper: payload.paper === true || payload.paper === 'true',
+        environment: payload.environment || '',
         baseUrl: payload.base_url || payload.baseUrl || '',
         host: payload.host || '',
         port: payload.port || null,

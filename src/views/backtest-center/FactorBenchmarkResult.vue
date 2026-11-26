@@ -74,12 +74,12 @@
     </div>
 
     <div class="analysis-grid">
-      <section class="analysis-card leader-card">
+      <section v-if="hasLeader" class="analysis-card leader-card">
         <div class="analysis-card__heading">
           <div><span class="section-icon"><a-icon type="trophy" /></span><strong>{{ $t('strategyV2.factorResearch.factorLeader') }}</strong></div>
           <span>{{ $t('strategyV2.factorResearch.factorLeaderHint') }}</span>
         </div>
-        <div v-if="hasLeader" class="leader-card__body">
+        <div class="leader-card__body">
           <div class="leader-score"><span>{{ number(topFactor.score, 1) }}</span><small>/ 100</small></div>
           <div class="leader-copy">
             <div class="leader-copy__title">
@@ -93,7 +93,6 @@
             </div>
           </div>
         </div>
-        <div v-else class="leader-empty"><a-icon type="warning" /><div><strong>{{ $t('strategyV2.factorResearch.noValidatedLeader') }}</strong><span>{{ $t('strategyV2.factorResearch.noValidatedLeaderHint') }}</span></div></div>
       </section>
 
       <section class="analysis-card validation-card">

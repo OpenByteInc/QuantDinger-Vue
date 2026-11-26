@@ -57,3 +57,7 @@ export function syncMarketCatalog () {
     method: 'post'
   })
 }
+
+export function getInstrumentCatalog (params) {
+  return request({ url: '/api/settings/instrument-catalog', method: 'get', params })
+}

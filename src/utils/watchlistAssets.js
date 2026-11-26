@@ -31,7 +31,7 @@ export function watchlistDisplayName (item) {
 export function watchlistContextLabel (item, translate, { includeName = true } = {}) {
   if (!item) return ''
   const types = Array.isArray(item.market_types) ? item.market_types : []
-  const typeLabels = types.map(type => translate('marketContext.' + type))
+  const typeLabels = item.market === 'Futures' ? [] : types.map(type => translate('marketContext.' + type))
   const product = String(item.product_type || '').toLowerCase()
   const productLabel = product && product !== 'crypto' ? translate('marketContext.product.' + product) : ''
   const symbol = String(item.symbol || '').trim()

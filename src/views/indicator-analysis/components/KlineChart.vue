@@ -3141,7 +3141,7 @@ registerOverlay({
         })
       } catch (err) {
         if (generation !== loadGeneration) return
-        error.value = proxy.$t('dashboard.indicator.error.loadDataFailed') + ': ' + (err.message || proxy.$t('dashboard.indicator.error.loadDataFailedDesc'))
+        error.value = proxy.$t('dashboard.indicator.error.loadDataFailed') + ': ' + (err.message ? proxy.$t(err.message) : proxy.$t('dashboard.indicator.error.loadDataFailedDesc'))
         klineData.value = []
         if (chartRef.value) {
           try {

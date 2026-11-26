@@ -37,7 +37,7 @@ test('live strategy direction is contract-driven with a legacy fallback', () => 
 
 test('live eligibility follows the manifest market instead of the strategy shape', () => {
   assert.match(source, /supportsLiveExecutionMode\(this\.strategyManifest\)/)
-  assert.match(source, /credentialMatchesLiveStrategy\(this\.strategyManifest, credential\.exchange_id\)/)
+  assert.match(source, /credentialMatchesLiveStrategy\(this\.strategyManifest, credential\.exchange_id, credential\.account_type\)/)
   assert.doesNotMatch(source, /if \(this\.isPortfolioStrategy\) return exchange === 'alpaca'/)
 })
 

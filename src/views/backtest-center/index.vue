@@ -1,12 +1,14 @@
 <template>
   <div class="backtest-page qd-workspace-page qd-page-frame" :class="{ 'theme-dark': isDarkTheme }" data-testid="backtest-center">
-    <section class="workspace-toolbar">
+    <nav class="workspace-navigation">
+      <a-radio-group v-model="mode" class="workspace-mode-tabs" button-style="solid" data-testid="research-mode-switch">
+        <a-radio-button value="portfolio">{{ $t('strategyV2.backtest.mode.portfolio') }}</a-radio-button>
+        <a-radio-button value="factor">{{ $t('strategyV2.backtest.mode.factor') }}</a-radio-button>
+        <a-radio-button value="evolution">{{ $t('strategyEvolution.tab') }}</a-radio-button>
+      </a-radio-group>
+    </nav>
+    <section v-if="mode !== 'evolution'" class="workspace-toolbar">
       <div class="workspace-toolbar__primary">
-        <a-radio-group v-model="mode" class="workspace-mode-tabs" button-style="solid" data-testid="research-mode-switch">
-          <a-radio-button value="portfolio">{{ $t('strategyV2.backtest.mode.portfolio') }}</a-radio-button>
-          <a-radio-button value="factor">{{ $t('strategyV2.backtest.mode.factor') }}</a-radio-button>
-          <a-radio-button value="evolution">{{ $t('strategyEvolution.tab') }}</a-radio-button>
-        </a-radio-group>
         <span v-if="mode !== 'factor'" class="workspace-toolbar__context">{{ $t('backtest-center.title') }} · {{ modeContextLabel }}</span>
         <div v-else class="workspace-factor-mode" data-testid="factor-research-mode-chooser">
           <span class="workspace-factor-mode__label">{{ $t('strategyV2.factorResearch.currentWorkflow') }}</span>
@@ -47,17 +49,17 @@
         <span class="hero-stat"><strong>{{ mode === 'factor' ? totalFactorHistoryCount : history.length }}</strong>{{ mode === 'factor' ? $t('strategyV2.factorResearch.runs') : $t('strategyV2.backtest.runs') }}</span>
         <a-tooltip :title="settingsVisible ? $t('backtestWorkbench.hideSettings') : $t('backtestWorkbench.advancedSettings')">
           <a-button
-            class="toolbar-icon-button"
+            class="toolbar-icon-button toolbar-theme-button"
             icon="control"
             :type="settingsVisible ? 'primary' : 'default'"
             :aria-label="settingsVisible ? $t('backtestWorkbench.hideSettings') : $t('backtestWorkbench.advancedSettings')"
             @click="settingsVisible = !settingsVisible"
           />
         </a-tooltip>
-        <a-button icon="reload" :loading="historyLoading" @click="refreshPage">
+        <a-button class="toolbar-theme-button" icon="reload" :loading="historyLoading" @click="refreshPage">
           {{ $t('backtest-center.refreshHistory') }}
         </a-button>
-        <a-button icon="history" @click="openHistoryDrawer">
+        <a-button class="toolbar-theme-button" icon="history" @click="openHistoryDrawer">
           {{ historyButtonLabel }}
         </a-button>
       </div>

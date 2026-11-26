@@ -1,3 +1,4 @@
+import forthrightLogo from '@/assets/provider-logos/forthright.jpg'
 import alpacaLogo from '@/assets/provider-logos/alpaca.png'
 import interactiveBrokersLogo from '@/assets/provider-logos/interactive-brokers.png'
 import binanceLogo from '@/assets/provider-logos/binance.svg'
@@ -10,6 +11,7 @@ import tigerLogo from '@/assets/provider-logos/tiger-official.png'
 import webullLogo from '@/assets/provider-logos/webull.ico'
 
 export const PROVIDER_LOGOS = Object.freeze({
+  forthright: forthrightLogo,
   alpaca: alpacaLogo,
   ibkr: interactiveBrokersLogo,
   binance: binanceLogo,

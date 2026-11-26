@@ -1,78 +1,100 @@
 <template>
-  <div class="copilot-workbench">
-    <div v-if="mobileSessionsOpen" class="mobile-rail-backdrop" @click="mobileSessionsOpen = false"></div>
-    <aside class="left-rail" :class="{ 'mobile-open': mobileSessionsOpen }">
-      <button type="button" class="mobile-rail-close" :aria-label="text.sessions" @click="mobileSessionsOpen = false">
-        <a-icon type="close" />
-      </button>
-      <section class="rail-panel sessions-panel">
-        <div class="panel-head">
-          <span><a-icon type="history" /> {{ text.sessions }}</span>
-          <a-button size="small" type="link" @click="newSession">{{ text.newChat }}</a-button>
-        </div>
-        <div v-if="sessions.length === 0" class="empty-mini">{{ text.noSessions }}</div>
-        <div v-else class="session-list">
-          <div
-            v-for="session in sessions.slice(0, 30)"
-            :key="session.id"
-            class="session-row"
-            :class="{ active: session.id === sessionId }"
-          >
-            <button type="button" class="session-card" @click="loadHistory(session.id)">
-              <strong>{{ displayDiagnoseText(session.title) || text.untitled }}</strong>
-              <span>{{ session.context_symbol || session.context_market || text.chatSession }}</span>
-            </button>
-            <a-popconfirm
-              :title="text.deleteSessionConfirm"
-              :ok-text="text.remove"
-              :cancel-text="text.cancel"
-              @confirm="removeSession(session)"
-            >
-              <a-tooltip :title="text.remove">
-                <button type="button" class="session-delete" @click.stop><a-icon type="delete" /></button>
-              </a-tooltip>
-            </a-popconfirm>
-          </div>
-        </div>
-      </section>
+  <div class="copilot-workbench research-layout">
+    <aside class="left-rail research-tools-rail">
+      <section class="rail-panel research-tools-panel">
+        <a-tabs v-model="rightRailTab" class="research-tools-tabs" :animated="false">
+          <div slot="tabBarExtraContent" class="rail-heading-actions">
+            <a-button
+              size="small"
+              type="link"
+              :aria-label="$t('common.refresh')"
+              :loading="rightRailTab === 'monitors' && loadingMonitors"
+              @click="rightRailTab === 'watchlist' ? loadWatchlist() : loadMonitors()"
+            ><a-icon type="reload" /></a-button>
 
-      <section class="rail-panel saved-prompt-library">
-        <div class="saved-prompt-library__head">
-          <strong><a-icon type="book" /> {{ text.savedPrompts }}</strong>
-          <span>{{ text.savedPromptsHint }}</span>
-        </div>
-        <div v-if="!savedPrompts.length" class="empty-mini">{{ text.noSavedPrompts }}</div>
-        <div v-else class="saved-prompt-library__list">
-          <div v-for="item in savedPrompts" :key="item.id" class="saved-prompt-library__item">
-            <button type="button" class="saved-prompt-card" @click="useSavedPrompt(item)">
-              <strong>{{ item.title }}</strong>
-              <span>{{ item.context_symbol || item.category || text.savedPrompts }}</span>
-            </button>
-            <a-popconfirm
-              :title="text.deleteSavedPromptConfirm"
-              :ok-text="text.remove"
-              :cancel-text="text.cancel"
-              @confirm="removeSavedPrompt(item)"
-            >
-              <button type="button" class="saved-prompt-delete" @click.stop><a-icon type="delete" /></button>
-            </a-popconfirm>
           </div>
-        </div>
+          <a-tab-pane key="watchlist" :tab="$t('aiAssetAnalysis.copilot.researchWatchlist')">
+            <section class="watch-panel">
+              <div class="add-watch">
+                <a-button block icon="plus" @click="openAddWatchModal">{{ $t('aiAssetAnalysis.copilot.researchAddAsset') }}</a-button>
+              </div>
+              <div v-if="watchlist.length === 0" class="empty-mini">{{ text.noWatchlist }}</div>
+              <div v-else class="watch-list" tabindex="0" :aria-label="$t('aiAssetAnalysis.copilot.researchWatchlist')">
+                <div
+                  v-for="item in groupedWatchlist"
+                  :key="watchKey(item)"
+                  class="watch-card"
+                  :class="{ active: symbolOptionValue(item) === selectedSymbolValue }"
+                >
+                  <button type="button" class="watch-main" @click="selectWatch(item)">
+                    <span class="watch-heading">
+                      <span class="watch-market-tag" :class="marketPillClass(item.market)" :title="marketLabel(item.market)">{{ watchMarketLabel(item.market) }}</span>
+                      <strong :title="item.symbol">{{ item.symbol }}</strong>
+                    </span>
+                    <em class="watch-name" :title="watchlistDisplayName(item)">{{ watchlistDisplayName(item) }}</em>
+                    <span class="watch-market-data">
+                      <strong class="watch-price">{{ formatPriceValue(priceFor(item) && priceFor(item).price, item.market) }}</strong>
+                      <em :class="watchChangeClass(item)" class="watch-change">
+                        {{ formatChangePercent(priceFor(item)) }}
+                      </em>
+                    </span>
+                  </button>
+                  <div class="watch-actions">
+                    <a-tooltip :title="text.ask">
+                      <button type="button" @click="askWatch(item)"><a-icon type="message" /></button>
+                    </a-tooltip>
+                    <a-tooltip :title="text.schedule">
+                      <button type="button" @click="openTaskModal(item)"><a-icon type="clock-circle" /></button>
+                    </a-tooltip>
+                    <a-popconfirm
+                      :title="$t('watchlistAssets.removeConfirm')"
+                      :ok-text="text.remove"
+                      :cancel-text="text.cancel"
+                      overlay-class-name="copilot-watch-remove-confirm"
+                      @confirm="removeWatch(item)"
+                    >
+                      <a-tooltip :title="text.remove">
+                        <button type="button" class="danger" @click.stop><a-icon type="delete" /></button>
+                      </a-tooltip>
+                    </a-popconfirm>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </a-tab-pane>
+          <a-tab-pane key="monitors" :tab="text.monitors">
+            <section class="monitor-panel">
+              <div v-if="monitors.length === 0" class="empty-mini">{{ text.noMonitors }}</div>
+              <div v-else class="monitor-list">
+                <div v-for="m in monitors" :key="m.id" class="monitor-card">
+                  <div>
+                    <strong>{{ monitorSymbol(m) }}</strong>
+                    <span>{{ intervalText(m) }} | {{ notificationText(m) }} | {{ m.is_active ? text.running : text.paused }}</span>
+                  </div>
+                  <div class="monitor-actions">
+                    <button type="button" @click="toggleMonitor(m)"><a-icon :type="m.is_active ? 'pause' : 'caret-right'" /></button>
+                    <button type="button" @click="removeMonitor(m)"><a-icon type="delete" /></button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </a-tab-pane>
+        </a-tabs>
       </section>
-
     </aside>
 
     <main class="chat-panel">
-      <button type="button" class="mobile-sessions-trigger" @click="mobileSessionsOpen = true">
-        <a-icon type="history" />
-        <span>{{ text.sessions }}</span>
-      </button>
+      <header class="research-toolbar">
+        <a-button icon="plus" @click="newSession">{{ text.newChat }}</a-button>
+        <a-button icon="history" :aria-expanded="historyVisible" @click="historyVisible = !historyVisible">{{ text.sessions }}</a-button>
+      </header>
 
-      <div ref="messages" class="messages" :class="{ 'messages--welcome': messages.length === 0 }">
+      <div ref="messages" class="messages" tabindex="0" :class="{ 'messages--welcome': messages.length === 0 }">
         <div v-if="messages.length === 0" class="welcome">
-          <a-icon type="search" />
-          <h3>{{ text.researchWelcomeTitle }}</h3>
-          <p>{{ text.researchWelcomeDesc }}</p>
+          <div class="research-welcome-heading">
+            <ResearchCat ref="researchCat" :typing="composerFocused" />
+            <h3>{{ text.researchWelcomeTitle }}</h3>
+          </div>
           <div class="research-mode-bar" role="tablist" :aria-label="text.researchMode">
             <button
               v-for="mode in researchModeOptions"
@@ -95,21 +117,11 @@
               class="research-prompt-pill"
               @click="useStarterPrompt(item)"
             >
-              <a-icon :type="item.icon" />
               <span>{{ item.label }}</span>
+              <a-icon type="arrow-right" />
             </button>
           </div>
-          <div v-if="savedPrompts.length" class="saved-prompt-preview">
-            <span class="saved-prompt-preview__label"><a-icon type="book" /> {{ text.savedPrompts }}</span>
-            <button
-              v-for="item in savedPrompts.slice(0, 4)"
-              :key="'saved-welcome-' + item.id"
-              type="button"
-              @click="useSavedPrompt(item)"
-            >
-              {{ item.title }}
-            </button>
-          </div>
+
         </div>
 
         <article
@@ -236,178 +248,183 @@
       </div>
 
       <footer class="composer">
-        <div class="context-bar composer-context-bar">
-          <div class="context-status">
-            <a-icon type="search" />
-            <span>{{ text.focusSymbol }}</span>
-          </div>
-          <div class="symbol-picker hero-symbol-picker">
-            <a-select
-              ref="contextSymbolSelect"
-              v-model="selectedSymbolValue"
-              option-label-prop="label"
-              show-search
-              allow-clear
-              size="large"
-              dropdown-class-name="copilot-symbol-dropdown"
-              :placeholder="text.symbolPlaceholder"
-              :filter-option="false"
-              :not-found-content="symbolSearching ? undefined : text.noSymbol"
-              @focus="seedSymbolOptions"
-              @search="handleSymbolSearch"
-              @change="handleSymbolChange"
-            >
-              <a-spin v-if="symbolSearching" slot="notFoundContent" size="small" />
-              <a-select-option
-                v-for="item in selectableSymbols"
-                :key="symbolOptionValue(item)"
-                :value="symbolOptionValue(item)"
-                :label="item.symbol"
-              >
-                <div class="symbol-option">
-                  <strong>{{ item.symbol }}</strong>
-                  <span>{{ watchlistContextLabel(item) }}</span>
-                  <em :class="['symbol-market-pill', marketPillClass(item.market)]">{{ marketLabel(item.market) }}</em>
-                </div>
-              </a-select-option>
-            </a-select>
-          </div>
-          <a-button class="professional-report-button" :disabled="!context.symbol || sending" @click="confirmProfessionalAnalysis">
-            <a-icon type="file-text" /> {{ text.professionalReport }}
-          </a-button>
-          <button type="button" class="session-memory-status" @click="openMemoryManager">
-            <a-icon type="bulb" />
-            <span>{{ sessionMemoryLabel }}</span>
-          </button>
-        </div>
-        <div v-if="draftReferencedReportId" class="referenced-report-chip">
-          <a-icon type="link" />
-          <span>{{ text.followingReport }}</span>
-          <button type="button" @click="draftReferencedReportId = null"><a-icon type="close" /></button>
-        </div>
-        <div v-if="strategyComposerGuide" class="composer-coach">
-          <span class="composer-coach-icon"><a-icon :type="strategyComposerGuide.icon" /></span>
-          <div class="composer-coach-copy">
-            <div class="composer-coach-head">
-              <strong>{{ strategyComposerGuide.title }}</strong>
-              <span>{{ strategyComposerGuide.ready }}</span>
+        <div class="composer-box">
+          <div class="context-bar composer-context-bar">
+            <div class="context-status">
+              <a-icon type="search" />
+              <span>{{ text.focusSymbol }}</span>
             </div>
-            <p>{{ strategyComposerGuide.desc }}</p>
-            <div class="composer-coach-suggestions">
-              <button
-                v-for="suggestion in strategyComposerGuide.suggestions"
-                :key="suggestion.key"
-                type="button"
-                :aria-label="suggestion.label"
-                @click="appendStrategySuggestion(suggestion)"
+            <div class="symbol-picker hero-symbol-picker">
+              <a-select
+                ref="contextSymbolSelect"
+                v-model="selectedSymbolValue"
+                option-label-prop="label"
+                show-search
+                allow-clear
+                size="large"
+                dropdown-class-name="copilot-symbol-dropdown"
+                :placeholder="text.symbolPlaceholder"
+                :filter-option="false"
+                :not-found-content="symbolSearching ? undefined : text.noSymbol"
+                @focus="seedSymbolOptions"
+                @search="handleSymbolSearch"
+                @change="handleSymbolChange"
               >
-                <a-icon type="plus" /> {{ suggestion.label }}
-              </button>
+                <a-spin v-if="symbolSearching" slot="notFoundContent" size="small" />
+                <a-select-option
+                  v-for="item in selectableSymbols"
+                  :key="symbolOptionValue(item)"
+                  :value="symbolOptionValue(item)"
+                  :label="item.symbol"
+                >
+                  <div class="symbol-option">
+                    <strong>{{ item.symbol }}</strong>
+                    <span>{{ watchlistContextLabel(item) }}</span>
+                    <em :class="['symbol-market-pill', marketPillClass(item.market)]">{{ marketLabel(item.market) }}</em>
+                  </div>
+                </a-select-option>
+              </a-select>
+            </div>
+            <a-button class="professional-report-button" :disabled="!context.symbol || sending" @click="confirmProfessionalAnalysis">
+              <a-icon type="file-text" /> {{ text.professionalReport }}
+            </a-button>
+            <button type="button" class="session-memory-status" @click="openMemoryManager">
+              <a-icon type="bulb" />
+              <span>{{ sessionMemoryLabel }}</span>
+            </button>
+          </div>
+          <div v-if="draftReferencedReportId" class="referenced-report-chip">
+            <a-icon type="link" />
+            <span>{{ text.followingReport }}</span>
+            <button type="button" @click="draftReferencedReportId = null"><a-icon type="close" /></button>
+          </div>
+          <div v-if="strategyComposerGuide" class="composer-coach">
+            <span class="composer-coach-icon"><a-icon :type="strategyComposerGuide.icon" /></span>
+            <div class="composer-coach-copy">
+              <div class="composer-coach-head">
+                <strong>{{ strategyComposerGuide.title }}</strong>
+                <span>{{ strategyComposerGuide.ready }}</span>
+              </div>
+              <p>{{ strategyComposerGuide.desc }}</p>
+              <div class="composer-coach-suggestions">
+                <button
+                  v-for="suggestion in strategyComposerGuide.suggestions"
+                  :key="suggestion.key"
+                  type="button"
+                  :aria-label="suggestion.label"
+                  @click="appendStrategySuggestion(suggestion)"
+                >
+                  <a-icon type="plus" /> {{ suggestion.label }}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-        <textarea
-          ref="composerInput"
-          v-model="draft"
-          :placeholder="text.placeholder"
-          :style="{ height: composerHeight + 'px' }"
-          @input="resizeComposer"
-          @keydown.enter.exact.prevent="sendMessage"
-          @keydown.ctrl.enter.prevent="sendMessage"
-          @keydown.meta.enter.prevent="sendMessage"
-          @paste="handlePaste"
-        />
-        <div class="composer-foot">
-          <p class="risk-disclaimer">
-            <a-icon type="safety-certificate" />
-            <span>{{ text.riskDisclaimer }}</span>
-          </p>
-          <div class="composer-actions">
-            <input ref="fileInput" type="file" accept="image/png,image/jpeg,image/webp" multiple @change="handleFiles">
-            <a-button @click="$refs.fileInput.click()">
-              <a-icon type="picture" /> {{ uploadImageLabel }}
-            </a-button>
-            <a-button type="primary" :loading="sending" :disabled="!canSend" @click="sendMessage">
-              <a-icon type="thunderbolt" /> {{ text.send }}
-            </a-button>
+          <textarea
+            ref="composerInput"
+            v-model="draft"
+            :placeholder="text.placeholder"
+            :style="{ height: composerHeight + 'px' }"
+            @input="resizeComposer"
+            @focus="composerFocused = true"
+            @blur="composerFocused = false"
+            @keydown.enter.exact.prevent="sendMessage"
+            @keydown.ctrl.enter.prevent="sendMessage"
+            @keydown.meta.enter.prevent="sendMessage"
+            @paste="handlePaste"
+          />
+          <div class="composer-foot">
+            <p class="risk-disclaimer">
+              <a-icon type="safety-certificate" />
+              <span>{{ text.riskDisclaimer }}</span>
+            </p>
+            <div class="composer-actions">
+              <input ref="fileInput" type="file" accept="image/png,image/jpeg,image/webp" multiple @change="handleFiles">
+              <a-button @click="savedPromptsVisible = true">
+                <a-icon type="book" /> {{ text.savedPrompts }}
+              </a-button>
+              <a-button @click="$refs.fileInput.click()">
+                <a-icon type="picture" /> {{ uploadImageLabel }}
+              </a-button>
+              <a-button type="primary" :loading="sending" :disabled="!canSend" @click="sendMessage">
+                <a-icon type="arrow-up" /> {{ text.send }}
+              </a-button>
+            </div>
           </div>
         </div>
       </footer>
     </main>
 
-    <aside class="right-rail">
-      <section class="rail-panel watch-panel">
-        <div class="panel-head">
-          <span><a-icon type="star" theme="filled" /> {{ $t('watchlistAssets.title') }}</span>
-          <a-button size="small" type="link" @click="loadWatchlist"><a-icon type="reload" /></a-button>
-        </div>
-        <div class="add-watch">
-          <a-button type="primary" block icon="plus" @click="openAddWatchModal">{{ $t('watchlistAssets.add') }}</a-button>
-        </div>
-        <div v-if="watchlist.length === 0" class="empty-mini">{{ text.noWatchlist }}</div>
-        <div v-else class="watch-list">
+    <a-drawer
+      :visible="historyVisible"
+      :title="text.sessions"
+      placement="right"
+      width="min(460px, 100vw)"
+      wrap-class-name="research-history-drawer"
+      :destroy-on-close="false"
+      @close="historyVisible = false"
+    >
+      <section class="sessions-panel research-history-content">
+        <div v-if="sessions.length === 0" class="empty-mini">{{ text.noSessions }}</div>
+        <div v-else class="session-list" tabindex="0" :aria-label="text.sessions">
           <div
-            v-for="item in groupedWatchlist"
-            :key="watchKey(item)"
-            class="watch-card"
-            :class="{ active: symbolOptionValue(item) === selectedSymbolValue }"
+            v-for="session in sessions"
+            :key="session.id"
+            class="session-row"
+            :class="{ active: session.id === sessionId }"
           >
-            <button type="button" class="watch-main" @click="selectWatch(item)">
-              <span class="watch-heading">
-                <span class="watch-market-tag" :class="marketPillClass(item.market)" :title="marketLabel(item.market)">{{ watchMarketLabel(item.market) }}</span>
-                <strong :title="item.symbol">{{ item.symbol }}</strong>
-              </span>
-              <em class="watch-name" :title="watchlistDisplayName(item)">{{ watchlistDisplayName(item) }}</em>
-              <span class="watch-market-data">
-                <strong class="watch-price">{{ formatPriceValue(priceFor(item) && priceFor(item).price, item.market) }}</strong>
-                <em :class="watchChangeClass(item)" class="watch-change">
-                  {{ formatChangePercent(priceFor(item)) }}
-                </em>
+            <button type="button" class="session-card" @click="loadHistory(session.id)">
+              <strong :title="displayDiagnoseText(session.title) || text.untitled">{{ displayDiagnoseText(session.title) || text.untitled }}</strong>
+              <span class="history-meta">
+                <span class="history-symbol">{{ session.context_symbol || session.context_market || text.chatSession }}</span>
+                <time v-if="historyTimestamp(session)">{{ historyTimestamp(session) }}</time>
               </span>
             </button>
-            <div class="watch-actions">
-              <a-tooltip :title="text.ask">
-                <button type="button" @click="askWatch(item)"><a-icon type="message" /></button>
+            <a-popconfirm
+              :title="text.deleteSessionConfirm"
+              :ok-text="text.remove"
+              :cancel-text="text.cancel"
+              @confirm="removeSession(session)"
+            >
+              <a-tooltip :title="text.remove">
+                <button type="button" class="session-delete" @click.stop><a-icon type="delete" /></button>
               </a-tooltip>
-              <a-tooltip :title="text.schedule">
-                <button type="button" @click="openTaskModal(item)"><a-icon type="clock-circle" /></button>
-              </a-tooltip>
-              <a-popconfirm
-                :title="$t('watchlistAssets.removeConfirm')"
-                :ok-text="text.remove"
-                :cancel-text="text.cancel"
-                overlay-class-name="copilot-watch-remove-confirm"
-                @confirm="removeWatch(item)"
-              >
-                <a-tooltip :title="text.remove">
-                  <button type="button" class="danger" @click.stop><a-icon type="delete" /></button>
-                </a-tooltip>
-              </a-popconfirm>
-            </div>
+            </a-popconfirm>
           </div>
         </div>
       </section>
+    </a-drawer>
 
-      <section class="rail-panel monitor-panel">
-        <div class="panel-head">
-          <span><a-icon type="clock-circle" /> {{ text.monitors }}</span>
-          <a-button size="small" type="link" :loading="loadingMonitors" @click="loadMonitors"><a-icon type="reload" /></a-button>
+    <a-modal
+      v-model="savedPromptsVisible"
+      :title="text.savedPrompts"
+      :footer="null"
+      :after-close="focusSavedPromptDraft"
+      wrap-class-name="copilot-modal"
+      width="640px"
+    >
+      <section class="saved-prompt-library saved-prompts-dialog">
+        <div class="saved-prompt-library__head">
+          <span>{{ text.savedPromptsHint }}</span>
         </div>
-        <div v-if="monitors.length === 0" class="empty-mini">{{ text.noMonitors }}</div>
-        <div v-else class="monitor-list">
-          <div v-for="m in monitors.slice(0, 8)" :key="m.id" class="monitor-card">
-            <div>
-              <strong>{{ monitorSymbol(m) }}</strong>
-              <span>{{ intervalText(m) }} | {{ notificationText(m) }} | {{ m.is_active ? text.running : text.paused }}</span>
-            </div>
-            <div class="monitor-actions">
-              <button type="button" @click="toggleMonitor(m)"><a-icon :type="m.is_active ? 'pause' : 'caret-right'" /></button>
-              <button type="button" @click="removeMonitor(m)"><a-icon type="delete" /></button>
-            </div>
+        <div v-if="!savedPrompts.length" class="empty-mini">{{ text.noSavedPrompts }}</div>
+        <div v-else class="saved-prompt-library__list">
+          <div v-for="item in savedPrompts" :key="item.id" class="saved-prompt-library__item">
+            <button type="button" class="saved-prompt-card" @click="useSavedPrompt(item)">
+              <strong>{{ item.title }}</strong>
+              <span>{{ item.context_symbol || item.category || text.savedPrompts }}</span>
+            </button>
+            <a-popconfirm
+              :title="text.deleteSavedPromptConfirm"
+              :ok-text="text.remove"
+              :cancel-text="text.cancel"
+              @confirm="removeSavedPrompt(item)"
+            >
+              <button type="button" class="saved-prompt-delete" :aria-label="text.remove" @click.stop><a-icon type="delete" /></button>
+            </a-popconfirm>
           </div>
         </div>
       </section>
-    </aside>
+    </a-modal>
 
     <a-modal
       v-model="eventModalVisible"
@@ -479,7 +496,6 @@
       :visible="addWatchModalVisible"
       :markets="markets.map(item => item.value)"
       :watchlist="watchlist"
-      :initial-market="context.market"
       @close="addWatchModalVisible = false"
       @added="reloadWatchlistOnly"
     />
@@ -643,6 +659,7 @@ import { getEconomicCalendar } from '@/api/global-market'
 import { getMembershipPlans } from '@/api/billing'
 import { getMonitors, addMonitor, updateMonitor, deleteMonitor } from '@/api/portfolio'
 import { fastAnalyze } from '@/api/fast-analysis'
+import { formatUserDateTime } from '@/utils/userTime'
 import storage from 'store'
 import { ACCESS_TOKEN } from '@/store/mutation-types'
 import { loadEnabledMarketOptions, firstMarketValue } from '@/utils/marketModules'
@@ -650,6 +667,7 @@ import { resolveMarketBiasLabelKey, resolveTradeActionLabelKey } from '@/utils/f
 import * as echarts from 'echarts'
 import { buildResearchChartOption, parseResearchChartBlock } from '@/utils/researchCharts.mjs'
 import ProfessionalAnalysisReport from './ProfessionalAnalysisReport.vue'
+import ResearchCat from './ResearchCat.vue'
 import { sortCopilotMarkets } from './copilotWatchlistPresets.mjs'
 import AddWatchlistModal from '@/components/Watchlist/AddWatchlistModal.vue'
 import { groupWatchlistAssets, watchlistContextLabel, watchlistDisplayName, watchlistPayload } from '@/utils/watchlistAssets'
@@ -667,6 +685,7 @@ export default {
   name: 'CopilotWorkbench',
   components: {
     ProfessionalAnalysisReport,
+    ResearchCat,
     AddWatchlistModal
   },
   data () {
@@ -680,11 +699,15 @@ export default {
       symbolSearchKeyword: '',
       symbolSearchTimer: null,
       draft: '',
+      composerFocused: false,
       attachments: [],
       messages: [],
       sessions: [],
       sessionId: null,
-      mobileSessionsOpen: false,
+      historyVisible: false,
+      rightRailTab: 'watchlist',
+      savedPromptsVisible: false,
+      savedPromptSelected: false,
       sending: false,
       lastSendSignature: '',
       lastSendAt: 0,
@@ -1547,7 +1570,7 @@ export default {
     async loadHistory (sessionId) {
       this.resetComposerDraft()
       this.sessionId = sessionId
-      this.mobileSessionsOpen = false
+      this.historyVisible = false
       try {
         const res = await getChatHistory({ session_id: sessionId })
         const rawMessages = Array.isArray(res.data) ? res.data : ((res.data && res.data.messages) || [])
@@ -1620,7 +1643,7 @@ export default {
       this.resetComposerDraft()
       this.sessionId = null
       this.messages = []
-      this.mobileSessionsOpen = false
+      this.historyVisible = false
       this.sessionMemory = { summary: {}, recent_requests: [], version: 0 }
       this.draftReferencedReportId = null
     },
@@ -1757,6 +1780,7 @@ export default {
       })
     },
     selectResearchMode (mode) {
+      if (this.$refs.researchCat) this.$refs.researchCat.react(mode === 'news' ? 'surprised' : 'curious')
       this.activeResearchMode = mode || 'research'
       this.recordCopilotEvent('mode_selected', this.activeResearchMode, {
         source: 'composer',
@@ -1823,8 +1847,14 @@ export default {
         }
       }).catch(() => {})
     },
+    focusSavedPromptDraft () {
+      if (this.savedPromptSelected && this.$refs.composerInput) this.$refs.composerInput.focus()
+      this.savedPromptSelected = false
+    },
     useSavedPrompt (item) {
       if (!item || !item.prompt) return
+      this.savedPromptSelected = true
+      this.savedPromptsVisible = false
       const contextLock = item.context_symbol
         ? { market: item.context_market || this.context.market, symbol: item.context_symbol }
         : null
@@ -3761,6 +3791,7 @@ export default {
         if (!res || res.code === 0) throw new Error((res && res.msg) || this.text.monitorCreated)
         this.$message.success(this.text.monitorCreated)
         this.taskModalVisible = false
+        this.rightRailTab = 'monitors'
         await this.loadMonitors()
       } catch (e) {
         this.$message.error((e && e.response && e.response.data && e.response.data.msg) || (e && e.message) || 'Create monitor failed')
@@ -4079,6 +4110,12 @@ export default {
     },
     eventKey (event) {
       return `${(event && (event.date || event.datetime)) || ''}-${(event && event.time) || ''}-${this.eventTitle(event)}`
+    },
+    historyTimestamp (session) {
+      return formatUserDateTime(session.updated_at || session.created_at, {
+        locale: this.$i18n.locale,
+        fallback: ''
+      })
     },
     formatMessageTime (msg) {
       const raw = msg && (msg.created_at || msg.createdAt || msg.timestamp || msg.time)
@@ -7590,17 +7627,17 @@ body.realdark .copilot-workbench .empty-mini,
 body.dark .copilot-workbench,
 body.realdark .copilot-workbench,
 .theme-dark .copilot-workbench {
-  --qd-bg: #080a08;
-  --qd-panel: #101310;
-  --qd-panel-soft: #121512;
-  --qd-panel-strong: #171b17;
-  --qd-text: #f0f3f0;
-  --qd-text-muted: #9aa39b;
-  --qd-text-subtle: #6f786f;
+  --qd-bg: #080808;
+  --qd-panel: #141414;
+  --qd-panel-soft: #1a1a1a;
+  --qd-panel-strong: #202020;
+  --qd-text: #f0f0f0;
+  --qd-text-muted: #a3a3a3;
+  --qd-text-subtle: #808080;
   --qd-border: rgba(255, 255, 255, 0.11);
   --qd-border-soft: rgba(255, 255, 255, 0.07);
   --qd-shadow: 0 18px 44px rgba(0, 0, 0, 0.3);
-  background: linear-gradient(180deg, #0a0c0a 0%, #070907 100%) !important;
+  background: linear-gradient(180deg, #0a0a0a 0%, #080808 100%) !important;
 }
 
 body.dark .copilot-workbench .chat-panel,
@@ -7610,7 +7647,7 @@ body.dark .copilot-workbench .rail-panel,
 body.realdark .copilot-workbench .rail-panel,
 .theme-dark .copilot-workbench .rail-panel {
   border-color: rgba(255, 255, 255, 0.075) !important;
-  background: linear-gradient(180deg, rgba(18, 21, 18, 0.97), rgba(12, 15, 12, 0.98)) !important;
+  background: linear-gradient(180deg, rgba(20, 20, 20, 0.97), rgba(16, 16, 16, 0.98)) !important;
   box-shadow:
     0 18px 44px rgba(0, 0, 0, 0.28),
     inset 0 1px 0 rgba(255, 255, 255, 0.025) !important;
@@ -7632,7 +7669,7 @@ body.dark .copilot-workbench .chat-hero,
 body.realdark .copilot-workbench .chat-hero,
 .theme-dark .copilot-workbench .chat-hero {
   border-bottom-color: rgba(255, 255, 255, 0.065) !important;
-  background: linear-gradient(135deg, rgba(20, 24, 20, 0.98), rgba(12, 15, 12, 0.98)) !important;
+  background: linear-gradient(135deg, rgba(28, 28, 28, 0.98), rgba(16, 16, 16, 0.98)) !important;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025) !important;
 }
 
@@ -7643,7 +7680,7 @@ body.realdark .copilot-workbench .messages,
     linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px),
     radial-gradient(circle at 50% 18%, color-mix(in srgb, var(--qd-accent) 7%, transparent), transparent 31%),
-    #090b09 !important;
+    #090909 !important;
   background-size: 42px 42px, 42px 42px, auto, auto !important;
 }
 
@@ -7651,7 +7688,7 @@ body.dark .copilot-workbench .welcome > .anticon,
 body.realdark .copilot-workbench .welcome > .anticon,
 .theme-dark .copilot-workbench .welcome > .anticon {
   border: 1px solid color-mix(in srgb, var(--qd-accent) 42%, rgba(255, 255, 255, 0.08));
-  background: color-mix(in srgb, var(--qd-accent) 11%, #111511);
+  background: color-mix(in srgb, var(--qd-accent) 11%, #171717);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 14px 34px color-mix(in srgb, var(--qd-accent) 10%, transparent) !important;
@@ -7676,7 +7713,7 @@ body.realdark .copilot-workbench .welcome-prompts button,
 .theme-dark .copilot-workbench .quick-task-shelf .welcome-task,
 .theme-dark .copilot-workbench .welcome-prompts button {
   border-color: rgba(255, 255, 255, 0.075) !important;
-  background: linear-gradient(180deg, rgba(24, 28, 24, 0.9), rgba(16, 19, 16, 0.96)) !important;
+  background: linear-gradient(180deg, rgba(28, 28, 28, 0.9), rgba(20, 20, 20, 0.96)) !important;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.025),
     0 8px 20px rgba(0, 0, 0, 0.16) !important;
@@ -7695,7 +7732,7 @@ body.realdark .copilot-workbench .welcome-prompts button:hover,
 .theme-dark .copilot-workbench .watch-card:hover,
 .theme-dark .copilot-workbench .welcome-prompts button:hover {
   border-color: rgba(255, 255, 255, 0.12) !important;
-  background: linear-gradient(180deg, rgba(30, 35, 30, 0.96), rgba(20, 24, 20, 0.98)) !important;
+  background: linear-gradient(180deg, rgba(34, 34, 34, 0.96), rgba(28, 28, 28, 0.98)) !important;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.035),
     0 12px 26px rgba(0, 0, 0, 0.24) !important;
@@ -7708,7 +7745,7 @@ body.realdark .copilot-workbench .watch-card.active,
 .theme-dark .copilot-workbench .session-row.active,
 .theme-dark .copilot-workbench .watch-card.active {
   border-color: color-mix(in srgb, var(--qd-accent) 32%, rgba(255, 255, 255, 0.1)) !important;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--qd-accent) 9%, #1a1e1a), #111511) !important;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--qd-accent) 9%, #202020), #171717) !important;
   box-shadow:
     inset 2px 0 0 var(--qd-accent),
     inset 0 1px 0 rgba(255, 255, 255, 0.035),
@@ -7719,7 +7756,7 @@ body.dark .copilot-workbench .composer,
 body.realdark .copilot-workbench .composer,
 .theme-dark .copilot-workbench .composer {
   border-top-color: rgba(255, 255, 255, 0.075) !important;
-  background: linear-gradient(180deg, rgba(16, 19, 16, 0.98), rgba(11, 14, 11, 0.99)) !important;
+  background: linear-gradient(180deg, rgba(20, 20, 20, 0.98), rgba(16, 16, 16, 0.99)) !important;
   box-shadow: 0 -16px 36px rgba(0, 0, 0, 0.22) !important;
 }
 
@@ -7803,6 +7840,81 @@ body.realdark .copilot-workbench .composer textarea,
 </style>
 
 <style lang="less">
+
+.research-history-drawer {
+  --qd-panel: #fff;
+  --qd-panel-soft: #f7f7f7;
+  --qd-panel-strong: #eeeeee;
+  --qd-text-subtle: #909090;
+  --qd-border-soft: #e8eff7;
+  --qd-text: #12243d;
+  --qd-text-muted: #6b7f99;
+  --qd-accent: var(--primary-color, #1677ff);
+  --qd-accent-soft: color-mix(in srgb, var(--qd-accent) 10%, var(--qd-panel));
+  .ant-drawer-content, .ant-drawer-header {
+    background: var(--qd-panel);
+    color: var(--qd-text);
+    border-color: var(--qd-border-soft);
+  }
+  .ant-drawer-title, .ant-drawer-close { color: var(--qd-text); }
+  .ant-drawer-wrapper-body { display: flex; flex-direction: column; overflow: hidden; }
+  .ant-drawer-header { flex: none; }
+  .ant-drawer-body { display: flex; flex: 1; min-height: 0; padding: 16px; }
+  .research-history-content { flex: 1 1 auto; width: 100%; min-width: 0; min-height: 0; }
+  .panel-head { justify-content: flex-end; }
+  .session-list { flex: 1; min-height: 0; max-height: none; overflow-y: auto; scrollbar-width: none; }
+  .session-list::-webkit-scrollbar { display: none; }
+  .ant-drawer-header { padding: 20px 24px; }
+  .ant-drawer-title { font-size: 18px; font-weight: 600; line-height: 24px; }
+  .ant-drawer-body { padding: 12px; }
+  .session-list { display: flex; flex-direction: column; gap: 8px; }
+  .research-history-content .session-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 32px;
+    align-items: start;
+    flex: none;
+    margin: 0;
+    padding: 12px 10px 12px 14px;
+    border: 1px solid var(--qd-border-soft);
+    border-radius: 8px;
+    background: var(--qd-panel-soft);
+    box-shadow: none !important;
+    transform: none !important;
+  }
+  .research-history-content .session-row:hover { background: var(--qd-panel-strong); border-color: color-mix(in srgb, var(--qd-accent) 40%, var(--qd-border-soft)); }
+  .research-history-content .session-row.active { background: var(--qd-panel-strong); border-color: color-mix(in srgb, var(--qd-accent) 55%, var(--qd-border-soft)); }
+  .session-card { display: flex; flex-direction: column; gap: 10px; min-width: 0; width: 100%; padding: 0; text-align: start; border: 0; background: transparent; color: var(--qd-text); cursor: pointer; }
+  .session-card strong {
+    display: block;
+    width: 100%;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 22px;
+  }
+  .session-card .history-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; width: 100%; }
+  .session-card .history-symbol { max-width: 100%; padding: 0; background: transparent; color: var(--qd-text-muted); font-size: 12px; font-weight: 400; line-height: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .history-meta time { flex: none; font-size: 12px; font-weight: 400; line-height: 20px; font-variant-numeric: tabular-nums; color: var(--qd-text-muted); }
+  .session-delete { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; margin: -3px 0 0 4px; padding: 0; border: 0; border-radius: 5px; background: transparent; color: var(--qd-text-muted); cursor: pointer; }
+  .session-delete:hover { background: var(--qd-panel-soft); color: #ff4d4f; }
+  button:focus-visible { outline: 2px solid var(--qd-accent); outline-offset: -2px; }
+}
+body:has(.research-history-drawer.ant-drawer-open) .mobile-menu-close { display: none; }
+
+body.dark .research-history-drawer,
+body.realdark .research-history-drawer,
+.theme-dark .research-history-drawer {
+  --qd-panel: #141414;
+  --qd-panel-soft: #1a1a1a;
+  --qd-panel-strong: #242424;
+  --qd-text-subtle: #808080;
+  --qd-border-soft: rgba(255, 255, 255, 0.1);
+  --qd-text: #f0f0f0;
+  --qd-text-muted: #a3a3a3;
+}
+
 .copilot-watch-remove-confirm {
   .ant-popover-message-title {
     color: #243247;
@@ -8043,27 +8155,27 @@ body.realdark,
   white-space: nowrap;
 }
 
-.left-rail .saved-prompt-library {
+.saved-prompts-dialog {
   margin-bottom: 0;
   padding-bottom: 12px;
   border-bottom: 0;
 }
 
-.left-rail .saved-prompt-library__head {
+.saved-prompts-dialog .saved-prompt-library__head {
   display: flex;
   align-items: flex-start;
   flex-direction: column;
   gap: 3px;
 }
 
-.left-rail .saved-prompt-library__list {
+.saved-prompts-dialog .saved-prompt-library__list {
   grid-template-columns: 1fr;
   grid-auto-rows: min-content;
   align-content: start;
   max-height: 196px;
 }
 
-.left-rail .saved-prompt-library__item {
+.saved-prompts-dialog .saved-prompt-library__item {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 28px;
   align-items: center;
@@ -8074,14 +8186,14 @@ body.realdark,
   transition: border-color 0.18s, background 0.18s, box-shadow 0.18s, transform 0.18s;
 }
 
-.left-rail .saved-prompt-library__item:hover {
+.saved-prompts-dialog .saved-prompt-library__item:hover {
   border-color: var(--qd-accent-border);
   background: var(--qd-panel);
   box-shadow: 0 6px 18px var(--qd-accent-weak);
   transform: translateY(-1px);
 }
 
-.left-rail .saved-prompt-card {
+.saved-prompts-dialog .saved-prompt-card {
   padding: 9px 10px;
 }
 
@@ -8723,44 +8835,6 @@ body.realdark .followup-suggestions,
   background: #101010;
 }
 
-/* The two rails share the same row tracks so their lower utility panels align. */
-@media (min-width: 1281px) {
-  .copilot-workbench > .left-rail,
-  .copilot-workbench > .right-rail {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) minmax(250px, 36%);
-    gap: 12px;
-  }
-
-  .copilot-workbench .sessions-panel,
-  .copilot-workbench .watch-panel,
-  .copilot-workbench .monitor-panel,
-  .copilot-workbench .saved-prompt-library {
-    min-height: 0;
-    height: auto;
-    margin: 0;
-    flex: none;
-  }
-
-  .copilot-workbench .saved-prompt-library {
-    display: flex;
-    padding-bottom: 13px;
-    flex-direction: column;
-  }
-
-  .copilot-workbench .saved-prompt-library__list,
-  .copilot-workbench .monitor-list {
-    min-height: 0;
-    max-height: none;
-    overflow-y: auto;
-  }
-
-  .copilot-workbench .saved-prompt-library__list {
-    flex: 1;
-  }
-}
-
 @media (max-width: 720px) {
   .copilot-workbench .welcome-prompts {
     grid-template-columns: 1fr;
@@ -8769,17 +8843,6 @@ body.realdark .followup-suggestions,
   .copilot-workbench .welcome-prompts button.research-prompt-pill {
     width: 100%;
     text-align: left;
-  }
-}
-
-/* Keep the research canvas usable on smaller desktop and tablet viewports. */
-@media (max-width: 1280px) {
-  .copilot-workbench {
-    grid-template-columns: minmax(220px, 250px) minmax(0, 1fr) !important;
-  }
-
-  .copilot-workbench > .right-rail {
-    display: none !important;
   }
 }
 
@@ -9251,7 +9314,7 @@ body.light .copilot-workbench .research-mode-bar button,
   background: #f7f8f6 !important;
 }
 
-/* Keep the structural workspace surfaces neutral; theme color is reserved for controls and state. */
+/* Separate the page canvas from the content cards in both themes. */
 body.dark .copilot-workbench,
 body.realdark .copilot-workbench,
 .theme-dark .copilot-workbench,
@@ -9260,16 +9323,7 @@ body.dark .copilot-workbench > .right-rail,
 body.realdark .copilot-workbench > .left-rail,
 body.realdark .copilot-workbench > .right-rail,
 .theme-dark .copilot-workbench > .left-rail,
-.theme-dark .copilot-workbench > .right-rail,
-body.dark .copilot-workbench .rail-panel,
-body.dark .copilot-workbench .chat-panel,
-body.dark .copilot-workbench .composer,
-body.realdark .copilot-workbench .rail-panel,
-body.realdark .copilot-workbench .chat-panel,
-body.realdark .copilot-workbench .composer,
-.theme-dark .copilot-workbench .rail-panel,
-.theme-dark .copilot-workbench .chat-panel,
-.theme-dark .copilot-workbench .composer {
+.theme-dark .copilot-workbench > .right-rail {
   background: #080808 !important;
   background-image: none !important;
 }
@@ -9283,6 +9337,9 @@ body.realdark .copilot-workbench .composer,
 .theme-dark .copilot-workbench .rail-panel,
 .theme-dark .copilot-workbench .chat-panel,
 .theme-dark .copilot-workbench .composer {
+  background: #141414 !important;
+  background-image: none !important;
+  border-color: #2a2a2a !important;
   box-shadow: none !important;
   backdrop-filter: none !important;
 }
@@ -9292,14 +9349,8 @@ body.light .copilot-workbench,
 body.light .copilot-workbench > .left-rail,
 body.light .copilot-workbench > .right-rail,
 .theme-light .copilot-workbench > .left-rail,
-.theme-light .copilot-workbench > .right-rail,
-body.light .copilot-workbench .rail-panel,
-body.light .copilot-workbench .chat-panel,
-body.light .copilot-workbench .composer,
-.theme-light .copilot-workbench .rail-panel,
-.theme-light .copilot-workbench .chat-panel,
-.theme-light .copilot-workbench .composer {
-  background: #f4f4f4 !important;
+.theme-light .copilot-workbench > .right-rail {
+  background: #f4f6f8 !important;
   background-image: none !important;
 }
 
@@ -9309,7 +9360,94 @@ body.light .copilot-workbench .composer,
 .theme-light .copilot-workbench .rail-panel,
 .theme-light .copilot-workbench .chat-panel,
 .theme-light .copilot-workbench .composer {
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: #e3e7ec !important;
   box-shadow: none !important;
   backdrop-filter: none !important;
 }
+
+.copilot-workbench .sessions-panel,
+.copilot-workbench .research-tools-panel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.research-tools-tabs {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+
+  ::v-deep .ant-tabs-bar {
+    flex: none;
+    margin-bottom: 12px;
+  }
+
+  ::v-deep .ant-tabs-tab {
+    margin-right: 16px;
+    padding: 10px 0;
+    font-size: 13px;
+  }
+
+  ::v-deep .ant-tabs-extra-content {
+    line-height: 40px;
+  }
+
+  ::v-deep .ant-tabs-content {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  ::v-deep .ant-tabs-tabpane-active {
+    height: 100%;
+  }
+}
+
+.copilot-workbench .research-tools-panel {
+  .watch-panel,
+  .monitor-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .add-watch { flex: none; }
+
+  .watch-list,
+  .monitor-list {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+    grid-auto-rows: min-content;
+    align-content: start;
+  }
+}
+
+.saved-prompts-dialog {
+  margin: 0;
+  padding: 0;
+  border: 0;
+
+  .saved-prompt-library__list {
+    max-height: ~"min(56vh, 480px)";
+  }
+
+  .saved-prompt-card strong {
+    white-space: normal;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+
+  .saved-prompt-library__item:hover {
+    box-shadow: none;
+    transform: none;
+  }
+}
+@import "./copilot-workbench-layout.less";
 </style>

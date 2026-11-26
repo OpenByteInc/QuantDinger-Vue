@@ -720,6 +720,11 @@ export default {
     }
   },
   watch: {
+    '$route' (to, from) {
+      if (to.path === '/indicator-community' && to.path === from.path && to.query.asset_type !== from.query.asset_type) {
+        if (this.applyMarketRoute()) this.loadIndicators()
+      }
+    },
     '$route.query.listing' (value) {
       const id = Number(value)
       if (Number.isFinite(id) && id > 0 && id !== this.selectedIndicatorId) {
@@ -752,10 +757,7 @@ export default {
   },
   async mounted () {
     const q = this.$route.query
-    if (q && q.asset_type) {
-      this.marketAssetType = String(q.asset_type)
-      this.filters.sortBy = 'recommended'
-    }
+    this.applyMarketRoute()
     await this.loadStrategyMarketOptions()
     this.loadIndicators()
     const listingId = Number(q && q.listing)
@@ -764,6 +766,7 @@ export default {
     }
   },
   activated () {
+    this.applyMarketRoute()
     if (!this._refreshOnNextActivation) return
     this._refreshOnNextActivation = false
     if (this.activeTab === 'review' && this.isAdmin) {
@@ -779,6 +782,18 @@ export default {
     this._refreshOnNextActivation = true
   },
   methods: {
+    applyMarketRoute () {
+      const assetType = this.$route.query.asset_type
+      if (this.$route.path !== '/indicator-community' || !['indicator', 'script_template'].includes(assetType)) return false
+      const changed = this.activeTab !== 'market' || this.marketAssetType !== assetType
+      this.activeTab = 'market'
+      if (changed) {
+        this.marketAssetType = assetType
+        this.pagination.current = 1
+        this.filters.sortBy = 'recommended'
+      }
+      return changed
+    },
     async loadStrategyMarketOptions () {
       this.strategyMarketOptions = await loadEnabledMarketOptions()
       const supported = this.strategyMarketOptions.map(option => option.value)

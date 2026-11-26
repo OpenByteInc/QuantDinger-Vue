@@ -13,8 +13,7 @@ test('setting drawer support content has stable groups for narrow layouts', () =
   assert.match(source, /class="support-block support-block--social"/)
   assert.match(source, /class="support-meta"/)
   assert.match(source, /\.support-grid \{\s*display: grid;\s*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/)
-  assert.match(source, /\.support-title \{[\s\S]*?white-space: nowrap;/)
-  assert.match(source, /@media \(max-width: 380px\) \{\s*\.support-grid \{\s*grid-template-columns: 1fr;/)
+  assert.match(source, /@media \(max-width: 340px\) \{\s*\.support-grid \{\s*grid-template-columns: 1fr;/)
 })
 
 test('sidebar uses the full viewport when the custom footer is disabled', () => {

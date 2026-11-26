@@ -88,15 +88,38 @@
               </div>
             </div>
           </div>
-          <div ref="codePanelBody" class="code-panel-body" :class="{ 'is-resizing': codeAiResizing, 'ai-is-collapsed': !aiPanelExpanded }">
-            <div class="code-editor-section" :style="{ flexBasis: `${codeAiSplitRatio}%` }">
+          <div ref="codePanelBody" class="code-panel-body">
+            <div class="code-editor-section">
+              <div class="code-editor-wrapper">
+                <div ref="codeEditor" class="code-editor-area"></div>
+                <div v-if="selectedIndicatorCodeHidden" class="code-hidden-mask">
+                  <a-icon type="lock" />
+                  <strong>{{ $t('indicatorIde.hiddenCodeTitle') }}</strong>
+                  <span>{{ $t('indicatorIde.hiddenCodeDesc') }}</span>
+                </div>
+                <transition name="fade">
+                  <div
+                    v-if="aiGenerating"
+                    class="code-ai-overlay"
+                  >
+                    <div class="code-ai-overlay-inner">
+                      <a-icon type="loading" spin style="font-size: 22px; color: var(--primary-color, #1890ff);" />
+                      <span>{{ $t('indicatorIde.generating') }}</span>
+                      <div class="code-ai-overlay-dots">
+                        <span class="dot dot1"></span><span class="dot dot2"></span><span class="dot dot3"></span>
+                      </div>
+                    </div>
+                    <div class="code-ai-overlay-tip">{{ ideAiCurrentTip }}</div>
+                  </div>
+                </transition>
+              </div>
               <div class="ide-guide-bar">
                 <div class="ide-guide-copy">
                   <a-icon type="book" />
                   <span>{{ $t('indicatorIde.devGuideTooltip') }}</span>
                 </div>
                 <div class="ide-guide-actions">
-                  <a-popover v-if="codeQualityChecked && sortedCodeQualityHints.length" placement="bottomRight" trigger="hover">
+                  <a-popover v-if="codeQualityChecked && sortedCodeQualityHints.length" placement="topRight" trigger="hover">
                     <template slot="content">
                       <ul class="code-quality-popover-list">
                         <li
@@ -126,197 +149,8 @@
                   </a>
                 </div>
               </div>
-              <div class="code-editor-wrapper">
-                <div ref="codeEditor" class="code-editor-area"></div>
-                <div v-if="selectedIndicatorCodeHidden" class="code-hidden-mask">
-                  <a-icon type="lock" />
-                  <strong>{{ $t('indicatorIde.hiddenCodeTitle') }}</strong>
-                  <span>{{ $t('indicatorIde.hiddenCodeDesc') }}</span>
-                </div>
-                <transition name="fade">
-                  <div
-                    v-if="aiGenerating"
-                    class="code-ai-overlay"
-                  >
-                    <div class="code-ai-overlay-inner">
-                      <a-icon type="loading" spin style="font-size: 22px; color: var(--primary-color, #1890ff);" />
-                      <span>{{ $t('indicatorIde.generating') }}</span>
-                      <div class="code-ai-overlay-dots">
-                        <span class="dot dot1"></span><span class="dot dot2"></span><span class="dot dot3"></span>
-                      </div>
-                    </div>
-                    <div class="code-ai-overlay-tip">{{ ideAiCurrentTip }}</div>
-                  </div>
-                </transition>
-              </div>
             </div>
 
-            <div
-              v-show="aiPanelExpanded"
-              class="code-ai-resizer"
-              role="separator"
-              aria-orientation="horizontal"
-              tabindex="0"
-              :aria-valuenow="Math.round(codeAiSplitRatio)"
-              :title="$t('indicatorIde.aiCollaborate')"
-              @mousedown="startCodeAiResize"
-              @dblclick="resetCodeAiSplit"
-              @keydown.up.prevent="adjustCodeAiSplit(-3)"
-              @keydown.down.prevent="adjustCodeAiSplit(3)"
-            ><span class="code-ai-resizer__grip"></span></div>
-
-            <div class="ai-workspace-section" :class="{ 'is-collapsed': !aiPanelExpanded }">
-
-              <div
-                v-if="aiPanelExpanded && aiDebugSummary"
-                class="ai-debug-card"
-                :class="`ai-debug-card--${aiDebugState()}`"
-              >
-                <div class="ai-debug-card__header">
-                  <div class="ai-debug-card__badge">
-                    <a-icon :type="aiDebugStateIcon()" />
-                  </div>
-                  <div class="ai-debug-card__headline">
-                    <span class="ai-debug-card__tag">{{ $t('indicatorIde.aiQaTag') || 'AI QA' }}</span>
-                    <span class="ai-debug-card__title">{{ aiDebugSummary.title }}</span>
-                  </div>
-                  <a-icon type="close" class="ai-debug-card__dismiss" @click="aiDebugSummary = null" />
-                </div>
-                <div class="ai-debug-card__chips">
-                  <span :class="['ai-debug-chip', `ai-debug-chip--${aiDebugState()}`]">{{ aiDebugStateLabel() }}</span>
-                  <span v-if="aiDebugSummary.fixed_messages.length" class="ai-debug-chip ai-debug-chip--success">
-                    <a-icon type="check" style="font-size: 10px;" /> {{ aiDebugSummary.fixed_messages.length }} {{ $t('indicatorIde.fixed') || 'fixed' }}
-                  </span>
-                  <span v-if="aiDebugSummary.remaining_messages.length" class="ai-debug-chip ai-debug-chip--warning">
-                    <a-icon type="eye" style="font-size: 10px;" /> {{ aiDebugSummary.remaining_messages.length }} {{ $t('indicatorIde.toWatch') || 'to review' }}
-                  </span>
-                </div>
-                <div v-if="aiDebugSummary.returned_text" class="ai-debug-card__body">
-                  {{ aiDebugSummary.returned_text }}
-                </div>
-                <div v-if="aiDebugSummary.fixed_messages.length" class="ai-debug-card__group ai-debug-card__group--fixed">
-                  <div class="ai-debug-card__group-label"><a-icon type="check-circle" /> {{ $t('indicatorIde.autoFixed') || 'Auto fixed' }}</div>
-                  <div v-for="(msg, idx) in aiDebugSummary.fixed_messages" :key="`fixed-${idx}`" class="ai-debug-card__item">
-                    <span class="ai-debug-card__bullet ai-debug-card__bullet--green"></span>{{ msg }}
-                  </div>
-                </div>
-                <div v-if="aiDebugSummary.remaining_messages.length" class="ai-debug-card__group ai-debug-card__group--remaining">
-                  <div class="ai-debug-card__group-label"><a-icon type="warning" /> {{ $t('indicatorIde.needAttention') || 'Needs attention' }}</div>
-                  <div v-for="(msg, idx) in aiDebugSummary.remaining_messages" :key="`remaining-${idx}`" class="ai-debug-card__item">
-                    <span class="ai-debug-card__bullet ai-debug-card__bullet--orange"></span>{{ msg }}
-                  </div>
-                </div>
-              </div>
-
-              <!-- Indicator-bound AI collaboration workspace -->
-              <div ref="aiGeneratorPanel" class="ai-gen-panel" :class="{ 'is-collapsed': !aiPanelExpanded }">
-                <div class="ai-gen-header" @click="aiPanelExpanded = !aiPanelExpanded">
-                  <a-icon type="robot" />
-                  <span>{{ $t('indicatorIde.aiCollaborate') }}</span>
-                  <span v-if="selectedIndicatorId && !selectedIndicatorCodeHidden" class="ai-memory-badge">
-                    <a-icon type="link" /> {{ $t('indicatorIde.aiMemoryActive') }}
-                  </span>
-                  <a-button
-                    v-if="aiMessages.length || aiCandidate"
-                    type="link"
-                    size="small"
-                    class="ai-clear-button"
-                    :disabled="aiGenerating"
-                    @click.stop="clearAiWorkspace"
-                  >{{ $t('indicatorIde.aiClearConversation') }}</a-button>
-                  <a-icon :type="aiPanelExpanded ? 'up' : 'down'" style="margin-left: auto;" />
-                </div>
-                <div
-                  v-show="aiPanelExpanded"
-                  class="ai-gen-body"
-                  :class="{ 'is-empty': !aiWorkspaceLoading && !aiMessages.length }"
-                >
-                  <div v-if="!selectedIndicatorId || selectedIndicatorCodeHidden" class="ai-workspace-blocked">
-                    <a-icon :type="selectedIndicatorCodeHidden ? 'lock' : 'save'" />
-                    <span>{{ selectedIndicatorCodeHidden ? $t('indicatorIde.aiHiddenSourceUnavailable') : $t('indicatorIde.aiNoSavedIndicator') }}</span>
-                  </div>
-                  <template v-else>
-                    <div ref="aiConversation" class="ai-conversation">
-                      <div v-if="aiWorkspaceLoading" class="ai-workspace-loading"><a-icon type="loading" spin /></div>
-                      <div v-else-if="!aiMessages.length" class="ai-conversation-empty">
-                        <div class="ai-conversation-empty__intro">
-                          <a-icon type="message" />
-                          <div class="ai-conversation-empty__copy">
-                            <strong>{{ $t('indicatorIde.aiConversationEmptyTitle') }}</strong>
-                            <span>{{ $t('indicatorIde.aiConversationEmptyDesc') }}</span>
-                          </div>
-                        </div>
-                        <div class="ai-quick-prompts">
-                          <button v-for="item in aiQuickPrompts" :key="item.label" type="button" @click="useAiQuickPrompt(item)">
-                            <span>{{ item.label }}</span>
-                          </button>
-                        </div>
-                      </div>
-                      <div
-                        v-for="messageItem in aiMessages"
-                        :key="messageItem.localId || messageItem.id"
-                        :class="[
-                          'ai-message',
-                          `ai-message--${messageItem.role || 'assistant'}`,
-                          { 'ai-message--has-candidate': isActiveAiCandidateMessage(messageItem) }
-                        ]"
-                      >
-                        <div class="ai-message__role">
-                          {{ messageItem.role === 'user' ? $t('indicatorIde.aiYou') : 'AI' }}
-                          <span v-if="messageItem.role !== 'user' && messageItem.message_type === 'discussion'" class="ai-message__badge">{{ $t('indicatorIde.aiDiscussionBadge') }}</span>
-                          <span v-else-if="messageItem.role !== 'user' && messageItem.message_type === 'candidate'" class="ai-message__badge ai-message__badge--candidate">{{ $t('indicatorIde.aiCandidateBadge') }}</span>
-                        </div>
-                        <div class="ai-message__content" v-html="renderAiMessage(messageItem)" />
-                        <div
-                          v-if="isActiveAiCandidateMessage(messageItem)"
-                          class="ai-message-candidate"
-                          :class="{ 'ai-message-candidate--warning': !aiCandidateValidationPassed }"
-                        >
-                          <div class="ai-message-candidate__status">
-                            <a-icon :type="aiCandidateValidationPassed ? 'check-circle' : 'exclamation-circle'" />
-                            <span>{{ aiCandidateValidationPassed ? $t('indicatorIde.aiCandidateValid') : $t('indicatorIde.aiCandidateNeedsReview') }}</span>
-                          </div>
-                          <div class="ai-candidate-actions">
-                            <a-button size="small" @click="previewAiCandidate"><a-icon type="eye" /> {{ $t('indicatorIde.aiPreview') }}</a-button>
-                            <a-button size="small" type="primary" :disabled="!aiCandidateValidationPassed" @click="applyAiCandidate"><a-icon type="check" /> {{ $t('indicatorIde.aiApply') }}</a-button>
-                            <a-button size="small" type="link" @click="discardAiCandidate">{{ $t('indicatorIde.aiDiscard') }}</a-button>
-                          </div>
-                        </div>
-                      </div>
-                      <div v-if="aiGenerating" class="ai-message ai-message--assistant ai-message--thinking">
-                        <div class="ai-message__role">AI</div>
-                        <div class="ai-message__content"><a-icon type="loading" spin /> {{ $t('indicatorIde.aiThinking') }}</div>
-                      </div>
-                    </div>
-
-                    <div class="ai-composer">
-                      <a-textarea
-                        v-model="aiPrompt"
-                        class="ai-prompt-input"
-                        :placeholder="$t('indicatorIde.aiPromptPlaceholder')"
-                        :rows="3"
-                        :disabled="aiGenerating"
-                        @input="aiInteractionMode = 'auto'"
-                        @pressEnter="handleAIGenerateEnterKey"
-                      />
-                      <div class="ai-composer-toolbar">
-                        <span class="ai-composer-shortcut">{{ $t('indicatorIde.aiSendShortcut') }}</span>
-                        <a-button
-                          type="primary"
-                          class="ai-composer-send"
-                          :title="$t('indicatorIde.aiSend')"
-                          :loading="aiGenerating"
-                          :disabled="!aiPrompt.trim()"
-                          @click="handleAIGenerate"
-                        >
-                          <span v-if="!aiGenerating">{{ $t('indicatorIde.aiSend') }}</span>
-                        </a-button>
-                      </div>
-                    </div>
-                  </template>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -358,7 +192,7 @@
                     <div class="chart-panel-toolbar-top-actions">
                       <a-button
                         size="small"
-                        class="chart-panel-action-btn chart-panel-signal-alert-btn"
+                        class="chart-tool-button chart-panel-action-btn chart-panel-signal-alert-btn"
                         :disabled="!selectedIndicatorId"
                         :title="$t('indicatorIde.signalAlert.title')"
                         :aria-label="$t('indicatorIde.signalAlert.title')"
@@ -366,7 +200,7 @@
                       >
                         <a-icon type="bell" />
                         <span>{{ $t('indicatorIde.signalAlert.title') }}</span>
-                        <em>{{ runningSignalAlertCount }}</em>
+                        <em v-if="runningSignalAlertCount > 0">{{ runningSignalAlertCount }}</em>
                       </a-button>
                       <a-tooltip
                         placement="bottom"
@@ -375,8 +209,7 @@
                         <span class="chart-panel-action-wrap">
                           <a-button
                             size="small"
-                            type="primary"
-                            class="chart-panel-action-btn chart-panel-convert-strategy-btn"
+                            class="chart-tool-button chart-panel-action-btn chart-panel-convert-strategy-btn"
                             :disabled="!selectedIndicatorId || selectedIndicatorCodeHidden"
                             :aria-label="$t('indicatorIde.aiConvertToStrategy')"
                             @click="handleCreateStrategyFromIndicator"
@@ -389,7 +222,7 @@
                       <a-tooltip :title="chartFullscreen ? $t('indicatorIde.exitFullscreen') : $t('indicatorIde.fullscreenChart')">
                         <a-button
                           size="small"
-                          class="chart-panel-fs-btn"
+                          class="chart-tool-button chart-panel-fs-btn"
                           :aria-label="chartFullscreen ? $t('indicatorIde.exitFullscreen') : $t('indicatorIde.fullscreenChart')"
                           @click="toggleChartFullscreen"
                         ><a-icon :type="chartFullscreen ? 'fullscreen-exit' : 'fullscreen'" /></a-button>
@@ -403,13 +236,12 @@
                         <a-tooltip :title="$t('indicatorIde.multiChart.layout')">
                           <a-button
                             size="small"
-                            class="ide-chart-layout-trigger"
+                            class="chart-tool-button ide-chart-layout-trigger"
                             :aria-label="$t('indicatorIde.multiChart.layout')"
                           >
                             <span class="ide-chart-layout-icon" :class="`ide-chart-layout-icon--${chartLayoutMode}`">
                               <span v-for="cell in chartLayoutMode" :key="cell"></span>
                             </span>
-                            <a-icon type="down" class="ide-chart-layout-chevron" />
                           </a-button>
                         </a-tooltip>
                         <a-menu slot="overlay" :selected-keys="[String(chartLayoutMode)]" @click="onChartLayoutMenuClick">
@@ -526,7 +358,7 @@
                       </a-dropdown>
                     </div>
                     <div class="ide-toolbar-group ide-toolbar-group--preset-indicator">
-                      <span class="ide-toolbar-label">{{ $t('indicatorIde.toolbar.indicator') }}</span>
+                      <span class="ide-toolbar-label">{{ $t('indicatorIde.toolbar.addToChart') }}</span>
                       <a-dropdown
                         :trigger="['click']"
                         placement="bottomLeft"
@@ -534,11 +366,29 @@
                         :overlay-class-name="isDarkTheme ? 'ide-preset-indicator-dropdown ide-preset-indicator-dropdown--dark' : 'ide-preset-indicator-dropdown'"
                         @visibleChange="syncChartPresetIndicatorOptions"
                       >
-                        <a-button size="small" class="ide-preset-indicator-trigger">
-                          <a-icon type="plus" />
-                          <span>{{ $t('indicatorIde.toolbar.indicator') }}</span>
-                          <a-icon type="down" />
-                        </a-button>
+                        <a-tooltip :title="$t('indicatorIde.toolbar.addToChart')">
+                          <a-button
+                            size="small"
+                            class="ide-preset-indicator-trigger"
+                            :aria-label="$t('indicatorIde.toolbar.addToChart')"
+                            aria-haspopup="menu"
+                          >
+                            <svg
+                              class="ide-add-chart-icon"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="1.6"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              aria-hidden="true"
+                              focusable="false"
+                            >
+                              <path d="M3 3v18h18M6 16l4-5 4 3 4-4M18 2v6M15 5h6" />
+                            </svg>
+                            <a-icon type="down" class="ide-preset-indicator-chevron" />
+                          </a-button>
+                        </a-tooltip>
                         <a-menu slot="overlay" @click="onChartPresetIndicatorClick">
                           <a-menu-item v-for="option in chartPresetIndicatorOptions" :key="option.id">
                             <span class="ide-chart-preset-menu-item">
@@ -729,7 +579,7 @@
                         <header class="ide-quick-float__titlebar" @mousedown="startQuickTradeDrag">
                           <div class="ide-quick-float__identity">
                             <span class="ide-quick-float__brand"><a-icon type="thunderbolt" theme="filled" /> {{ $t('quickTrade.title') }}</span>
-                            <span v-if="!quickTradeMinimized" class="ide-quick-float__symbol">{{ market === 'Crypto' ? `${cryptoExchangeId.toUpperCase()} · ${qtSymbol}` : `${qtSymbol} · SPOT` }}</span>
+                            <span v-if="!quickTradeMinimized" class="ide-quick-float__symbol">{{ market === 'Crypto' ? `${cryptoExchangeId.toUpperCase()} · ${qtSymbol}` : `${qtSymbol} · ${$t(market === 'Futures' ? 'marketContext.product.futures' : 'marketContext.spot')}` }}</span>
                           </div>
                           <div v-if="market === 'Crypto' && !quickTradeMinimized && consoleState.canSwitchMarketType" class="ide-quick-float__modes" @mousedown.stop>
                             <button type="button" :class="{ active: consoleState.tradeMode === 'spot' }" @click="consoleState.selectTradeMode('spot')">{{ $t('quickTrade.spot') }}</button>
@@ -774,6 +624,191 @@
         </div>
       </div>
 
+    </div>
+
+    <button
+      v-if="codeDrawerVisible && !selectedIndicatorCodeHidden"
+      v-show="!aiPanelExpanded"
+      ref="indicatorAiLauncher"
+      class="indicator-ai-launcher"
+      type="button"
+      aria-haspopup="dialog"
+      aria-controls="indicator-ai-dialog"
+      :aria-busy="aiGenerating ? 'true' : 'false'"
+      :aria-expanded="aiPanelExpanded ? 'true' : 'false'"
+      @click="openIndicatorAiPanel"
+    >
+      <a-icon v-if="aiGenerating" type="loading" spin />
+      <QuantCatIcon v-else />
+      <span>{{ $t('indicatorIde.aiCollaborate') }}</span>
+    </button>
+
+    <div
+      v-show="codeDrawerVisible && !selectedIndicatorCodeHidden && aiPanelExpanded"
+      id="indicator-ai-dialog"
+      ref="indicatorAiDialog"
+      role="dialog"
+      tabindex="-1"
+      :aria-label="$t('indicatorIde.aiCollaborate')"
+      class="ai-workspace-section indicator-ai-floating"
+      @keydown.esc.stop="closeIndicatorAiPanel"
+    >
+
+      <div
+        v-if="aiPanelExpanded && aiDebugSummary"
+        class="ai-debug-card"
+        :class="`ai-debug-card--${aiDebugState()}`"
+      >
+        <div class="ai-debug-card__header">
+          <div class="ai-debug-card__badge">
+            <a-icon :type="aiDebugStateIcon()" />
+          </div>
+          <div class="ai-debug-card__headline">
+            <span class="ai-debug-card__tag">{{ $t('indicatorIde.aiQaTag') || 'AI QA' }}</span>
+            <span class="ai-debug-card__title">{{ aiDebugSummary.title }}</span>
+          </div>
+          <a-icon type="close" class="ai-debug-card__dismiss" @click="aiDebugSummary = null" />
+        </div>
+        <div class="ai-debug-card__chips">
+          <span :class="['ai-debug-chip', `ai-debug-chip--${aiDebugState()}`]">{{ aiDebugStateLabel() }}</span>
+          <span v-if="aiDebugSummary.fixed_messages.length" class="ai-debug-chip ai-debug-chip--success">
+            <a-icon type="check" style="font-size: 10px;" /> {{ aiDebugSummary.fixed_messages.length }} {{ $t('indicatorIde.fixed') || 'fixed' }}
+          </span>
+          <span v-if="aiDebugSummary.remaining_messages.length" class="ai-debug-chip ai-debug-chip--warning">
+            <a-icon type="eye" style="font-size: 10px;" /> {{ aiDebugSummary.remaining_messages.length }} {{ $t('indicatorIde.toWatch') || 'to review' }}
+          </span>
+        </div>
+        <div v-if="aiDebugSummary.returned_text" class="ai-debug-card__body">
+          {{ aiDebugSummary.returned_text }}
+        </div>
+        <div v-if="aiDebugSummary.fixed_messages.length" class="ai-debug-card__group ai-debug-card__group--fixed">
+          <div class="ai-debug-card__group-label"><a-icon type="check-circle" /> {{ $t('indicatorIde.autoFixed') || 'Auto fixed' }}</div>
+          <div v-for="(msg, idx) in aiDebugSummary.fixed_messages" :key="`fixed-${idx}`" class="ai-debug-card__item">
+            <span class="ai-debug-card__bullet ai-debug-card__bullet--green"></span>{{ msg }}
+          </div>
+        </div>
+        <div v-if="aiDebugSummary.remaining_messages.length" class="ai-debug-card__group ai-debug-card__group--remaining">
+          <div class="ai-debug-card__group-label"><a-icon type="warning" /> {{ $t('indicatorIde.needAttention') || 'Needs attention' }}</div>
+          <div v-for="(msg, idx) in aiDebugSummary.remaining_messages" :key="`remaining-${idx}`" class="ai-debug-card__item">
+            <span class="ai-debug-card__bullet ai-debug-card__bullet--orange"></span>{{ msg }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Indicator-bound AI collaboration workspace -->
+      <div ref="aiGeneratorPanel" class="ai-gen-panel">
+        <div class="ai-gen-header">
+          <a-icon type="code" />
+          <span>{{ $t('indicatorIde.aiCollaborate') }}</span>
+          <span v-if="selectedIndicatorId && !selectedIndicatorCodeHidden" class="ai-memory-badge">
+            <a-icon type="link" /> {{ $t('indicatorIde.aiMemoryActive') }}
+          </span>
+          <a-button
+            v-if="aiMessages.length || aiCandidate"
+            type="link"
+            size="small"
+            class="ai-clear-button"
+            :disabled="aiGenerating"
+            @click.stop="clearAiWorkspace"
+          >{{ $t('indicatorIde.aiClearConversation') }}</a-button>
+          <a-button
+            size="small"
+            class="indicator-ai-close"
+            :title="$t('common.close')"
+            :aria-label="$t('common.close')"
+            @click="closeIndicatorAiPanel"
+          ><a-icon type="close" /></a-button>
+        </div>
+        <div
+          v-show="aiPanelExpanded"
+          class="ai-gen-body"
+          :class="{ 'is-empty': !aiWorkspaceLoading && !aiMessages.length }"
+        >
+          <div v-if="!selectedIndicatorId || selectedIndicatorCodeHidden" class="ai-workspace-blocked">
+            <a-icon :type="selectedIndicatorCodeHidden ? 'lock' : 'save'" />
+            <span>{{ selectedIndicatorCodeHidden ? $t('indicatorIde.aiHiddenSourceUnavailable') : $t('indicatorIde.aiNoSavedIndicator') }}</span>
+          </div>
+          <template v-else>
+            <div ref="aiConversation" class="ai-conversation">
+              <div v-if="aiWorkspaceLoading" class="ai-workspace-loading"><a-icon type="loading" spin /></div>
+              <div v-else-if="!aiMessages.length" class="ai-conversation-empty">
+                <div class="ai-conversation-empty__intro">
+                  <a-icon type="code" />
+                  <div class="ai-conversation-empty__copy">
+                    <strong>{{ $t('indicatorIde.aiConversationEmptyTitle') }}</strong>
+                  </div>
+                </div>
+                <div class="ai-quick-prompts">
+                  <button v-for="item in aiQuickPrompts" :key="item.label" type="button" @click="useAiQuickPrompt(item)">
+                    <span>{{ item.label }}</span>
+                  </button>
+                </div>
+              </div>
+              <div
+                v-for="messageItem in aiMessages"
+                :key="messageItem.localId || messageItem.id"
+                :class="[
+                  'ai-message',
+                  `ai-message--${messageItem.role || 'assistant'}`,
+                  { 'ai-message--has-candidate': isActiveAiCandidateMessage(messageItem) }
+                ]"
+              >
+                <div class="ai-message__role">
+                  {{ messageItem.role === 'user' ? $t('indicatorIde.aiYou') : 'AI' }}
+                  <span v-if="messageItem.role !== 'user' && messageItem.message_type === 'discussion'" class="ai-message__badge">{{ $t('indicatorIde.aiDiscussionBadge') }}</span>
+                  <span v-else-if="messageItem.role !== 'user' && messageItem.message_type === 'candidate'" class="ai-message__badge ai-message__badge--candidate">{{ $t('indicatorIde.aiCandidateBadge') }}</span>
+                </div>
+                <div class="ai-message__content" v-html="renderAiMessage(messageItem)" />
+                <div
+                  v-if="isActiveAiCandidateMessage(messageItem)"
+                  class="ai-message-candidate"
+                  :class="{ 'ai-message-candidate--warning': !aiCandidateValidationPassed }"
+                >
+                  <div class="ai-message-candidate__status">
+                    <a-icon :type="aiCandidateValidationPassed ? 'check-circle' : 'exclamation-circle'" />
+                    <span>{{ aiCandidateValidationPassed ? $t('indicatorIde.aiCandidateValid') : $t('indicatorIde.aiCandidateNeedsReview') }}</span>
+                  </div>
+                  <div class="ai-candidate-actions">
+                    <a-button size="small" @click="previewAiCandidate"><a-icon type="eye" /> {{ $t('indicatorIde.aiPreview') }}</a-button>
+                    <a-button size="small" type="primary" :disabled="!aiCandidateValidationPassed" @click="applyAiCandidate"><a-icon type="check" /> {{ $t('indicatorIde.aiApply') }}</a-button>
+                    <a-button size="small" type="link" @click="discardAiCandidate">{{ $t('indicatorIde.aiDiscard') }}</a-button>
+                  </div>
+                </div>
+              </div>
+              <div v-if="aiGenerating" class="ai-message ai-message--assistant ai-message--thinking">
+                <div class="ai-message__role">AI</div>
+                <div class="ai-message__content"><a-icon type="loading" spin /> {{ $t('indicatorIde.aiThinking') }}</div>
+              </div>
+            </div>
+
+            <div class="ai-composer">
+              <a-textarea
+                ref="indicatorAiPrompt"
+                v-model="aiPrompt"
+                class="ai-prompt-input"
+                :placeholder="$t('indicatorIde.aiPromptPlaceholder')"
+                :rows="3"
+                :disabled="aiGenerating"
+                @input="aiInteractionMode = 'auto'"
+                @pressEnter="handleAIGenerateEnterKey"
+              />
+              <div class="ai-composer-toolbar">
+                <span class="ai-composer-shortcut">{{ $t('indicatorIde.aiSendShortcut') }}</span>
+                <a-button
+                  type="primary"
+                  class="ai-composer-send"
+                  :title="$t('indicatorIde.aiSend')"
+                  :loading="aiGenerating"
+                  :disabled="!aiPrompt.trim()"
+                  @click="handleAIGenerate"
+                >
+                  <span v-if="!aiGenerating">{{ $t('indicatorIde.aiSend') }}</span>
+                </a-button>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
     </div>
 
     <!-- Add symbol modal -->
@@ -1269,6 +1304,7 @@ import { getUserInfo } from '@/api/login'
 import { getNotificationSettings } from '@/api/user'
 import { getWatchlist, getSymbolCapabilities } from '@/api/market'
 import AddWatchlistModal from '@/components/Watchlist/AddWatchlistModal.vue'
+import QuantCatIcon from '@/components/QuantCatIcon.vue'
 import { groupWatchlistAssets, watchlistAssetKey, watchlistContextLabel } from '@/utils/watchlistAssets'
 import { getPublicSettingsConfig } from '@/api/settings'
 import { extractIndicatorSignalLabels } from '@/utils/indicatorSignalOptions'
@@ -1338,7 +1374,7 @@ const supportedChartTypes = new Set([
 export default {
   name: 'IndicatorIDE',
   mixins: [baseMixin],
-  components: { KlineChart, QuickTradePanel, IndicatorMarketPicker, AddWatchlistModal },
+  components: { QuantCatIcon, KlineChart, QuickTradePanel, IndicatorMarketPicker, AddWatchlistModal },
   data () {
     return {
       userId: null,
@@ -1434,7 +1470,7 @@ export default {
       },
 
       // AI generation
-      aiPanelExpanded: true,
+      aiPanelExpanded: false,
       aiPrompt: '',
       aiInteractionMode: 'auto',
       aiGenerating: false,
@@ -1459,8 +1495,6 @@ export default {
       codeQualityHints: [],
       codeQualityLoading: false,
       codeQualityChecked: false,
-      codeAiSplitRatio: 58,
-      codeAiResizing: false,
       workspaceSplitRatio: DEFAULT_WORKSPACE_SPLIT_RATIO,
       workspaceResizing: false,
 
@@ -1766,7 +1800,6 @@ export default {
     }
   },
   beforeDestroy () {
-    this.stopCodeAiResize()
     this.stopWorkspaceResize()
     this.stopQuickTradeDrag()
     this.stopQuickTradeResize()
@@ -2088,45 +2121,25 @@ export default {
       if (persist) this.schedulePersistIdeUiState()
       this.scheduleWorkspaceResizeRefresh()
     },
-    adjustCodeAiSplit (delta) {
-      const next = Number(this.codeAiSplitRatio || 58) + Number(delta || 0)
-      this.codeAiSplitRatio = Math.max(28, Math.min(76, next))
-      this.refreshEditorAfterSplit()
-    },
-    resetCodeAiSplit () {
-      this.codeAiSplitRatio = 58
-      this.refreshEditorAfterSplit()
-    },
-    refreshEditorAfterSplit () {
+    focusIndicatorAiPrompt () {
       this.$nextTick(() => {
-        if (this.cmInstance) this.cmInstance.refresh()
+        const input = this.$refs.indicatorAiPrompt && this.$refs.indicatorAiPrompt.$el
+        const textarea = input && (input.tagName === 'TEXTAREA' ? input : input.querySelector('textarea'))
+        if (textarea && !textarea.disabled) textarea.focus()
+        else if (this.$refs.indicatorAiDialog) this.$refs.indicatorAiDialog.focus()
       })
     },
-    startCodeAiResize (event) {
-      if (event && event.button !== 0) return
-      const container = this.$refs.codePanelBody
-      if (!container) return
-      const rect = container.getBoundingClientRect()
-      if (!rect.height) return
-      if (event) event.preventDefault()
-      this.codeAiResizing = true
-      this._codeAiResizeMove = (moveEvent) => {
-        const raw = ((moveEvent.clientY - rect.top) / rect.height) * 100
-        this.codeAiSplitRatio = Math.max(28, Math.min(76, raw))
-        this.refreshEditorAfterSplit()
-      }
-      this._codeAiResizeEnd = () => this.stopCodeAiResize()
-      document.body.classList.add('qd-code-ai-resizing')
-      window.addEventListener('mousemove', this._codeAiResizeMove)
-      window.addEventListener('mouseup', this._codeAiResizeEnd, { once: true })
+    openIndicatorAiPanel () {
+      if (!this.codeDrawerVisible || this.selectedIndicatorCodeHidden) return
+      this.aiPanelExpanded = true
+      this.$nextTick(this.scrollAiConversationToBottom)
+      this.focusIndicatorAiPrompt()
     },
-    stopCodeAiResize () {
-      if (this._codeAiResizeMove) window.removeEventListener('mousemove', this._codeAiResizeMove)
-      if (this._codeAiResizeEnd) window.removeEventListener('mouseup', this._codeAiResizeEnd)
-      this._codeAiResizeMove = null
-      this._codeAiResizeEnd = null
-      this.codeAiResizing = false
-      if (typeof document !== 'undefined') document.body.classList.remove('qd-code-ai-resizing')
+    closeIndicatorAiPanel () {
+      this.aiPanelExpanded = false
+      this.$nextTick(() => {
+        if (this.$refs.indicatorAiLauncher) this.$refs.indicatorAiLauncher.focus()
+      })
     },
     toggleCodeDrawer () {
       this.indicatorDropdownVisible = false
@@ -3710,10 +3723,7 @@ export default {
       const prompt = item && typeof item === 'object' ? item.label : item
       this.aiPrompt = String(prompt || '')
       this.aiInteractionMode = (item && item.mode) || 'auto'
-      this.$nextTick(() => {
-        const input = this.$el && this.$el.querySelector('.ai-prompt-input textarea')
-        if (input) input.focus()
-      })
+      this.focusIndicatorAiPrompt()
     },
     clearAiWorkspace () {
       if (!this.selectedIndicatorId) return
@@ -3938,7 +3948,6 @@ export default {
               message_type: 'discussion',
               localId: `assistant-${Date.now()}`
             })
-            this.aiPanelExpanded = true
             this.$nextTick(this.scrollAiConversationToBottom)
           } else {
             this.$message.warning(this.$t('indicatorIde.aiNoAnswer'))
@@ -3960,7 +3969,6 @@ export default {
             validation: (workspaceMeta && workspaceMeta.validation) || {},
             summary: (workspaceMeta && workspaceMeta.summary) || {}
           }
-          this.aiPanelExpanded = true
           const autoApplied = await this.autoApplyAiCandidate()
           if (!autoApplied) this.$message.success(this.$t('indicatorIde.aiCandidateReady'))
           this.$nextTick(this.scrollAiConversationToBottom)
@@ -4156,7 +4164,7 @@ export default {
 
     // ===== Quick Trade =====
     isQuickTradeMarketSupported () {
-      return ['Crypto', 'USStock', 'HKStock'].includes(this.market)
+      return ['Crypto', 'USStock', 'HKStock', 'Futures'].includes(this.market)
     },
     toggleQuickTradeDrawer () {
       if (!this.liveTradingEnabled) {
@@ -4366,6 +4374,11 @@ export default {
     handleQuickTradeSymbolChange (newSymbol) {
       if (newSymbol) {
         this.qtSymbol = newSymbol
+        if (this.market === 'Futures') {
+          this.symbol = newSymbol
+          this.currentAssetId = 0
+          this.syncActivePaneFromWorkspace()
+        }
       }
     },
     async handleCreateIndicator () {
@@ -4916,6 +4929,7 @@ export default {
       })
     },
     codeDrawerVisible () {
+      if (!this.codeDrawerVisible) this.aiPanelExpanded = false
       this.schedulePersistIdeUiState()
       this.$nextTick(() => {
         this.clampWorkspaceSplit()
@@ -5270,8 +5284,11 @@ export default {
   i:nth-child(3) { height: 14px; align-self: flex-start; }
 }
 .ide-preset-indicator-trigger {
+  width: 64px;
+  min-width: 64px;
   height: 30px !important;
   padding: 0 9px !important;
+  justify-content: center;
   display: inline-flex !important;
   align-items: center;
   gap: 5px;
@@ -5280,6 +5297,16 @@ export default {
   border-color: #e2e8f0;
   box-shadow: none;
   font-size: 12px;
+}
+.ide-preset-indicator-chevron {
+  margin-left: 5px;
+  font-size: 10px;
+}
+.ide-add-chart-icon {
+  display: block;
+  width: 19px;
+  height: 19px;
+  flex-shrink: 0;
 }
 .ide-chart-preset-menu-item {
   min-width: 150px;
@@ -5859,14 +5886,14 @@ body.dark .ide-signal-alert-modal-wrap {
   }
 }
 .code-editor-section {
-  flex: 0 0 auto;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   min-height: 180px;
-  max-height: calc(100% - 250px);
+  max-height: none;
   overflow: hidden;
 }
-.code-editor-wrapper { flex: 1; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+.code-editor-wrapper { flex: 1; min-height: 0; position: relative; overflow: hidden; display: flex; flex-direction: column; }
 .code-hidden-mask {
   position: absolute;
   inset: 0;
@@ -6318,7 +6345,7 @@ body.dark .ide-signal-alert-modal-wrap {
   font-size: 11px;
   color: #8c8c8c;
   background: transparent;
-  border-bottom: 1px solid #f0f0f0;
+  border-top: 1px solid #e3e7ec;
   flex-shrink: 0;
 }
 .ide-guide-copy,
@@ -8505,7 +8532,7 @@ body.dark .ide-signal-alert-modal-wrap {
   }
   .ide-guide-bar {
     background: #1a1a1a;
-    border-bottom-color: #303030;
+    border-top-color: #303030;
     color: rgba(255, 255, 255, 0.45);
   }
   .ide-guide-copy > .anticon { color: rgba(255, 255, 255, 0.3); }
@@ -8669,6 +8696,63 @@ body.dark .ide-signal-alert-modal-wrap {
     .ant-pagination-prev, .ant-pagination-next { .ant-pagination-item-link { background: #1f1f1f; border-color: #434343; color: rgba(255,255,255,0.45); } }
   }
   ::v-deep .ant-empty-description { color: rgba(255,255,255,0.35); }
+}
+
+.indicator-ide {
+  --chart-tool-background: #fff;
+  --chart-tool-border: #d9d9d9;
+  --chart-tool-color: #5f6b7a;
+}
+.indicator-ide.theme-dark {
+  --chart-tool-background: #1f1f1f;
+  --chart-tool-border: #434343;
+  --chart-tool-color: rgba(255, 255, 255, .72);
+}
+.indicator-ide .chart-panel-toolbar-top-actions {
+  gap: 6px;
+
+  .chart-panel-action-wrap { display: inline-flex; }
+
+  .chart-tool-button {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    min-width: 30px !important;
+    height: 30px !important;
+    padding: 0 !important;
+    border: 1px solid var(--chart-tool-border) !important;
+    border-radius: var(--ide-radius-control, 6px) !important;
+    background: var(--chart-tool-background) !important;
+    color: var(--chart-tool-color) !important;
+    box-shadow: none !important;
+    text-shadow: none;
+    font-size: 15px;
+
+    &:not(:disabled):hover,
+    &:not(:disabled):focus-visible {
+      color: var(--primary-color, @primary-color) !important;
+      border-color: var(--primary-color, @primary-color) !important;
+      background: color-mix(in srgb, var(--primary-color, @primary-color) 8%, var(--chart-tool-background)) !important;
+    }
+    &:focus-visible {
+      outline: 2px solid var(--primary-color, @primary-color);
+      outline-offset: 2px;
+    }
+    &:disabled {
+      opacity: .4;
+      cursor: not-allowed;
+    }
+  }
+
+  .ide-chart-layout-icon {
+    display: grid !important;
+    flex: 0 0 16px;
+    width: 16px;
+    height: 16px;
+
+    > span { background: transparent; opacity: 1; }
+  }
 }
 </style>
 
@@ -8877,6 +8961,96 @@ body.dark .ide-signal-alert-modal-wrap {
   .ai-message__role {
     color: var(--ide-text-muted);
   }
+}
+
+.indicator-ide .ai-gen-header > .anticon:first-child {
+  color: var(--ide-text-secondary, #7d899b);
+  background: transparent;
+  border-radius: 0;
+}
+.indicator-ide .ai-conversation-empty__intro > .anticon { font-size: 24px; color: var(--ide-text-muted, #7d899b); }
+.indicator-ide .ai-conversation-empty__copy strong { font-size: 14px; font-weight: 500; }
+.indicator-ide .ai-conversation-empty__copy span { font-size: 12px; line-height: 1.65; }
+.indicator-ide .ai-gen-panel .ai-quick-prompts button {
+  font-size: 12px !important;
+  font-weight: 400;
+  border-radius: 6px;
+  border: 1px solid rgba(127, 127, 127, 0.28);
+  &:hover { transform: none; border-color: rgba(127, 127, 127, 0.55); }
+}
+.indicator-ide .ai-composer {
+  border-radius: 6px;
+  box-shadow: none;
+  &:focus-within { box-shadow: none; }
+  ::v-deep textarea.ant-input { border: 0 !important; box-shadow: none !important; background: transparent !important; }
+}
+.indicator-ide .ai-gen-panel .ai-composer-send { font-weight: 500; border-radius: 6px; }
+
+.indicator-ide .indicator-ai-floating {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 100;
+  width: min(460px, calc(100vw - 32px));
+  height: min(680px, calc(100vh - 112px));
+  height: min(680px, calc(100dvh - 112px));
+  min-height: 0;
+  border: 1px solid #e3e7ec;
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  .ai-gen-header { cursor: default; flex: 0 0 auto; }
+  .ai-memory-badge { flex-shrink: 1; min-width: 0; }
+  .indicator-ai-close { margin-left: auto; color: inherit; background: transparent; border: 0; box-shadow: none; flex-shrink: 0; }
+  .ai-debug-card { flex: 0 1 auto; max-height: 30%; overflow: auto; }
+  .ai-conversation-empty { gap: 16px; padding: 24px 8px; }
+  .ai-conversation-empty__intro { gap: 16px; }
+  .ai-conversation-empty__intro > .anticon { font-size: 28px; }
+  .ai-conversation-empty__copy strong { font-size: 15px; line-height: 1.6; }
+  .ai-quick-prompts { gap: 12px; margin-top: 8px; }
+  .ai-quick-prompts button { min-height: 52px; padding: 12px; font-size: 13px !important; line-height: 1.6; white-space: normal; overflow-wrap: anywhere; }
+}
+.indicator-ide.theme-dark .indicator-ai-floating { border-color: #2a2a2a; }
+.indicator-ide .indicator-ai-launcher {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 100;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 8px 14px;
+  border: 1px solid var(--primary-color, #3154e8);
+  border-radius: 21px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(0, 0, 0, 0.05)), var(--primary-color, #3154e8);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.14),
+    0 3px 0 color-mix(in srgb, var(--primary-color, #3154e8) 75%, #000),
+    0 8px 18px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  font: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+  > .anticon { font-size: 18px; }
+  cursor: pointer;
+  &:hover { transform: translateY(-1px); }
+  &:active {
+    transform: translateY(2px);
+    box-shadow:
+      inset 0 1px 3px rgba(0, 0, 0, 0.16),
+      0 1px 0 color-mix(in srgb, var(--primary-color, #3154e8) 75%, #000),
+      0 3px 8px rgba(0, 0, 0, 0.16);
+  }
+  @media (prefers-reduced-motion: reduce) { transition: none; }
+  &:focus-visible { outline: 2px solid var(--primary-color, #3154e8); outline-offset: 3px; }
+}
+
+@media (max-width: 480px) {
+  .indicator-ide .indicator-ai-floating { right: 12px; bottom: 12px; width: calc(100vw - 24px); height: calc(100dvh - 88px); }
+  .indicator-ide .indicator-ai-launcher { right: 16px; bottom: 16px; }
 }
 </style>
 

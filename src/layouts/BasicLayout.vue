@@ -7,6 +7,7 @@
       :isMobile="isMobile"
       :handleMediaQuery="handleMediaQuery"
       :handleCollapse="handleCollapse"
+      :menuRender="renderSponsoredMenu"
       :i18nRender="i18nRender"
       v-bind="proLayoutSettings"
     >
@@ -86,6 +87,7 @@
                 target="_blank"
                 rel="noopener noreferrer"
                 :title="account.name"
+                :aria-label="account.name"
                 class="support-social"
               >
                 <Icon :icon="`simple-icons:${account.icon}`" />
@@ -254,6 +256,9 @@ import RightContent from '@/components/GlobalHeader/RightContent'
 import SettingDrawer from '@/components/SettingDrawer/SettingDrawer'
 import MultiTab from '@/components/MultiTab'
 import BrandIdentity from '@/components/BrandIdentity'
+import BaseMenu from '@ant-design-vue/pro-layout/es/components/RouteMenu'
+import AdvertisementSlot from '@/components/AdvertisementSlot.vue'
+import { showSidebarAdvertisement } from '@/utils/advertisements.mjs'
 import RouteView from './RouteView'
 import { Icon } from '@iconify/vue2'
 
@@ -572,6 +577,16 @@ export default {
     }
   },
   methods: {
+    renderSponsoredMenu (h, props) {
+      const show = !this.collapsed && !this.isMobile && showSidebarAdvertisement(this.brandConfig.advertisements)
+      return h('div', { class: 'sponsored-menu' }, [
+        h('div', { class: 'sponsored-menu__navigation' }, [h(BaseMenu, {
+          props,
+          on: { openChange: props.openChange, select: props.select, click: props.menuClick }
+        })]),
+        show ? h('div', { class: 'sponsored-menu__advertisement' }, [h(AdvertisementSlot, { props: { position: 'sidebar' } })]) : null
+      ])
+    },
     i18nRender (key) {
       const label = i18nRender(key)
       return this.$createElement('span', {
@@ -1399,204 +1414,76 @@ export default {
 .setting-drawer-support {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 16px;
-  color: #64748b;
-  background: #fff;
-  border: 1px solid #e6e9ee;
-  border-radius: 12px;
-  box-shadow: 0 5px 18px rgba(15, 23, 42, 0.045);
+  gap: 24px;
+  padding: 24px 0 0;
+  color: var(--setting-drawer-muted);
 
   .support-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
+    gap: 20px;
   }
 
-  .support-block {
-    min-width: 0;
-    margin: 0;
-    padding: 12px;
-    background: #f8fafc;
-    border: 1px solid #e7eaf0;
-    border-radius: 9px;
-  }
-
-  .support-block--social {
-    padding: 12px 0 0;
-    background: transparent;
-    border: 0;
-    border-top: 1px solid #edf0f3;
-    border-radius: 0;
-  }
+  .support-block { min-width: 0; }
 
   .support-title {
-    margin-bottom: 7px;
-    color: #334155;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    white-space: nowrap;
+    margin-bottom: 8px;
+    color: var(--setting-drawer-text);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 20px;
   }
 
   .support-links,
   .support-legal {
     display: flex;
+    align-items: flex-start;
     flex-wrap: wrap;
-    align-items: center;
-    gap: 5px;
-    font-size: 11px;
-    line-height: 1.6;
+    gap: 4px 16px;
+    font-size: 13px;
+    line-height: 24px;
 
     a {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      flex: 1 1 auto;
-      min-height: 25px;
-      padding: 3px 7px;
-      color: var(--primary-color, #1890ff);
-      background: color-mix(in srgb, var(--primary-color, #1890ff) 6%, #fff);
-      border: 1px solid color-mix(in srgb, var(--primary-color, #1890ff) 15%, #e6e9ee);
-      border-radius: 7px;
-      white-space: nowrap;
-
-      &:hover {
-        background: color-mix(in srgb, var(--primary-color, #1890ff) 11%, #fff);
-      }
+      color: var(--setting-drawer-muted);
+      &:hover { color: var(--primary-color); text-decoration: underline; }
     }
-
-    .separator {
-      display: none;
-    }
+    .separator { display: none; }
   }
 
-  .support-legal {
-    padding-top: 13px;
-    border-top: 1px solid #edf0f3;
+  .support-links { flex-direction: column; }
 
-    a {
-      flex: 0 0 auto;
-    }
-  }
-
-  .support-socials {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
+  .support-socials { display: flex; flex-wrap: wrap; gap: 12px; }
   .support-social {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 30px;
-    height: 30px;
-    color: #64748b;
-    background: #f8fafc;
-    border: 1px solid #e7eaf0;
-    border-radius: 8px;
-    transition: color 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+    width: 28px;
+    height: 28px;
+    color: var(--setting-drawer-muted);
+    font-size: 18px;
+    border-radius: 4px;
+    &:hover { color: var(--primary-color); background: var(--setting-drawer-panel); }
+  }
 
-    &:hover {
-      color: var(--primary-color, #1890ff);
-      border-color: color-mix(in srgb, var(--primary-color, #1890ff) 34%, transparent);
-      background: color-mix(in srgb, var(--primary-color, #1890ff) 8%, #fff);
-    }
+  .support-legal {
+    padding-top: 20px;
+    border-top: 1px solid var(--setting-drawer-border);
   }
 
   .support-meta {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: space-between;
-    gap: 12px;
-    padding-top: 11px;
-    border-top: 1px solid #edf0f3;
+    gap: 16px;
+    margin-top: -12px;
+    font-size: 11px;
+    line-height: 18px;
   }
+  .support-copy { min-width: 0; }
+  .support-version { flex: 0 0 auto; white-space: nowrap; }
 
-  .support-copy,
-  .support-version {
-    color: #94a3b8;
-    font-size: 10px;
-  }
-
-  .support-copy {
-    min-width: 0;
-    line-height: 1.45;
-  }
-
-  .support-version {
-    flex: 0 0 auto;
-    letter-spacing: 0.06em;
-    text-align: right;
-    white-space: nowrap;
-  }
-
-  @media (max-width: 380px) {
-    .support-grid {
-      grid-template-columns: 1fr;
-    }
-  }
-}
-
-body.dark .setting-drawer-support,
-body.realdark .setting-drawer-support,
-.basic-layout-wrapper.dark .setting-drawer-support,
-.basic-layout-wrapper.realdark .setting-drawer-support {
-  color: #a8a8a8;
-  background: #111;
-  border-color: #2d2d2d;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
-
-  .support-block {
-    background: #181818;
-    border-color: #303030;
-  }
-
-  .support-block--social {
-    background: transparent;
-    border-color: #2d2d2d;
-  }
-
-  .support-legal,
-  .support-meta {
-    border-top-color: #2d2d2d;
-  }
-
-  .support-title {
-    color: #ededed;
-  }
-
-  .support-links,
-  .support-legal {
-    a {
-      background: color-mix(in srgb, var(--primary-color, #1890ff) 10%, #171717);
-      border-color: color-mix(in srgb, var(--primary-color, #1890ff) 22%, #2d2d2d);
-
-      &:hover {
-        background: color-mix(in srgb, var(--primary-color, #1890ff) 16%, #171717);
-      }
-    }
-  }
-
-  .support-social {
-    color: #b8b8b8;
-    background: #181818;
-    border-color: #303030;
-
-    &:hover {
-      color: var(--primary-color, #1890ff);
-      border-color: color-mix(in srgb, var(--primary-color, #1890ff) 36%, transparent);
-      background: color-mix(in srgb, var(--primary-color, #1890ff) 12%, transparent);
-    }
-  }
-
-  .support-copy {
-    color: #737373;
-  }
-
-  .support-version {
-    color: #737373;
+  @media (max-width: 340px) {
+    .support-grid { grid-template-columns: 1fr; }
   }
 }
 
@@ -1724,4 +1611,17 @@ body.light {
   }
 }
 
+/* Keep the advertisement in the sidebar flow, never over the navigation. */
+.basic-layout-wrapper .ant-pro-sider-menu-sider .ant-layout-sider-children {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+.basic-layout-wrapper .ant-pro-sider-menu-logo { flex-shrink: 0; }
+.sponsored-menu { display: flex; flex: 1; flex-direction: column; min-height: 0; overflow: hidden; }
+.sponsored-menu__navigation { flex: 1; min-height: 0; overflow: auto; }
+.basic-layout-wrapper .ant-pro-sider-menu-sider .sponsored-menu__navigation .ant-menu-root { height: auto !important; padding-bottom: 12px !important; }
+.sponsored-menu__advertisement { flex-shrink: 0; margin-top: auto; padding: 12px 12px max(16px, env(safe-area-inset-bottom)); }
 </style>

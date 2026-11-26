@@ -93,10 +93,10 @@ test('desktop breakpoint keeps history, chat, and watchlist in one row', () => {
   )
 })
 
-test('saved prompts use compact chat-history rows instead of stretched grid cards', () => {
-  assert.match(copilot, /\.left-rail \.saved-prompt-library__list \{[\s\S]*?grid-auto-rows: min-content;[\s\S]*?align-content: start;/)
-  assert.match(copilot, /\.left-rail \.saved-prompt-library__item \{[\s\S]*?grid-template-columns: minmax\(0, 1fr\) 28px;/)
-  assert.match(copilot, /\.left-rail \.saved-prompt-card \{\s*padding: 9px 10px;/)
+test('saved prompt dialog keeps compact rows instead of stretched grid cards', () => {
+  assert.match(copilot, /\.saved-prompts-dialog \.saved-prompt-library__list \{[\s\S]*?grid-auto-rows: min-content;[\s\S]*?align-content: start;/)
+  assert.match(copilot, /\.saved-prompts-dialog \.saved-prompt-library__item \{[\s\S]*?grid-template-columns: minmax\(0, 1fr\) 28px;/)
+  assert.match(copilot, /\.saved-prompts-dialog \.saved-prompt-card \{\s*padding: 9px 10px;/)
 })
 
 test('analysis quick action is localized for every selectable language', () => {

@@ -164,7 +164,7 @@ import { getPublicSettingsConfig } from '@/api/settings'
 import { getCryptoEnvironmentValues, normalizeCryptoExchangeId, shouldShowCryptoEnvironmentHint } from './environmentOptions'
 import { normalizeEnabledTradingVenues } from '@/utils/tradingVenueConfig'
 
-const ALL_TRADING_VENUE_IDS = ['alpaca', 'ibkr', 'tiger', 'webull', 'binance', 'okx', 'bybit', 'bitget', 'gate', 'htx']
+const ALL_TRADING_VENUE_IDS = ['alpaca', 'ibkr', 'tiger', 'webull', 'forthright', 'binance', 'okx', 'bybit', 'bitget', 'gate', 'htx']
 
 const CRYPTO_ENVIRONMENT_LABEL_KEYS = Object.freeze({
   live: 'profile.exchange.environmentLive',

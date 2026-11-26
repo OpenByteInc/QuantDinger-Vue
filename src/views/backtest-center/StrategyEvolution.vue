@@ -1,5 +1,9 @@
 <template>
   <div class="evolution-shell" :class="{ 'theme-dark': isDarkTheme }" data-testid="strategy-evolution">
+    <header class="evolution-toolbar">
+      <span>{{ $t('strategyEvolution.tab') }}</span>
+      <a-button icon="history" data-testid="evolution-history-toggle" @click="historyVisible = true">{{ $t('strategyEvolution.historyTitle') }}</a-button>
+    </header>
     <aside class="evolution-rail evolution-config">
       <div class="evolution-scroll">
         <section class="evolution-section">
@@ -22,7 +26,7 @@
             <span>{{ selectedParameterCount }}/{{ searchableParameterCount }}</span>
           </div>
           <div v-if="parameterDefinitions.length" class="parameter-space-hint">
-            <a-icon type="robot" />
+            <a-icon type="info-circle" />
             <span>{{ $t('strategyEvolution.systemSampling') }}</span>
           </div>
           <a-alert
@@ -348,13 +352,32 @@
           </div>
         </section>
       </template>
+      <section v-if="result" class="evolution-validation">
+        <div class="validation-divider"><a-icon type="safety-certificate" /><strong>{{ $t('strategyEvolution.validationTitle') }}</strong></div>
+        <div class="validation-scroll">
+          <div class="validation-score" :class="`validation-score--${String(result.summary.robustnessGrade || 'D').toLowerCase()}`">
+            <span>{{ result.summary.robustnessGrade }}</span>
+            <div><strong>{{ result.summary.robustnessScore }}<small>/100</small></strong><p>{{ $t('strategyEvolution.robustnessCoverage', { available: robustnessAvailableChecks, total: robustnessTotalChecks }) }}</p></div>
+          </div>
+          <article class="validation-card"><div><a-icon type="experiment" /><strong>{{ $t('strategyEvolution.pbo') }}</strong></div><b>{{ result.validation.pbo.available ? formatPercent(result.validation.pbo.probability * 100) : '—' }}</b><p v-if="result.validation.pbo.available">{{ $t('strategyEvolution.pboDetail', { reversals: pboReversals, samples: result.validation.pbo.samples }) }}</p><p v-else>{{ $t('strategyEvolution.validationInsufficient') }}</p></article>
+          <article class="validation-card"><div><a-icon type="rise" /><strong>{{ $t('strategyEvolution.dsr') }}</strong></div><b>{{ result.validation.deflatedSharpe.available ? formatPercent(result.validation.deflatedSharpe.probability * 100) : '—' }}</b><p v-if="deflatedSharpeHasDetails">{{ $t('strategyEvolution.dsrDetail', { observed: formatNumber(result.validation.deflatedSharpe.observedSharpe), benchmark: formatNumber(result.validation.deflatedSharpe.benchmarkSharpe), observations: result.validation.deflatedSharpe.observations }) }}</p><p v-else>{{ $t(result.validation.deflatedSharpe.available ? 'strategyEvolution.dsrHint' : 'strategyEvolution.validationInsufficient') }}</p></article>
+          <article class="validation-card"><div><a-icon type="cluster" /><strong>{{ $t('strategyEvolution.monteCarlo') }}</strong></div><b>{{ monteCarloAvailable ? formatPercent(monteCarloMedian) : '—' }}</b><p v-if="monteCarloHasDetails">{{ $t('strategyEvolution.monteCarloDetail', { loss: formatPercent(result.validation.monteCarlo.lossProbability * 100), paths: result.validation.monteCarlo.paths, observations: result.validation.monteCarlo.observations }) }}</p><p v-else>{{ $t(monteCarloAvailable ? 'strategyEvolution.monteCarloHint' : 'strategyEvolution.validationInsufficient') }}</p></article>
+          <article class="validation-card"><div><a-icon type="dollar" /><strong>{{ $t('strategyEvolution.costStress') }}</strong></div><b>{{ worstCostStress ? formatPercent(worstCostStress.return) : '—' }}</b><p v-if="worstCostStress">{{ $t('strategyEvolution.costStressDetail', { multiplier: worstCostStress.multiplier, delta: formatPercent(worstCostStressDelta) }) }}</p><p v-else>{{ $t('strategyEvolution.validationInsufficient') }}</p></article>
+          <section class="best-params"><strong>{{ $t('strategyEvolution.bestParams') }}</strong><div v-for="(value, key) in result.bestParams" :key="key"><code>{{ key }}</code><b>{{ value }}</b></div></section>
+        </div>
+      </section>
     </main>
 
-    <aside class="evolution-rail evolution-validation">
-      <div class="evolution-rail__title history-title">
-        <a-icon type="history" />
-        <div><strong>{{ $t('strategyEvolution.historyTitle') }}</strong><span>{{ $t('strategyEvolution.historyHint') }}</span></div>
-        <a-button type="link" icon="reload" :loading="historyLoading" @click="loadHistory" />
+    <a-drawer
+      :visible="historyVisible"
+      :title="$t('strategyEvolution.historyTitle')"
+      placement="right"
+      :width="460"
+      :wrap-class-name="isDarkTheme ? 'backtest-history-drawer evolution-history-drawer theme-dark' : 'backtest-history-drawer evolution-history-drawer'"
+      @close="historyVisible = false">
+      <div class="evolution-history-toolbar">
+        <p>{{ $t('strategyEvolution.historyHint') }}</p>
+        <a-button icon="reload" :loading="historyLoading" @click="loadHistory">{{ $t('backtest-center.refreshHistory') }}</a-button>
       </div>
       <div class="history-list">
         <div v-if="!history.length && !historyLoading" class="history-empty">{{ $t('strategyEvolution.historyEmpty') }}</div>
@@ -371,27 +394,7 @@
           <small>{{ formatDateTime(job.createdAt) }}</small>
         </button>
       </div>
-      <div class="validation-divider"><a-icon type="safety-certificate" /><strong>{{ $t('strategyEvolution.validationTitle') }}</strong></div>
-      <div class="validation-scroll">
-        <template v-if="result">
-          <article class="deployment-decision" :class="{ 'deployment-decision--review': !recommendBest }">
-            <span><a-icon :type="recommendBest ? 'check-circle' : 'warning'" />{{ $t(recommendBest ? 'strategyEvolution.decision.ready' : 'strategyEvolution.decision.review') }}</span>
-            <strong>{{ $t(recommendBest ? 'strategyEvolution.decision.readyTitle' : 'strategyEvolution.decision.reviewTitle') }}</strong>
-            <p>{{ $t(deploymentReasonKey, deploymentReasonValues) }}</p>
-          </article>
-          <div class="validation-score" :class="`validation-score--${String(result.summary.robustnessGrade || 'D').toLowerCase()}`">
-            <span>{{ result.summary.robustnessGrade }}</span>
-            <div><strong>{{ result.summary.robustnessScore }}<small>/100</small></strong><p>{{ $t('strategyEvolution.robustnessCoverage', { available: robustnessAvailableChecks, total: robustnessTotalChecks }) }}</p></div>
-          </div>
-          <article class="validation-card"><div><a-icon type="experiment" /><strong>{{ $t('strategyEvolution.pbo') }}</strong></div><b>{{ result.validation.pbo.available ? formatPercent(result.validation.pbo.probability * 100) : '—' }}</b><p v-if="result.validation.pbo.available">{{ $t('strategyEvolution.pboDetail', { reversals: pboReversals, samples: result.validation.pbo.samples }) }}</p><p v-else>{{ $t('strategyEvolution.validationInsufficient') }}</p></article>
-          <article class="validation-card"><div><a-icon type="rise" /><strong>{{ $t('strategyEvolution.dsr') }}</strong></div><b>{{ result.validation.deflatedSharpe.available ? formatPercent(result.validation.deflatedSharpe.probability * 100) : '—' }}</b><p v-if="deflatedSharpeHasDetails">{{ $t('strategyEvolution.dsrDetail', { observed: formatNumber(result.validation.deflatedSharpe.observedSharpe), benchmark: formatNumber(result.validation.deflatedSharpe.benchmarkSharpe), observations: result.validation.deflatedSharpe.observations }) }}</p><p v-else>{{ $t(result.validation.deflatedSharpe.available ? 'strategyEvolution.dsrHint' : 'strategyEvolution.validationInsufficient') }}</p></article>
-          <article class="validation-card"><div><a-icon type="cluster" /><strong>{{ $t('strategyEvolution.monteCarlo') }}</strong></div><b>{{ monteCarloAvailable ? formatPercent(monteCarloMedian) : '—' }}</b><p v-if="monteCarloHasDetails">{{ $t('strategyEvolution.monteCarloDetail', { loss: formatPercent(result.validation.monteCarlo.lossProbability * 100), paths: result.validation.monteCarlo.paths, observations: result.validation.monteCarlo.observations }) }}</p><p v-else>{{ $t(monteCarloAvailable ? 'strategyEvolution.monteCarloHint' : 'strategyEvolution.validationInsufficient') }}</p></article>
-          <article class="validation-card"><div><a-icon type="dollar" /><strong>{{ $t('strategyEvolution.costStress') }}</strong></div><b>{{ worstCostStress ? formatPercent(worstCostStress.return) : '—' }}</b><p v-if="worstCostStress">{{ $t('strategyEvolution.costStressDetail', { multiplier: worstCostStress.multiplier, delta: formatPercent(worstCostStressDelta) }) }}</p><p v-else>{{ $t('strategyEvolution.validationInsufficient') }}</p></article>
-          <section class="best-params"><strong>{{ $t('strategyEvolution.bestParams') }}</strong><div v-for="(value, key) in result.bestParams" :key="key"><code>{{ key }}</code><b>{{ value }}</b></div></section>
-        </template>
-        <div v-else class="validation-placeholder"><a-icon type="safety-certificate" /><p>{{ $t('strategyEvolution.validationEmpty') }}</p></div>
-      </div>
-    </aside>
+    </a-drawer>
 
     <a-modal
       v-model="candidateDetailVisible"
@@ -494,6 +497,7 @@ export default {
       preflightRequestId: 0,
       history: [],
       historyLoading: false,
+      historyVisible: false,
       historyRequestId: 0,
       candidateDetailVisible: false,
       selectedCandidate: null,
@@ -1035,6 +1039,7 @@ export default {
         this.$message.error((error && error.backendMessage) || this.$t('strategyEvolution.jobNotFound'))
         return
       }
+      this.historyVisible = false
       this.jobId = selected.jobId
       if (selected.request && selected.request.sourceId && selected.request.sourceId !== this.form.sourceId) {
         this.form.sourceId = selected.request.sourceId

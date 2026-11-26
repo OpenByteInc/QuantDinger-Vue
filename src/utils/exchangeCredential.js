@@ -9,6 +9,7 @@ export const CRYPTO_EXCHANGE_DISPLAY_NAMES = {
   alpaca: 'Alpaca',
   ibkr: 'IBKR',
   tiger: 'Tiger Brokers',
+  forthright: 'Forthright',
   webull: 'Webull'
 }
 
@@ -25,11 +26,13 @@ export const US_STOCK_EXCHANGE_IDS = new Set([
   'alpaca',
   'ibkr',
   'tiger',
+  'forthright',
   'webull'
 ])
 
 export const HK_STOCK_EXCHANGE_IDS = new Set([
-  'tiger'
+  'tiger',
+  'forthright'
 ])
 
 export const QUICK_TRADE_EXCHANGE_IDS = new Set([
@@ -74,9 +77,10 @@ export function supportsLiveExecutionMode (manifest) {
   return Boolean(liveExecutionMarket(manifest))
 }
 
-export function credentialMatchesLiveStrategy (manifest, exchangeId) {
+export function credentialMatchesLiveStrategy (manifest, exchangeId, accountType = '') {
   const market = liveExecutionMarket(manifest)
   const normalizedExchangeId = String(exchangeId || '').trim().toLowerCase()
+  if (normalizedExchangeId === 'forthright') return ['USStock', 'HKStock'].includes(market) && accountType === 'securities'
   if (market === 'Crypto') return CRYPTO_EXCHANGE_IDS.has(normalizedExchangeId)
   if (market === 'USStock') return US_STOCK_EXCHANGE_IDS.has(normalizedExchangeId)
   if (market === 'HKStock') return HK_STOCK_EXCHANGE_IDS.has(normalizedExchangeId)

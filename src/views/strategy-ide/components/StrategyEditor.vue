@@ -62,14 +62,14 @@
           </div>
           <div v-else ref="editorContainer" class="code-editor-container"></div>
           <div v-if="firstRunEmpty && !hiddenSource" class="strategy-first-run">
-            <div class="strategy-first-run__content">
+            <div class="strategy-first-run__content" :class="{ 'strategy-first-run__content--without-market': !marketplaceEnabled }">
               <span class="strategy-first-run__eyebrow">
                 <a-icon type="rocket" /> Strategy API V2
               </span>
               <h2>{{ $t('strategyIde.onboarding.title') }}</h2>
               <p>{{ $t('strategyIde.onboarding.description') }}</p>
 
-              <div class="strategy-first-run__actions">
+              <div class="strategy-first-run__actions" :style="{ '--entry-columns': marketplaceEnabled ? 3 : 2 }">
                 <button type="button" class="strategy-start-card strategy-start-card--primary" @click="openTemplatePicker">
                   <span class="strategy-start-card__icon"><a-icon type="appstore" /></span>
                   <span class="strategy-start-card__copy">
@@ -86,6 +86,14 @@
                   </span>
                   <a-icon type="arrow-right" class="strategy-start-card__arrow" />
                 </button>
+                <router-link v-if="marketplaceEnabled" class="strategy-start-card" :to="{ path: '/indicator-community', query: { asset_type: 'script_template' } }">
+                  <span class="strategy-start-card__icon"><a-icon type="shop" /></span>
+                  <span class="strategy-start-card__copy">
+                    <strong>{{ $t('strategyOnboarding.marketTitle') }}</strong>
+                    <small>{{ $t('strategyOnboarding.marketDescription') }}</small>
+                  </span>
+                  <a-icon type="arrow-right" class="strategy-start-card__arrow" />
+                </router-link>
               </div>
 
               <button type="button" class="strategy-first-run__blank" @click="startBlankStrategy">
@@ -207,13 +215,16 @@
               <div v-if="hasStrategyCode && activeParamTemplate" class="params-toolbar">
                 <div class="params-toolbar__summary">
                   <div class="panel-intro__title">
-                    {{ activeParamTemplateTitle }}
-                    <a-tag v-if="activeParamTemplate" color="green" class="params-count-tag">
+                    <span>{{ activeParamTemplateTitle }}</span>
+                    <a-tooltip v-if="activeParamTemplateDesc" :title="activeParamTemplateDesc">
+                      <button type="button" class="params-description-trigger" :aria-label="activeParamTemplateDesc">
+                        <a-icon type="exclamation-circle" />
+                      </button>
+                    </a-tooltip>
+                    <span v-if="activeParamTemplate" class="runtime-market-badge params-count-tag">
+                      <a-icon type="sliders" />
                       {{ (activeParamTemplate.params || []).length }} {{ $t('trading-assistant.editor.paramsTab') }}
-                    </a-tag>
-                  </div>
-                  <div class="panel-intro__desc">
-                    {{ activeParamTemplateDesc }}
+                    </span>
                   </div>
                 </div>
                 <div v-if="activeParamTemplate" class="params-actions">
@@ -615,6 +626,9 @@ export default {
     }
   },
   computed: {
+    marketplaceEnabled () {
+      return this.$store.state.features.config.marketplace_enabled !== false
+    },
     isSplitSideMode () {
       return this.sideMode === 'split'
     },
@@ -1471,30 +1485,35 @@ export default {
   z-index: 4;
   inset: 41px 0 0;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: clamp(24px, 4vw, 56px);
+  padding: clamp(56px, 18vh, 240px) clamp(24px, 4vw, 56px) 40px;
+  overflow-y: auto;
   background: #f8fafc;
 }
 
 .strategy-first-run__content {
   width: 100%;
-  max-width: 720px;
+  max-width: 960px;
   text-align: center;
 
+  &--without-market {
+    max-width: 760px;
+  }
+
   h2 {
-    margin: 14px 0 8px;
+    margin: 16px 0 10px;
     color: #172033;
-    font-size: clamp(22px, 2vw, 28px);
-    font-weight: 650;
-    line-height: 1.25;
+    font-size: clamp(22px, 2vw, 26px);
+    font-weight: 600;
+    line-height: 1.4;
   }
 
   > p {
-    max-width: 560px;
+    max-width: 600px;
     margin: 0 auto;
     color: #667085;
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1.7;
   }
 }
@@ -1505,20 +1524,20 @@ export default {
   align-items: center;
   gap: 7px;
   padding: 0 10px;
-  border: 1px solid color-mix(in srgb, var(--primary-color, #1890ff) 24%, transparent);
-  border-radius: 999px;
+  border: 0;
+  border-radius: 6px;
   color: var(--primary-color, #1890ff);
-  background: color-mix(in srgb, var(--primary-color, #1890ff) 7%, #fff);
-  font-size: 11px;
-  font-weight: 600;
+  background: color-mix(in srgb, var(--primary-color, #1890ff) 6%, #fff);
+  font-size: 12px;
+  font-weight: 500;
   letter-spacing: 0.02em;
 }
 
 .strategy-first-run__actions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 24px;
+  grid-template-columns: repeat(var(--entry-columns, 2), minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 28px;
 }
 
 .strategy-start-card {
@@ -1526,27 +1545,31 @@ export default {
   grid-template-columns: 38px minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
-  min-height: 92px;
-  padding: 16px;
+  min-height: 104px;
+  padding: 20px;
   border: 1px solid #dfe4ea;
   border-radius: 10px;
   color: #344054;
   background: #fff;
   cursor: pointer;
   text-align: left;
-  transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+  font-family: inherit;
+  transition: border-color 0.16s ease, background-color 0.16s ease;
 
   &:hover,
   &:focus-visible {
     border-color: color-mix(in srgb, var(--primary-color, #1890ff) 54%, #dfe4ea);
-    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
-    outline: 0;
-    transform: translateY(-1px);
+    background: color-mix(in srgb, var(--primary-color, #1890ff) 4%, #fff);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color, #1890ff);
+    outline-offset: 3px;
   }
 
   &--primary {
-    border-color: color-mix(in srgb, var(--primary-color, #1890ff) 42%, #dfe4ea);
-    background: color-mix(in srgb, var(--primary-color, #1890ff) 5%, #fff);
+    border-color: color-mix(in srgb, var(--primary-color, #1890ff) 32%, #dfe4ea);
+    background: color-mix(in srgb, var(--primary-color, #1890ff) 3%, #fff);
   }
 }
 
@@ -1566,19 +1589,19 @@ export default {
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 
   strong {
     color: #202939;
-    font-size: 13px;
-    font-weight: 650;
-    line-height: 1.35;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
   }
 
   small {
-    color: #7a8494;
-    font-size: 11px;
-    line-height: 1.45;
+    color: #667085;
+    font-size: 12px;
+    line-height: 1.6;
   }
 }
 
@@ -1591,12 +1614,13 @@ export default {
   display: inline-flex;
   align-items: center;
   gap: 9px;
-  margin-top: 14px;
-  padding: 7px 10px;
+  margin-top: 20px;
+  padding: 8px 12px;
   border: 0;
   border-radius: 6px;
   color: #667085;
   background: transparent;
+  font-family: inherit;
   cursor: pointer;
   text-align: left;
 
@@ -1604,23 +1628,29 @@ export default {
   &:focus-visible {
     color: var(--primary-color, #1890ff);
     background: color-mix(in srgb, var(--primary-color, #1890ff) 6%, transparent);
-    outline: 0;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color, #1890ff);
+    outline-offset: 2px;
   }
 
   > span {
     display: flex;
-    flex-direction: column;
+    align-items: baseline;
+    flex-wrap: wrap;
+    column-gap: 10px;
+    row-gap: 2px;
   }
 
   strong {
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 13px;
+    font-weight: 500;
   }
 
   small {
-    margin-top: 1px;
-    color: #98a2b3;
-    font-size: 10px;
+    color: #7a8494;
+    font-size: 12px;
   }
 }
 
@@ -1629,12 +1659,12 @@ export default {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  margin-top: 18px;
-  color: #98a2b3;
-  font-size: 10px;
+  margin-top: 12px;
+  color: #7a8494;
+  font-size: 12px;
 
   .anticon {
-    color: #52c41a;
+    color: inherit;
   }
 }
 
@@ -1967,6 +1997,34 @@ export default {
     width: 100%;
     padding-right: 8px;
     padding-left: 8px;
+  }
+}
+
+.params-toolbar .params-count-tag {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.params-description-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  color: var(--strategy-text-muted, #8490a2);
+  background: transparent;
+  font-size: 13px;
+  cursor: help;
+
+  &:hover,
+  &:focus-visible { color: var(--primary-color, #1890ff); }
+  &:focus-visible {
+    outline: 2px solid var(--primary-color, #1890ff);
+    outline-offset: 1px;
   }
 }
 
@@ -2749,7 +2807,7 @@ export default {
 
   .strategy-first-run__content {
     h2 { color: rgba(255, 255, 255, 0.92); }
-    > p { color: rgba(255, 255, 255, 0.48); }
+    > p { color: rgba(255, 255, 255, 0.6); }
   }
 
   .strategy-first-run__eyebrow {
@@ -2765,7 +2823,6 @@ export default {
     &:focus-visible {
       border-color: color-mix(in srgb, var(--primary-color, #1890ff) 60%, rgba(255, 255, 255, 0.14));
       background: #1b1b1b;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
     }
 
     &--primary {
@@ -2776,17 +2833,17 @@ export default {
 
   .strategy-start-card__copy {
     strong { color: rgba(255, 255, 255, 0.9); }
-    small { color: rgba(255, 255, 255, 0.42); }
+    small { color: rgba(255, 255, 255, 0.6); }
   }
 
   .strategy-first-run__blank {
     color: rgba(255, 255, 255, 0.58);
 
-    small { color: rgba(255, 255, 255, 0.32); }
+    small { color: rgba(255, 255, 255, 0.5); }
   }
 
   .strategy-first-run__workflow {
-    color: rgba(255, 255, 255, 0.34);
+    color: rgba(255, 255, 255, 0.5);
   }
 
   .section-header {

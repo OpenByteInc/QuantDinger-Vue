@@ -1,3 +1,5 @@
+import forthrightMessages from './lang/forthright'
+import advertisementMessages from './lang/advertisements'
 import Vue from 'vue'
 import VueI18n from 'vue-i18n'
 import storage from 'store'
@@ -75,6 +77,7 @@ const messages = {
     ...(copilotOverrides[defaultLang] || {}),
     ...(profileSecurityMessages[defaultLang] || {}),
     ...(brokerAccountWorkspaceMessages[defaultLang] || {}),
+    ...(forthrightMessages[defaultLang] || forthrightMessages['en-US']),
     ...(strategyV2Messages[defaultLang] || {}),
     ...(strategyLaunchMessages[defaultLang] || {}),
     ...(fundamentalSyncMessages[defaultLang] || {}),
@@ -133,7 +136,8 @@ const messages = {
     ...(strategyEvolutionReportMessages[defaultLang] || {}),
     ...(watchlistAssetMessages[defaultLang] || {}),
     ...(strategyOnboardingMessages[defaultLang] || {}),
-    ...(gridOrderAuditMessages[defaultLang] || {})
+    ...(gridOrderAuditMessages[defaultLang] || {}),
+    ...advertisementMessages['en-US']
   }
 }
 
@@ -204,6 +208,7 @@ function mergeLocaleOverrides (lang) {
     ...(copilotOverrides[lang] || {}),
     ...(profileSecurityMessages[lang] || {}),
     ...(brokerAccountWorkspaceMessages[lang] || {}),
+    ...(forthrightMessages[lang] || forthrightMessages['en-US']),
     ...(strategyV2Messages[lang] || {}),
     ...(strategyLaunchMessages[lang] || {}),
     ...(fundamentalSyncMessages[lang] || {}),
@@ -262,7 +267,8 @@ function mergeLocaleOverrides (lang) {
     ...(strategyEvolutionReportMessages[lang] || {}),
     ...(watchlistAssetMessages[lang] || {}),
     ...(strategyOnboardingMessages[lang] || {}),
-    ...(gridOrderAuditMessages[lang] || {})
+    ...(gridOrderAuditMessages[lang] || {}),
+    ...(advertisementMessages[lang] || advertisementMessages['en-US'])
   }
   i18n.setLocaleMessage(lang, {
     ...(i18n.getLocaleMessage(lang) || {}),
@@ -287,6 +293,7 @@ export async function loadLanguageAsync (lang = defaultLang) {
       ...(copilotOverrides[lang] || {}),
       ...(profileSecurityMessages[lang] || {}),
       ...(brokerAccountWorkspaceMessages[lang] || {}),
+    ...(forthrightMessages[lang] || forthrightMessages['en-US']),
       ...(strategyV2Messages[lang] || {}),
       ...(strategyLaunchMessages[lang] || {}),
       ...(fundamentalSyncMessages[lang] || {}),
@@ -342,7 +349,8 @@ export async function loadLanguageAsync (lang = defaultLang) {
       ...(strategyEvolutionReportMessages[lang] || {}),
       ...(watchlistAssetMessages[lang] || {}),
       ...(strategyOnboardingMessages[lang] || {}),
-      ...(gridOrderAuditMessages[lang] || {})
+      ...(gridOrderAuditMessages[lang] || {}),
+      ...(advertisementMessages[lang] || advertisementMessages['en-US'])
     })
     i18n.setLocaleMessage(lang, locale)
     loadedLanguages.push(lang)

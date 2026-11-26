@@ -1,29 +1,47 @@
 <template>
   <section class="fundamental-panel" :class="{ 'fundamental-dark': dark }">
-    <header class="fundamental-heading">
-      <span class="fundamental-icon"><a-icon type="database" /></span>
-      <div><h4>{{ $t('fundamentalSync.title') }}</h4>
-        <p>{{ $t('fundamentalSync.description') }}</p></div>
-    </header>
     <div class="fundamental-config">
-      <a-alert type="info" show-icon :message="$t('fundamentalSync.dateNotice')" />
+      <header class="fundamental-heading">
+        <h4>{{ $t('fundamentalSync.title') }}</h4>
+        <a-popover :trigger="['hover', 'focus', 'click']" placement="bottomLeft">
+          <template slot="content"><div class="fundamental-tip">{{ $t('fundamentalSync.description') }}</div></template>
+          <button type="button" class="fundamental-info" :aria-label="$t('fundamentalSync.description')"><a-icon type="info-circle" /></button>
+        </a-popover>
+      </header>
       <div class="fundamental-controls">
         <label>{{ $t('fundamentalSync.universe') }}
           <a-select :get-popup-container="popupContainer" v-model="universeId" @change="universeChanged">
             <a-select-option v-for="item in supportedUniverses" :key="item.id" :value="item.id">{{ item.code }} ({{ item.member_count }})</a-select-option>
           </a-select>
         </label>
-        <label>{{ $t('fundamentalSync.asOf') }}
-          <a-date-picker :get-calendar-container="popupContainer" v-model="asOf" :allow-clear="false" @change="selectionChanged" />
-        </label>
+        <div class="fundamental-control">
+          <div class="fundamental-label"><span id="fundamental-as-of-label">{{ $t('fundamentalSync.asOf') }}</span>
+            <a-popover :trigger="['hover', 'focus', 'click']" placement="bottomLeft">
+              <template slot="content"><div class="fundamental-tip">{{ $t('fundamentalSync.dateNotice') }}</div></template>
+              <button type="button" class="fundamental-info" :aria-label="$t('fundamentalSync.dateNotice')"><a-icon type="info-circle" /></button>
+            </a-popover>
+          </div>
+          <a-date-picker aria-labelledby="fundamental-as-of-label" :get-calendar-container="popupContainer" v-model="asOf" :allow-clear="false" @change="selectionChanged" />
+        </div>
         <label>{{ $t('fundamentalSync.mode') }}
           <a-select :get-popup-container="popupContainer" v-model="mode" @change="modeChanged">
             <a-select-option value="history">{{ $t('fundamentalSync.history') }}</a-select-option>
             <a-select-option value="current">{{ $t('fundamentalSync.current') }}</a-select-option>
           </a-select>
         </label>
-        <label class="field-selector">{{ $t('fundamentalSync.acceptanceFields') }}
+      </div>
+      <div class="fundamental-preferences">
+        <div class="field-selector fundamental-control">
+          <div class="fundamental-label">
+            <span id="fundamental-fields-label">{{ $t('fundamentalSync.acceptanceFields') }}</span>
+            <a-popover :trigger="['hover', 'focus', 'click']" placement="bottomLeft">
+              <template slot="content"><div class="fundamental-tip">{{ $t('fundamentalSync.collectionNotice', { count: availableFields.length }) }}</div></template>
+              <button type="button" class="fundamental-info" :aria-label="$t('fundamentalSync.collectionNotice', { count: availableFields.length })"><a-icon type="info-circle" /></button>
+            </a-popover>
+            <button type="button" class="fundamental-select-all" @click="selectAllFields">{{ $t('fundamentalSync.selectAllFields') }}</button>
+          </div>
           <a-select
+            aria-labelledby="fundamental-fields-label"
             v-model="fields"
             mode="multiple"
             :get-popup-container="popupContainer"
@@ -32,27 +50,26 @@
             @change="selectionChanged">
             <a-select-option v-for="field in availableFields" :key="field" :value="field">{{ fieldLabel(field) }}</a-select-option>
           </a-select>
-        </label>
+        </div>
+        <div class="fundamental-control">
+          <span class="fundamental-label">{{ $t('fundamentalSync.executionOptions') }}</span>
+          <div class="fundamental-options">
+            <a-checkbox v-model="forceFull" :disabled="saving || running">{{ $t('fundamentalSync.forceFull') }}</a-checkbox>
+            <a-checkbox :checked="scheduled" :disabled="!universeId || saving || !fields.length" @change="scheduleChanged">{{ $t('fundamentalSync.daily') }}</a-checkbox>
+          </div>
+        </div>
       </div>
-      <div class="fundamental-collection-note">
-        <a-icon type="cloud-download" />
-        <span>{{ $t('fundamentalSync.collectionNotice', { count: availableFields.length }) }}</span>
-        <button type="button" @click="selectAllFields">{{ $t('fundamentalSync.selectAllFields') }}</button>
+      <div class="fundamental-footer">
+        <a-popover :trigger="['hover', 'focus', 'click']" placement="topLeft">
+          <template slot="content"><div class="fundamental-tip"><p>{{ $t('fundamentalSync.incrementalNotice') }}</p><p>{{ $t('fundamentalSync.workerNotice') }}</p></div></template>
+          <button type="button" class="fundamental-help"><a-icon type="question-circle" />{{ $t('fundamentalSync.help') }}</button>
+        </a-popover>
+        <div class="fundamental-actions">
+          <a-button :disabled="!universeId" :loading="loading" @click="load">{{ $t('fundamentalSync.refresh') }}</a-button>
+          <a-button :disabled="!job || running || !failures.length" :loading="saving" @click="start(true)">{{ $t('fundamentalSync.retry') }}</a-button>
+          <a-button type="primary" :disabled="!universeId || running || !fields.length" :loading="saving" @click="start(false)">{{ $t('fundamentalSync.start') }}</a-button>
+        </div>
       </div>
-      <div class="fundamental-options">
-        <a-checkbox v-model="forceFull" :disabled="saving || running">{{ $t('fundamentalSync.forceFull') }}</a-checkbox>
-        <a-checkbox :checked="scheduled" :disabled="!universeId || saving || !fields.length" @change="scheduleChanged">{{ $t('fundamentalSync.daily') }}</a-checkbox>
-      </div>
-      <div class="fundamental-actions">
-        <a-button type="primary" :disabled="!universeId || running || !fields.length" :loading="saving" @click="start(false)">{{ $t('fundamentalSync.start') }}</a-button>
-        <a-button :disabled="!job || running || !failures.length" :loading="saving" @click="start(true)">{{ $t('fundamentalSync.retry') }}</a-button>
-        <a-button :disabled="!universeId" :loading="loading" @click="load">{{ $t('fundamentalSync.refresh') }}</a-button>
-      </div>
-      <details class="fundamental-help">
-        <summary><a-icon type="info-circle" /> {{ $t('fundamentalSync.help') }}</summary>
-        <p>{{ $t('fundamentalSync.incrementalNotice') }}</p>
-        <p>{{ $t('fundamentalSync.workerNotice') }}</p>
-      </details>
     </div>
     <a-alert v-if="error" type="error" show-icon :message="error" />
     <div v-if="job" class="fundamental-progress">
@@ -92,12 +109,21 @@
         :scroll="{ x: 1000 }"
         size="small">
         <template slot="state" slot-scope="_, row">
-          <a-tag :class="['fundamental-state-tag', 'state-tag-' + rowState(row)]">{{ $t('fundamentalSync.' + rowState(row)) }}</a-tag>
-          <small v-if="row.stale" class="stale-detail">{{ $t('fundamentalSync.ageDays', { count: row.age_days }) }}</small>
+          <a-tooltip :title="$t('fundamentalSync.' + rowState(row)) + (row.stale ? ' · ' + $t('fundamentalSync.ageDays', { count: row.age_days }) : '')"><a-tag tabindex="0" :class="['fundamental-state-tag', 'state-tag-' + rowState(row)]">{{ $t('fundamentalSync.' + rowState(row)) }}</a-tag></a-tooltip>
         </template>
         <template slot="missing" slot-scope="values">
           <span v-if="!values.length">—</span>
-          <template v-else><a-tag v-for="field in values" :key="field" class="fundamental-field-tag">{{ fieldLabel(field) }}</a-tag></template>
+          <a-popover v-else :trigger="['hover', 'focus', 'click']" :title="$t('fundamentalSync.missingFields')" placement="topLeft">
+            <template slot="content">
+              <div class="fundamental-field-details" :class="{ 'fundamental-dark': dark }">
+                <a-tag v-for="field in values" :key="field" class="fundamental-field-tag">{{ fieldLabel(field) }}</a-tag>
+              </div>
+            </template>
+            <button type="button" class="fundamental-missing-summary" :aria-label="values.map(fieldLabel).join(', ')">
+              <span>{{ fieldLabel(values[0]) }}</span>
+              <span v-if="values.length > 1" class="fundamental-missing-count">+{{ values.length - 1 }}</span>
+            </button>
+          </a-popover>
         </template>
         <template slot="availability" slot-scope="value">{{ value ? $t('fundamentalSync.availability.' + value) : '—' }}</template>
       </a-table>
@@ -163,13 +189,13 @@ export default {
     },
     columns () {
       return [
-        { title: this.$t('fundamentalSync.symbol'), dataIndex: 'symbol' },
-        { title: this.$t('fundamentalSync.state'), key: 'state', scopedSlots: { customRender: 'state' } },
-        { title: this.$t('fundamentalSync.missingFields'), dataIndex: 'missing', scopedSlots: { customRender: 'missing' } },
-        { title: this.$t('fundamentalSync.period'), dataIndex: 'period_end' },
-        { title: this.$t('fundamentalSync.available'), dataIndex: 'available_at' },
-        { title: this.$t('fundamentalSync.availabilityBasis'), dataIndex: 'availability_basis', scopedSlots: { customRender: 'availability' } },
-        { title: this.$t('fundamentalSync.source'), dataIndex: 'source' }
+        { title: this.$t('fundamentalSync.symbol'), dataIndex: 'symbol', width: 100, ellipsis: true },
+        { title: this.$t('fundamentalSync.state'), key: 'state', width: 180, scopedSlots: { customRender: 'state' } },
+        { title: this.$t('fundamentalSync.missingFields'), dataIndex: 'missing', width: 220, scopedSlots: { customRender: 'missing' } },
+        { title: this.$t('fundamentalSync.period'), dataIndex: 'period_end', width: 120, ellipsis: true },
+        { title: this.$t('fundamentalSync.available'), dataIndex: 'available_at', width: 120, ellipsis: true },
+        { title: this.$t('fundamentalSync.availabilityBasis'), dataIndex: 'availability_basis', width: 180, ellipsis: true, scopedSlots: { customRender: 'availability' } },
+        { title: this.$t('fundamentalSync.source'), dataIndex: 'source', width: 140, ellipsis: true }
       ]
     }
   },
@@ -259,11 +285,9 @@ export default {
   --sync-muted: #627084;
   --sync-disabled: #929cab;
   --sync-hover: #edf2f7;
-  margin-top: 28px;
-  padding-top: 28px;
-  border-top: 1px solid var(--sync-border);
+  margin-top: 0;
   color: var(--sync-text);
-  h4 { margin: 0; font-size: 16px; font-weight: 600; color: var(--sync-text); }
+  h4 { margin: 0; font-size: 14px; font-weight: 600; color: var(--sync-text); }
   p { margin: 8px 0 0; line-height: 1.7; color: var(--sync-muted); font-size: 13px; }
 }
 .fundamental-dark {
@@ -275,25 +299,31 @@ export default {
   --sync-disabled: #78818b;
   --sync-hover: #25292d;
 }
-.fundamental-heading { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 20px; }
-.fundamental-icon { display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: 10px; background: color-mix(in srgb, var(--primary-color, #1890ff) 12%, transparent); color: var(--primary-color, #1890ff); font-size: 20px; }
-.fundamental-config, .fundamental-progress, .fundamental-coverage { padding: 20px; border: 1px solid var(--sync-border); border-radius: 10px; background: var(--sync-bg); }
-.fundamental-controls { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .85fr) minmax(0, 1.1fr) minmax(0, 1.5fr); gap: 20px; margin: 20px 0; }
-.fundamental-controls label { display: flex; flex-direction: column; gap: 8px; min-width: 0; position: relative; font-size: 13px; font-weight: 500; }
-.fundamental-controls /deep/ .ant-select, .fundamental-controls /deep/ .ant-calendar-picker { width: 100%; min-width: 0; font-weight: 400; }
-.fundamental-collection-note { display: flex; align-items: center; gap: 8px; margin: -4px 0 16px; color: var(--sync-muted); font-size: 12px; }
-.fundamental-collection-note button { flex-shrink: 0; padding: 0; border: 0; background: transparent; color: var(--primary-color, #1890ff); cursor: pointer; font: inherit; white-space: nowrap; }
-.fundamental-collection-note button:focus-visible { outline: 2px solid var(--primary-color, #1890ff); outline-offset: 3px; }
-.fundamental-options { display: flex; flex-wrap: wrap; gap: 12px 28px; padding: 14px 16px; background: var(--sync-surface); border-radius: 8px; }
+.fundamental-heading { display: flex; gap: 4px; align-items: center; margin-bottom: 16px; }
+.fundamental-config, .fundamental-progress, .fundamental-coverage { padding: 16px; border: 1px solid var(--sync-border); border-radius: 8px; background: var(--sync-bg); }
+.fundamental-controls { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .85fr) minmax(0, 1.3fr); gap: 16px; }
+.fundamental-controls label, .fundamental-control { display: flex; flex-direction: column; gap: 8px; min-width: 0; position: relative; font-size: 13px; font-weight: 500; }
+.fundamental-label { display: flex; align-items: center; gap: 4px; min-height: 20px; }
+.fundamental-controls /deep/ .ant-select, .fundamental-controls /deep/ .ant-calendar-picker, .field-selector /deep/ .ant-select { width: 100%; min-width: 0; font-weight: 400; }
+.fundamental-preferences { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; margin-top: 20px; }
+.fundamental-info, .fundamental-select-all, .fundamental-help { border: 0; background: transparent; font: inherit; cursor: pointer; }
+.fundamental-info { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; padding: 0; color: var(--sync-muted); flex-shrink: 0; }
+.fundamental-info:hover, .fundamental-help:hover { color: var(--primary-color, #1890ff); }
+.fundamental-select-all { margin-left: auto; padding: 0; color: var(--primary-color, #1890ff); font-size: 12px; white-space: nowrap; }
+.fundamental-info:focus-visible, .fundamental-select-all:focus-visible, .fundamental-help:focus-visible { outline: 2px solid var(--primary-color, #1890ff); outline-offset: 2px; }
+.fundamental-tip { max-width: ~"min(400px, 75vw)"; font-size: 13px; line-height: 1.7; }
+.fundamental-tip p { margin: 0; }
+.fundamental-tip p + p { margin-top: 12px; }
+.fundamental-options { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; min-height: 32px; }
+.fundamental-options /deep/ .ant-checkbox-wrapper { font-size: 13px; font-weight: 400; }
 .fundamental-options /deep/ .ant-checkbox-wrapper + .ant-checkbox-wrapper { margin-left: 0; }
-.fundamental-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
-.fundamental-help { margin-top: 18px; color: var(--sync-muted); font-size: 13px; }
-.fundamental-help summary { cursor: pointer; width: fit-content; }
-.fundamental-help summary:focus-visible { outline: 2px solid var(--primary-color, #1890ff); outline-offset: 4px; }
+.fundamental-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--sync-border); }
+.fundamental-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.fundamental-help { display: inline-flex; align-items: center; gap: 6px; padding: 4px 0; color: var(--sync-muted); font-size: 12px; text-align: left; }
 .fundamental-progress { margin: 16px 0; background: var(--sync-surface); }
 .fundamental-status-heading, .fundamental-coverage-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
 .fundamental-status-heading /deep/ .ant-tag { margin: 0; }
-.fundamental-progress /deep/ .ant-progress { margin: 16px 0 6px; }
+.fundamental-progress /deep/ .ant-progress { margin: 8px 0 4px; }
 .fundamental-progress-count { font-size: 13px; color: var(--sync-muted); font-variant-numeric: tabular-nums; }
 .fundamental-progress /deep/ .ant-collapse { margin-top: 14px; }
 .fundamental-failure { display: grid; grid-template-columns: minmax(140px, .6fr) minmax(220px, 2fr) auto; gap: 12px; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--sync-border); }
@@ -301,7 +331,7 @@ export default {
 .fundamental-failure span, .fundamental-failure small { color: var(--sync-muted); overflow-wrap: anywhere; }
 .fundamental-coverage { margin-top: 16px; }
 .fundamental-coverage-count { display: flex; flex-wrap: wrap; align-items: baseline; gap: 16px; margin-top: 8px; font-variant-numeric: tabular-nums; }
-.fundamental-coverage-count strong { font-size: 28px; line-height: 1.3; color: var(--sync-text); }
+.fundamental-coverage-count strong { font-size: 24px; font-weight: 600; line-height: 1.3; color: var(--sync-text); }
 .fundamental-coverage-count small { font-size: 16px; font-weight: 400; color: var(--sync-muted); }
 .fundamental-coverage-count span { color: var(--sync-muted); font-size: 12px; }
 .fundamental-state-summary { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 8px; color: var(--sync-muted); font-size: 12px; }
@@ -310,20 +340,29 @@ export default {
 .fundamental-state-summary .state-ready { background: #52c41a; }
 .fundamental-state-summary .state-partial { background: #faad14; }
 .fundamental-state-summary .state-stale { background: #ff4d4f; }
-.stale-detail { display: block; margin-top: 4px; color: var(--sync-muted); white-space: nowrap; }
 .fundamental-state-tag, .fundamental-field-tag { margin: 2px 6px 2px 0; }
 .fundamental-state-tag { background: #f4f6f8; border-color: #d7dce2; color: #4e5b6b; }
 .fundamental-state-tag.state-tag-ready { background: #f0f8eb; border-color: #b7df9b; color: #39791f; }
 .fundamental-state-tag.state-tag-partial { background: #fff7e6; border-color: #ffd591; color: #ad6800; }
 .fundamental-state-tag.state-tag-stale { background: #fff1f0; border-color: #ffa39e; color: #a8071a; }
 .fundamental-field-tag { background: #f4f6f8; border-color: #d7dce2; color: #4e5b6b; }
-.fundamental-coverage /deep/ .ant-table-wrapper { margin-top: 18px; }
+.fundamental-coverage /deep/ .ant-table-wrapper { margin-top: 12px; }
+.fundamental-missing-summary { display: flex; align-items: center; gap: 8px; width: 100%; padding: 4px 0; border: 0; background: transparent; color: var(--sync-text); text-align: left; cursor: pointer; font: inherit; }
+.fundamental-missing-summary > span:first-child { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.fundamental-missing-count { flex-shrink: 0; padding: 0 6px; border: 1px solid var(--sync-border); border-radius: 4px; color: var(--sync-muted); font-variant-numeric: tabular-nums; }
+.fundamental-missing-summary:hover, .fundamental-missing-summary:focus-visible { color: var(--primary-color, #1890ff); }
+.fundamental-missing-summary:focus-visible { outline: 2px solid var(--primary-color, #1890ff); outline-offset: 2px; }
+.fundamental-field-details { display: flex; flex-wrap: wrap; gap: 4px; max-width: ~"min(360px, 75vw)"; max-height: 240px; overflow-y: auto; }
+.fundamental-field-details .fundamental-field-tag { margin: 0; white-space: normal; }
+.fundamental-panel /deep/ .ant-table { font-size: 13px; font-variant-numeric: tabular-nums; }
+.fundamental-panel /deep/ .ant-table-thead > tr > th { font-size: 12px; }
+.fundamental-state-tag { display: inline-block; max-width: 100%; overflow: hidden; vertical-align: middle; text-overflow: ellipsis; }
 .fundamental-panel /deep/ .ant-checkbox-wrapper, .fundamental-panel /deep/ .ant-progress-text { color: var(--sync-text); }
 .fundamental-panel /deep/ .ant-progress-inner { background: var(--sync-border); }
 .fundamental-panel /deep/ .ant-table { color: var(--sync-text); }
 .fundamental-panel /deep/ .ant-table-small { border-color: var(--sync-border); }
 .fundamental-panel /deep/ .ant-table-thead > tr > th { background: var(--sync-surface); color: var(--sync-muted); border-color: var(--sync-border); }
-.fundamental-panel /deep/ .ant-table-tbody > tr > td { border-color: var(--sync-border); padding: 12px 8px; }
+.fundamental-panel /deep/ .ant-table-tbody > tr > td { border-color: var(--sync-border); padding: 8px 12px; vertical-align: middle; }
 .fundamental-dark {
   /deep/ .ant-select-selection, /deep/ .ant-input, /deep/ .ant-checkbox-inner, /deep/ .ant-btn, /deep/ .ant-pagination-item, /deep/ .ant-pagination-item-link { background: var(--sync-surface); border-color: var(--sync-border); color: var(--sync-text); }
   /deep/ .ant-select-selection__choice { background: var(--sync-hover); border-color: var(--sync-border); color: var(--sync-text); }
@@ -352,7 +391,7 @@ export default {
   /deep/ .ant-alert { background: var(--sync-surface); border-color: var(--sync-border); }
   /deep/ .ant-alert-message { color: var(--sync-text); }
 }
-@media (max-width: 1200px) { .fundamental-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 1000px) { .fundamental-preferences { grid-template-columns: minmax(0, 1fr); gap: 16px; } }
 @media (max-width: 640px) {
   .fundamental-controls { grid-template-columns: minmax(0, 1fr); gap: 16px; }
   .fundamental-config, .fundamental-progress, .fundamental-coverage { padding: 16px; }

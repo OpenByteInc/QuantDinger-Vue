@@ -1,0 +1,120 @@
+.profile-page.qd-workspace-page {
+  --profile-font-title: 14px;
+  --profile-font-body: 13px;
+  --profile-font-caption: 12px;
+
+  .profile-overview-grid {
+    .profile-card .username {
+      font-family: inherit;
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 26px;
+    }
+
+    .credits-card .credits-header .credits-title,
+    .referral-card .referral-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+      color: var(--profile-text);
+      font-family: inherit;
+      font-size: var(--profile-font-title);
+      font-weight: 600;
+      line-height: 22px;
+
+      .anticon {
+        color: var(--primary-color, #1890ff);
+        font-size: 16px;
+      }
+    }
+
+    .profile-card .profile-account-meta .info-item {
+      .label,
+      .value {
+        font-family: inherit;
+        font-size: var(--profile-font-body);
+        line-height: 20px;
+      }
+      .label { color: var(--profile-text-secondary); font-weight: 400; }
+      .value { color: var(--profile-text); font-weight: 500; }
+    }
+
+    .credits-card .credits-body .vip-status,
+    .credits-card .credits-amount .amount-label,
+    .credits-card .credits-footer .credits-hint,
+    .referral-card .referral-mini-stat > span,
+    .referral-card .referral-link-section .link-label,
+    .referral-card .referral-benefit,
+    .referral-card .referral-balance-item > span {
+      color: var(--profile-text-secondary);
+      font-family: inherit;
+      font-size: var(--profile-font-caption);
+      font-weight: 400;
+      line-height: 18px;
+    }
+
+    .credits-card .credits-amount .amount-value { font-weight: 600; }
+    .referral-card .referral-mini-stat strong { font-size: 18px; font-weight: 600; }
+    .referral-card .referral-balance-item strong {
+      color: var(--profile-text);
+      font-size: var(--profile-font-title);
+      font-weight: 600;
+      line-height: 22px;
+
+      small { color: inherit; font-size: inherit; font-weight: inherit; }
+    }
+    .referral-card .referral-balance-item strong,
+    .referral-card .referral-mini-stat strong,
+    .credits-card .amount-value { font-variant-numeric: tabular-nums; }
+
+    .referral-card .link-box ::v-deep .ant-input,
+    .credits-card .credits-recharge-btn,
+    .referral-card .reward-withdraw-btn {
+      font-family: inherit;
+      font-size: var(--profile-font-body);
+    }
+    .credits-card .credits-recharge-btn,
+    .referral-card .reward-withdraw-btn { font-weight: 500; }
+    .referral-benefit .anticon,
+    .credits-hint .anticon { font-size: 12px; flex-shrink: 0; }
+  }
+
+  .profile-settings-shell .edit-card {
+    ::v-deep .ant-tabs-bar .ant-tabs-tab,
+    ::v-deep .ant-form-item-label > label {
+      font-family: inherit;
+      font-size: var(--profile-font-body);
+      font-weight: 500;
+      line-height: 20px;
+    }
+    ::v-deep .ant-form-item-label > label { color: var(--profile-text-secondary); }
+    ::v-deep .ant-tabs-bar .ant-tabs-tab-active { font-weight: 600; }
+    ::v-deep .ant-tabs-bar .ant-tabs-tab .anticon { font-size: 16px; }
+
+    ::v-deep .ant-input,
+    ::v-deep .ant-input-number-input,
+    ::v-deep .ant-select-selection,
+    ::v-deep .ant-btn {
+      font-family: inherit;
+      font-size: var(--profile-font-body);
+      font-weight: 400;
+    }
+    ::v-deep .ant-btn { font-weight: 500; }
+    ::v-deep .ant-form-explain,
+    ::v-deep .ant-form-extra,
+    .mfa-desc,
+    .mfa-meta {
+      font-family: inherit;
+      font-size: var(--profile-font-caption);
+      font-weight: 400;
+      line-height: 18px;
+    }
+    .mfa-title {
+      font-family: inherit;
+      font-size: var(--profile-font-title);
+      font-weight: 600;
+      line-height: 22px;
+    }
+  }
+}

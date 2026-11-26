@@ -707,6 +707,10 @@ export default {
       return this.supportsStrategyV2Leverage ? PLATFORM_MAX_LEVERAGE : 1
     },
     capitalCurrency () {
+      if (this.marketCategory === 'Futures' && this.model.executionMode === 'live') {
+        const account = this.credentials.find(item => String(item.id) === String(this.model.credentialId))
+        return account?.currency || ''
+      }
       const runtimeMarket = String(this.runtimeDraft.market_category || '')
       const runtimeSymbol = String(this.runtimeDraft.symbol || '')
       if (this.canEditSourceRuntime && runtimeMarket && runtimeSymbol) {
@@ -750,6 +754,7 @@ export default {
       return this.liveTradingEnabled && supportsLiveExecutionMode(this.strategyManifest)
     },
     requiresDirectionMode () {
+      if (this.marketCategory === 'Futures') return true
       if (this.marketCategory !== 'Crypto') return false
       const universe = this.parseObject(this.strategyManifest.universe)
       const instruments = Array.isArray(universe.instruments) ? universe.instruments : []
@@ -863,7 +868,7 @@ export default {
     },
     compatibleCredentials () {
       return this.credentials.filter(credential => (
-        credentialMatchesLiveStrategy(this.strategyManifest, credential.exchange_id)
+        credentialMatchesLiveStrategy(this.strategyManifest, credential.exchange_id, credential.account_type)
       ))
     },
     selectedCredentialExchange () {

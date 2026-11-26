@@ -2,6 +2,7 @@ export const DEFAULT_TRADING_VENUE_IDS = Object.freeze([
   'alpaca',
   'ibkr',
   'tiger',
+  'forthright',
   'webull',
   'binance',
   'okx',

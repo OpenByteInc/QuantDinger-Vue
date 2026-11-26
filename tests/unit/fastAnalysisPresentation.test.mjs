@@ -245,11 +245,12 @@ test('dimension evidence is prioritized so macro and market-specific sources rem
 test('mobile users can reopen historical professional reports', () => {
   const workbench = read('src/views/ai-analysis/components/CopilotWorkbench.vue')
 
-  assert.match(workbench, /mobileSessionsOpen/)
-  assert.match(workbench, /class="mobile-sessions-trigger"/)
-  assert.match(workbench, /left-rail" :class="\{ 'mobile-open': mobileSessionsOpen \}"/)
-  assert.match(workbench, /\.copilot-workbench > \.left-rail\.mobile-open[\s\S]*?display: flex !important/)
-  assert.match(workbench, /async loadHistory \(sessionId\)[\s\S]*?this\.mobileSessionsOpen = false/)
+  assert.match(workbench, /:aria-expanded="historyVisible" @click="historyVisible = !historyVisible"/)
+  assert.match(workbench, /<a-drawer[\s\S]*?:visible="historyVisible"[\s\S]*?width="min\(460px, 100vw\)"/)
+  assert.match(workbench, /wrap-class-name="research-history-drawer"/)
+  assert.match(workbench, /@close="historyVisible = false"/)
+  assert.match(workbench, /class="session-card" @click="loadHistory\(session.id\)"/)
+  assert.match(workbench, /async loadHistory \(sessionId\)[\s\S]*?this\.historyVisible = false/)
 })
 
 test('MACD alignment states remain localized', () => {

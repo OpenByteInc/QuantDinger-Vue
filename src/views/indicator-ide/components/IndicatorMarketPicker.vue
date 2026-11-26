@@ -17,16 +17,70 @@
             <p>{{ pickerText.subtitle }}</p>
           </div>
         </div>
-        <a-input-search
-          v-model="keyword"
-          :placeholder="$t('community.searchPlaceholder')"
-          :enter-button="$t('community.applyFilters')"
-          allow-clear
-          class="ide-market-picker__search"
-          @search="loadItems"
-          @pressEnter="loadItems"
-        />
       </header>
+
+      <div class="ide-market-picker__filters">
+        <div class="ide-market-picker__toolbar">
+          <div class="ide-market-picker__search">
+            <a-input
+              v-model="keyword"
+              :placeholder="$t(isStrategyMode ? 'community.catalog.searchStrategies' : 'community.catalog.searchIndicators')"
+              :aria-label="$t('community.searchAction')"
+              allow-clear
+              @pressEnter="applyFilters"
+            />
+            <a-button type="primary" icon="search" @click="applyFilters">{{ $t('community.searchAction') }}</a-button>
+          </div>
+          <label class="ide-market-picker__compact-filter">
+            <span>{{ $t('community.catalog.price') }}</span>
+            <a-select :aria-label="$t('community.catalog.price')" v-model="pricingType" @change="applyFilters" :get-popup-container="popupContainer">
+              <a-select-option value="">{{ $t('community.catalog.price') }} · {{ $t('community.all') }}</a-select-option>
+              <a-select-option value="free">{{ $t('community.freeOnly') }}</a-select-option>
+              <a-select-option value="paid">{{ $t('community.paidOnly') }}</a-select-option>
+              <a-select-option value="vip_free">{{ $t('community.vipFree') }}</a-select-option>
+            </a-select>
+          </label>
+          <label class="ide-market-picker__compact-filter">
+            <span>{{ $t('community.codeVisibility') }}</span>
+            <a-select :aria-label="$t('community.codeVisibility')" v-model="codeVisibility" @change="applyFilters" :get-popup-container="popupContainer">
+              <a-select-option value="">{{ $t('community.codeVisibility') }} · {{ $t('community.all') }}</a-select-option>
+              <a-select-option value="visible">{{ $t('community.codeVisible') }}</a-select-option>
+              <a-select-option value="hidden">{{ $t('community.codeHidden') }}</a-select-option>
+            </a-select>
+          </label>
+          <a-select v-model="sortBy" class="ide-market-picker__sort" :get-popup-container="popupContainer" @change="applyFilters">
+            <a-select-option v-for="option in sortOptions" :key="option.value" :value="option.value" :title="$t(option.hint)">
+              {{ $t(option.label) }}
+            </a-select-option>
+          </a-select>
+          <a-button type="link" @click="resetFilters">{{ $t('community.catalog.clearAll') }}</a-button>
+        </div>
+        <div v-if="isStrategyMode" class="ide-market-picker__filter-grid">
+          <template v-if="isStrategyMode">
+            <label>
+              <span>{{ $t('community.catalog.market') }}</span>
+              <a-select v-model="market" @change="applyFilters" :get-popup-container="popupContainer">
+                <a-select-option value="">{{ $t('community.all') }}</a-select-option>
+                <a-select-option v-for="option in marketOptions" :key="option.value" :value="option.value">{{ marketLabel(option) }}</a-select-option>
+              </a-select>
+            </label>
+            <label>
+              <span>{{ $t('community.filterDirection') }}</span>
+              <a-select v-model="directionMode" @change="applyFilters" :get-popup-container="popupContainer">
+                <a-select-option value="">{{ $t('community.all') }}</a-select-option>
+                <a-select-option v-for="value in ['long_only', 'short_only', 'one_way', 'both']" :key="value" :value="value">{{ $t(`community.direction.${value}`) }}</a-select-option>
+              </a-select>
+            </label>
+            <label>
+              <span>{{ $t('community.filterBinding') }}</span>
+              <a-select v-model="bindingMode" @change="applyFilters" :get-popup-container="popupContainer">
+                <a-select-option value="">{{ $t('community.all') }}</a-select-option>
+                <a-select-option v-for="value in ['fixed', 'parameterized', 'universe', 'portfolio']" :key="value" :value="value">{{ $t(`community.binding.${value}`) }}</a-select-option>
+              </a-select>
+            </label>
+          </template>
+        </div>
+      </div>
 
       <div class="ide-market-picker__summary">
         <span>{{ pickerText.resultCount }}</span>
@@ -36,7 +90,7 @@
           class="ide-market-picker__strategy-types"
           button-style="solid"
           size="small"
-          @change="loadItems"
+          @change="applyFilters"
         >
           <a-radio-button value="cta">{{ $t('strategyIde.marketPicker.cta') }}</a-radio-button>
           <a-radio-button value="portfolio">{{ $t('strategyIde.marketPicker.portfolio') }}</a-radio-button>
@@ -51,7 +105,7 @@
         <div v-if="!loading && !items.length" class="ide-market-picker__empty">
           <a-empty :description="pickerText.empty" />
         </div>
-        <div v-else class="ide-market-picker__list">
+        <div v-else ref="list" class="ide-market-picker__list">
           <article
             v-for="item in items"
             :key="item.id"
@@ -129,12 +183,27 @@
           </article>
         </div>
       </a-spin>
+      <div v-if="total > 0" class="ide-market-picker__pagination">
+        <a-pagination
+          :current="page"
+          :page-size="pageSize"
+          :total="total"
+          :disabled="loading"
+          :page-size-options="['10', '20', '50']"
+          show-size-changer
+          size="small"
+          :get-popup-container="popupContainer"
+          @change="changePage"
+          @showSizeChange="changePageSize"
+        />
+      </div>
     </div>
   </a-modal>
 </template>
 
 <script>
 import request from '@/utils/request'
+import { loadEnabledMarketOptions } from '@/utils/marketModules'
 
 const COVER_GRADIENTS = [
   'linear-gradient(135deg, #14291c 0%, #1f6b3f 100%)',
@@ -170,6 +239,17 @@ export default {
   data () {
     return {
       keyword: '',
+      appliedKeyword: '',
+      sortBy: 'recommended',
+      pricingType: '',
+      codeVisibility: '',
+      market: '',
+      directionMode: '',
+      bindingMode: '',
+      marketOptions: [],
+      page: 1,
+      pageSize: 10,
+      requestId: 0,
       loading: false,
       items: [],
       total: 0,
@@ -178,6 +258,15 @@ export default {
     }
   },
   computed: {
+    sortOptions () {
+      return [
+        { value: 'recommended', label: 'community.catalog.recommended', hint: 'community.catalog.recommendedHint' },
+        { value: 'newest', label: 'community.catalog.newArrivals', hint: 'community.catalog.newArrivalsHint' },
+        { value: 'hot', label: 'community.catalog.trending', hint: 'community.catalog.trendingHint' },
+        { value: 'rating', label: 'community.catalog.topRated', hint: 'community.catalog.topRatedHint' },
+        { value: 'random', label: 'community.catalog.random', hint: 'community.catalog.randomHint' }
+      ]
+    },
     isStrategyMode () {
       return String(this.assetMode || '').toLowerCase() === 'strategy'
     },
@@ -192,45 +281,105 @@ export default {
     }
   },
   watch: {
-    visible (value) {
-      if (value) {
-        this.strategyType = this.initialStrategyType === 'portfolio' ? 'portfolio' : 'cta'
-        this.loadItems()
+    visible: {
+      immediate: true,
+      handler (value) {
+        if (value) {
+          this.strategyType = this.initialStrategyType === 'portfolio' ? 'portfolio' : 'cta'
+          this.applyFilters()
+          if (this.isStrategyMode) this.loadMarketOptions()
+        } else {
+          this.requestId += 1
+          this.loading = false
+        }
       }
     }
   },
+  beforeDestroy () {
+    this.requestId += 1
+  },
   methods: {
+    popupContainer (trigger) { return trigger.parentNode },
+    async loadMarketOptions () {
+      this.marketOptions = await loadEnabledMarketOptions()
+    },
+    marketLabel (option) {
+      const key = `community.market.${option.value}`
+      return this.$te(key) ? this.$t(key) : this.$te(option.i18nKey) ? this.$t(option.i18nKey) : option.label
+    },
+    applyFilters () {
+      this.appliedKeyword = this.keyword.trim()
+      this.page = 1
+      return this.loadItems()
+    },
+    resetFilters () {
+      this.keyword = ''
+      this.pricingType = ''
+      this.codeVisibility = ''
+      this.market = ''
+      this.directionMode = ''
+      this.bindingMode = ''
+      return this.applyFilters()
+    },
+    changePage (page) {
+      this.page = page
+      return this.loadItems()
+    },
+    changePageSize (_, pageSize) {
+      this.pageSize = pageSize
+      this.page = 1
+      return this.loadItems()
+    },
     async loadItems () {
+      const requestId = ++this.requestId
+      const expectedAssetType = this.isStrategyMode ? 'script_template' : 'indicator'
+      const strategyType = this.strategyType
       this.loading = true
+      this.items = []
       try {
         const res = await request({
           url: '/api/community/indicators',
           method: 'get',
           params: {
-            page: 1,
-            page_size: 50,
-            keyword: this.keyword || undefined,
-            sort_by: 'hot',
-            asset_type: this.isStrategyMode ? 'script_template' : 'indicator',
-            strategy_type: this.isStrategyMode ? this.strategyType : undefined
+            page: this.page,
+            page_size: this.pageSize,
+            keyword: this.appliedKeyword || undefined,
+            pricing_type: this.pricingType && this.pricingType !== 'vip_free' ? this.pricingType : undefined,
+            vip_free: this.pricingType === 'vip_free' ? 1 : undefined,
+            code_visibility: this.codeVisibility || undefined,
+            market: this.isStrategyMode ? this.market || undefined : undefined,
+            direction_mode: this.isStrategyMode ? this.directionMode || undefined : undefined,
+            binding_mode: this.isStrategyMode ? this.bindingMode || undefined : undefined,
+            sort_by: this.sortBy,
+            asset_type: expectedAssetType,
+            strategy_type: this.isStrategyMode ? strategyType : undefined
           }
         })
+        if (requestId !== this.requestId) return
         if (res && res.code === 1) {
           const rows = (res.data && res.data.items) || []
-          const expectedAssetType = this.isStrategyMode ? 'script_template' : 'indicator'
           this.items = rows.filter(item => {
             if (String(item.asset_type || 'indicator').toLowerCase() !== expectedAssetType) return false
             if (!this.isStrategyMode) return true
-            return String(item.strategy_type || '').toLowerCase() === this.strategyType
+            return String(item.strategy_type || '').toLowerCase() === strategyType
           })
-          this.total = this.items.length
+          this.total = Number((res.data && res.data.total) || 0)
+          const lastPage = Math.max(1, Math.ceil(this.total / this.pageSize))
+          if (this.page > lastPage) {
+            this.page = lastPage
+            return this.loadItems()
+          }
+          this.$nextTick(() => { if (this.$refs.list) this.$refs.list.scrollTop = 0 })
         } else {
+          this.total = 0
           this.$message.error((res && res.msg) || this.$t('community.loadFailed'))
         }
       } catch (error) {
+        if (requestId !== this.requestId) return
+        this.total = 0
         this.$message.error(this.$t('community.loadFailed'))
       } finally {
-        this.loading = false
+        if (requestId === this.requestId) this.loading = false
       }
     },
     async acquire (item) {
@@ -439,24 +588,58 @@ export default {
     font-size: 18px;
   }
 
+  &__filters { padding: 14px 24px; }
+
+  &__toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    > .ant-btn { flex-shrink: 0; padding: 0 4px; }
+  }
+
+  &__compact-filter {
+    flex: 0 1 144px;
+    min-width: 100px;
+    margin: 0;
+
+    > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+    .ant-select { width: 100%; }
+  }
+
+  &__sort { flex: 0 1 120px; min-width: 100px; }
+  &__toolbar .ant-select-selection--single { height: 34px; border-radius: 6px; }
+  &__toolbar .ant-select-selection__rendered { line-height: 32px; }
+
+  &__filter-grid {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 12px;
+    margin-top: 12px;
+
+    label { flex: 1 1 140px; min-width: 0; }
+    label > span { display: block; margin-bottom: 5px; color: #7b8492; font-size: 12px; }
+    .ant-select { width: 100%; }
+  }
+
   &__search {
-    min-width: 300px;
-    flex: 1;
+    display: flex;
+    gap: 8px;
+    flex: 1 1 240px;
+    min-width: 200px;
 
-    .ant-input,
-    .ant-btn {
-      height: 34px;
-    }
+    .ant-input-affix-wrapper { flex: 1; min-width: 0; }
+    .ant-input, .ant-btn { height: 34px; border-radius: 6px; }
+    .ant-btn { flex-shrink: 0; box-shadow: none; }
+  }
 
-    .ant-input {
-      border-radius: 6px 0 0 6px;
-    }
-
-    .ant-btn {
-      min-width: 74px;
-      border-radius: 0 6px 6px 0;
-      box-shadow: none;
-    }
+  &__pagination {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    padding: 14px 24px;
+    border-top: 1px solid #edf0f3;
   }
 
   &__summary {
@@ -496,7 +679,7 @@ export default {
   }
 
   &__list {
-    max-height: 560px;
+    max-height: ~"min(480px, 45vh)";
     overflow-y: auto;
     padding: 6px 14px 14px;
   }
@@ -708,6 +891,7 @@ export default {
     color: rgba(255, 255, 255, 0.86);
 
     &__header,
+    &__pagination,
     .ide-market-picker-item {
       border-color: #303330;
     }
@@ -727,7 +911,11 @@ export default {
       background: #1d1f1d;
     }
 
+    &__filter-grid label > span { color: rgba(255, 255, 255, 0.55); }
+
     &__search {
+      .ant-input-affix-wrapper { background: transparent; }
+      .ant-input-clear-icon { color: rgba(255, 255, 255, 0.5); }
       .ant-input {
         border-color: #3b3e3b;
         background: #202220;
@@ -739,6 +927,22 @@ export default {
       }
     }
   }
+
+  .ant-select-selection,
+  .ant-pagination-item,
+  .ant-pagination-item-link {
+    background: #202220;
+    border-color: #3b3e3b;
+    color: rgba(255, 255, 255, 0.88);
+  }
+  .ant-select-arrow,
+  .ant-pagination-item a { color: rgba(255, 255, 255, 0.65); }
+  .ant-pagination-item-active { border-color: var(--primary-color, #1890ff); }
+  .ant-pagination-item-active a { color: var(--primary-color, #1890ff); }
+  .ant-select-dropdown { background: #202220; }
+  .ant-select-dropdown-menu-item { color: rgba(255, 255, 255, 0.88); }
+  .ant-select-dropdown-menu-item-active,
+  .ant-select-dropdown-menu-item-selected { background: #303330; }
 
   .ide-market-picker-item {
     &:hover {
@@ -793,7 +997,10 @@ export default {
       padding: 56px 18px 18px;
     }
 
+    &__toolbar { flex-wrap: wrap; }
+    &__compact-filter, &__sort { flex: 1 1 110px; }
     &__search {
+      flex-basis: 100%;
       width: 100%;
       min-width: 0;
     }

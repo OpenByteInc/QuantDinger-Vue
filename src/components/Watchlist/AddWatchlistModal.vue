@@ -18,10 +18,19 @@
     <a-tabs :active-key="market" @change="changeMarket">
       <a-tab-pane v-for="value in orderedMarkets" :key="value" :tab="$t('dashboard.indicator.market.' + value)" :disabled="saving" />
     </a-tabs>
+    <a-select
+      v-if="market === 'Futures'"
+      class="futures-product-filter"
+      :value="futuresProducts.some(item => item.symbol === keyword) ? keyword : undefined"
+      :placeholder="$t('dashboard.indicator.market.Futures')"
+      show-search
+      allow-clear
+      option-filter-prop="children"
+      @change="chooseFuturesProduct"><a-select-option v-for="product in futuresProducts" :key="product.symbol" :value="product.symbol">{{ product.symbol }} · {{ product.name }} · {{ product.exchange }}</a-select-option></a-select>
     <a-input-search
       v-model="keyword"
       :disabled="saving"
-      :placeholder="$t('backtest-center.config.symbolPlaceholder')"
+      :placeholder="$t(market === 'Futures' ? 'brokerAccounts.forthright.contract' : 'backtest-center.config.symbolPlaceholder')"
       :loading="loading"
       allow-clear
       @change="queueSearch"
@@ -51,7 +60,9 @@
 </template>
 
 <script>
-import { addWatchlist, getWatchlist, searchAssets } from '@/api/market'
+import { addWatchlist, getWatchlist, searchAssets, getFuturesProducts } from '@/api/market'
+import { broker } from '@/api/broker'
+import { listExchangeCredentials } from '@/api/credentials'
 import { groupWatchlistAssets, watchlistAssetKey, watchlistContextLabel, watchlistPayload } from '@/utils/watchlistAssets'
 
 export default {
@@ -63,7 +74,7 @@ export default {
     initialMarket: { type: String, default: 'Crypto' }
   },
   data () {
-    return { market: '', keyword: '', rows: [], selected: null, loading: false, saving: false, failed: false, sequence: 0, timer: null }
+    return { market: '', keyword: '', rows: [], selected: null, loading: false, saving: false, failed: false, sequence: 0, timer: null, futuresCatalog: null, futuresProducts: [] }
   },
   computed: {
     orderedMarkets () {
@@ -78,11 +89,13 @@ export default {
       if (!value) return
       this.market = this.orderedMarkets.includes(this.initialMarket) ? this.initialMarket : this.orderedMarkets[0]
       this.keyword = ''
+      this.futuresCatalog = null
       this.search()
     }
   },
   beforeDestroy () { this.invalidate() },
   methods: {
+    chooseFuturesProduct (value) { this.keyword = value || ''; this.search() },
     assetKey: watchlistAssetKey,
     contextLabel (item) { return watchlistContextLabel(item, key => this.$t(key), { includeName: false }) },
     groupLabel (group) { return this.contextLabel(group.item) },
@@ -108,6 +121,11 @@ export default {
       const sequence = this.sequence
       this.loading = true
       try {
+        if (this.market === 'Futures') {
+          if (!this.futuresCatalog) this.futuresCatalog = this.loadFuturesCatalog()
+          await this.futuresCatalog
+          if (sequence !== this.sequence || !this.visible) return
+        }
         const response = await searchAssets({ market: this.market, keyword: this.keyword.trim(), limit: 60 })
         if (sequence !== this.sequence || !this.visible) return
         if (!response || response.code !== 1) throw new Error()
@@ -115,10 +133,24 @@ export default {
         const rows = Array.isArray(data) ? data : (data.results || data.symbols || data.items || [])
         this.rows = rows.filter(item => item.symbol && (item.market || this.market) === this.market).map(item => ({ ...item, market: item.market || this.market }))
       } catch (_) {
+        this.futuresCatalog = null
         if (sequence === this.sequence) this.failed = true
       } finally {
         if (sequence === this.sequence) this.loading = false
       }
+    },
+    async loadFuturesCatalog () {
+      const products = await getFuturesProducts()
+      this.futuresProducts = products.data || []
+      try {
+      const response = await listExchangeCredentials()
+      const data = response.data?.data || response.data || response
+      const account = (Array.isArray(data) ? data : data.items || []).find(item => item.exchange_id === 'forthright' && item.account_type === 'futures')
+      if (account) {
+        const result = await broker.forthright.contracts({ credential_id: Number(account.id) })
+        if (!result.success) throw new Error(result.error)
+      }
+      } catch (_) { this.futuresCatalog = null }
     },
     selectGroup (group) { this.selected = group.item },
     async save () {
@@ -146,6 +178,7 @@ export default {
 </script>
 
 <style lang="less">
+.futures-product-filter { width: 100%; margin-bottom: 12px; }
 .watchlist-asset-modal {
   .watchlist-results { min-height: 180px; max-height: 330px; overflow-y: auto; margin: 16px 0; }
   .watchlist-result { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px; margin: 6px 0; border: 1px solid #dce3ec; border-radius: 8px; background: transparent; color: inherit; text-align: start; cursor: pointer; }

@@ -72,3 +72,21 @@ test('account overview shows true zero and unknown counts separately', () => {
   assert.equal(metrics({ position_count: null }).find(item => item.key === 'positions').value, '--')
   assert.equal(metrics({ recent_filled_order_count: 0 }).find(item => item.key === 'fills').value, '0')
 })
+
+
+test('credential submission clears the retained form but preserves the in-flight payload', () => {
+  const component = options('views/broker-accounts/components/BrokerPanel.vue')
+  const form = { name: 'Account', privateKey: 'private-marker', tradePassword: 'password-marker', appSecret: 'app-marker' }
+  let sent
+  const state = { $refs: { connectForm: { form } }, $emit: (event, payload) => { sent = payload } }
+  state.clearConnectionSecrets = component.methods.clearConnectionSecrets.bind(state)
+  component.methods.submitConnection.call(state, { ...form })
+  assert.equal(form.privateKey, '')
+  assert.equal(form.tradePassword, '')
+  assert.equal(form.appSecret, '')
+  assert.equal(form.name, 'Account')
+  assert.equal(sent.privateKey, 'private-marker')
+  form.privateKey = 'later-marker'
+  component.deactivated.call(state)
+  assert.equal(form.privateKey, '')
+})

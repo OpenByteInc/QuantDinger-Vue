@@ -6,10 +6,34 @@
     <a-alert v-if="loadError" type="warning" show-icon :message="$t('globalMarket.refreshError')" />
 
     <div v-if="!loading && strategies.length === 0" class="workspace-empty">
-      <a-icon type="fund" />
-      <h2>{{ $t('strategyCenter.console.emptyTitle') }}</h2>
-      <p>{{ $t('strategyCenter.console.emptyDescription') }}</p>
-      <a-button type="primary" @click="$emit('open-workspace')">{{ $t('strategyCenter.stats.createLive') }}</a-button>
+      <div class="workspace-empty__content">
+        <span class="workspace-empty__icon" aria-hidden="true"><a-icon type="fund" /></span>
+        <h2>{{ $t('strategyCenter.console.emptyTitle') }}</h2>
+        <p>{{ $t('strategyCenter.console.emptyDescription') }}</p>
+        <div class="workspace-empty__choices" :class="{ 'workspace-empty__choices--single': !marketplaceEnabled }">
+          <button class="run-start-card run-start-card--primary" type="button" @click="$emit('open-workspace')">
+            <span class="run-start-card__icon"><a-icon type="play-circle" /></span>
+            <span class="run-start-card__copy">
+              <strong>{{ $t('strategyOnboarding.useExisting') }}</strong>
+              <small>{{ $t('strategyOnboarding.useExistingDescription') }}</small>
+            </span>
+            <a-icon type="arrow-right" class="run-start-card__arrow" />
+          </button>
+          <router-link v-if="marketplaceEnabled" class="run-start-card" :to="{ path: '/indicator-community', query: { asset_type: 'script_template' } }">
+            <span class="run-start-card__icon"><a-icon type="shop" /></span>
+            <span class="run-start-card__copy">
+              <strong>{{ $t('strategyOnboarding.marketTitle') }}</strong>
+              <small>{{ $t('strategyOnboarding.marketDescription') }}</small>
+            </span>
+            <a-icon type="arrow-right" class="run-start-card__arrow" />
+          </router-link>
+        </div>
+        <ol class="workspace-empty__steps">
+          <li><span class="workspace-empty__number" aria-hidden="true">1</span>{{ $t('trading-assistant.form.scriptSource') }}</li>
+          <li><span class="workspace-empty__number" aria-hidden="true">2</span>{{ $t('trading-assistant.form.executionMode') }}</li>
+          <li><span class="workspace-empty__number" aria-hidden="true">3</span>{{ $t('strategyCenter.console.runtimeStatus') }}</li>
+        </ol>
+      </div>
     </div>
 
     <template v-else>
@@ -409,6 +433,9 @@ export default {
     }
   },
   computed: {
+    marketplaceEnabled () {
+      return this.$store.state.features.config.marketplace_enabled !== false
+    },
     popconfirmClass () {
       return this.dark
         ? 'live-operation-popconfirm live-operation-popconfirm--dark'
@@ -879,6 +906,155 @@ export default {
   width: 100%;
   height: 100%;
   min-height: 0;
+  overflow-y: auto;
+  justify-content: flex-start;
+  padding: clamp(56px, 18vh, 240px) 24px 40px;
+  background: var(--sc-surface);
+}
+.workspace-empty__content {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+}
+.workspace-empty__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 20px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--primary-color, #1890ff) 8%, var(--sc-surface));
+  color: var(--primary-color, #1890ff);
+  font-size: 24px;
+}
+.workspace-empty .workspace-empty__content h2 {
+  margin: 0 0 10px;
+  color: var(--sc-heading);
+  font-size: clamp(22px, 2vw, 26px);
+  font-weight: 600;
+  line-height: 1.4;
+}
+.workspace-empty .workspace-empty__content p {
+  max-width: 520px;
+  margin: 0 auto;
+  color: var(--sc-muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+.workspace-empty__steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: var(--sc-muted);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+}
+.workspace-empty__number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--sc-border);
+  border-radius: 50%;
+  background: var(--sc-surface-subtle);
+  color: var(--sc-muted);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.workspace-empty__choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 28px;
+
+  &--single {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 400px;
+    margin-right: auto;
+    margin-left: auto;
+  }
+}
+.run-start-card {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 14px;
+  align-items: center;
+  gap: 12px;
+  min-height: 116px;
+  padding: 20px;
+  border: 1px solid var(--sc-border);
+  border-radius: 10px;
+  background: var(--sc-surface);
+  color: var(--sc-heading);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .16s ease, background-color .16s ease;
+
+  &--primary {
+    border-color: color-mix(in srgb, var(--primary-color, #1890ff) 32%, var(--sc-border));
+    background: color-mix(in srgb, var(--primary-color, #1890ff) 3%, var(--sc-surface));
+  }
+  &:hover {
+    border-color: var(--primary-color, #1890ff);
+    background: color-mix(in srgb, var(--primary-color, #1890ff) 5%, var(--sc-surface));
+    color: var(--sc-heading);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--primary-color, #1890ff);
+    outline-offset: 3px;
+  }
+}
+.run-start-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--primary-color, #1890ff) 9%, var(--sc-surface));
+  color: var(--primary-color, #1890ff);
+  font-size: 18px;
+}
+.run-start-card__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  strong { font-size: 14px; font-weight: 600; line-height: 1.4; }
+  small { color: var(--sc-muted); font-size: 12px; line-height: 1.6; }
+}
+.run-start-card__arrow {
+  color: var(--sc-subtle);
+  font-size: 14px;
+}
+@media (max-width: 600px) {
+  .operations-workspace.is-empty .workspace-empty {
+    padding: 36px 20px;
+    min-height: 440px;
+  }
+  .workspace-empty__choices { grid-template-columns: 1fr; }
+  .workspace-empty__steps {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 0 20px;
+    text-align: left;
+
+    li { justify-content: flex-start; }
+  }
 }
 .strategy-master {
   min-height: 0;

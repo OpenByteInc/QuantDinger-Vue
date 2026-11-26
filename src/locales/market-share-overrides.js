@@ -456,7 +456,8 @@ const messages = {
 
 const enhancements = {
   'en-US': {
-    'community.share.modePost': 'AI post',
+    'community.share.modePost': 'Post',
+    'community.share.aiCostNote': 'AI credits apply · Refunded on failure',
     'community.share.modeLink': 'Share link',
     'community.share.aiTitle': 'Make it more engaging with AI',
     'community.share.aiHint': 'Uses public listing facts and writes in your current app language. AI credits apply; failed generations are refunded.',
@@ -478,7 +479,8 @@ const enhancements = {
     'community.share.linkCopyFailed': 'Could not copy the link'
   },
   'zh-CN': {
-    'community.share.modePost': 'AI 文稿',
+    'community.share.modePost': '文稿分享',
+    'community.share.aiCostNote': '消耗 AI 积分 · 失败退回',
     'community.share.modeLink': '纯链接分享',
     'community.share.aiTitle': '用 AI 写得更吸引人',
     'community.share.aiHint': '仅使用公开上架信息，并按当前系统语言撰写；会消耗 AI 积分，失败自动退回。',
@@ -500,7 +502,8 @@ const enhancements = {
     'community.share.linkCopyFailed': '链接复制失败'
   },
   'zh-TW': {
-    'community.share.modePost': 'AI 貼文',
+    'community.share.modePost': '貼文分享',
+    'community.share.aiCostNote': '使用 AI 點數 · 失敗退回',
     'community.share.modeLink': '純連結分享',
     'community.share.aiTitle': '用 AI 寫得更吸引人',
     'community.share.aiHint': '僅使用公開上架資料，並依目前系統語言撰寫；會消耗 AI 點數，失敗自動退回。',
@@ -522,7 +525,8 @@ const enhancements = {
     'community.share.linkCopyFailed': '無法複製連結'
   },
   'ja-JP': {
-    'community.share.modePost': 'AI投稿',
+    'community.share.modePost': '投稿',
+    'community.share.aiCostNote': 'AIクレジット使用 · 失敗時返還',
     'community.share.modeLink': 'リンク共有',
     'community.share.aiTitle': 'AIで魅力的な文章に',
     'community.share.aiHint': '公開情報のみを使用し、現在の表示言語で作成します。AIクレジットは失敗時に返却されます。',
@@ -544,7 +548,8 @@ const enhancements = {
     'community.share.linkCopyFailed': 'リンクをコピーできませんでした'
   },
   'ko-KR': {
-    'community.share.modePost': 'AI 게시물',
+    'community.share.modePost': '게시물',
+    'community.share.aiCostNote': 'AI 크레딧 사용 · 실패 시 환불',
     'community.share.modeLink': '링크 공유',
     'community.share.aiTitle': 'AI로 더 매력적으로 작성',
     'community.share.aiHint': '공개 등록 정보만 사용하고 현재 앱 언어로 작성합니다. 실패 시 AI 크레딧이 환불됩니다.',
@@ -566,7 +571,8 @@ const enhancements = {
     'community.share.linkCopyFailed': '링크를 복사할 수 없습니다'
   },
   'de-DE': {
-    'community.share.modePost': 'KI-Beitrag',
+    'community.share.modePost': 'Beitrag',
+    'community.share.aiCostNote': 'KI-Credits · Erstattung bei Fehler',
     'community.share.modeLink': 'Link teilen',
     'community.share.aiTitle': 'Mit KI ansprechender formulieren',
     'community.share.aiHint': 'Verwendet nur öffentliche Daten und schreibt in der aktuellen App-Sprache. Bei Fehlern wird das KI-Guthaben erstattet.',
@@ -588,7 +594,8 @@ const enhancements = {
     'community.share.linkCopyFailed': 'Link konnte nicht kopiert werden'
   },
   'fr-FR': {
-    'community.share.modePost': 'Publication IA',
+    'community.share.modePost': 'Publication',
+    'community.share.aiCostNote': 'Crédits IA · Remboursés en cas d’échec',
     'community.share.modeLink': 'Partager le lien',
     'community.share.aiTitle': 'Rendre le texte plus captivant avec l’IA',
     'community.share.aiHint': 'Utilise les données publiques et la langue actuelle de l’application. Les crédits IA sont remboursés en cas d’échec.',
@@ -610,7 +617,8 @@ const enhancements = {
     'community.share.linkCopyFailed': 'Impossible de copier le lien'
   },
   'ru-RU': {
-    'community.share.modePost': 'Текст от ИИ',
+    'community.share.modePost': 'Публикация',
+    'community.share.aiCostNote': 'ИИ-кредиты · Возврат при ошибке',
     'community.share.modeLink': 'Поделиться ссылкой',
     'community.share.aiTitle': 'Сделать текст привлекательнее с ИИ',
     'community.share.aiHint': 'Используются публичные данные и текущий язык приложения. При сбое ИИ-кредиты возвращаются.',
@@ -632,7 +640,8 @@ const enhancements = {
     'community.share.linkCopyFailed': 'Не удалось скопировать ссылку'
   },
   'ar-SA': {
-    'community.share.modePost': 'منشور بالذكاء الاصطناعي',
+    'community.share.modePost': 'منشور',
+    'community.share.aiCostNote': 'رصيد ذكاء اصطناعي · يُعاد عند الفشل',
     'community.share.modeLink': 'مشاركة الرابط',
     'community.share.aiTitle': 'صياغة أكثر جاذبية بالذكاء الاصطناعي',
     'community.share.aiHint': 'يستخدم البيانات العامة ويكتب بلغة التطبيق الحالية. تُعاد أرصدة الذكاء الاصطناعي عند الفشل.',
@@ -654,7 +663,8 @@ const enhancements = {
     'community.share.linkCopyFailed': 'تعذر نسخ الرابط'
   },
   'th-TH': {
-    'community.share.modePost': 'โพสต์ด้วย AI',
+    'community.share.modePost': 'โพสต์',
+    'community.share.aiCostNote': 'ใช้เครดิต AI · คืนเมื่อไม่สำเร็จ',
     'community.share.modeLink': 'แชร์ลิงก์',
     'community.share.aiTitle': 'เขียนให้น่าสนใจยิ่งขึ้นด้วย AI',
     'community.share.aiHint': 'ใช้ข้อมูลสาธารณะและเขียนตามภาษาปัจจุบันของแอป คืนเครดิต AI หากสร้างไม่สำเร็จ',
@@ -676,7 +686,8 @@ const enhancements = {
     'community.share.linkCopyFailed': 'คัดลอกลิงก์ไม่สำเร็จ'
   },
   'vi-VN': {
-    'community.share.modePost': 'Bài viết AI',
+    'community.share.modePost': 'Bài viết',
+    'community.share.aiCostNote': 'Dùng tín dụng AI · Hoàn khi lỗi',
     'community.share.modeLink': 'Chia sẻ liên kết',
     'community.share.aiTitle': 'Viết hấp dẫn hơn bằng AI',
     'community.share.aiHint': 'Dùng dữ liệu công khai và viết theo ngôn ngữ hiện tại của ứng dụng. Tín dụng AI được hoàn lại nếu thất bại.',

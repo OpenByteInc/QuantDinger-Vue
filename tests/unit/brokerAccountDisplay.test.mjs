@@ -29,3 +29,15 @@ test('only known actionable order states expose cancellation', () => {
   assert.equal(brokerOrderCanCancel({ status: 'new' }), false)
   assert.equal(brokerOrderCanCancel({ id: '1', status: 'Submitted' }, 'ibkr'), true)
 })
+
+
+test('broker rows retain original currency independently of account display currency', async () => {
+  const { brokerRowCurrency, brokerPrice } = await import('../../src/utils/brokerAccountDisplay.js')
+  const row = { symbol: '00700.HK', currency: 'HKD' }
+  assert.equal(brokerRowCurrency(row, 'forthright'), 'HKD')
+  assert.match(brokerPrice(345.4, brokerRowCurrency(row, 'forthright')), /HK.*345.40/)
+  assert.equal(brokerRowCurrency({ symbol: 'AAPL', market: 'USStock' }, 'forthright'), 'USD')
+  assert.equal(brokerPrice(null, 'USD'), '--')
+  assert.equal(brokerRowCurrency({ market: 'Futures' }, 'forthright'), null)
+  assert.equal(brokerPrice(345.4, null), '--')
+})

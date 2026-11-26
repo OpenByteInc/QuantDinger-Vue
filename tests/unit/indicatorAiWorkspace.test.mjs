@@ -95,9 +95,9 @@ test('desktop editor is wider while the chart remains the flexible workspace', (
 
 test('empty AI workspace mirrors the strategy assistant hierarchy and anchors the composer at the bottom', () => {
   assert.match(viewSource, /:class="\{ 'is-empty': !aiWorkspaceLoading && !aiMessages\.length \}"/)
-  assert.match(viewSource, /class="ai-conversation-empty__intro"[\s\S]*?<a-icon type="message" \/>/)
+  assert.match(viewSource, /class="ai-conversation-empty__intro"[\s\S]*?<a-icon type="code" \/>/)
   assert.match(viewSource, /indicatorIde\.aiConversationEmptyTitle/)
-  assert.match(viewSource, /indicatorIde\.aiConversationEmptyDesc/)
+  assert.doesNotMatch(viewSource, /indicatorIde\.aiConversationEmptyDesc/)
   assert.match(viewSource, /\.ai-quick-prompts\s*\{[\s\S]*?display: grid;[\s\S]*?grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/)
   assert.match(viewSource, /\.ai-quick-prompts button\s*\{[\s\S]*?border-radius: 999px;[\s\S]*?text-align: center;/)
   assert.doesNotMatch(viewSource, /&\.is-empty \.ai-conversation\s*\{[\s\S]*?flex: 0 0 auto;/)
@@ -106,20 +106,54 @@ test('empty AI workspace mirrors the strategy assistant hierarchy and anchors th
   assert.doesNotMatch(viewSource, /class="ai-helper-tip"/)
 })
 
-test('code and AI areas share one accessible draggable vertical split', () => {
-  assert.match(viewSource, /ref="codePanelBody"/)
-  assert.match(viewSource, /class="code-editor-section" :style="\{ flexBasis: `\$\{codeAiSplitRatio\}%` \}"/)
-  assert.match(viewSource, /class="code-ai-resizer"[\s\S]*?role="separator"[\s\S]*?@mousedown="startCodeAiResize"/)
-  assert.match(viewSource, /startCodeAiResize \(event\)[\s\S]*?Math\.max\(28, Math\.min\(76, raw\)\)/)
-  assert.match(viewSource, /@keydown\.up\.prevent="adjustCodeAiSplit\(-3\)"/)
-  assert.match(viewSource, /@dblclick="resetCodeAiSplit"/)
-  assert.match(viewSource, /class="code-panel-body" :class="\{[^}]*'ai-is-collapsed': !aiPanelExpanded/)
-  assert.match(viewSource, /v-show="aiPanelExpanded"[\s\S]*?class="code-ai-resizer"/)
-  assert.match(viewSource, /\.ai-workspace-section[\s\S]*?&\.is-collapsed \{[\s\S]*?flex: 0 0 42px;/)
+test('indicator assistant floats independently without reserving editor height', () => {
+  assert.match(viewSource, /ref="codePanelBody" class="code-panel-body"/)
+  assert.doesNotMatch(viewSource, /class="code-ai-resizer"|codeAiSplitRatio|startCodeAiResize/)
+  assert.match(viewSource, /\.code-editor-section\s*\{[\s\S]*?flex: 1 1 auto;[\s\S]*?max-height: none;/)
+  assert.match(viewSource, /id="indicator-ai-dialog"[\s\S]*?role="dialog"/)
+  assert.match(viewSource, /v-show="!aiPanelExpanded"[\s\S]*?ref="indicatorAiLauncher"/)
+  assert.match(viewSource, /aiPanelExpanded: false/)
+  assert.match(viewSource, /@keydown\.esc\.stop="closeIndicatorAiPanel"/)
+  assert.match(viewSource, /\.indicator-ide \.indicator-ai-floating\s*\{[\s\S]*?position: fixed;/)
+})
+
+test('indicator assistant opening focuses input and closing retains conversation and draft', () => {
+  const method = (name, next) => new Function(viewSource.split(`    ${name} () {`)[1].split(`\n    ${next} () {`)[0].replace(/},\s*$/, ''))
+  let inputFocused = false
+  let launcherFocused = false
+  const context = {
+    codeDrawerVisible: true,
+    selectedIndicatorCodeHidden: false,
+    aiPanelExpanded: false,
+    aiPrompt: 'Keep the draft',
+    aiMessages: [{ role: 'user', content: 'Existing message' }],
+    aiGenerating: true,
+    $nextTick (callback) { callback() },
+    scrollAiConversationToBottom () {},
+    $refs: {
+      indicatorAiPrompt: { $el: { tagName: 'TEXTAREA', focus () { inputFocused = true } } },
+      indicatorAiLauncher: { focus () { launcherFocused = true } }
+    }
+  }
+  context.focusIndicatorAiPrompt = () => method('focusIndicatorAiPrompt', 'openIndicatorAiPanel').call(context)
+  method('openIndicatorAiPanel', 'closeIndicatorAiPanel').call(context)
+  assert.equal(context.aiPanelExpanded, true)
+  assert.equal(inputFocused, true)
+  method('closeIndicatorAiPanel', 'toggleCodeDrawer').call(context)
+  assert.equal(context.aiPanelExpanded, false)
+  assert.equal(launcherFocused, true)
+  assert.equal(context.aiPrompt, 'Keep the draft')
+  assert.equal(context.aiMessages.length, 1)
+  assert.equal(context.aiGenerating, true)
+  const response = viewSource.slice(viewSource.indexOf("const replyType = (workspaceMeta"), viewSource.indexOf('} catch (error)', viewSource.indexOf("const replyType = (workspaceMeta")))
+  assert.doesNotMatch(response, /this\.aiPanelExpanded = true/)
 })
 
 test('code quality action and result live in the editor guide bar', () => {
-  const guideBlock = viewSource.slice(viewSource.indexOf('class="ide-guide-bar"'), viewSource.indexOf('class="code-editor-wrapper"'))
+  const guideStart = viewSource.indexOf('class="ide-guide-bar"')
+  const guideBlock = viewSource.slice(guideStart, viewSource.indexOf('\n            </div>', guideStart))
+  assert.ok(guideStart > viewSource.indexOf('class="code-editor-wrapper"'))
+  assert.match(guideBlock, /placement="topRight"/)
   assert.match(guideBlock, /code-quality-top-status/)
   assert.match(guideBlock, /@click="runCodeQualityCheck"/)
   assert.match(guideBlock, /indicatorIde\.devGuide/)
@@ -190,4 +224,33 @@ test('indicator quick trade opens as a compact draggable floating console', () =
   assert.match(quickTradeSource, /\.qt-side-account-control\s*\{[\s\S]*?grid-template-columns: minmax\(0, 1fr\) 32px;/)
   assert.match(quickTradeSource, /\.qt-embedded-split--cols\s*\{[\s\S]*?flex-direction: column;/)
   assert.match(quickTradeSource, /\.qt-position-card\s*\{[\s\S]*?grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/)
+})
+
+
+test('indicator AI cannot open when the code panel or source is hidden', () => {
+  const open = new Function(viewSource.split('    openIndicatorAiPanel () {')[1].split('\n    closeIndicatorAiPanel () {')[0].replace(/},\s*$/, ''))
+  for (const state of [
+    { codeDrawerVisible: false, selectedIndicatorCodeHidden: false },
+    { codeDrawerVisible: true, selectedIndicatorCodeHidden: true }
+  ]) {
+    const context = { ...state, aiPanelExpanded: false }
+    open.call(context)
+    assert.equal(context.aiPanelExpanded, false)
+  }
+  assert.match(viewSource, /v-if="codeDrawerVisible && !selectedIndicatorCodeHidden"[\s\S]*?ref="indicatorAiLauncher"/)
+  assert.match(viewSource, /v-show="codeDrawerVisible && !selectedIndicatorCodeHidden && aiPanelExpanded"/)
+})
+
+test('collapsing indicator code closes the assistant without discarding the draft', () => {
+  const watch = new Function(viewSource.split('    codeDrawerVisible () {')[1].split('\n    quickTradeDrawerVisible () {')[0].replace(/},\s*$/, ''))
+  const context = {
+    codeDrawerVisible: false,
+    aiPanelExpanded: true,
+    aiPrompt: 'Keep my draft',
+    schedulePersistIdeUiState () {},
+    $nextTick () {}
+  }
+  watch.call(context)
+  assert.equal(context.aiPanelExpanded, false)
+  assert.equal(context.aiPrompt, 'Keep my draft')
 })

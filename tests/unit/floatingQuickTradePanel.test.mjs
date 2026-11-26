@@ -81,7 +81,7 @@ test('indicator IDE keeps every required quick-trade capability in the floating 
   assert.match(panel, /entryTimestamp: this\.positionEntryTimestamp\(position\)/)
   assert.match(ide, /:quick-trade-positions="pane\.id === activeChartPaneId \? quickTradeChartPositions : \[\]"/)
   assert.match(ide, /@position-overlay-change="handleQuickTradePositionOverlayChange"/)
-  assert.match(ide, /\['Crypto', 'USStock', 'HKStock'\]\.includes\(this\.market\)/)
+  assert.match(ide, /\['Crypto', 'USStock', 'HKStock', 'Futures'\]\.includes\(this\.market\)/)
 })
 
 test('quick-trade positions render a removable cost line and entry marker on the chart', async () => {

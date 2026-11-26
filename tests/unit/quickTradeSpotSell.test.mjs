@@ -2,10 +2,129 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import vm from 'node:vm'
+import { stockQuantityPrecision } from '../../src/utils/forthright.js'
+import { quantityFromAmount } from '../../src/utils/orderQuantity.mjs'
+
+test('stock sell availability excludes shares frozen by the broker', () => {
+  const panel = options('components/QuickTradePanel/QuickTradePanel.vue')
+  const state = {isSpotCashOrder:true, currentPositions:[{side:'long',quantity:100,size:100,salable_qty:0}]}
+  assert.equal(panel.computed.spotSellAvailable.call(state),0)
+  state.currentPositions[0].salable_qty=40
+  assert.equal(panel.computed.spotSellAvailable.call(state),40)
+})
+
+test('stock history keeps execution shares distinct from cash turnover', async () => {
+  const panel = options('components/QuickTradePanel/QuickTradePanel.vue')
+  const state = {isStockMarket:true,selectedCredentialId:18,currentSymbol:'00700.HK',normalizeBrokerSymbol:v=>v,apiPayload:v=>v,
+    selectedStockBrokerClient:{
+      orders:async()=>[{id:'O1',quantity:100,limit_price:345}],
+      tradeHistory:async()=>[{id:'fill1',order_id:'O1',filled_qty:10,filled_amount:3450,filled_avg_price:345,amount:3450,currency:'HKD',fee_status:'pending'}]
+    }}
+  await panel.methods.loadHistory.call(state)
+  assert.equal(state.recentOpenOrders[0].requested_base_qty,100)
+  assert.equal(state.recentTrades[0].filled_amount,10)
+  assert.equal(state.recentTrades[0].amount,3450)
+  assert.equal(state.recentTrades[0].fee_status,'pending')
+})
+
+test('stock amount tickets floor quantity, preserve Alpaca notional and reject zero shares', async () => {
+  const panel = options('components/QuickTradePanel/QuickTradePanel.vue')
+  for (const [brokerId, market, expected] of [['tiger','USStock',33],['webull','USStock',33.333333],['forthright','USStock',33.3333],['alpaca','USStock',undefined]]) {
+    const calls=[]
+    const state={stockLotSize:10,orderType:'limit',limitPrice:3,pricePrecision:2,spotBuyInputMode:'amount',amount:100,selectedStockBrokerId:brokerId,priceMarketParam:market,selectedCredentialId:18,currentSymbol:'AAPL',normalizeBrokerSymbol:value=>value,selectedStockBrokerClient:{placeOrder:async payload=>{calls.push(payload);return {}}},apiSuccess:()=>true,apiPayload:value=>value,$emit:()=>{},loadBalance:async()=>{},loadHistory:async()=>{},loadPositionWithRetry:async()=>{},$t:key=>key}
+    await panel.methods.submitStockOrder.call(state,'buy')
+    assert.equal(calls[0].quantity,expected)
+    assert.equal(calls[0].notional,brokerId==='alpaca'?100:undefined)
+    if(expected)assert.ok(expected*3<=100)
+    if(brokerId==='tiger') {
+      state.amount=2
+      await panel.methods.submitStockOrder.call(state,'buy')
+      assert.equal(calls.length,1)
+      assert.equal(state.tradeFeedback.text,'quickTrade.errorHints.invalidSize')
+    }
+  }
+})
+
+test('Forthright HK rejects missing rules, odd lots and budgets below one lot before submission', async () => {
+  const panel = options('components/QuickTradePanel/QuickTradePanel.vue')
+  const state = { stockLotSize: 100, orderType: 'limit', limitPrice: 90, pricePrecision: 2, spotBuyInputMode: 'quantity', buyQuantity: 101, selectedStockBrokerId: 'forthright', priceMarketParam: 'HKStock', $t: key => key,
+    selectedStockBrokerClient: { placeOrder: () => assert.fail('Invalid lot reached broker') } }
+  await panel.methods.submitStockOrder.call(state, 'buy')
+  assert.equal(state.tradeFeedback.text, 'brokerAccounts.forthright.wholeBoardLot')
+  state.buyQuantity = 11
+  await panel.methods.submitStockOrder.call(state, 'buy')
+  assert.equal(state.tradeFeedback.text, 'brokerAccounts.forthright.belowBoardLot')
+  state.stockLotSize = 0
+  await panel.methods.submitStockOrder.call(state, 'buy')
+  assert.equal(state.tradeFeedback.text, 'brokerAccounts.forthright.lotUnavailable')
+})
+
+test('HK lot inputs convert to shares for Tiger and Forthright without changing US inputs', async () => {
+  const panel = options('components/QuickTradePanel/QuickTradePanel.vue')
+  for (const brokerId of ['forthright', 'tiger']) {
+    for (const lot of [100, 500, 1000]) {
+      const calls = []
+      const state = { isHKStock: true, stockLotSize: lot, orderType: 'limit', limitPrice: 10, pricePrecision: 2,
+        spotBuyInputMode: 'amount', amount: 999999, selectedStockBrokerId: brokerId, priceMarketParam: 'HKStock',
+        selectedCredentialId: 18, currentSymbol: '00001', normalizeBrokerSymbol: v => v,
+        selectedStockBrokerClient: { placeOrder: async payload => { calls.push(payload); return {} } },
+        apiSuccess: () => true, apiPayload: v => v, $emit: () => {}, loadBalance: async () => {}, loadHistory: async () => {}, loadPositionWithRetry: async () => {}, $t: key => key }
+      panel.computed.buyInputQuantity.set.call(state, 2)
+      assert.equal(state.buyQuantity, lot * 2)
+      assert.equal(panel.computed.buyInputQuantity.get.call(state), 2)
+      await panel.methods.submitStockOrder.call(state, 'buy')
+      assert.equal(calls[0].quantity, lot * 2)
+      assert.equal(calls[0].notional, undefined)
+    }
+  }
+  const us = { isHKStock: false }
+  panel.computed.buyInputQuantity.set.call(us, 0.1)
+  assert.equal(us.buyQuantity, 0.1)
+})
+
+test('stock amount submission keeps exact decimal boundaries', async () => {
+  const panel = options('components/QuickTradePanel/QuickTradePanel.vue')
+  const calls = []
+  const state = {orderType:'limit',limitPrice:0.01,pricePrecision:2,spotBuyInputMode:'amount',amount:0.29,selectedStockBrokerId:'tiger',priceMarketParam:'USStock',selectedCredentialId:18,currentSymbol:'AAPL',normalizeBrokerSymbol:value=>value,selectedStockBrokerClient:{placeOrder:async payload=>{calls.push(payload);return {}}},apiSuccess:()=>true,apiPayload:value=>value,$emit:()=>{},loadBalance:async()=>{},loadHistory:async()=>{},loadPositionWithRetry:async()=>{},$t:key=>key}
+  await panel.methods.submitStockOrder.call(state, 'buy')
+  assert.equal(calls[0].quantity, 29)
+  assert.equal(panel.computed.quantityStep.call({quantityPrecision:6}), 0.000001)
+})
+
+test('stock percentage shortcuts honor market and broker quantity precision', () => {
+  const panel=options('components/QuickTradePanel/QuickTradePanel.vue')
+  for (const [market,brokerId,expected] of [['HKStock','forthright',0],['USStock','tiger',1],['USStock','forthright',1.6666],['USStock','webull',1.666666]]) {
+    const state={stockLotSize:100,isStockMarket:true,priceMarketParam:market,selectedStockBrokerId:brokerId,spotBuyInputMode:'quantity',spotSellReferencePrice:3,activeBalanceAvailable:10}
+    panel.methods.setQuickAmountByPercent.call(state,50,'buy')
+    assert.equal(state.buyQuantity,expected)
+  }
+})
+
+test('broker zero buying power and equity do not fall back to positive cash', async () => {
+  const panel=options('components/QuickTradePanel/QuickTradePanel.vue')
+  for(const brokerId of ['alpaca','tiger','webull']) {
+    const state={selectedCredentialId:12,isStockMarket:true,selectedStockBrokerId:brokerId,selectedStockBrokerClient:{account:async()=>({buying_power:0,equity:0,cash:1000,currency:'USD'})},apiPayload:value=>value,balance:{}}
+    await panel.methods.loadBalance.call(state)
+    assert.equal(state.balance.available,0)
+    assert.equal(state.balance.total,0)
+  }
+})
+
+test('base-currency funds are not treated as quote-currency budget', () => {
+  const panel=options('components/QuickTradePanel/QuickTradePanel.vue')
+  const state={isStockMarket:true,balance:{currency:'USD'},orderCurrency:'HKD',isSpotCashOrder:true,selectedCredentialId:12,spotBuyRequestedValue:200,activeBalanceAvailable:100}
+  state.accountCurrency=panel.computed.accountCurrency.call(state)
+  state.buyingPowerCurrencyMismatch=panel.computed.buyingPowerCurrencyMismatch.call(state)
+  assert.equal(state.accountCurrency,'USD')
+  assert.equal(state.buyingPowerCurrencyMismatch,true)
+  assert.equal(panel.computed.buyFundsInsufficient.call(state),false)
+  panel.methods.setQuickAmountByPercent.call(state,100,'buy')
+  assert.equal(state.amount,undefined)
+})
 
 function options (file, mocks = {}) {
   let script = fs.readFileSync(new URL('../../src/' + file, import.meta.url), 'utf8').match(/<script>([\s\S]*?)<\/script>/)[1]
-  const scope = { ...mocks, console, setTimeout, clearTimeout }
+  const scope = { stockQuantityPrecision, quantityFromAmount, ...mocks, console, setTimeout, clearTimeout }
   script = script.replace(/^import\s+([\s\S]*?)\s+from\s+['"][^'"]+['"]\s*$/gm, (_, names) => {
     for (const item of names.replace(/[{}]/g, '').split(',')) {
       const name = item.trim().split(/\s+as\s+/).pop()
@@ -942,4 +1061,77 @@ test('post-trade account refresh is bounded instead of forcing every poll to hit
   assert.match(source, /loadPosition\(false\)/)
   assert.match(source, /loadBalance\(false\)/)
   assert.doesNotMatch(source, /fresh = this\.floatingConsole/)
+})
+
+
+test('stock ticket submits its displayed precision without hidden fractional digits', async () => {
+  const panel = options('components/QuickTradePanel/QuickTradePanel.vue')
+  const calls = []
+  const state = {
+    isStockMarket: true, currentPrice: 64.1, limitPrice: 64.0999984741211, pricePrecision: 2, orderType: 'limit',
+    spotBuyInputMode: 'quantity', buyQuantity: 100, stockLotSize: 100, selectedCredentialId: 18,
+    currentSymbol: '03690', priceMarketParam: 'HKStock', selectedStockBrokerId: 'forthright',
+    selectedStockBrokerClient: { placeOrder: async payload => { calls.push(payload); return { success: true } } },
+    normalizeBrokerSymbol: value => value, apiSuccess: () => true, apiPayload: value => value,
+    $emit: () => {}, loadBalance: async () => {}, loadHistory: async () => {}, loadPositionWithRetry: async () => {}
+  }
+  await panel.methods.submitStockOrder.call(state, 'buy')
+  assert.equal(calls[0].price, 64.1)
+  assert.equal(calls[0].quantity, 100)
+  state.limitPrice = 64.125
+  state.pricePrecision = 3
+  await panel.methods.submitStockOrder.call(state, 'buy')
+  assert.equal(calls[1].price, 64.125)
+})
+
+
+test('Forthright SMS field opens only when requested and clears after verification', async () => {
+  const calls = []
+  const panel = options('views/broker-accounts/components/ForthrightUnlock.vue', {
+    broker: { forthright: { unlock: async payload => {
+      calls.push(payload)
+      if (!payload.smsCode) throw { response: { data: { error: 'brokerAccounts.forthright.secondAuthRequired' } } }
+      return { success: true }
+    } } }
+  })
+  const state = { ...panel.data(), credentialId: 18, $t: key => key, $nextTick: fn => fn(), $refs: {} }
+  await panel.methods.unlock.call(state, '')
+  assert.equal(state.phase, 'verify')
+  state.code = '1111'
+  await panel.methods.unlock.call(state, state.code)
+  assert.equal(state.phase, 'unlocked')
+  assert.equal(state.code, '')
+  assert.equal(calls[1].credential_id, 18)
+  assert.equal(calls[1].smsCode, '1111')
+  panel.watch.credentialId.call(state)
+  assert.equal(state.phase, 'idle')
+})
+
+test('Forthright unlock response cannot mark a newly selected account as verified', async () => {
+  let finish
+  const panel = options('views/broker-accounts/components/ForthrightUnlock.vue', {
+    broker: { forthright: { unlock: () => new Promise(resolve => { finish = resolve }) } }
+  })
+  const state = { ...panel.data(), credentialId: 18 }
+  const request = panel.methods.unlock.call(state, '')
+  state.credentialId = 19
+  panel.watch.credentialId.call(state)
+  finish({ success: true })
+  await request
+  assert.equal(state.phase, 'idle')
+  assert.equal(state.busy, false)
+})
+
+
+test('reloaded Forthright authorization restores saved verification without requesting an unlock', async () => {
+  const panel = options('views/broker-accounts/components/ForthrightUnlock.vue', {
+    broker: { forthright: { authorization: async ({ credential_id }) => {
+      assert.equal(credential_id, 18)
+      return { success: true, data: { state: 'verified' } }
+    }, unlock: () => { throw new Error('must not unlock on reload') } } }
+  })
+  const state = { ...panel.data(), credentialId: 18 }
+  await panel.methods.restore.call(state)
+  assert.equal(state.phase, 'unlocked')
+  assert.equal(state.busy, false)
 })

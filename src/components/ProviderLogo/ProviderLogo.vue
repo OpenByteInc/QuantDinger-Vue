@@ -55,8 +55,12 @@ export default {
   object-position: center;
   user-select: none;
 }
-.provider-logo--tiger {
+.provider-logo--tiger,
+.provider-logo--forthright {
   object-fit: cover;
+}
+.provider-logo--forthright {
+  border-radius: 22%;
 }
 .provider-logo-fallback {
   display: inline-flex;

@@ -1,6 +1,7 @@
 <template>
   <a-spin :spinning="loading">
-    <div v-if="!loading && (!info || isEmpty)" class="bp-empty" :class="{ 'theme-dark': isDarkTheme }">
+    <a-alert v-if="error" type="error" show-icon :message="error" />
+    <div v-else-if="!loading && (!info || isEmpty)" class="bp-empty" :class="{ 'theme-dark': isDarkTheme }">
       <a-icon type="inbox" /> <span>{{ $t('brokerAccounts.noAccount') }}</span>
     </div>
     <div v-else-if="info" class="account-grid" :class="{ 'theme-dark': isDarkTheme }">
@@ -10,7 +11,10 @@
         class="metric-card"
         :class="metric.tone || ''"
       >
-        <div class="metric-label">{{ metric.label }}</div>
+        <div class="metric-label">
+          <a-tooltip v-if="metric.help" :title="metric.help" :trigger="['hover', 'focus', 'click']"><button class="metric-help">{{ metric.label }} <a-icon type="question-circle" /></button></a-tooltip>
+          <template v-else>{{ metric.label }}</template>
+        </div>
         <div class="metric-value">{{ metric.value }}</div>
         <div v-if="metric.sub" class="metric-sub">{{ metric.sub }}</div>
       </div>
@@ -19,6 +23,7 @@
 </template>
 
 <script>
+import { forthrightErrorMessage } from '@/utils/forthright'
 import { broker } from '@/api/broker'
 
 function num (v) {
@@ -31,7 +36,7 @@ function money (v, ccy = 'USD') {
   if (n == null) return '--'
   const sign = n < 0 ? '-' : ''
   const abs = Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-  return `${sign}${ccy === 'USD' ? '$' : ''}${abs}${ccy && ccy !== 'USD' ? ' ' + ccy : ''}`
+  return `${sign}${abs} ${ccy}`
 }
 
 export default {
@@ -44,6 +49,7 @@ export default {
   data () {
     return {
       info: null,
+      error: '',
       loading: false,
       timer: null
     }
@@ -56,6 +62,18 @@ export default {
       if (!this.info) return []
       const i = this.info
       const ccy = i.currency || i.account_currency || 'USD'
+      if (this.brokerId === 'forthright') {
+        const futures = i.account_type === 'futures'
+        const help = key => futures ? this.$t('brokerAccounts.forthright.' + key) : ''
+        return [
+          { key: 'equity', label: this.$t('brokerAccounts.kpi.equity'), value: money(i.equity, ccy), help: help('equityHelp'), sub: futures ? '' : this.$t('brokerAccounts.forthright.currencyHint') },
+          { key: 'cash', label: this.$t(futures ? 'brokerAccounts.forthright.convertedCashLabel' : 'brokerAccounts.kpi.cash'), value: money(i.cash, ccy), help: help('cashHelp'), sub: i.cash_is_converted ? this.$t('brokerAccounts.forthright.convertedCash') : '' },
+          { key: 'bp', label: this.$t(futures ? 'brokerAccounts.forthright.available_funds' : 'brokerAccounts.kpi.buyingPower'), value: money(i.buying_power, ccy), help: help('availableFundsHelp'), tone: 'accent' },
+          ...(futures ? ['initial_margin', 'maintenance_margin'].map(key => ({ key, label: this.$t('brokerAccounts.forthright.' + key), value: money(i[key], ccy), help: help(key + 'Help') })) : []),
+          ...(i.balances || []).map(row => ({ key: `cash-${row.currency || row.ccy}`, label: this.$t(row.available_cash != null ? 'brokerAccounts.forthright.nativeCash' : 'brokerAccounts.forthright.originalCash'), help: help('nativeCashHelp'), value: money(row.available_cash ?? row.cash, row.currency || String(row.ccy || '').replace(/^HK-/, '')) })),
+          { key: 'account', label: this.$t('brokerAccounts.kpi.account'), value: String(i.account_id || '--') }
+        ]
+      }
       if (this.brokerId === 'alpaca') {
         return [
           { key: 'equity', label: this.$t('brokerAccounts.kpi.equity'), value: money(i.equity != null ? i.equity : i.portfolio_value, ccy) },
@@ -93,15 +111,16 @@ export default {
   methods: {
     async load () {
       this.loading = true
+      this.error = ''
       try {
         const res = await broker[this.brokerId].account(this.credentialId ? { credential_id: this.credentialId } : {})
         if (res && res.success === false) throw new Error('brokerAccounts.accountLoadFailed')
         const payload = (res && (res.data || res)) || {}
         const inner = payload.data && typeof payload.data === 'object' ? payload.data : payload
         this.info = inner && Object.keys(inner).length ? inner : null
-      } catch (_) {
+      } catch (error) {
         this.info = null
-        this.$message.error(this.$t('brokerAccounts.accountLoadFailed'))
+        this.error = this.brokerId === 'forthright' ? forthrightErrorMessage(error, this.$t.bind(this)) : this.$t('brokerAccounts.accountLoadFailed')
       } finally {
         this.loading = false
       }
@@ -126,6 +145,8 @@ export default {
   &.negative { border-color: rgba(245, 34, 45, 0.3); }
 }
 .metric-label { font-size: 11px; color: #8c8c8c; text-transform: uppercase; letter-spacing: 0.3px; }
+.metric-help { display: inline-flex; align-items: center; gap: 6px; border: 0; padding: 4px 0; margin: -4px 0; background: transparent; color: inherit; font: inherit; text-align: start; cursor: pointer; }
+.metric-help:focus-visible { outline: 2px solid var(--primary-color, #1890ff); outline-offset: 2px; border-radius: 4px; }
 .metric-value {
   margin-top: 8px;
   font-size: 20px;

@@ -408,11 +408,12 @@
   }
 
   .account-grid {
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(~"min(100%, 220px)", 1fr));
     gap: 8px;
   }
 
   .metric-card {
+    min-width: 0;
     min-height: 92px;
     padding: 11px 12px;
     border-color: var(--ba-border);
@@ -439,6 +440,7 @@
   }
 
   .metric-value {
+    overflow-wrap: anywhere;
     margin-top: 6px;
     color: var(--ba-text);
     font-size: 17px;
@@ -645,3 +647,4 @@
     }
   }
 }
+.ba-rail > .ba-advertisement { margin: 12px; }

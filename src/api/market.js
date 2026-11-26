@@ -292,6 +292,10 @@ export function searchAssets (parameter) {
   })
 }
 
+export function getFuturesProducts () {
+  return request({ url: '/api/market/futures/products', method: 'get' })
+}
+
 export function getAssetCapabilities (parameter) {
   return request({
     url: marketApi.GetAssetCapabilities,

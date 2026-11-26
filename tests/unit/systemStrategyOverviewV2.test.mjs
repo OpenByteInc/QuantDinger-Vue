@@ -10,8 +10,9 @@ const source = fs.readFileSync(viewPath, 'utf8')
 const apiSource = fs.readFileSync(apiPath, 'utf8')
 
 test('system overview is centered on Strategy API V2 contracts', () => {
-  assert.match(source, /strategy-contract-banner/)
-  assert.match(source, /contract_ready_strategies/)
+  assert.doesNotMatch(source, /<section class="strategy-contract-banner"/)
+  assert.match(source, /systemOverview\.v2Deployments/)
+  assert.match(source, /class="summary-sub strategy-class-breakdown"/)
   assert.match(source, /v2_strategies/)
   assert.match(source, /cta_strategies/)
   assert.match(source, /portfolio_strategies/)

@@ -40,35 +40,36 @@
         <div class="credits-header">
           <h3 class="credits-title">
             <a-icon type="wallet" />
-            {{ $t('profile.credits.title') || '我的积分' }}
+            {{ $t('profile.credits.title') }}
           </h3>
         </div>
         <div class="credits-body">
-          <div class="credits-amount">
-            <span class="amount-value">{{ formatCredits(billing.credits) }}</span>
-            <span class="amount-label">{{ $t('profile.credits.unit') || '积分' }}</span>
+          <div class="credits-summary">
+            <div class="credits-amount">
+              <span class="amount-value">{{ formatCredits(billing.credits) }}</span>
+              <span class="amount-label">{{ $t('profile.credits.unit') }}</span>
+            </div>
+            <div class="vip-status" :class="{ 'vip-status--active': isVip }" v-if="billing.vip_expires_at">
+              <a-icon type="crown" />
+              <span v-if="isVip" class="vip-active">
+                {{ $t('profile.credits.vipExpires') }}: {{ formatDate(billing.vip_expires_at) }}
+              </span>
+              <span v-else class="vip-expired">
+                {{ $t('profile.credits.vipExpired') }}
+              </span>
+            </div>
+            <div class="vip-status" v-else-if="!billing.is_vip">
+              <span class="no-vip">{{ $t('profile.credits.noVip') }}</span>
+            </div>
           </div>
-          <div class="vip-status" v-if="billing.vip_expires_at">
-            <a-icon type="crown" :style="{ color: isVip ? '#faad14' : '#999' }" />
-            <span v-if="isVip" class="vip-active">
-              {{ $t('profile.credits.vipExpires') || 'VIP有效期至' }}: {{ formatDate(billing.vip_expires_at) }}
-            </span>
-            <span v-else class="vip-expired">
-              {{ $t('profile.credits.vipExpired') || 'VIP已过期' }}
-            </span>
-          </div>
-          <div class="vip-status" v-else-if="!billing.is_vip">
-            <span class="no-vip">{{ $t('profile.credits.noVip') || '非VIP用户' }}</span>
-          </div>
-        </div>
-        <div class="credits-footer">
-          <div class="credits-hint" v-if="billing.billing_enabled">
-            <a-icon type="info-circle" />
-            <span>{{ $t('profile.credits.hint') || '使用AI分析/回测/监控等功能会消耗积分；VIP仅可免费使用VIP免费指标。' }}</span>
-          </div>
-          <a-button class="credits-recharge-btn" icon="shopping" @click="handleRecharge">
-            {{ $t('profile.credits.recharge') || '开通/充值' }}
+          <a-button class="credits-recharge-btn" icon="plus" @click="handleRecharge">
+            {{ $t('profile.credits.recharge') }}
           </a-button>
+        </div>
+        <div class="credits-footer" v-if="billing.billing_enabled">
+          <div class="credits-hint">
+            {{ $t('profile.credits.hint') }}
+          </div>
         </div>
       </a-card>
 
@@ -3208,22 +3209,34 @@ export default {
 
   .profile-overview-grid .credits-card {
     .credits-body {
-      align-items: flex-start;
-      justify-content: center;
-      padding: 16px 0 12px;
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 24px 0;
       text-align: left;
+    }
+
+    .credits-summary {
+      flex: 1 1 144px;
+      min-width: 0;
     }
 
     .credits-amount {
       display: flex;
+      flex-wrap: wrap;
       align-items: baseline;
-      gap: 7px;
+      gap: 8px;
 
       .amount-value {
-        color: var(--qd-text);
-        font-size: 32px;
-        font-weight: 750;
+        min-width: 0;
+        color: var(--profile-text);
+        font-size: 36px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
         line-height: 1.15;
+        overflow-wrap: anywhere;
         text-shadow: none;
       }
 
@@ -3236,40 +3249,57 @@ export default {
 
     .vip-status {
       justify-content: flex-start;
+      align-items: baseline;
       margin-top: 8px;
+      color: var(--profile-text-secondary);
+      font-size: 12px;
+      line-height: 1.5;
+
+      &--active .anticon {
+        color: var(--primary-color);
+      }
 
       .no-vip,
-      .vip-expired {
-        color: var(--qd-text-muted);
+      .vip-expired,
+      .vip-active {
+        color: inherit;
       }
     }
 
     .credits-footer {
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      gap: 12px;
-      padding-top: 12px;
-      border-top: 1px solid var(--qd-border);
+      padding-top: 16px;
+      border-top: 1px solid var(--profile-border);
     }
 
     .credits-hint {
-      justify-content: flex-start;
+      display: block;
       min-width: 0;
       margin: 0;
-      color: var(--qd-text-muted);
+      color: var(--profile-text-secondary);
+      font-size: 12px;
+      line-height: 1.7;
       text-align: left;
     }
 
     .credits-recharge-btn {
       flex: 0 0 auto;
-      height: 32px;
-      padding: 0 13px;
-      border: 1px solid color-mix(in srgb, var(--primary-color, #1890ff) 45%, var(--qd-border));
+      height: 36px;
+      padding: 0 12px;
+      border: 1px solid var(--profile-accent-border);
       border-radius: 6px;
-      background: color-mix(in srgb, var(--primary-color, #1890ff) 10%, var(--qd-surface));
+      background: var(--profile-accent-soft);
       box-shadow: none;
       color: var(--primary-color, #1890ff);
+
+      &:hover {
+        border-color: var(--primary-color);
+        background: var(--profile-panel);
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 3px;
+      }
     }
   }
 
@@ -4131,6 +4161,20 @@ export default {
       color: var(--profile-text);
     }
 
+    .ant-table-small {
+      border: 0;
+      border-radius: 0;
+
+      > .ant-table-content > .ant-table-body {
+        margin: 0;
+      }
+    }
+
+    .ant-table-thead > tr:first-child > th:first-child,
+    .ant-table-thead > tr:first-child > th:last-child {
+      border-radius: 0;
+    }
+
     .ant-table-thead > tr > th {
       height: 42px;
       border-bottom-color: var(--profile-border) !important;
@@ -4341,6 +4385,7 @@ export default {
   }
 }
 
+@import './profile-typography.less';
 </style>
 
 <style lang="less">

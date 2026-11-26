@@ -1,4 +1,5 @@
 const locale = {
+  'fundamentalSync.executionOptions': 'Refresh options',
   'fundamentalSync.help': 'Refresh rules and task requirements',
   'fundamentalSync.title': 'Fundamental data preparation',
   'fundamentalSync.description': 'Persist financial observations for a stock universe, inspect missing fields, and schedule daily refreshes.',
@@ -80,6 +81,7 @@ const locale = {
 const enUSFallback = locale
 const zhCN = {
   ...enUSFallback,
+  'fundamentalSync.executionOptions': '更新选项',
   'fundamentalSync.help': '更新规则与任务运行说明',
   'fundamentalSync.title': '基本面数据准备',
   'fundamentalSync.description': '按股票池采集并保存财报，检查缺失字段，设置每日更新。',
@@ -160,6 +162,7 @@ const zhCN = {
 }
 const zhTW = {
   ...zhCN,
+  'fundamentalSync.executionOptions': '更新選項',
   'fundamentalSync.help': '更新規則與任務執行說明',
   'fundamentalSync.title': '基本面資料準備',
   'fundamentalSync.description': '按股票池採集並儲存財報，檢查缺失欄位，設定每日更新。',
@@ -236,4 +239,16 @@ const zhTW = {
   'fundamentalField.pb_ratio': '市淨率', 'fundamentalField.return_on_equity': '淨資產收益率',
   'fundamentalField.revenue_growth': '營業收入增長率', 'fundamentalField.debt_to_equity': '負債權益比'
 }
-export default { 'en-US': locale, 'zh-CN': zhCN, 'zh-TW': zhTW }
+export default {
+  'en-US': locale,
+  'zh-CN': zhCN,
+  'zh-TW': zhTW,
+  'ar-SA': { 'fundamentalSync.executionOptions': 'خيارات التحديث' },
+  'de-DE': { 'fundamentalSync.executionOptions': 'Aktualisierungsoptionen' },
+  'fr-FR': { 'fundamentalSync.executionOptions': 'Options d’actualisation' },
+  'ja-JP': { 'fundamentalSync.executionOptions': '更新オプション' },
+  'ko-KR': { 'fundamentalSync.executionOptions': '새로고침 옵션' },
+  'ru-RU': { 'fundamentalSync.executionOptions': 'Параметры обновления' },
+  'th-TH': { 'fundamentalSync.executionOptions': 'ตัวเลือกการอัปเดต' },
+  'vi-VN': { 'fundamentalSync.executionOptions': 'Tùy chọn cập nhật' }
+}

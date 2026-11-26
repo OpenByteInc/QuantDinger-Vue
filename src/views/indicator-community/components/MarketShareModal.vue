@@ -20,10 +20,13 @@
             <strong>{{ $t('community.share.visualTitle') }}</strong>
             <span>{{ $t('community.share.visualHint') }}</span>
           </div>
-          <a-tag class="market-share__trust-tag"><a-icon type="safety-certificate" /> {{ $t('community.share.realDataOnly') }}</a-tag>
         </div>
         <div class="market-share__canvas-shell">
           <canvas ref="shareCanvas" width="1200" height="675" :aria-label="$t('community.share.visualTitle')" />
+        </div>
+        <div class="market-share__visual-note">
+          <span><a-icon type="safety-certificate" /> {{ $t('community.share.realDataOnly') }}</span>
+          <span>PNG · 1200 × 675</span>
         </div>
         <div class="market-share__visual-actions">
           <a-button size="small" @click="downloadImage">
@@ -62,13 +65,18 @@
             <a-radio-button value="article">{{ $t('community.share.formatArticle') }}</a-radio-button>
           </a-radio-group>
           <div class="market-share__ai-panel">
-            <div>
-              <strong><a-icon type="thunderbolt" /> {{ $t('community.share.aiTitle') }}</strong>
-              <span>{{ $t('community.share.aiHint') }}</span>
-            </div>
-            <a-button type="primary" size="small" :loading="aiGenerating" @click="generateAiDraft">
+            <a-button size="small" :loading="aiGenerating" @click="generateAiDraft">
+              <a-icon v-if="!aiGenerating" type="edit" />
               {{ aiGenerating ? $t('community.share.aiGenerating') : $t('community.share.aiGenerate') }}
             </a-button>
+            <div class="market-share__ai-help">
+              <span>{{ $t('community.share.aiCostNote') }}</span>
+              <a-tooltip :title="$t('community.share.aiHint')" :trigger="['hover', 'focus']">
+                <button type="button" class="market-share__help-button" :aria-label="$t('community.share.aiHint')">
+                  <a-icon type="info-circle" />
+                </button>
+              </a-tooltip>
+            </div>
           </div>
           <div v-if="aiGenerated" class="market-share__ai-status">
             <a-tag class="market-share__trust-tag"><a-icon type="check" /> {{ $t('community.share.aiGenerated') }}</a-tag>
@@ -79,15 +87,17 @@
               </span>
             </div>
           </div>
-          <a-textarea v-model="draft" class="market-share__textarea" :rows="9" :dir="textDirection" />
+          <a-textarea v-model="draft" class="market-share__textarea" :aria-label="$t('community.share.copyTitle')" :rows="8" :dir="textDirection" />
           <div class="market-share__copy-meta">
             <span>{{ $t('community.share.characterCount', { count: draft.length }) }}</span>
-            <a-button type="link" size="small" @click="resetDraft">{{ $t('community.share.resetCopy') }}</a-button>
+            <div class="market-share__draft-actions">
+              <a-button type="link" size="small" @click="resetDraft">{{ $t('community.share.resetCopy') }}</a-button>
+              <a-button type="primary" @click="copyDraft">
+                <a-icon type="copy" />
+                {{ $t('community.share.copyDraft') }}
+              </a-button>
+            </div>
           </div>
-          <a-button type="primary" block @click="copyDraft">
-            <a-icon type="copy" />
-            {{ $t('community.share.copyDraft') }}
-          </a-button>
 
           <div class="market-share__platform-title">{{ $t('community.share.openPlatform') }}</div>
           <div class="market-share__platforms">
@@ -113,7 +123,7 @@
               <span>{{ assetTypeLabel }} · QuantDinger</span>
             </div>
           </div>
-          <a-input :value="shareUrl" read-only class="market-share__link-input">
+          <a-input :value="shareUrl" :aria-label="$t('community.share.linkTitle')" read-only class="market-share__link-input">
             <a-icon slot="prefix" type="global" />
           </a-input>
           <div class="market-share__link-actions">
@@ -590,7 +600,7 @@ export default {
         ctx.fillStyle = item.tone === 'up'
           ? palette.gain
           : (item.tone === 'down' ? palette.loss : palette.text)
-        ctx.font = '700 31px Arial, sans-serif'
+        ctx.font = '600 31px Arial, sans-serif'
         ctx.fillText(item.value, x + 20, y + 75)
       })
     },
@@ -739,7 +749,7 @@ export default {
       ctx.fillStyle = palette.accent
       ctx.fillRect(0, 0, 14, CARD_HEIGHT)
       ctx.fillStyle = palette.text
-      ctx.font = '800 28px Arial, sans-serif'
+      ctx.font = '600 28px Arial, sans-serif'
       ctx.fillText('QuantDinger', 50, 58)
       ctx.fillStyle = palette.muted
       ctx.font = '600 19px Arial, sans-serif'
@@ -749,7 +759,7 @@ export default {
       ctx.font = '700 21px Arial, sans-serif'
       ctx.fillText(this.assetTypeLabel.toUpperCase(), 50, 118)
       ctx.fillStyle = palette.text
-      ctx.font = '800 43px Arial, sans-serif'
+      ctx.font = '600 43px Arial, sans-serif'
       const titleLines = this.wrapCanvasText(ctx, this.detail.name, 670, 2)
       titleLines.forEach((line, index) => ctx.fillText(line, 50, 172 + index * 51))
 
@@ -795,499 +805,240 @@ export default {
 }
 </script>
 
-<style lang="less" scoped>
-.market-share {
+<style lang="less">
+.qd-market-share-modal {
   --share-accent: var(--primary-color, #52c41a);
-  --share-accent-soft: color-mix(in srgb, var(--share-accent) 9%, #fff);
-  --share-accent-border: color-mix(in srgb, var(--share-accent) 34%, #fff);
-  --share-text: rgba(0, 0, 0, 0.88);
-  --share-muted: rgba(0, 0, 0, 0.52);
-  --share-subtle: rgba(0, 0, 0, 0.38);
-  --share-border: #e8ebef;
+  --share-text: #262626;
+  --share-muted: #737373;
+  --share-border: #e8e8e8;
   --share-surface: #fff;
-  --share-surface-soft: #f7f8fa;
-  display: grid;
-  grid-template-columns: minmax(0, 1.16fr) minmax(370px, 0.84fr);
-  gap: 22px;
-  color: var(--share-text);
-  font-size: 14px;
-
-  &__visual,
-  &__copy {
-    min-width: 0;
-  }
-
-  &__copy {
-    padding: 16px;
-    border: 1px solid var(--share-border);
-    border-radius: 14px;
-    background: var(--share-surface-soft);
-  }
-
-  &__section-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    min-height: 44px;
-    margin-bottom: 10px;
-
-    strong,
-    span {
-      display: block;
-    }
-
-    strong {
-      color: var(--share-text);
-      font-size: 16px;
-      line-height: 1.35;
-    }
-
-    span {
-      margin-top: 2px;
-      color: var(--share-muted);
-      font-size: 12px;
-      line-height: 1.5;
-    }
-  }
-
-  &__trust-tag {
-    flex: 0 0 auto;
-    margin: 0;
-    border-color: var(--share-accent-border);
-    background: var(--share-accent-soft);
-    color: var(--share-accent);
-    white-space: nowrap;
-  }
-
-  &__canvas-shell {
-    overflow: hidden;
-    border: 1px solid var(--share-border);
-    border-radius: 14px;
-    background: var(--share-surface-soft);
-    box-shadow: 0 12px 32px rgba(23, 32, 51, 0.08);
-
-    canvas {
-      display: block;
-      width: 100%;
-      height: auto;
-    }
-  }
-
-  &__visual-actions {
-    display: flex;
-    gap: 8px;
-    margin-top: 10px;
-
-    .ant-btn {
-      min-height: 34px;
-      padding: 0 13px;
-      border-radius: 7px;
-      font-size: 13px;
-    }
-  }
-
-  &__modes {
-    display: flex;
-    width: 100%;
-    margin-bottom: 14px;
-    padding: 3px;
-    border: 1px solid var(--share-border);
-    border-radius: 10px;
-    background: var(--share-surface);
-
-    ::v-deep .ant-radio-button-wrapper {
-      flex: 1;
-      height: auto;
-      min-height: 36px;
-      padding: 7px 12px;
-      border: 0;
-      border-radius: 7px;
-      background: transparent;
-      box-shadow: none;
-      color: var(--share-muted);
-      line-height: 22px;
-      text-align: center;
-
-      &::before {
-        display: none;
-      }
-
-      &.ant-radio-button-wrapper-checked {
-        background: var(--share-accent);
-        color: #fff;
-        box-shadow: 0 4px 12px color-mix(in srgb, var(--share-accent) 24%, transparent);
-      }
-    }
-  }
-
-  &__section-head--copy {
-    min-height: 40px;
-    margin-bottom: 7px;
-  }
-
-  &__formats {
-    display: flex;
-    width: 100%;
-    margin-bottom: 10px;
-
-    ::v-deep .ant-radio-button-wrapper {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: auto;
-      min-height: 34px;
-      padding: 6px 8px;
-      border-color: var(--share-border);
-      background: var(--share-surface);
-      color: var(--share-muted);
-      line-height: 1.3;
-      text-align: center;
-      white-space: normal;
-
-      &.ant-radio-button-wrapper-checked {
-        z-index: 1;
-        border-color: var(--share-accent);
-        background: var(--share-accent);
-        color: #fff;
-        box-shadow: none;
-      }
-    }
-  }
-
-  &__textarea {
-    min-height: 232px;
-    padding: 12px 13px;
-    border-color: var(--share-border);
-    border-radius: 9px;
-    background: var(--share-surface);
-    color: var(--share-text);
-    font-family: inherit;
-    font-size: 13px;
-    line-height: 1.65;
-    resize: vertical;
-  }
-
-  &__ai-panel {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 9px;
-    padding: 10px 11px;
-    border: 1px solid var(--share-accent-border);
-    border-radius: 10px;
-    background: linear-gradient(135deg, var(--share-accent-soft), var(--share-surface));
-
-    strong,
-    span {
-      display: block;
-    }
-
-    strong {
-      color: var(--share-accent);
-      font-size: 13px;
-      line-height: 1.35;
-    }
-
-    span {
-      margin-top: 2px;
-      color: var(--share-muted);
-      font-size: 11px;
-      line-height: 1.45;
-    }
-
-    .ant-btn {
-      flex: 0 0 auto;
-      min-height: 32px;
-      border-radius: 7px;
-    }
-  }
-
-  &__ai-status {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 8px;
-    color: var(--share-muted);
-    font-size: 11px;
-  }
-
-  &__ai-status-meta {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 8px;
-    min-width: 0;
-    text-align: end;
-
-    span {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-  }
-
-  &__copy-meta {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    min-height: 28px;
-    color: var(--share-subtle);
-    font-size: 12px;
-  }
-
-  &__platform-title {
-    margin: 16px 0 8px;
-    color: var(--share-text);
-    font-size: 13px;
-    font-weight: 600;
-  }
-
-  &__platforms {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-
-    .ant-btn {
-      min-height: 36px;
-      height: auto;
-      padding: 7px 10px;
-      overflow: visible;
-      border-color: var(--share-border);
-      border-radius: 8px;
-      background: var(--share-surface);
-      color: var(--share-muted);
-      line-height: 1.25;
-      text-overflow: ellipsis;
-      white-space: normal;
-
-      &:hover,
-      &:focus {
-        border-color: var(--share-accent);
-        color: var(--share-accent);
-      }
-    }
-  }
-
-  &__platform-hint {
-    margin: 10px 0 0;
-    color: var(--share-subtle);
-    font-size: 12px;
-    line-height: 1.6;
-  }
-
-  &__link-card {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin: 8px 0 14px;
-    padding: 16px;
-    border: 1px solid var(--share-border);
-    border-radius: 12px;
-    background: var(--share-surface);
-  }
-
-  &__link-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 42px;
-    height: 42px;
-    border-radius: 12px;
-    background: var(--share-accent-soft);
-    color: var(--share-accent);
-    font-size: 20px;
-  }
-
-  &__link-summary {
-    min-width: 0;
-
-    strong,
-    span {
-      display: block;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    strong {
-      color: var(--share-text);
-    }
-
-    span {
-      margin-top: 3px;
-      color: var(--share-muted);
-      font-size: 12px;
-    }
-  }
-
-  &__link-input {
-    margin-bottom: 10px;
-  }
-
-  &__link-actions {
-    display: flex;
-    gap: 8px;
-
-    .ant-btn {
-      flex: 1;
-      min-height: 36px;
-      height: auto;
-      border-radius: 8px;
-      white-space: normal;
-    }
-  }
+  --share-surface-soft: #f7f7f7;
 
   &--dark {
-    --share-accent-soft: color-mix(in srgb, var(--share-accent) 13%, #171717);
-    --share-accent-border: color-mix(in srgb, var(--share-accent) 42%, #262626);
-    --share-text: rgba(255, 255, 255, 0.9);
-    --share-muted: rgba(255, 255, 255, 0.58);
-    --share-subtle: rgba(255, 255, 255, 0.4);
-    --share-border: #343434;
-    --share-surface: #1c1c1c;
-    --share-surface-soft: #171717;
-
-    .market-share__ai-panel {
-      background: linear-gradient(135deg, var(--share-accent-soft), #1c1c1c);
-    }
-
-    .market-share__canvas-shell {
-      background: #111;
-      box-shadow: none;
-    }
+    --share-text: #e6e6e6;
+    --share-muted: #a3a3a3;
+    --share-border: #303030;
+    --share-surface: #141414;
+    --share-surface-soft: #1c1c1c;
   }
 
-  &--rtl {
-    .market-share__section-head,
-    .market-share__ai-panel,
-    .market-share__copy-meta,
-    .market-share__link-card {
-      text-align: right;
+  .ant-modal {
+    top: 32px;
+    max-width: calc(100vw - 32px);
+    padding-bottom: 32px;
+  }
+  .ant-modal-content { overflow: hidden; border-radius: 8px; }
+  .ant-modal-content,
+  .ant-modal-header,
+  .ant-modal-body { background: var(--share-surface) !important; }
+  .ant-modal-header { padding: 20px 24px; border-bottom: 1px solid var(--share-border); }
+  .ant-modal-title { color: var(--share-text); font-size: 16px; font-weight: 600; line-height: 24px; }
+  .ant-modal-close { color: var(--share-muted); }
+  .ant-modal-body { max-height: calc(100dvh - 128px); padding: 0; overflow-y: auto; }
+
+  .market-share {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    color: var(--share-text);
+    font-size: 14px;
+    line-height: 1.5;
+
+    &__visual,
+    &__copy { min-width: 0; padding: 24px; }
+    &__visual { display: flex; flex-direction: column; justify-content: center; background: var(--share-surface-soft); border-inline-end: 1px solid var(--share-border); }
+
+    &__section-head {
+      margin-bottom: 16px;
+      strong { display: block; color: var(--share-text); font-size: 14px; font-weight: 600; line-height: 24px; }
+      span { display: block; margin-top: 4px; color: var(--share-muted); font-size: 12px; line-height: 20px; }
     }
 
-    .market-share__visual-actions,
-    .market-share__link-actions {
-      justify-content: flex-start;
+    &__canvas-shell {
+      overflow: hidden;
+      border: 1px solid var(--share-border);
+      border-radius: 6px;
+      background: var(--share-surface);
+      canvas { display: block; width: 100%; height: auto; }
     }
+
+    &__visual-note {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 4px 12px;
+      margin-top: 12px;
+      color: var(--share-muted);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    &__visual-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+
+    &__modes {
+      display: flex;
+      width: 100%;
+      gap: 24px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--share-border);
+      .ant-radio-button-wrapper {
+        display: inline-flex;
+        align-items: center;
+        min-height: 40px;
+        height: auto;
+        padding: 0 0 12px;
+        color: var(--share-muted) !important;
+        background: transparent !important;
+        border: 0 !important;
+        border-bottom: 2px solid transparent !important;
+        border-radius: 0;
+        box-shadow: none !important;
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 20px;
+        white-space: normal;
+        &::before { display: none; }
+        &-checked { color: var(--share-accent) !important; border-bottom-color: var(--share-accent) !important; }
+        &:hover { color: var(--share-accent) !important; }
+      }
+    }
+
+    &__formats {
+      display: flex;
+      width: 100%;
+      gap: 4px;
+      padding: 4px;
+      background: var(--share-surface-soft);
+      border-radius: 6px;
+      .ant-radio-button-wrapper {
+        display: flex;
+        flex: 1;
+        align-items: center;
+        justify-content: center;
+        min-height: 32px;
+        height: auto;
+        padding: 4px 8px;
+        color: var(--share-muted) !important;
+        background: transparent !important;
+        border: 1px solid transparent !important;
+        border-radius: 4px;
+        box-shadow: none !important;
+        font-size: 13px;
+        line-height: 20px;
+        white-space: normal;
+        text-align: center;
+        &::before { display: none; }
+        &-checked {
+          color: var(--share-text) !important;
+          background: var(--share-surface) !important;
+          border-color: var(--share-border) !important;
+          font-weight: 600;
+        }
+        &:hover { color: var(--share-text) !important; }
+      }
+    }
+
+    &__ai-panel { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin: 12px 0; }
+    &__ai-help { display: flex; align-items: center; gap: 4px; color: var(--share-muted); font-size: 12px; }
+    &__help-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 24px;
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      color: var(--share-muted);
+      background: transparent;
+      border: 0;
+      border-radius: 4px;
+      cursor: help;
+    }
+    &__textarea.ant-input {
+      min-height: 224px;
+      max-height: 420px;
+      padding: 12px;
+      color: var(--share-text) !important;
+      background: var(--share-surface) !important;
+      border: 1px solid var(--share-border) !important;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 14px;
+      line-height: 1.65;
+      resize: vertical;
+      &:focus { border-color: var(--share-accent) !important; box-shadow: none; }
+    }
+    &__copy-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; color: var(--share-muted); font-size: 12px; }
+    &__draft-actions { display: flex; align-items: center; gap: 12px; }
+
+    &__ai-status { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-bottom: 8px; color: var(--share-muted); font-size: 12px; }
+    &__trust-tag { margin: 0; padding: 0; color: var(--share-muted); background: transparent; border: 0; }
+    &__ai-status-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+
+    &__platform-title { margin: 24px 0 12px; padding-top: 20px; border-top: 1px solid var(--share-border); font-size: 13px; font-weight: 600; }
+    &__platforms {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      .ant-btn { padding-inline: 10px; font-size: 12px; }
+    }
+    &__platform-hint { margin: 12px 0 0; color: var(--share-muted); font-size: 12px; line-height: 20px; }
+
+    &__link-card { display: flex; align-items: center; gap: 12px; padding: 16px 0; }
+    &__link-icon { color: var(--share-muted); font-size: 20px; }
+    &__link-summary {
+      min-width: 0;
+      strong { display: block; overflow-wrap: anywhere; font-weight: 600; }
+      span { display: block; margin-top: 4px; color: var(--share-muted); font-size: 12px; }
+    }
+    &__link-input { margin: 8px 0 16px; }
+    &__link-input .ant-input { color: var(--share-text) !important; background: var(--share-surface-soft) !important; border-color: var(--share-border) !important; font-size: 13px; }
+    &__link-input .ant-input-prefix { color: var(--share-muted); }
+    &__link-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+    .ant-btn {
+      min-height: 32px;
+      height: auto;
+      padding: 4px 12px;
+      border-radius: 4px;
+      box-shadow: none;
+      font-size: 13px;
+      line-height: 22px;
+      white-space: normal;
+    }
+    .ant-btn:not(.ant-btn-primary):not(.ant-btn-link) {
+      color: var(--share-text) !important;
+      background: var(--share-surface) !important;
+      border-color: var(--share-border) !important;
+      &:hover:not(:disabled) { color: var(--share-accent) !important; border-color: var(--share-accent) !important; }
+      &:disabled { color: var(--share-muted) !important; opacity: 0.5; }
+    }
+    .ant-btn-link { color: var(--share-muted) !important; background: transparent !important; border: 0 !important; }
+    .ant-btn-link:hover { color: var(--share-accent) !important; }
+    .ant-radio-button-wrapper:focus-within { box-shadow: none !important; }
+    button:focus-visible,
+    .ant-radio-button-wrapper:has(input:focus-visible) { outline: 2px solid var(--share-accent); outline-offset: 3px; }
   }
 }
 
-@media (max-width: 980px) {
-  .market-share {
-    grid-template-columns: 1fr;
-
-    &__copy {
-      padding: 14px;
-    }
+@media (max-width: 900px) {
+  .qd-market-share-modal {
+    .market-share { grid-template-columns: 1fr; }
+    .market-share__visual { border-inline-end: 0; border-bottom: 1px solid var(--share-border); }
+    .market-share__canvas-shell { max-width: 560px; margin-inline: auto; }
   }
 }
 
 @media (max-width: 560px) {
-  .market-share {
-    gap: 16px;
-
-    &__section-head,
-    &__ai-panel {
-      align-items: stretch;
-      flex-direction: column;
-    }
-
-    &__trust-tag {
-      align-self: flex-start;
-    }
-
-    &__formats {
-      ::v-deep .ant-radio-button-wrapper {
-        padding: 6px 4px;
-        font-size: 12px;
-      }
-    }
-
-    &__platforms {
-      grid-template-columns: 1fr;
-    }
-
-    &__visual-actions,
-    &__link-actions {
-      flex-wrap: wrap;
-
-      .ant-btn {
-        flex: 1 1 auto;
-      }
-    }
-  }
-}
-</style>
-
-<style lang="less">
-.qd-market-share-modal {
-  .ant-modal {
-    max-width: calc(100vw - 32px);
-    padding-bottom: 20px;
-  }
-
-  .ant-modal-content {
-    overflow: hidden;
-    border-radius: 16px;
-  }
-
-  .ant-modal-header {
-    padding: 18px 22px;
-  }
-
-  .ant-modal-title {
-    font-size: 18px;
-    font-weight: 700;
-  }
-
-  .ant-modal-body {
-    max-height: calc(100vh - 120px);
-    padding: 20px 22px 22px;
-    overflow-y: auto;
-  }
-
-  .ant-btn-primary {
-    border-color: var(--primary-color, #52c41a);
-    background: var(--primary-color, #52c41a);
-  }
-}
-
-.qd-market-share-modal--dark {
-  .ant-modal-content,
-  .ant-modal-header,
-  .ant-modal-body {
-    background: #161616;
-  }
-
-  .ant-modal-header {
-    border-bottom-color: #303030;
-  }
-
-  .ant-modal-title,
-  .ant-modal-close {
-    color: rgba(255, 255, 255, 0.85);
-  }
-
-  textarea.ant-input {
-    border-color: #434343;
-    background: #1c1c1c;
-    color: rgba(255, 255, 255, 0.85);
-  }
-
-  .ant-input,
-  .ant-btn:not(.ant-btn-primary) {
-    border-color: #343434;
-    background: #1c1c1c;
-    color: rgba(255, 255, 255, 0.68);
-  }
-
-  .ant-btn:not(.ant-btn-primary):hover,
-  .ant-btn:not(.ant-btn-primary):focus {
-    border-color: var(--primary-color, #52c41a);
-    color: var(--primary-color, #52c41a);
+  body:has(.qd-market-share-modal:not([style*="display: none"])) .mobile-menu-close { display: none !important; }
+  .qd-market-share-modal {
+    .ant-modal { top: 12px; max-width: calc(100vw - 24px); margin-inline: auto; padding-bottom: 12px; }
+    .ant-modal-header { padding: 16px 48px 16px 16px; }
+    .ant-modal-body { max-height: calc(100dvh - 88px); }
+    .market-share__visual,
+    .market-share__copy { padding: 16px; }
+    .market-share__modes { gap: 20px; }
+    .market-share__formats .ant-radio-button-wrapper { padding-inline: 4px; font-size: 12px; }
+    .market-share__textarea.ant-input { min-height: 200px; }
   }
 }
 </style>

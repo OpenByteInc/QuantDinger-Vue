@@ -4,7 +4,7 @@
       <label>{{ $t('brokerAccounts.selectAccount') }}</label>
       <a-select :value="credentialId" :disabled="loading" :placeholder="$t('brokerAccounts.selectAccount')" @change="value => $emit('select-account', value)">
         <a-select-option v-for="account in accounts" :key="account.id" :value="Number(account.id)">
-          {{ account.name }} · {{ account.api_key_hint }} · #{{ account.id }}
+          {{ account.name }} · {{ account.api_key_hint }}<template v-if="account.account_type"> · {{ $t('brokerAccounts.forthright.' + account.account_type) }} · {{ $t('brokerAccounts.forthright.' + (account.environment || 'sandbox')) }}</template> · #{{ account.id }}
         </a-select-option>
       </a-select>
       <a-button :disabled="loading" @click="openConnectForm"><a-icon type="plus" /> {{ $t('brokerAccounts.addAccount') }}</a-button>
@@ -26,16 +26,17 @@
                 ? $t('brokerAccounts.connected')
                 : $t('brokerAccounts.notConnected') }}
             </span>
-            <span v-if="status && status.connected && (status.accountId || status.host || status.server)" class="bp-status-account">
-              · {{ status.accountId || status.server || (status.host + ':' + status.port) }}
+            <span v-if="status && status.connected && (status.accountId || status.account_id || status.host || status.server)" class="bp-status-account">
+              · {{ status.accountId || status.account_id || status.server || (status.host + ':' + status.port) }}
             </span>
           </div>
           <div class="bp-badge-row">
+            <a-tag v-if="broker.id === 'forthright' && status && status.environment" :color="status.environment === 'live' ? 'orange' : 'blue'">{{ $t('brokerAccounts.forthright.' + status.environment) }}</a-tag>
             <a-tag v-if="supportsAccountEnvironment && isConnected" :color="status.paper ? 'blue' : 'orange'">{{ $t(status.paper ? 'brokerAccounts.paperAccount' : 'brokerAccounts.liveAccount') }}</a-tag>
             <a-tag v-for="badge in broker.badges" :key="badge" :color="badgeColor(badge)" class="bp-badge">
               {{ $t('brokerAccounts.badges.' + badge) }}
             </a-tag>
-            <a-tag v-for="m in broker.markets" :key="'m-' + m" color="cyan" class="bp-badge">{{ m }}</a-tag>
+            <a-tag v-for="m in broker.markets" :key="'m-' + m" color="cyan" class="bp-badge">{{ $t('brokerAccounts.market.' + m) }}</a-tag>
           </div>
         </div>
       </div>
@@ -61,12 +62,14 @@
       <!-- Connect form -->
       <a-tab-pane key="connect" :tab="$t('brokerAccounts.tabConnect')">
         <div class="bp-form-wrapper">
+          <forthright-unlock v-if="broker.id === 'forthright' && credentialId" :credential-id="credentialId" :is-dark="isDarkTheme" />
           <component
             :is="formComponent"
+            ref="connectForm"
             :broker="broker"
             :disabled="loading || cloudBlocked"
             :loading="loading"
-            @submit="payload => $emit('connect', payload)"
+            @submit="submitConnection"
           />
           <div class="bp-form-helper">
             <a-icon type="info-circle" />
@@ -80,17 +83,18 @@
 
       <!-- Account overview -->
       <a-tab-pane key="account" :tab="$t('brokerAccounts.tabAccount')" :disabled="!isConnected">
-        <broker-account-card :key="refreshVersion" :broker-id="broker.id" :credential-id="credentialId" :is-dark-theme="isDarkTheme" />
+        <broker-account-card ref="account" :key="refreshVersion" :broker-id="broker.id" :credential-id="credentialId" :is-dark-theme="isDarkTheme" />
       </a-tab-pane>
 
       <!-- Positions -->
       <a-tab-pane key="positions" :tab="$t('brokerAccounts.tabPositions')" :disabled="!isConnected">
-        <broker-positions-table :key="refreshVersion" :broker-id="broker.id" :credential-id="credentialId" :is-dark-theme="isDarkTheme" />
+        <broker-positions-table ref="positions" :key="refreshVersion" :broker-id="broker.id" :credential-id="credentialId" :is-dark-theme="isDarkTheme" />
       </a-tab-pane>
 
       <!-- Recent orders -->
       <a-tab-pane key="orders" :tab="$t('brokerAccounts.tabOrders')" :disabled="!isConnected">
         <broker-orders-table
+          ref="orders"
           :key="refreshVersion"
           :broker-id="broker.id"
           :credential-id="credentialId"
@@ -102,6 +106,8 @@
 </template>
 
 <script>
+import ForthrightConnectForm from './forms/ForthrightConnectForm.vue'
+import ForthrightUnlock from './ForthrightUnlock.vue'
 import AlpacaConnectForm from './forms/AlpacaConnectForm.vue'
 import IbkrConnectForm from './forms/IbkrConnectForm.vue'
 import TigerConnectForm from './forms/TigerConnectForm.vue'
@@ -110,8 +116,10 @@ import BrokerAccountCard from './BrokerAccountCard.vue'
 import BrokerPositionsTable from './BrokerPositionsTable.vue'
 import BrokerOrdersTable from './BrokerOrdersTable.vue'
 import ProviderLogo from '@/components/ProviderLogo/ProviderLogo.vue'
+import { startVisiblePolling } from '@/utils/visiblePolling'
 
 const FORM_BY_BROKER = {
+  forthright: 'ForthrightConnectForm',
   alpaca: 'AlpacaConnectForm',
   ibkr: 'IbkrConnectForm',
   tiger: 'TigerConnectForm',
@@ -119,6 +127,7 @@ const FORM_BY_BROKER = {
 }
 
 const DOCS = {
+  forthright: 'https://dev-openapi-doc.techfx88.com/zh/index.html',
   alpaca: 'https://app.alpaca.markets/paper/dashboard/overview',
   ibkr: 'https://www.interactivebrokers.com/en/trading/tws.php',
   tiger: 'https://docs-en.itigerup.com/docs/',
@@ -127,7 +136,7 @@ const DOCS = {
 
 export default {
   name: 'BrokerPanel',
-  components: { AlpacaConnectForm, IbkrConnectForm, TigerConnectForm, WebullConnectForm, BrokerAccountCard, BrokerPositionsTable, BrokerOrdersTable, ProviderLogo },
+  components: { ForthrightConnectForm, ForthrightUnlock, AlpacaConnectForm, IbkrConnectForm, TigerConnectForm, WebullConnectForm, BrokerAccountCard, BrokerPositionsTable, BrokerOrdersTable, ProviderLogo },
   props: {
     broker: { type: Object, required: true },
     accounts: { type: Array, default: () => [] },
@@ -180,7 +189,26 @@ export default {
       }
     }
   },
+  mounted () {
+    this.stopPolling = startVisiblePolling(async () => {
+      const view = this.$refs[this.innerTab]
+      if (view && !view.loading && !view.closing && !view.cancellingId) await view.load(true)
+    }, { enabled: () => this.isConnected && this.broker.id === 'forthright' && this.accounts.some(account => Number(account.id) === this.credentialId && account.account_type === 'futures') && this.$el?.getClientRects().length > 0 })
+  },
+  beforeDestroy () { this.clearConnectionSecrets(); this.stopPolling?.() },
+  deactivated () { this.clearConnectionSecrets() },
   methods: {
+    clearConnectionSecrets () {
+      const form = this.$refs.connectForm?.form
+      if (!form) return
+      for (const key of ['privateKey', 'tradePassword', 'secretKey', 'apiKey', 'appKey', 'appSecret', 'accessToken']) {
+        if (Object.prototype.hasOwnProperty.call(form, key)) form[key] = ''
+      }
+    },
+    submitConnection (payload) {
+      this.$emit('connect', payload)
+      this.clearConnectionSecrets()
+    },
     openConnectForm () {
       this.innerTab = 'connect'
     },
@@ -406,6 +434,12 @@ export default {
   ::v-deep .broker-form .ant-radio-button-wrapper {
     background: #141414;
     border-color: #303030;
+  }
+
+  ::v-deep .broker-form.forthright-form .ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled) {
+    background: var(--primary-color, #1890ff);
+    border-color: var(--primary-color, #1890ff);
+    color: #fff;
   }
 
   ::v-deep .broker-form .ant-input-password-icon {

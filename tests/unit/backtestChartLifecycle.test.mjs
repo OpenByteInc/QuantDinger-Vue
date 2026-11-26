@@ -148,7 +148,7 @@ test('backtest and factor workspaces open settings by default and align the rese
 
 test('backtest configuration steps share one heading system without squeezing factor titles', () => {
   assert.equal((source.match(/class="panel-heading config-section__heading config-step-heading"/g) || []).length, 4)
-  assert.match(source, /class="toolbar-icon-button"[\s\S]*?icon="control"/)
+  assert.match(source, /class="toolbar-icon-button(?: [^"]*)?"[\s\S]*?icon="control"/)
   assert.match(source, /\.toolbar-icon-button \{[^}]*align-items: center;[^}]*justify-content: center;/)
   assert.match(source, /\.config-step-heading h2 \{[^}]*white-space: normal;/)
   assert.doesNotMatch(source, /<div class="subheading config-section__heading">/)

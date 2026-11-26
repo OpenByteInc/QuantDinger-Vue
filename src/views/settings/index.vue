@@ -16,7 +16,7 @@
       </template>
     </a-alert>
 
-    <a-spin :spinning="loading">
+    <a-spin :spinning="loading" class="settings-content">
       <div class="settings-layout">
         <aside class="settings-nav">
           <div class="settings-search">
@@ -244,7 +244,7 @@
             </a-form>
           </div>
 
-          <div v-else-if="currentGroup" class="settings-detail-inner">
+          <div v-else-if="currentGroup" class="settings-detail-inner" :class="{ 'market-settings-panel': activeGroupKey === 'market_modules', 'data-sync-panel': activeGroupKey === 'market_catalog' }">
             <div class="detail-header">
               <a-icon :type="currentGroup.icon || getGroupIcon(activeGroupKey)" class="detail-icon" />
               <h3 class="detail-title">
@@ -262,50 +262,15 @@
                 <a-button size="small" @click="addBillingPlan"><a-icon type="plus" /> {{ $t('settings.billingPlans.add') }}</a-button>
               </template>
               <p class="billing-card-description">{{ $t('settings.billingPlans.hint') }}</p>
-              <div class="billing-plan-grid">
-                <article v-for="(plan, index) in billingPlans" :key="plan._key" class="billing-plan-card">
-                  <header class="billing-plan-card-head">
-                    <a-input
-                      :ref="`billingPlanCode-${plan._key}`"
-                      v-model="plan.code"
-                      class="billing-plan-code"
-                      size="small"
-                      :disabled="!!plan.persisted"
-                      placeholder="plan_code"
-                    />
-                    <div class="billing-plan-card-badges">
-                      <a-tag v-if="plan.is_active" color="green">{{ $t('settings.billingPlans.active') }}</a-tag>
-                      <a-tag v-if="plan.is_popular" color="orange">{{ $t('settings.billingPlans.popular') }}</a-tag>
-                    </div>
-                    <a-tooltip :title="$t('settings.billingPlans.delete')">
-                      <a-button
-                        type="link"
-                        class="plan-remove"
-                        :loading="billingPlanDeletingCode === plan.code"
-                        @click="removeBillingPlan(index)"
-                      ><a-icon type="delete" /></a-button>
-                    </a-tooltip>
-                  </header>
-                  <div class="billing-plan-copy">
-                    <a-input v-model="plan.name" size="small" :placeholder="$t('settings.billingPlans.name')" />
-                    <a-textarea v-model="plan.description" :auto-size="{ minRows: 2, maxRows: 4 }" :placeholder="$t('settings.billingPlans.description')" />
-                  </div>
-                  <div class="billing-plan-metrics">
-                    <label><span>{{ $t('settings.billingPlans.price') }}</span><a-input-number v-model="plan.price_usd" size="small" :min="0" :precision="2" /></label>
-                    <label><span>{{ $t('settings.billingPlans.days') }}</span><a-input-number v-model="plan.duration_days" size="small" :min="0" :disabled="plan.is_lifetime" /></label>
-                    <label><span>{{ $t('settings.billingPlans.onceCredits') }}</span><a-input-number v-model="plan.credits_once" size="small" :min="0" /></label>
-                    <label><span>{{ $t('settings.billingPlans.monthlyCredits') }}</span><a-input-number v-model="plan.credits_monthly" size="small" :min="0" /></label>
-                    <label><span>{{ $t('settings.billingPlans.strategyLimit') }}</span><a-input-number v-model="plan.strategy_limit" size="small" :min="1" /></label>
-                    <label><span>{{ $t('settings.billingPlans.stripePrice') }}</span><a-input v-model="plan.stripe_price_id" size="small" placeholder="price_..." /></label>
-                  </div>
-                  <div class="billing-plan-flags">
-                    <a-checkbox v-model="plan.is_active">{{ $t('settings.billingPlans.active') }}</a-checkbox>
-                    <a-checkbox v-model="plan.is_lifetime">{{ $t('settings.billingPlans.lifetime') }}</a-checkbox>
-                    <a-checkbox v-model="plan.is_popular">{{ $t('settings.billingPlans.popular') }}</a-checkbox>
-                    <a-checkbox v-model="plan.referral_eligible">{{ $t('settings.billingPlans.referralEligible') }}</a-checkbox>
-                  </div>
-                </article>
-              </div>
+              <billing-plan-sheet
+                ref="billingPlanSheet"
+                :plans="billingPlans"
+                :dark="isDarkTheme"
+                :deleting-code="billingPlanDeletingCode"
+                @change="updateBillingPlanField"
+                @remove="removeBillingPlan"
+                @add="addBillingPlan"
+              />
               <div class="billing-plan-actions">
                 <a-button type="primary" :loading="billingPlansSaving" @click="saveBillingPlanCatalog">
                   <a-icon type="save" /> {{ $t('settings.billingPlans.save') }}
@@ -387,149 +352,183 @@
                   </a-button>
                 </div>
               </div>
-              <a-spin :spinning="catalogLoading">
-                <section class="catalog-health-card" :class="`is-${catalogStatusType}`">
-                  <div class="catalog-health-summary">
-                    <span class="catalog-health-icon"><a-icon :type="catalogStatusIcon" :spin="catalogRunning" /></span>
-                    <div>
-                      <strong>{{ catalogStatusLabel }}</strong>
-                      <p>{{ catalogStatusDescription || $t('settings.marketCatalog.neverDescription') }}</p>
-                    </div>
-                  </div>
-                  <div class="catalog-health-metrics">
-                    <div><span>{{ $t('settings.marketCatalog.sourcesHealthy') }}</span><strong>{{ catalogSyncSummary.success }} / {{ catalogSyncSummary.total }}</strong></div>
-                    <div :class="{ 'has-failures': catalogSyncSummary.failed > 0 }"><span>{{ $t('settings.marketCatalog.sourcesFailed') }}</span><strong>{{ catalogSyncSummary.failed }}</strong></div>
-                    <div><span>{{ $t('settings.marketCatalog.recordsWritten') }}</span><strong>{{ catalogSyncSummary.rows.toLocaleString() }}</strong></div>
-                  </div>
-                </section>
-
-                <section class="catalog-content-section">
-                  <div class="catalog-section-heading">
-                    <div><h5>{{ $t('settings.marketCatalog.catalogCoverageTitle') }}</h5><p>{{ $t('settings.marketCatalog.catalogCoverageDesc') }}</p></div>
-                  </div>
-                  <div class="catalog-summary-grid">
-                    <div class="catalog-summary-item"><span>{{ $t('settings.marketCatalog.activeRecords') }}</span><strong>{{ catalogMetric('active').toLocaleString() }}</strong></div>
-                    <div class="catalog-summary-item"><span>{{ $t('settings.marketCatalog.uniqueSymbols') }}</span><strong>{{ catalogMetric('symbols').toLocaleString() }}</strong></div>
-                    <div class="catalog-summary-item"><span>{{ $t('settings.marketCatalog.ordinarySpot') }}</span><strong>{{ catalogMetric('ordinary_spot').toLocaleString() }}</strong></div>
-                    <div class="catalog-summary-item"><span>{{ $t('settings.marketCatalog.swap') }}</span><strong>{{ catalogMetric('ordinary_swap').toLocaleString() }}</strong></div>
-                    <div class="catalog-summary-item"><span>{{ $t('settings.marketCatalog.tokenizedEquity') }}</span><strong>{{ catalogMetric('tokenized_equity').toLocaleString() }}</strong></div>
-                    <div class="catalog-summary-item"><span>{{ $t('settings.marketCatalog.directEquity') }}</span><strong>{{ catalogMetric('direct_equity').toLocaleString() }}</strong></div>
-                    <div class="catalog-summary-item"><span>{{ $t('settings.marketCatalog.stockPerpetual') }}</span><strong>{{ catalogMetric('stock_perpetual').toLocaleString() }}</strong></div>
-                  </div>
-                </section>
-
-                <section class="catalog-content-section">
-                  <div class="catalog-section-heading">
-                    <div><h5>{{ $t('settings.marketCatalog.venueCoverage') }}</h5><p>{{ $t('settings.marketCatalog.venueCoverageDesc') }}</p></div>
-                  </div>
-                  <div class="catalog-table-wrap">
-                    <table class="catalog-table">
-                      <thead><tr><th>{{ $t('settings.marketCatalog.exchange') }}</th><th>{{ $t('settings.marketCatalog.ordinarySpot') }}</th><th>{{ $t('settings.marketCatalog.swap') }}</th><th>{{ $t('settings.marketCatalog.tokenizedEquity') }}</th><th>{{ $t('settings.marketCatalog.directEquity') }}</th><th>{{ $t('settings.marketCatalog.stockPerpetual') }}</th><th>{{ $t('settings.marketCatalog.syncResult') }}</th></tr></thead>
-                      <tbody>
-                        <tr v-for="venue in catalogVenueRows" :key="venue.exchange">
-                          <td><strong>{{ venue.label }}</strong></td><td>{{ venue.ordinarySpot }}</td><td>{{ venue.ordinarySwap }}</td><td>{{ venue.tokenizedEquity }}</td><td>{{ venue.directEquity }}</td><td>{{ venue.stockPerpetual }}</td>
-                          <td><a-tag :color="venue.statusColor">{{ venue.statusLabel }}</a-tag></td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </section>
-
-                <section v-if="catalogFailures.length" class="catalog-failure-panel">
-                  <div class="catalog-section-heading">
-                    <div><h5><a-icon type="warning" /> {{ $t('settings.marketCatalog.failureTitle') }}</h5><p>{{ $t('settings.marketCatalog.failureDescription') }}</p></div>
-                    <a-tag color="orange">{{ catalogFailures.length }}</a-tag>
-                  </div>
-                  <div class="catalog-failure-grid">
-                    <div v-for="item in catalogFailures" :key="`${item.exchange}-${item.market_type}`" class="catalog-failure-item">
-                      <strong>{{ item.exchange }} · {{ item.market_type === 'spot' ? $t('settings.marketCatalog.spot') : $t('settings.marketCatalog.swap') }}</strong>
-                      <span>{{ cleanCatalogError(item.error) }}</span>
-                    </div>
-                  </div>
-                </section>
-
-                <section class="catalog-content-section">
-                  <div class="catalog-section-heading">
-                    <div><h5>{{ $t('settings.marketCatalog.marketOverview') }}</h5><p>{{ $t('settings.marketCatalog.marketOverviewDesc') }}</p></div>
-                  </div>
-                  <div class="catalog-market-grid">
-                    <div v-for="market in catalogMarkets" :key="market.market" class="catalog-market-item">
-                      <span>{{ catalogMarketLabel(market.market) }}</span><strong>{{ Number(market.active || 0).toLocaleString() }}</strong>
-                    </div>
-                  </div>
-                </section>
-
-                <div class="catalog-section-divider" />
-                <div class="catalog-action-row universe-sync-header">
-                  <div>
-                    <h4>{{ $t('settings.universeSync.title') }}</h4>
-                    <p>{{ $t('settings.universeSync.description') }}</p>
-                    <p class="universe-sync-capacity">{{ $t('settings.universeSync.capacity', universeExecutionLimits) }}</p>
-                  </div>
-                  <div class="universe-sync-actions">
-                    <a-button icon="plus" @click="openSystemUniverseCreate">
-                      {{ $t('settings.universeSync.add') }}
-                    </a-button>
-                    <label>
-                      <span>{{ $t('settings.universeSync.historyStart') }}</span>
-                      <a-date-picker
-                        v-model="universeHistoryFrom"
-                        :allow-clear="false"
-                        :disabled-date="disabledUniverseHistoryDate"
-                      />
-                    </label>
-                    <a-button type="primary" :loading="universeSyncing" @click="handleUniverseSync">
-                      <a-icon type="sync" />
-                      {{ universeSyncing ? $t('settings.universeSync.syncing') : $t('settings.universeSync.sync') }}
-                    </a-button>
-                  </div>
-                </div>
-                <a-spin :spinning="universeLoading">
-                  <a-checkbox-group v-model="selectedUniverseCodes" class="universe-sync-list">
-                    <div v-for="item in systemUniverseRows" :key="item.id" class="universe-sync-row" :class="{ 'is-hidden': item.status === 'hidden' }">
-                      <a-checkbox
-                        v-if="syncableUniverseCodes.includes(item.code)"
-                        :value="item.code"
-                        :disabled="item.status === 'hidden'"
-                      />
-                      <span v-else class="universe-checkbox-spacer" />
-                      <div class="universe-sync-name"><strong>{{ universeAdminLabel(item) }}</strong><span>{{ item.market }}</span></div>
-                      <div><span>{{ $t('settings.universeSync.members') }}</span><strong>{{ Number(item.member_count || 0).toLocaleString() }}</strong></div>
-                      <div><span>{{ $t('settings.universeSync.version') }}</span><strong>{{ item.source_version || universeSnapshotDate(item) }}</strong></div>
-                      <div><span>{{ $t('settings.universeSync.historyFrom') }}</span><strong>{{ universeHistoryLabel(item) }}</strong></div>
-                      <div class="universe-row-state">
-                        <a-tag v-if="item.status === 'hidden'" color="default">{{ $t('settings.universeSync.hidden') }}</a-tag>
-                        <a-tag :color="universeCapacityColor(item)">{{ universeCapacityLabel(item) }}</a-tag>
+              <a-tabs v-model="catalogActiveTab" class="catalog-tabs" :animated="false">
+                <a-tab-pane key="overview" :tab="$t('settings.marketCatalog.tabs.overview')">
+                  <a-spin :spinning="catalogLoading">
+                    <section class="catalog-health-card" :class="`is-${catalogStatusType}`">
+                      <div class="catalog-health-summary">
+                        <span class="catalog-health-icon"><a-icon :type="catalogStatusIcon" :spin="catalogRunning" /></span>
+                        <div>
+                          <strong>{{ catalogStatusLabel }}</strong>
+                          <p>{{ catalogStatusDescription || $t('settings.marketCatalog.neverDescription') }}</p>
+                        </div>
                       </div>
-                      <div class="universe-row-actions">
-                        <a-tooltip :title="$t('settings.universeSync.edit')">
-                          <a-button type="link" icon="edit" @click="openSystemUniverseEdit(item)" />
-                        </a-tooltip>
-                        <a-tooltip :title="item.status === 'hidden' ? $t('settings.universeSync.show') : $t('settings.universeSync.hide')">
-                          <a-button
-                            type="link"
-                            :icon="item.status === 'hidden' ? 'eye' : 'eye-invisible'"
-                            :loading="universeVisibilityId === item.id"
-                            @click="toggleSystemUniverseVisibility(item)"
+                      <div class="catalog-health-metrics">
+                        <div><span>{{ $t('settings.marketCatalog.sourcesHealthy') }}</span><strong>{{ catalogSyncSummary.success }} / {{ catalogSyncSummary.total }}</strong></div>
+                        <div :class="{ 'has-failures': catalogSyncSummary.failed > 0 }"><span>{{ $t('settings.marketCatalog.sourcesFailed') }}</span><strong>{{ catalogSyncSummary.failed }}</strong></div>
+                        <div><span>{{ $t('settings.marketCatalog.recordsWritten') }}</span><strong>{{ catalogSyncSummary.rows.toLocaleString() }}</strong></div>
+                      </div>
+                    </section>
+
+                    <section v-if="catalogFailures.length" class="catalog-failure-panel">
+                      <div class="catalog-section-heading">
+                        <div><h5><a-icon type="warning" /> {{ $t('settings.marketCatalog.failureTitle') }}</h5><p>{{ $t('settings.marketCatalog.failureDescription') }}</p></div>
+                        <a-tag color="orange">{{ catalogFailures.length }}</a-tag>
+                      </div>
+                      <div class="catalog-failure-grid">
+                        <div v-for="item in catalogFailures" :key="`${item.exchange}-${item.market_type}`" class="catalog-failure-item">
+                          <strong>{{ item.exchange }} · {{ ['HKStock', 'Futures'].includes(item.market_type) ? catalogMarketLabel(item.market_type) : item.market_type === 'spot' ? $t('settings.marketCatalog.spot') : $t('settings.marketCatalog.swap') }}</strong>
+                          <details class="catalog-error-detail">
+                            <summary>{{ cleanCatalogError(item.error) }}</summary>
+                            <p>{{ item.error }}</p>
+                          </details>
+                        </div>
+                      </div>
+                    </section>
+
+                    <section class="catalog-content-section">
+                      <div class="catalog-section-heading">
+                        <div><h5>{{ $t('settings.marketCatalog.marketOverview') }}</h5><p>{{ $t('settings.marketCatalog.marketOverviewDesc') }}</p></div>
+                      </div>
+                      <div class="catalog-market-grid">
+                        <div v-for="market in catalogMarkets" :key="market.market" class="catalog-market-item">
+                          <span>{{ catalogMarketLabel(market.market) }}</span><strong>{{ Number(market.active || 0).toLocaleString() }}</strong>
+                        </div>
+                      </div>
+                    </section>
+                  </a-spin>
+                </a-tab-pane>
+                <a-tab-pane key="venues" :tab="$t('settings.marketCatalog.tabs.venues')">
+                  <a-spin :spinning="catalogLoading">
+                    <section class="catalog-content-section">
+                      <div class="catalog-section-heading">
+                        <div><h5>{{ $t('settings.marketCatalog.catalogCoverageTitle') }}</h5><p>{{ $t('settings.marketCatalog.catalogCoverageDesc') }}</p></div>
+                      </div>
+                      <div class="catalog-summary-grid">
+                        <div class="catalog-summary-item"><span>{{ $t('settings.marketCatalog.activeRecords') }}</span><strong>{{ catalogMetric('active').toLocaleString() }}</strong></div>
+                        <div class="catalog-summary-item"><span>{{ $t('settings.marketCatalog.uniqueSymbols') }}</span><strong>{{ catalogMetric('symbols').toLocaleString() }}</strong></div>
+                        <div class="catalog-summary-item"><span>{{ $t('settings.marketCatalog.ordinarySpot') }}</span><strong>{{ catalogMetric('ordinary_spot').toLocaleString() }}</strong></div>
+                        <div class="catalog-summary-item"><span>{{ $t('settings.marketCatalog.swap') }}</span><strong>{{ catalogMetric('ordinary_swap').toLocaleString() }}</strong></div>
+                        <div class="catalog-summary-item"><span>{{ $t('settings.marketCatalog.tokenizedEquity') }}</span><strong>{{ catalogMetric('tokenized_equity').toLocaleString() }}</strong></div>
+                        <div class="catalog-summary-item"><span>{{ $t('settings.marketCatalog.directEquity') }}</span><strong>{{ catalogMetric('direct_equity').toLocaleString() }}</strong></div>
+                        <div class="catalog-summary-item"><span>{{ $t('settings.marketCatalog.stockPerpetual') }}</span><strong>{{ catalogMetric('stock_perpetual').toLocaleString() }}</strong></div>
+                      </div>
+                    </section>
+
+                    <section class="catalog-content-section">
+                      <div class="catalog-section-heading">
+                        <div><h5>{{ $t('settings.marketCatalog.venueCoverage') }}</h5><p>{{ $t('settings.marketCatalog.venueCoverageDesc') }}</p></div>
+                      </div>
+                      <div class="catalog-table-wrap">
+                        <table class="catalog-table">
+                          <thead><tr><th>{{ $t('settings.marketCatalog.exchange') }}</th><th>{{ $t('settings.marketCatalog.ordinarySpot') }}</th><th>{{ $t('settings.marketCatalog.swap') }}</th><th>{{ $t('settings.marketCatalog.tokenizedEquity') }}</th><th>{{ $t('settings.marketCatalog.directEquity') }}</th><th>{{ $t('settings.marketCatalog.stockPerpetual') }}</th><th>{{ $t('settings.marketCatalog.syncResult') }}</th></tr></thead>
+                          <tbody>
+                            <tr v-for="venue in catalogVenueRows" :key="venue.exchange">
+                              <td><strong>{{ venue.label }}</strong></td><td>{{ venue.ordinarySpot }}</td><td>{{ venue.ordinarySwap }}</td><td>{{ venue.tokenizedEquity }}</td><td>{{ venue.directEquity }}</td><td>{{ venue.stockPerpetual }}</td>
+                              <td><a-tag :color="venue.statusColor">{{ venue.statusLabel }}</a-tag></td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
+                  </a-spin>
+                </a-tab-pane>
+                <a-tab-pane key="instruments" :tab="$t('settings.marketCatalog.tabs.instruments')">
+                  <instrument-catalog :syncing="catalogRunning" />
+                </a-tab-pane>
+                <a-tab-pane key="universes" :tab="$t('settings.marketCatalog.tabs.universes')">
+                  <section class="catalog-content-section universe-section">
+                    <div class="catalog-action-row universe-sync-header">
+                      <div>
+                        <h4>{{ $t('settings.universeSync.title') }}</h4>
+                        <p>{{ $t('settings.universeSync.description') }}</p>
+                        <p class="universe-sync-capacity">{{ $t('settings.universeSync.capacity', universeExecutionLimits) }}</p>
+                      </div>
+                      <div class="universe-sync-actions">
+                        <a-button icon="plus" @click="openSystemUniverseCreate">
+                          {{ $t('settings.universeSync.add') }}
+                        </a-button>
+                        <label>
+                          <span>{{ $t('settings.universeSync.historyStart') }}</span>
+                          <a-date-picker
+                            v-model="universeHistoryFrom"
+                            :allow-clear="false"
+                            :disabled-date="disabledUniverseHistoryDate"
                           />
-                        </a-tooltip>
-                        <a-popconfirm
-                          :title="$t('settings.universeSync.deleteConfirm', { name: universeAdminLabel(item) })"
-                          :ok-text="$t('settings.universeSync.delete')"
-                          :cancel-text="$t('settings.universeSync.cancel')"
-                          ok-type="danger"
-                          @confirm="removeSystemUniverse(item)"
-                        >
-                          <a-tooltip :title="$t('settings.universeSync.delete')">
-                            <a-button type="link" class="universe-delete-button" icon="delete" :loading="universeDeletingId === item.id" />
-                          </a-tooltip>
-                        </a-popconfirm>
+                        </label>
+                        <a-button type="primary" :loading="universeSyncing" @click="handleUniverseSync">
+                          <a-icon type="sync" />
+                          {{ universeSyncing ? $t('settings.universeSync.syncing') : $t('settings.universeSync.sync') }}
+                        </a-button>
                       </div>
                     </div>
-                  </a-checkbox-group>
-                </a-spin>
-              </a-spin>
-              <FundamentalSyncPanel :universes="systemUniverseRows" :dark="isDarkTheme" />
+                    <a-spin :spinning="universeLoading">
+                      <a-checkbox-group v-model="selectedUniverseCodes" class="universe-sync-list">
+                        <table class="catalog-table universe-table">
+                          <thead><tr>
+                            <th class="universe-selection-column"><span class="sync-visually-hidden">{{ $t('settings.universeSync.sync') }}</span></th>
+                            <th>{{ $t('fundamentalSync.universe') }}</th>
+                            <th>{{ $t('settings.universeSync.members') }}</th>
+                            <th>{{ $t('settings.universeSync.version') }}</th>
+                            <th>{{ $t('settings.universeSync.historyFrom') }}</th>
+                            <th>{{ $t('fundamentalSync.state') }}</th>
+                            <th>{{ $t('common.actions') }}</th>
+                          </tr></thead>
+                          <tbody>
+                            <tr v-for="item in systemUniverseRows" :key="item.id" :class="{ 'is-hidden': item.status === 'hidden' }">
+                              <td>
+                                <a-checkbox
+                                  v-if="syncableUniverseCodes.includes(item.code)"
+                                  :value="item.code"
+                                  :aria-label="universeAdminLabel(item)"
+                                  :disabled="item.status === 'hidden'"
+                                />
+                                <span v-else class="universe-checkbox-spacer" />
+                              </td>
+                              <td><div class="universe-sync-name"><strong :title="universeAdminLabel(item)">{{ universeAdminLabel(item) }}</strong><span>{{ item.market }}</span></div></td>
+                              <td>{{ Number(item.member_count || 0).toLocaleString() }}</td>
+                              <td><span class="sync-cell-ellipsis" :title="item.source_version || universeSnapshotDate(item)">{{ item.source_version || universeSnapshotDate(item) }}</span></td>
+                              <td><span class="sync-cell-ellipsis" :title="universeHistoryLabel(item)">{{ universeHistoryLabel(item) }}</span></td>
+                              <td><div class="universe-row-state">
+                                <a-tag v-if="item.status === 'hidden'" color="default">{{ $t('settings.universeSync.hidden') }}</a-tag>
+                                <a-tag :color="universeCapacityColor(item)">{{ universeCapacityLabel(item) }}</a-tag>
+                              </div></td>
+                              <td><div class="universe-row-actions">
+                                <a-tooltip :title="$t('settings.universeSync.edit')">
+                                  <a-button type="link" icon="edit" :aria-label="$t('settings.universeSync.edit')" @click="openSystemUniverseEdit(item)" />
+                                </a-tooltip>
+                                <a-tooltip :title="item.status === 'hidden' ? $t('settings.universeSync.show') : $t('settings.universeSync.hide')">
+                                  <a-button
+                                    type="link"
+                                    :icon="item.status === 'hidden' ? 'eye' : 'eye-invisible'"
+                                    :aria-label="item.status === 'hidden' ? $t('settings.universeSync.show') : $t('settings.universeSync.hide')"
+                                    :loading="universeVisibilityId === item.id"
+                                    @click="toggleSystemUniverseVisibility(item)"
+                                  />
+                                </a-tooltip>
+                                <a-popconfirm
+                                  :title="$t('settings.universeSync.deleteConfirm', { name: universeAdminLabel(item) })"
+                                  :ok-text="$t('settings.universeSync.delete')"
+                                  :cancel-text="$t('settings.universeSync.cancel')"
+                                  ok-type="danger"
+                                  @confirm="removeSystemUniverse(item)"
+                                >
+                                  <a-tooltip :title="$t('settings.universeSync.delete')">
+                                    <a-button type="link" class="universe-delete-button" icon="delete" :aria-label="$t('settings.universeSync.delete')" :loading="universeDeletingId === item.id" />
+                                  </a-tooltip>
+                                </a-popconfirm>
+                              </div></td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </a-checkbox-group>
+                    </a-spin>
+                  </section>
+                </a-tab-pane>
+                <a-tab-pane key="fundamentals" :tab="$t('settings.marketCatalog.tabs.fundamentals')">
+                  <FundamentalSyncPanel :universes="systemUniverseRows" :dark="isDarkTheme" />
+                </a-tab-pane>
+              </a-tabs>
             </div>
 
             <div v-if="activeGroupKey === 'ai' && currentLlmProvider === 'openrouter'" class="openrouter-balance-card">
@@ -1050,6 +1049,7 @@
               </div>
             </a-form>
 
+            <advertisement-settings v-if="activeGroupKey === 'brand'" />
             <section v-if="activeGroupKey === 'brand'" class="commercial-license-notice">
               <a-icon type="safety-certificate" class="license-icon" />
               <div class="license-body">
@@ -1159,12 +1159,15 @@ import {
 import { deleteAdminMembershipPlan, getAdminMembershipPlans, saveAdminMembershipPlans } from '@/api/billing'
 import { baseMixin } from '@/store/app-mixin'
 import FundamentalSyncPanel from './FundamentalSyncPanel.vue'
+import InstrumentCatalog from './InstrumentCatalog.vue'
+import BillingPlanSheet from './BillingPlanSheet.vue'
 import ProviderLogo from '@/components/ProviderLogo/ProviderLogo.vue'
+import AdvertisementSettings from './AdvertisementSettings.vue'
 import moment from 'moment'
 
 export default {
   name: 'Settings',
-  components: { FundamentalSyncPanel, ProviderLogo },
+  components: { FundamentalSyncPanel, ProviderLogo, InstrumentCatalog, BillingPlanSheet, AdvertisementSettings },
   mixins: [baseMixin],
   data () {
     return {
@@ -1185,6 +1188,7 @@ export default {
       showRestartTip: false,
       balanceLoading: false,
       openrouterBalance: null,
+      catalogActiveTab: 'overview',
       catalogLoading: false,
       catalogSyncing: false,
       catalogOverview: null,
@@ -1669,14 +1673,14 @@ export default {
         is_active: true
       })
       draft.persisted = false
-      // Put the new row where the user can see it immediately. Previously it
-      // was appended below a wide table and looked as if the button did nothing.
+      // Keep new rows visible and focus their editable code.
       this.billingPlans.unshift(draft)
       this.$nextTick(() => {
-        const input = this.$refs[`billingPlanCode-${draft._key}`]
-        const target = Array.isArray(input) ? input[0] : input
-        if (target && typeof target.focus === 'function') target.focus()
+        if (this.$refs.billingPlanSheet) this.$refs.billingPlanSheet.focusCode(draft._key)
       })
+    },
+    updateBillingPlanField (plan, field, value) {
+      this.$set(plan, field, value)
     },
     removeBillingPlan (index) {
       const plan = this.billingPlans[index]
@@ -2997,7 +3001,7 @@ export default {
     },
 
     tradingVenueGroups (item) {
-      const brokerIds = new Set(['alpaca', 'ibkr', 'tiger', 'webull'])
+      const brokerIds = new Set(['alpaca', 'ibkr', 'tiger', 'webull', 'forthright'])
       const options = this.getSelectOptions(item)
       const rows = options.map(option => {
         const id = String(option.value || '').trim().toLowerCase()
@@ -3199,9 +3203,16 @@ export default {
 @card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 
 .settings-page {
+  display: flex;
+  flex-direction: column;
   padding: var(--qd-page-gutter, 16px) !important;
   min-height: calc(100vh - 120px);
   background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+
+  .settings-content {
+    flex: 1 0 auto;
+    min-width: 0;
+  }
 
   .restart-alert {
     margin-bottom: 16px;
@@ -4000,17 +4011,18 @@ export default {
   }
 
   .settings-footer {
-    position: fixed;
+    position: sticky;
+    flex: 0 0 auto;
     bottom: 0;
-    left: 0;
-    right: 0;
     padding: 16px 24px;
     background: #fff;
+    border-top: 1px solid var(--qd-border);
+    border-radius: 8px;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
     display: flex;
     justify-content: flex-end;
     gap: 12px;
-    z-index: 100;
+    z-index: 10;
 
     .ant-btn {
       min-width: 100px;
@@ -4393,7 +4405,8 @@ export default {
 @media (max-width: 768px) {
   .settings-page {
     padding: 12px !important;
-    padding-bottom: 104px !important;
+    // Clip wide content without creating a second scroll container for the sticky footer.
+    overflow-x: clip !important;
 
     .settings-layout {
       flex-direction: column;
@@ -4420,14 +4433,22 @@ export default {
     }
 
     .settings-footer {
-      left: 0;
-      padding: 12px 16px;
+      padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
     }
   }
 }
 
 .market-catalog-panel {
   color: #1f2937;
+
+  .catalog-tabs {
+    min-width: 0;
+
+    ::v-deep .ant-tabs-bar { margin-bottom: 20px; }
+    ::v-deep .ant-tabs-tab { padding: 12px 16px; margin-right: 8px; }
+    ::v-deep .ant-tabs-tab-active { font-weight: 600; }
+    ::v-deep .ant-tabs-tabpane { min-width: 0; }
+  }
 
   .catalog-action-row {
     display: flex;
@@ -4885,4 +4906,6 @@ export default {
   }
 }
 
+@import './market-settings.less';
+@import './data-sync.less';
 </style>

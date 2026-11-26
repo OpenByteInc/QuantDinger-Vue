@@ -62,7 +62,7 @@ function modal (api = {}) {
     visible: true,
     watchlist: [],
     markets: ['Crypto', 'USStock'],
-    initialMarket: 'Crypto',
+    initialMarket: definition.props.initialMarket.default,
     $t: key => key,
     $message: { success () {}, error () {} },
     $emit: (...args) => events.push(args)
@@ -72,8 +72,42 @@ function modal (api = {}) {
     Object.defineProperty(vm, key, { get: () => getter.call(vm) })
   }
   vm.market = 'Crypto'
-  return { vm, events }
+  return { vm, events, definition }
 }
+
+test('AI add-watchlist dialog does not inherit the current research market', () => {
+  const source = read('src/views/ai-analysis/components/CopilotWorkbench.vue')
+  const dialog = source.match(/<add-watchlist-modal\b[\s\S]*?\/>/)[0]
+  assert.ok(!dialog.includes('initial-market'))
+})
+
+test('opening and reopening the add dialog defaults to Crypto after choosing Futures', async () => {
+  const searches = []
+  const { vm, definition } = modal({ search: async input => {
+    searches.push(input.market)
+    return { code: 1, data: [] }
+  } })
+  vm.markets = ['Futures', 'USStock', 'Crypto']
+  vm.loadFuturesCatalog = async () => {}
+  definition.watch.visible.call(vm, true)
+  assert.equal(vm.market, 'Crypto')
+  vm.changeMarket('Futures')
+  await new Promise(resolve => setImmediate(resolve))
+  assert.equal(vm.market, 'Futures')
+  vm.visible = false
+  definition.watch.visible.call(vm, false)
+  vm.visible = true
+  definition.watch.visible.call(vm, true)
+  assert.equal(vm.market, 'Crypto')
+  assert.deepEqual(searches, ['Crypto', 'Futures', 'Crypto'])
+})
+
+test('default market falls back to the first available tab if Crypto is unavailable', () => {
+  const { vm, definition } = modal()
+  vm.markets = ['Futures', 'USStock']
+  definition.watch.visible.call(vm, true)
+  assert.equal(vm.market, 'USStock')
+})
 
 test('one logical asset is independent from venue and spot or swap selection', () => {
   const alternateContext = { ...btc, exchange_id: 'gate', market_type: 'swap', instrument_id: 'BTC_USDT' }
@@ -278,4 +312,9 @@ test('all supported languages have complete nonempty watchlist copy', () => {
     assert.deepEqual(Object.keys(locale).sort(), keys)
     assert.ok(Object.values(locale).every(value => typeof value === 'string' && value.trim()))
   }
+})
+
+test('dated futures labels do not inherit the internal spot routing convention', () => {
+  const label = watchlistContextLabel({ market: 'Futures', symbol: 'MESZ26', product_type: 'futures', market_types: ['spot'] }, key => key)
+  assert.equal(label, 'marketContext.product.futures')
 })

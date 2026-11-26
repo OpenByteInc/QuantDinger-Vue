@@ -53,6 +53,7 @@ const ENDPOINTS = {
     fills: '/api/tiger/fills',
     order: '/api/tiger/order'
   },
+  forthright: Object.fromEntries(['accounts', 'status', 'connect', 'disconnect', 'account', 'positions', 'orders', 'fills', 'order'].map(path => [path, `/api/forthright/${path}`])),
   webull: {
     accounts: '/api/webull/accounts',
     status: '/api/webull/status',
@@ -72,6 +73,21 @@ function makeBrokerClient (id) {
 
   return {
     id,
+    authorization (params = {}) {
+      return request({ url: `/api/${id}/authorization`, method: 'get', params })
+    },
+    unlock (data = {}) {
+      return request({ url: `/api/${id}/unlock`, method: 'post', data })
+    },
+    closePosition (data) {
+      return request({ url: `/api/${id}/close-position`, method: 'post', data })
+    },
+    contracts (params = {}) {
+      return request({ url: `/api/${id}/contracts`, method: 'get', params })
+    },
+    instrumentRules (params = {}) {
+      return request({ url: `/api/${id}/instrument-rules`, method: 'get', params })
+    },
     accounts () {
       return request({ url: ep.accounts || `/api/${id}/accounts`, method: 'get' })
     },
@@ -116,16 +132,18 @@ export const broker = {
   ibkr: makeBrokerClient('ibkr'),
   alpaca: makeBrokerClient('alpaca'),
   tiger: makeBrokerClient('tiger'),
+  forthright: makeBrokerClient('forthright'),
   webull: makeBrokerClient('webull')
 }
 
-export const BROKER_IDS = ['alpaca', 'tiger', 'webull', 'ibkr']
+export const BROKER_IDS = ['alpaca', 'forthright', 'tiger', 'webull', 'ibkr']
 
 /**
  * Static descriptor for each broker (logo color, market focus, connect form
  * schema). Keeps the page declarative and easy to extend with a 4th broker.
  */
 export const BROKER_META = {
+  forthright: { id: 'forthright', icon: 'stock', color: '#063184', accent: '#329f35', markets: ['USStock', 'HKStock', 'Futures'], badges: ['direct_openapi'], cloudFriendly: true },
   alpaca: {
     id: 'alpaca',
     icon: 'thunderbolt',

@@ -11,7 +11,7 @@ import {
 
 test('trading venue settings include every supported broker and exchange', () => {
   assert.deepEqual(DEFAULT_TRADING_VENUE_IDS, [
-    'alpaca', 'ibkr', 'tiger', 'webull',
+    'alpaca', 'ibkr', 'tiger', 'forthright', 'webull',
     'binance', 'okx', 'bybit', 'bitget', 'gate', 'htx'
   ])
 })

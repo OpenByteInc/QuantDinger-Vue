@@ -538,3 +538,30 @@
     padding-left: 10px;
   }
 }
+
+.backtest-page .hero-actions .toolbar-theme-button.ant-btn:not(.ant-btn-primary):not([disabled]) {
+  color: var(--primary-color, #1890ff) !important;
+  border-color: color-mix(in srgb, var(--primary-color, #1890ff) 55%, var(--backtest-border)) !important;
+  background: var(--backtest-surface) !important;
+  box-shadow: none;
+
+  &:hover,
+  &:focus-visible {
+    color: var(--primary-color, #1890ff) !important;
+    border-color: var(--primary-color, #1890ff) !important;
+    background: color-mix(in srgb, var(--primary-color, #1890ff) 8%, var(--backtest-surface)) !important;
+  }
+
+  &:active {
+    color: var(--primary-color, #1890ff) !important;
+    border-color: var(--primary-color, #1890ff) !important;
+    background: color-mix(in srgb, var(--primary-color, #1890ff) 14%, var(--backtest-surface)) !important;
+  }
+}
+
+.backtest-page .hero-actions .toolbar-theme-button.ant-btn:focus-visible {
+  outline: 2px solid var(--primary-color, #1890ff);
+  outline-offset: 2px;
+}
+
+@import './backtest-workspace.less';
