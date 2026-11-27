@@ -8,7 +8,7 @@
               size="small"
               type="link"
               :aria-label="$t('common.refresh')"
-              :loading="rightRailTab === 'monitors' && loadingMonitors"
+              :loading="rightRailTab === 'watchlist' ? loadingWatchlist : loadingMonitors"
               @click="rightRailTab === 'watchlist' ? loadWatchlist() : loadMonitors()"
             ><a-icon type="reload" /></a-button>
 
@@ -18,7 +18,7 @@
               <div class="add-watch">
                 <a-button block icon="plus" @click="openAddWatchModal">{{ $t('aiAssetAnalysis.copilot.researchAddAsset') }}</a-button>
               </div>
-              <div v-if="watchlist.length === 0" class="empty-mini">{{ text.noWatchlist }}</div>
+              <div v-if="watchlist.length === 0" class="empty-mini">{{ loadingWatchlist ? $t('common.loading') : text.noWatchlist }}</div>
               <div v-else class="watch-list" tabindex="0" :aria-label="$t('aiAssetAnalysis.copilot.researchWatchlist')">
                 <div
                   v-for="item in groupedWatchlist"
@@ -720,6 +720,8 @@ export default {
       selectedEvent: null,
       eventModalVisible: false,
       watchlist: [],
+      loadingWatchlist: false,
+      watchlistRequestVersion: 0,
       watchlistPrices: {},
       addWatchModalVisible: false,
       monitors: [],
@@ -1537,18 +1539,31 @@ export default {
       }
     },
     async loadWatchlist () {
+      return this.refreshWatchlist()
+    },
+    async refreshWatchlist () {
+      const version = ++this.watchlistRequestVersion
+      this.loadingWatchlist = true
       try {
         const res = await getWatchlist()
-        const list = Array.isArray(res.data) ? res.data : ((res.data && res.data.watchlist) || [])
+        if (version !== this.watchlistRequestVersion || !res || res.code === 0) return
+        const list = Array.isArray(res.data) ? res.data : (res.data && res.data.watchlist)
+        if (!Array.isArray(list)) return
         this.watchlist = list.map(x => this.normalizeSymbolOption(x)).filter(Boolean)
         this.seedSymbolOptions()
         this.applyDefaultWatchSymbol()
-        if (this.watchlist.length) {
-          const prices = await getWatchlistPrices()
-          this.watchlistPrices = this.normalizePriceMap(prices.data || {})
-        }
-      } catch (_) {
-        this.watchlist = []
+        this.watchlistPrices = {}
+      } catch (_) { /* Keep the last successfully loaded list on request failure. */
+        return
+      } finally {
+        if (version === this.watchlistRequestVersion) this.loadingWatchlist = false
+      }
+      if (!this.watchlist.length || version !== this.watchlistRequestVersion) return
+      try {
+        const prices = await getWatchlistPrices()
+        if (version !== this.watchlistRequestVersion || !prices || prices.code === 0) return
+        this.watchlistPrices = this.normalizePriceMap(prices.data || {})
+      } catch (_) { /* Quotes are optional; unavailable prices must not remove saved assets. */
       }
     },
     async loadMonitors () {
@@ -1702,15 +1717,7 @@ export default {
       this.addWatchModalVisible = true
     },
     async reloadWatchlistOnly () {
-      try {
-        const res = await getWatchlist()
-        if (res && res.code === 1 && Array.isArray(res.data)) {
-          this.watchlist = res.data.map(item => this.normalizeSymbolOption(item)).filter(Boolean)
-          this.seedSymbolOptions()
-          const prices = await getWatchlistPrices()
-          this.watchlistPrices = this.normalizePriceMap(prices.data || {})
-        }
-      } catch (_) { /* Preserve the current research context and cached list. */ }
+      return this.refreshWatchlist()
     },
     watchlistContextLabel (item) { return watchlistContextLabel(item, key => this.$t(key)) },
     watchlistDisplayName,
