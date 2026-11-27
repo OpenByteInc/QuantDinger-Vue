@@ -579,12 +579,12 @@ export default {
   methods: {
     renderSponsoredMenu (h, props) {
       const show = !this.collapsed && !this.isMobile && showSidebarAdvertisement(this.brandConfig.advertisements)
-      return h('div', { class: 'sponsored-menu' }, [
-        h('div', { class: 'sponsored-menu__navigation' }, [h(BaseMenu, {
+      return h('div', { class: 'workspace-menu' }, [
+        h('div', { class: 'workspace-menu__navigation' }, [h(BaseMenu, {
           props,
           on: { openChange: props.openChange, select: props.select, click: props.menuClick }
         })]),
-        show ? h('div', { class: 'sponsored-menu__advertisement' }, [h(AdvertisementSlot, { props: { position: 'sidebar' } })]) : null
+        show ? h('div', { class: 'workspace-menu__banner' }, [h(AdvertisementSlot, { props: { position: 'sidebar' } })]) : null
       ])
     },
     i18nRender (key) {
@@ -1611,7 +1611,7 @@ body.light {
   }
 }
 
-/* Keep the advertisement in the sidebar flow, never over the navigation. */
+/* Keep the brand banner in the sidebar flow, never over the navigation. */
 .basic-layout-wrapper .ant-pro-sider-menu-sider .ant-layout-sider-children {
   display: flex;
   flex-direction: column;
@@ -1620,8 +1620,8 @@ body.light {
   overflow: hidden;
 }
 .basic-layout-wrapper .ant-pro-sider-menu-logo { flex-shrink: 0; }
-.sponsored-menu { display: flex; flex: 1; flex-direction: column; min-height: 0; overflow: hidden; }
-.sponsored-menu__navigation { flex: 1; min-height: 0; overflow: auto; }
-.basic-layout-wrapper .ant-pro-sider-menu-sider .sponsored-menu__navigation .ant-menu-root { height: auto !important; padding-bottom: 12px !important; }
-.sponsored-menu__advertisement { flex-shrink: 0; margin-top: auto; padding: 12px 12px max(16px, env(safe-area-inset-bottom)); }
+.workspace-menu { display: flex; flex: 1; flex-direction: column; min-height: 0; overflow: hidden; }
+.workspace-menu__navigation { flex: 1; min-height: 0; overflow: auto; }
+.basic-layout-wrapper .ant-pro-sider-menu-sider .workspace-menu__navigation .ant-menu-root { height: auto !important; padding-bottom: 12px !important; }
+.workspace-menu__banner { flex-shrink: 0; margin-top: auto; padding: 12px 12px max(16px, env(safe-area-inset-bottom)); }
 </style>

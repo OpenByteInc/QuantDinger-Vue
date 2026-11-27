@@ -110,10 +110,15 @@ const brand = {
     // correct logo/title even before the network call returns.
     config: initialBrand,
     loaded: false,
-    loading: false
+    loading: false,
+    requestVersion: 0
   },
 
   mutations: {
+    START_BRAND_REQUEST (state) {
+      state.requestVersion += 1
+      state.loading = true
+    },
     SET_BRAND_LOADING (state, loading) {
       state.loading = !!loading
     },
@@ -132,12 +137,13 @@ const brand = {
      *   settings).
      */
     async LoadBrandConfig ({ commit, state }, opts = {}) {
-      if (state.loading) return state.config
+      if (state.loading && !opts.force) return state.config
       if (state.loaded && !opts.force) return state.config
-      commit('SET_BRAND_LOADING', true)
+      commit('START_BRAND_REQUEST')
+      const version = state.requestVersion
       try {
         const res = await getBrandConfig()
-        if (res && res.code === 1 && res.data) {
+        if (version === state.requestVersion && res && res.code === 1 && res.data) {
           // Shallow-merge over defaults so a partial response still works.
           const merged = {
             ...DEFAULT_BRAND,
@@ -158,7 +164,7 @@ const brand = {
         // eslint-disable-next-line no-console
         console.warn('LoadBrandConfig failed, falling back to defaults:', e)
       } finally {
-        commit('SET_BRAND_LOADING', false)
+        if (version === state.requestVersion) commit('SET_BRAND_LOADING', false)
       }
       return state.config
     }

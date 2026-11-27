@@ -31,8 +31,8 @@ test('placements are isolated, disabled entries filtered, stable ascending order
 test('navigation advertisement stays at the viewport bottom with independently scrollable navigation', () => {
   const source = readFileSync(new URL('../../src/layouts/BasicLayout.vue', import.meta.url), 'utf8')
   assert.match(source, /height: 100dvh/)
-  assert.match(source, /\.sponsored-menu__navigation \{ flex: 1; min-height: 0; overflow: auto; \}/)
-  assert.match(source, /\.sponsored-menu__advertisement \{[^}]*margin-top: auto;[^}]*env\(safe-area-inset-bottom\)/)
+  assert.match(source, /\.workspace-menu__navigation \{ flex: 1; min-height: 0; overflow: auto; \}/)
+  assert.match(source, /\.workspace-menu__banner \{[^}]*margin-top: auto;[^}]*env\(safe-area-inset-bottom\)/)
 })
 test('editor validates names, positions, order and both URLs even when disabled', () => {
   assert.equal(validAdvertisement(ad), true)
@@ -40,7 +40,7 @@ test('editor validates names, positions, order and both URLs even when disabled'
 })
 test('carousel keeps safe links, pause and failure behavior', () => {
   const source = readFileSync(new URL('../../src/components/AdvertisementSlot.vue', import.meta.url), 'utf8')
-  for (const pattern of ['noopener noreferrer sponsored', 'referrerpolicy="no-referrer"', 'prefers-reduced-motion', 'document.hidden', '!this.hovered', '!this.focused', '!this.paused', 'clearInterval(this.timer)', '@error="reject(ad)"', 'object-fit: contain']) assert.ok(source.includes(pattern), pattern)
+  for (const pattern of ['rel="noopener noreferrer"', 'referrerpolicy="no-referrer"', 'prefers-reduced-motion', 'document.hidden', '!this.hovered', '!this.focused', '!this.paused', 'clearInterval(this.timer)', '@error="reject(ad)"', 'object-fit: contain']) assert.ok(source.includes(pattern), pattern)
   assert.ok(source.includes('v-if="slides.length"'))
   for (const removed of ['ad-slot__footer', 'ad-slot__controls', 'ad-slot__external', 'ad-slot__close', 'dismissed', 'sessionStorage', '<button']) assert.ok(!source.includes(removed), removed)
 })
@@ -83,4 +83,28 @@ test('previous session dismissals no longer hide ads or prevent rotation', () =>
   instance.startTimer()
   timers.get(1)()
   assert.equal(instance.current, 1)
+})
+
+test('transient image failures retry twice and reset when configuration changes', () => {
+  const { component, instance, timers } = carouselFixture()
+  instance.startTimer()
+  for (let attempt = 0; attempt < 2; attempt++) {
+    instance.reject(ad)
+    instance.reject(ad)
+    assert.equal(instance.failed.length, 1)
+    assert.ok(instance.retryAt > Date.now())
+    timers.get(1)()
+    assert.equal(instance.failed.length, 1)
+    instance.retryAt = 1
+    timers.get(1)()
+    assert.equal(instance.failed.length, 0)
+    assert.equal(instance.retryAttempts, attempt + 1)
+  }
+  instance.reject(ad)
+  assert.equal(instance.retryAt, 0)
+  timers.get(1)()
+  assert.equal(instance.failed.length, 1)
+  component.watch.configured.call(instance)
+  assert.equal(instance.failed.length, 0)
+  assert.equal(instance.retryAttempts, 0)
 })

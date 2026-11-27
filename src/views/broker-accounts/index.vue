@@ -95,7 +95,7 @@
             </span>
           </button>
         </div>
-        <advertisement-slot class="ba-advertisement" position="accounts" />
+        <advertisement-slot class="ba-brand-banner" position="accounts" />
       </aside>
 
       <main class="ba-detail" :class="{ 'ba-detail--crypto': !selectedBroker }">
