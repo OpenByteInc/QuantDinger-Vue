@@ -1154,6 +1154,7 @@ import { parseUtcAwareInstant } from '@/utils/utcInstant'
 import { broker } from '@/api/broker'
 import { stockQuantityPrecision, compactQuantity, forthrightErrorMessage, forthrightBuyingPower } from '@/utils/forthright'
 import { quantityFromAmount } from '@/utils/orderQuantity.mjs'
+import { stockSymbolsMatch } from '@/utils/stockSymbol.mjs'
 import { calculatePositionMetrics } from './positionMetrics'
 
 const STRICT_PRODUCT_IDENTITY_TYPES = new Set(['tokenized_equity', 'stock_perpetual', 'direct_equity'])
@@ -1444,7 +1445,9 @@ export default {
       const symbol = String(this.currentSymbol || '').toUpperCase()
       const marketType = String(this.effectiveMarketType || '').toLowerCase()
       return this.recentTrades
-        .filter(item => !symbol || String(item.symbol || '').toUpperCase() === symbol)
+        .filter(item => !symbol || (this.isStockMarket
+          ? stockSymbolsMatch(item.symbol, symbol, this.normalizedMarket, this.selectedStockBrokerId)
+          : String(item.symbol || '').toUpperCase() === symbol))
         .filter(item => !item.market_type || String(item.market_type).toLowerCase() === marketType)
         .map(item => {
           const requestedPrice = parseFloat(item.price || 0) || 0
@@ -1465,10 +1468,10 @@ export default {
         })
     },
     openOrderRows () {
-      const activeStatuses = new Set(['new', 'open', 'pending', 'submitted', 'partially_filled', 'partially-filled', 'accepted', 'cancel_pending'])
+      const activeStatuses = new Set(['new', 'open', 'pending', 'pending_new', 'presubmitted', 'pendingsubmit', 'pendingcancel', 'submitted', 'partially_filled', 'partially-filled', 'accepted', 'cancel_pending'])
       const rows = this.isStockMarket
         ? (this.recentOpenOrders || [])
-          .filter(item => !this.currentSymbol || String(item.symbol || '').toUpperCase() === String(this.currentSymbol).toUpperCase())
+          .filter(item => !this.currentSymbol || stockSymbolsMatch(item.symbol, this.currentSymbol, this.normalizedMarket, this.selectedStockBrokerId))
           .map(item => ({
             ...item,
             price: parseFloat(item.price || 0) || 0,
@@ -2056,7 +2059,9 @@ export default {
         const tradeSide = String(trade.side || '').toLowerCase()
         if (tradeSide !== expectedSide) continue
         const tradeSymbol = String(trade.symbol || this.currentSymbol || '').replace(/[^a-z0-9]/gi, '').toUpperCase()
-        if (normalizedSymbol && tradeSymbol && tradeSymbol !== normalizedSymbol) continue
+        if (this.isStockMarket) {
+          if (!stockSymbolsMatch(trade.symbol || this.currentSymbol, this.currentSymbol, this.normalizedMarket, this.selectedStockBrokerId)) continue
+        } else if (normalizedSymbol && tradeSymbol && tradeSymbol !== normalizedSymbol) continue
         const timestamp = this.normalizePositionTimestamp(
           trade.filled_at || trade.filledAt || trade.updated_at || trade.updatedAt || trade.created_at || trade.createdAt || trade.timestamp
         )
@@ -2085,7 +2090,7 @@ export default {
       const rawQty = this.pickNumber(position, ['size', 'qty', 'quantity', 'position', 'positionAmt', 'contracts'], 0)
       const size = Math.abs(rawQty)
       const side = this.inferPositionSide(position, rawQty)
-      const entryPrice = this.pickNumber(position, ['entry_price', 'avg_entry_price', 'avgEntryPrice', 'entryPrice', 'average_price', 'avgPrice'], 0)
+      const entryPrice = this.pickNumber(position, ['entry_price', 'avg_entry_price', 'avgEntryPrice', 'entryPrice', 'average_price', 'avgPrice', 'avgCost'], 0)
       const markPrice = this.pickNumber(position, ['mark_price', 'markPrice', 'current_price', 'currentPrice', 'last_price', 'lastPrice'], this.currentPrice || 0)
       const providedNotional = this.pickOptionalNumber(position, ['notional_usdt', 'notionalUsd', 'notional_usd', 'notional', 'positionValue', 'position_value', 'market_value', 'marketValue', 'value'])
       const notionalUsdt = providedNotional !== null && Math.abs(providedNotional) > 0
@@ -2451,9 +2456,8 @@ export default {
           if (!isCurrent()) return
           const payload = this.apiPayload(res)
           const items = Array.isArray(payload) ? payload : (payload.positions || payload.items || payload.data || [])
-          const target = this.normalizeBrokerSymbol(symbol).toUpperCase()
-          const matched = items.filter(p => this.normalizeBrokerSymbol(p.symbol || p.asset_symbol || '').toUpperCase() === target)
-          this.currentPositions = matched.map(p => this.normalizePosition({ ...p, side: 'long', leverage: 1 }, { preferComputedPnl: true }))
+          const matched = items.filter(p => stockSymbolsMatch(p.symbol || p.asset_symbol, symbol, this.normalizedMarket, this.selectedStockBrokerId))
+          this.currentPositions = matched.map(p => this.normalizePosition({ ...p, leverage: 1 }, { preferComputedPnl: true }))
           return this.currentPositions.length > 0
         }
         const params = {
@@ -2511,16 +2515,16 @@ export default {
             const payload = this.apiPayload(ordersResult.value)
             const items = Array.isArray(payload) ? payload : (payload.orders || payload.items || payload.data || [])
             this.recentOpenOrders = (items || []).map(o => {
-              const requestedPrice = parseFloat(o.limit_price || 0) || 0
-              const fillPrice = parseFloat(o.filled_avg_price || 0) || 0
-              const filledAmount = parseFloat(o.filled_qty || 0) || 0
+              const requestedPrice = parseFloat(o.limit_price ?? o.limitPrice ?? 0) || 0
+              const fillPrice = parseFloat(o.filled_avg_price ?? o.avgFillPrice ?? 0) || 0
+              const filledAmount = parseFloat(o.filled_qty ?? o.filled ?? 0) || 0
               const requestedQty = parseFloat(o.qty ?? o.quantity ?? 0) || 0
               const requestedNotional = parseFloat(o.notional || 0) || 0
               const notional = requestedNotional || ((filledAmount || requestedQty) * (fillPrice || requestedPrice))
               return {
-                id: o.id || o.order_id || `${o.symbol}-${o.created_at || Date.now()}`,
+                id: o.id || o.order_id || o.orderId || `${o.symbol}-${o.created_at || Date.now()}`,
                 symbol: o.symbol || this.currentSymbol,
-                side: o.side || 'buy',
+                side: String(o.side || o.action || 'buy').toLowerCase(),
                 amount: notional,
                 requested_notional: requestedNotional,
                 requested_base_qty: requestedQty,
@@ -2528,8 +2532,8 @@ export default {
                 price: requestedPrice,
                 avg_fill_price: fillPrice,
                 market_type: 'spot',
-                order_type: o.order_type || o.type || 'market',
-                exchange_order_id: o.id || o.order_id || '',
+                order_type: String(o.order_type || o.type || o.orderType || 'market').toLowerCase().replace(/^lmt$/, 'limit').replace(/^mkt$/, 'market'),
+                exchange_order_id: o.id || o.order_id || o.orderId || '',
                 status: o.status || '',
                 created_at: o.submitted_at || o.created_at || o.updated_at
               }

@@ -4,6 +4,7 @@ import fs from 'node:fs'
 import vm from 'node:vm'
 import { stockQuantityPrecision } from '../../src/utils/forthright.js'
 import { quantityFromAmount } from '../../src/utils/orderQuantity.mjs'
+import { stockSymbolsMatch } from '../../src/utils/stockSymbol.mjs'
 
 test('stock sell availability excludes shares frozen by the broker', () => {
   const panel = options('components/QuickTradePanel/QuickTradePanel.vue')
@@ -25,6 +26,150 @@ test('stock history keeps execution shares distinct from cash turnover', async (
   assert.equal(state.recentTrades[0].filled_amount,10)
   assert.equal(state.recentTrades[0].amount,3450)
   assert.equal(state.recentTrades[0].fee_status,'pending')
+})
+
+test('HK chart symbols retain broker fills, open orders and positions across code formats', async () => {
+  const panel = options('components/QuickTradePanel/QuickTradePanel.vue')
+  for (const symbol of ['00700', '700', '00700.HK', 'HKStock:00700']) {
+    const state = {
+      isStockMarket: true, normalizedMarket: 'HKStock', effectiveMarketType: 'spot',
+      selectedCredentialId: 18, currentSymbol: symbol,
+      normalizeBrokerSymbol: panel.methods.normalizeBrokerSymbol,
+      apiPayload: value => value, normalizePosition: value => value,
+      isMarketOrderPositionConfirmed: () => false,
+      selectedStockBrokerClient: {
+        orders: async ({ credential_id }) => {
+          assert.equal(credential_id, 18)
+          return [
+            { id: 'pending', symbol: '00700.HK', quantity: 100, status: 'submitted' },
+            { id: 'other', symbol: '00388.HK', quantity: 100, status: 'submitted' }
+          ]
+        },
+        tradeHistory: async ({ credential_id }) => {
+          assert.equal(credential_id, 18)
+          return [
+            { id: 'fill1', symbol: '00700.HK', filled_qty: 100, filled_avg_price: 353, currency: 'HKD' },
+            { id: 'fill2', symbol: '00700.HK', filled_qty: 100, filled_avg_price: 353.2, currency: 'HKD' },
+            { id: 'other-fill', symbol: '00388.HK', filled_qty: 100, filled_avg_price: 300 }
+          ]
+        },
+        positions: async () => [{ symbol: '00700.HK', qty: 200 }, { symbol: '00388.HK', qty: 100 }]
+      }
+    }
+    await panel.methods.loadHistory.call(state)
+    const trades = panel.computed.scopedTradeRows.call(state)
+    assert.deepEqual(Array.from(trades, row => row.id), ['fill1', 'fill2'], symbol)
+    assert.equal(trades[0].filled_amount, 100)
+    assert.equal(trades[0].display_amount, 35300)
+    assert.deepEqual(Array.from(panel.computed.openOrderRows.call(state), row => row.id), ['pending'], symbol)
+    await panel.methods.loadPosition.call(state)
+    assert.deepEqual(Array.from(state.currentPositions, row => row.symbol), ['00700.HK'], symbol)
+    assert.equal(state.currentPositions[0].qty, 200)
+  }
+})
+
+test('stock matching keeps different instruments, markets and US share classes separate', () => {
+  assert.equal(stockSymbolsMatch('700', '00700.HK', 'HKStock'), true)
+  assert.equal(stockSymbolsMatch('00700.HK', '00388', 'HKStock'), false)
+  assert.equal(stockSymbolsMatch('USStock:00700', '00700', 'HKStock'), false)
+  assert.equal(stockSymbolsMatch('700', '00700.HK', 'USStock'), false)
+  assert.equal(stockSymbolsMatch('usstock:brk.b', 'BRK.B', 'USStock'), true)
+  assert.equal(stockSymbolsMatch('BRK.B', 'BRK-B', 'USStock'), false)
+  assert.equal(stockSymbolsMatch('', '', 'HKStock'), false)
+  assert.equal(stockSymbolsMatch('BRK/B', 'BRK.B', 'USStock', 'alpaca'), true)
+  assert.equal(stockSymbolsMatch('BRK/B', 'BRK.B', 'USStock', 'tiger'), false)
+  const panel = options('components/QuickTradePanel/QuickTradePanel.vue')
+  const rows = panel.computed.scopedTradeRows.call({
+    isStockMarket: false, currentSymbol: 'BTC/USDT', effectiveMarketType: 'spot',
+    recentTrades: [
+      { id: 'spot', symbol: 'BTC/USDT', market_type: 'spot' },
+      { id: 'swap', symbol: 'BTC/USDT', market_type: 'swap' },
+      { id: 'other', symbol: 'ETH/USDT', market_type: 'spot' }
+    ]
+  })
+  assert.deepEqual(Array.from(rows, row => row.id), ['spot'])
+})
+
+test('all stock brokers keep fills, pending sell orders and signed position costs', async () => {
+  const panel = options('components/QuickTradePanel/QuickTradePanel.vue')
+  for (const [brokerId, market, symbol, native] of [
+    ['alpaca', 'USStock', 'BRK/B', 'BRK.B'],
+    ['ibkr', 'USStock', 'AAPL', 'AAPL'],
+    ['tiger', 'USStock', 'AAPL', 'AAPL'],
+    ['webull', 'USStock', 'AAPL', 'AAPL'],
+    ['forthright', 'USStock', 'AAPL', 'AAPL'],
+    ['tiger', 'HKStock', '700.HK', '00700'],
+    ['forthright', 'HKStock', '700', '00700.HK']
+  ]) {
+    const order = brokerId === 'ibkr'
+      ? { orderId: 123, symbol: native, action: 'SELL', orderType: 'LMT', limitPrice: 200, quantity: 10, filled: 2, avgFillPrice: 199, status: 'PreSubmitted' }
+      : { id: 123, symbol: native, side: 'sell', order_type: 'limit', limit_price: 200, quantity: 10, filled_qty: 2, filled_avg_price: 199, status: 'partially_filled' }
+    const state = {
+      isStockMarket: true, normalizedMarket: market, effectiveMarketType: 'spot', selectedStockBrokerId: brokerId,
+      selectedCredentialId: 18, currentSymbol: symbol, currentPrice: 200,
+      normalizeBrokerSymbol: panel.methods.normalizeBrokerSymbol, apiPayload: value => value,
+      isMarketOrderPositionConfirmed: () => false,
+      calculatePositionPnl: () => null,
+      selectedStockBrokerClient: {
+        orders: async () => [order],
+        tradeHistory: async () => [{ id: 'execution-1', symbol: native, side: 'sell', filled_qty: 2, filled_avg_price: 199 }],
+        positions: async () => [{ symbol: native, quantity: -8, avgCost: 198 }]
+      }
+    }
+    for (const name of ['toFiniteNumber', 'pickNumber', 'pickOptionalNumber', 'inferPositionSide', 'normalizePosition']) {
+      state[name] = panel.methods[name].bind(state)
+    }
+    await panel.methods.loadHistory.call(state)
+    const open = panel.computed.openOrderRows.call(state)
+    assert.equal(open.length, 1, brokerId)
+    assert.equal(open[0].side, 'sell', brokerId)
+    assert.equal(open[0].price, 200, brokerId)
+    assert.equal(open[0].order_type, 'limit', brokerId)
+    assert.equal(open[0].id, 123, brokerId)
+    const fills = panel.computed.scopedTradeRows.call(state)
+    assert.equal(fills.length, 1, brokerId)
+    assert.equal(fills[0].filled_amount, 2, brokerId)
+    assert.equal(fills[0].display_amount, 398, brokerId)
+    await panel.methods.loadPosition.call(state)
+    assert.equal(state.currentPositions[0].side, 'short', brokerId)
+    assert.equal(state.currentPositions[0].size, 8, brokerId)
+    assert.equal(state.currentPositions[0].entry_price, 198, brokerId)
+  }
+})
+
+test('HK position overlay takes its entry timestamp from the matching broker fill', () => {
+  const panel = options('components/QuickTradePanel/QuickTradePanel.vue')
+  const timestamp = panel.methods.positionEntryTimestamp.call({
+    isStockMarket: true, normalizedMarket: 'HKStock', currentSymbol: '00700',
+    normalizePositionTimestamp: value => Number(value) || 0,
+    recentTrades: [
+      { symbol: '00700.HK', side: 'buy', filled_at: 100 },
+      { symbol: '00388.HK', side: 'buy', filled_at: 200 }
+    ]
+  }, { side: 'long' })
+  assert.equal(timestamp, 100)
+})
+
+test('HK broker responses cannot populate a different account after switching', async () => {
+  const panel = options('components/QuickTradePanel/QuickTradePanel.vue')
+  let resolve
+  const pending = new Promise(done => { resolve = done })
+  const state = {
+    isStockMarket: true, normalizedMarket: 'HKStock', currentSymbol: '00700',
+    effectiveMarketType: 'spot', selectedCredentialId: 18,
+    normalizeBrokerSymbol: panel.methods.normalizeBrokerSymbol,
+    apiPayload: value => value, normalizePosition: value => value,
+    recentTrades: [], recentOpenOrders: [], currentPositions: [],
+    selectedStockBrokerClient: { orders: () => pending, tradeHistory: () => pending, positions: () => pending }
+  }
+  const history = panel.methods.loadHistory.call(state)
+  const positions = panel.methods.loadPosition.call(state)
+  state.selectedCredentialId = 19
+  resolve([{ id: 'old-account', symbol: '00700.HK', qty: 200 }])
+  await Promise.all([history, positions])
+  assert.equal(state.recentTrades.length, 0)
+  assert.equal(state.recentOpenOrders.length, 0)
+  assert.equal(state.currentPositions.length, 0)
 })
 
 test('stock amount tickets floor quantity, preserve Alpaca notional and reject zero shares', async () => {
@@ -124,7 +269,7 @@ test('base-currency funds are not treated as quote-currency budget', () => {
 
 function options (file, mocks = {}) {
   let script = fs.readFileSync(new URL('../../src/' + file, import.meta.url), 'utf8').match(/<script>([\s\S]*?)<\/script>/)[1]
-  const scope = { stockQuantityPrecision, quantityFromAmount, ...mocks, console, setTimeout, clearTimeout }
+  const scope = { stockQuantityPrecision, quantityFromAmount, stockSymbolsMatch, ...mocks, console, setTimeout, clearTimeout }
   script = script.replace(/^import\s+([\s\S]*?)\s+from\s+['"][^'"]+['"]\s*$/gm, (_, names) => {
     for (const item of names.replace(/[{}]/g, '').split(',')) {
       const name = item.trim().split(/\s+as\s+/).pop()

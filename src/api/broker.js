@@ -28,6 +28,7 @@ const ENDPOINTS = {
     account: '/api/ibkr/account',
     positions: '/api/ibkr/positions',
     orders: '/api/ibkr/orders',
+    fills: '/api/ibkr/fills',
     order: '/api/ibkr/order',
     quote: '/api/ibkr/quote'
   },
