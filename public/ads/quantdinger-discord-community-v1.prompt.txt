@@ -1,0 +1,5 @@
+Generator: built-in image_gen edit mode (not CLI).
+Reference: quantdinger-telegram-community-v1.png
+Output: 2172 x 724 pixels (3:1).
+Prompt:
+Use case: precise-object-edit / ads-marketing. Edit the supplied QuantDinger Telegram banner into a Discord community banner. Preserve exact 3:1 horizontal canvas, existing composition, large highly legible white typography, brand label QuantDinger, dark navy background, and northeast arrow. Replace the Telegram paper-plane with the recognizable white Discord Clyde logo, centered in the same circle. Change circle and restrained corner accent to Discord blurple #5865F2. Replace the word Telegram with Discord. Exact visible copy: "QuantDinger", "Join our", "Discord". Maintain premium clean restrained product-community feel and generous edge safety; readable at 182x61 CSS pixels. No extra text, no URL, no QR code, no financial claims, no buttons or controls, no watermark. Output full-bleed 3:1 actual ad artwork.
