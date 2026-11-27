@@ -2,6 +2,41 @@ function normalizedMarket (market) {
   return String(market || '').replace(/[\s_-]/g, '').toLowerCase()
 }
 
+// CME outright quote display precision, not order-price rounding rules.
+// https://www.cmegroup.com/markets/fx/fx-product-guide
+const CME_FUTURES_PRICE_DECIMALS = {
+  '6A': 5,
+  '6B': 4,
+  '6C': 5,
+  '6E': 5,
+  '6J': 7,
+  '6N': 5,
+  '6S': 5,
+  MES: 2,
+  MNQ: 2
+}
+
+export function formatMarketPrice (value, market = '', symbol = '', locale) {
+  const price = Number(value)
+  if (!Number.isFinite(price) || price <= 0) return '--'
+
+  const marketKey = normalizedMarket(market)
+  if (marketKey === 'futures') {
+    const contract = String(symbol || '').trim().toUpperCase()
+    const match = /^(6[ABCEJNS]|MES|MNQ)(?:[FGHJKMNQUVXZ]\d{1,4}(?:\.CME)?|=F)?$/.exec(contract)
+    if (match) {
+      const digits = CME_FUTURES_PRICE_DECIMALS[match[1]]
+      return price.toLocaleString(locale, { minimumFractionDigits: digits, maximumFractionDigits: digits })
+    }
+  }
+  if (marketKey === 'usstock' || marketKey === 'hkstock') {
+    return price.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  }
+  if (price >= 1000) return price.toLocaleString(locale, { maximumFractionDigits: 2 })
+  if (price >= 1) return price.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 4 })
+  return price.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 8 })
+}
+
 function latestReferencePrice (data) {
   for (let i = data.length - 1; i >= 0; i--) {
     const row = data[i] || {}

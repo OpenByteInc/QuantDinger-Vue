@@ -33,7 +33,7 @@
                     </span>
                     <em class="watch-name" :title="watchlistDisplayName(item)">{{ watchlistDisplayName(item) }}</em>
                     <span class="watch-market-data">
-                      <strong class="watch-price">{{ formatPriceValue(priceFor(item) && priceFor(item).price, item.market) }}</strong>
+                      <strong class="watch-price">{{ formatPriceValue(priceFor(item) && priceFor(item).price, item.market, item.symbol) }}</strong>
                       <em :class="watchChangeClass(item)" class="watch-change">
                         {{ formatChangePercent(priceFor(item)) }}
                       </em>
@@ -671,6 +671,7 @@ import ResearchCat from './ResearchCat.vue'
 import { sortCopilotMarkets } from './copilotWatchlistPresets.mjs'
 import AddWatchlistModal from '@/components/Watchlist/AddWatchlistModal.vue'
 import { groupWatchlistAssets, watchlistContextLabel, watchlistDisplayName, watchlistPayload } from '@/utils/watchlistAssets'
+import { formatMarketPrice } from '@/utils/marketPricePrecision.mjs'
 import {
   buildContextualFollowups,
   buildResearchStarterPrompts,
@@ -3119,7 +3120,8 @@ export default {
       const observation = this.reportObservation(msg, ['quote.price', 'current_price'])
       const value = observation && observation.value
       const market = report.instrument && report.instrument.market
-      return value === null || value === undefined || value === '' ? '--' : this.formatPriceValue(value, market)
+      const symbol = report.instrument && report.instrument.symbol
+      return value === null || value === undefined || value === '' ? '--' : this.formatPriceValue(value, market, symbol)
     },
     reportRiskReward (msg) {
       const report = this.professionalArtifact(msg && msg.report) || {}
@@ -4762,15 +4764,8 @@ export default {
       if (pct === null) return ''
       return pct >= 0 ? 'up' : 'down'
     },
-    formatPriceValue (value, market = '') {
-      const n = Number(value)
-      if (!Number.isFinite(n) || n <= 0) return '--'
-      if (['USStock', 'HKStock'].includes(String(market))) {
-        return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-      }
-      if (n >= 1000) return n.toLocaleString(undefined, { maximumFractionDigits: 2 })
-      if (n >= 1) return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })
-      return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 8 })
+    formatPriceValue (value, market = '', symbol = '') {
+      return formatMarketPrice(value, market, symbol)
     },
     formatChangePercent (price) {
       const currentPrice = Number(price && price.price)
