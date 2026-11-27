@@ -12,6 +12,10 @@ export function formatTradeCommission (row, t) {
   const native = numeric(row.commission != null ? row.commission : row.fee)
   const currency = String(row.commission_ccy || '').toUpperCase()
   const format = n => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 8 })
+  if (currency === 'HKD') {
+    if (native !== null && (native !== 0 || ['actual', 'actual_zero', 'complete'].includes(status))) return `${format(native)} HKD`
+    return t('trading-assistant.fees.pending')
+  }
   if (quote !== null && quote !== 0) return `$${format(quote)}`
   if (native !== null && native !== 0 && DOLLAR_EQUIVALENT_CURRENCIES.has(currency)) return `$${format(native)}`
   if (native !== null && native !== 0) return t('trading-assistant.fees.pending')

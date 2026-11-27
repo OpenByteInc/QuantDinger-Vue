@@ -5,6 +5,12 @@ import messages from '../../src/locales/lang/strategy-trade-records.js'
 
 const t = key => messages['zh-CN'][key]
 
+test('HK strategy fees retain HKD, including confirmed zero and pending fees', () => {
+  assert.equal(formatTradeCommission({ commission: 65.48, commission_quote: 65.48, commission_ccy: 'HKD', fee_status: 'actual' }, t), '65.48 HKD')
+  assert.equal(formatTradeCommission({ commission: 0, commission_ccy: 'HKD', fee_status: 'actual_zero' }, t), '0.00 HKD')
+  assert.equal(formatTradeCommission({ commission: 0, commission_ccy: 'HKD', fee_status: 'pending' }, t), '待确认')
+})
+
 test('missing and unconfirmed fees do not display as free trades', () => {
   for (const row of [{}, { commission: 0 }, { commission_quote: 0, fee_status: 'pending' }]) {
     assert.equal(formatTradeCommission(row, t), '待确认')

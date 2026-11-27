@@ -343,7 +343,10 @@ export default {
           const response = await broker[id].accounts()
           if (this.requestVersions[id] !== version) return
           const payload = response && response.data
-          const items = Array.isArray(payload) ? payload : (payload && payload.data) || []
+          const accounts = Array.isArray(payload) ? payload : (payload && payload.data) || []
+          const items = id === 'forthright'
+            ? [...accounts].sort((a, b) => Number(b.account_type === 'securities') - Number(a.account_type === 'securities'))
+            : accounts
           this.$set(this.brokerAccounts, id, items)
           const currentId = this.brokerCredentialIds[id]
           if (!items.some(item => Number(item.id) === currentId)) {

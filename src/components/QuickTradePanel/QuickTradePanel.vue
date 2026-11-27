@@ -2563,8 +2563,8 @@ export default {
               order_type: 'fill',
               exchange_order_id: o.exchange_order_id || o.order_id || '',
               status: 'filled',
-              commission: parseFloat(o.commission || 0) || 0,
-              commission_ccy: o.commission_ccy || 'USD',
+              commission: parseFloat(o.commission ?? o.fee_amount ?? 0) || 0,
+              commission_ccy: o.commission_ccy || o.fee_currency || o.currency || '',
               commission_quote: o.commission_quote === null || o.commission_quote === undefined
                 ? null
                 : (parseFloat(o.commission_quote) || 0),
@@ -3173,6 +3173,15 @@ export default {
     },
     formatTradeCommission (trade) {
       if (!trade) return '--'
+      if (this.isStockMarket) {
+        const currency = String(trade.commission_ccy || trade.fee_currency || trade.currency || '').trim()
+        const amount = trade.commission ?? trade.fee_amount
+        const value = amount === null || amount === undefined || amount === '' ? NaN : Number(amount)
+        if (Number.isFinite(value) && (value !== 0 || ['actual', 'actual_zero', 'complete'].includes(trade.fee_status))) {
+          return `${this.formatQuantity(value)}${currency ? ` ${currency}` : ''}`
+        }
+        return '--'
+      }
       const quote = parseFloat(trade.commission_quote || 0) || 0
       if (quote > 0) return `${this.formatPrice(quote)} USDT`
       const commission = parseFloat(trade.commission || 0) || 0

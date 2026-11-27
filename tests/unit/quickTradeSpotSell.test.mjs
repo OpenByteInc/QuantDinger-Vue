@@ -6,6 +6,24 @@ import { stockQuantityPrecision } from '../../src/utils/forthright.js'
 import { quantityFromAmount } from '../../src/utils/orderQuantity.mjs'
 import { stockSymbolsMatch } from '../../src/utils/stockSymbol.mjs'
 
+test('broker history keeps allocated fees in their native currency', async () => {
+  const panel = options('components/QuickTradePanel/QuickTradePanel.vue')
+  for (const currency of ['HKD', 'USD']) {
+    const state = { isStockMarket: true, selectedCredentialId: 18, currentSymbol: '00700',
+      normalizeBrokerSymbol: v => v, apiPayload: v => v,
+      formatQuantity: v => String(v), formatPrice: v => String(v),
+      selectedStockBrokerClient: {
+        orders: async () => [],
+        tradeHistory: async () => [{ id: 'fill', filled_qty: 100, filled_avg_price: 353.2,
+          fee_amount: 65.48, fee_currency: currency, commission_quote: 65.48, fee_status: 'actual' }]
+      } }
+    await panel.methods.loadHistory.call(state)
+    assert.equal(panel.methods.formatTradeCommission.call(state, state.recentTrades[0]), `65.48 ${currency}`)
+    assert.equal(panel.methods.formatTradeCommission.call(state, { commission: 0, commission_ccy: currency, fee_status: 'actual_zero' }), `0 ${currency}`)
+    assert.equal(panel.methods.formatTradeCommission.call(state, { commission: 0, fee_status: 'pending' }), '--')
+  }
+})
+
 test('HK-prefixed quick-trade requests use the same code as numeric selection', () => {
   const panel = options('components/QuickTradePanel/QuickTradePanel.vue')
   for (const symbol of ['07709', 'HK07709', 'HK.07709', '7709.HK']) {
