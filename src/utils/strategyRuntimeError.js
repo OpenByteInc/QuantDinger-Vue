@@ -9,7 +9,7 @@ const DETAIL_KEYS = Object.freeze({
 
 export function translateStrategyRuntimeError (message, translate) {
   const raw = String(message || '').trim()
-  const match = raw.match(/^((?:strategyV2|strategyRuntime)\.[\w.]+)(?::(.*))?$/s)
+  const match = raw.match(/^((?:strategyV2|strategyRuntime|brokerAccounts)\.[\w.]+)(?::(.*))?$/s)
   if (!match) return raw
 
   const [, key, rawDetail = ''] = match

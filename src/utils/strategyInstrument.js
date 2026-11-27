@@ -84,7 +84,11 @@ export function parseStrategyInstrumentIdentity (value, defaults = {}) {
     }
   }
 
-  const symbol = String(body || '').split('@', 1)[0].trim().toUpperCase()
+  let symbol = String(body || '').split('@', 1)[0].trim().toUpperCase()
+  if (market === 'HKStock') {
+    const match = symbol.match(/^(?:HK\.?)?(\d{1,5})(?:\.HK|\.XHKG)?$/)
+    if (match) symbol = `${match[1].padStart(5, '0')}.HK`
+  }
   return {
     market,
     symbol,

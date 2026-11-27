@@ -2,7 +2,20 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import messages from '../../src/locales/lang/strategy-live-risk.js'
 import strategyMessages from '../../src/locales/lang/strategy-v2.js'
+import brokerMessages from '../../src/locales/lang/forthright.js'
 import { translateStrategyRuntimeError } from '../../src/utils/strategyRuntimeError.js'
+
+for (const [locale, dictionary] of Object.entries(brokerMessages)) {
+  test(`localizes broker deployment validation in ${locale}`, () => {
+    const key = 'brokerAccounts.forthright.canonicalSymbolRequired'
+    assert.ok(dictionary[key])
+    assert.equal(translateStrategyRuntimeError(key, value => dictionary[value] || value), dictionary[key])
+    assert.equal(
+      translateStrategyRuntimeError(`${key}:HKStock:00700`, value => dictionary[value] || value),
+      `${dictionary[key]} (HKStock:00700)`
+    )
+  })
+}
 
 for (const locale of ['en-US', 'zh-CN']) {
   test(`localizes the Binance one-way position-mode failure in ${locale}`, () => {
