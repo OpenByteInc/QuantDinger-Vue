@@ -8,8 +8,8 @@ export function stockSymbolsMatch (left, right, market, brokerId = '') {
       if (['HKSTOCK', 'USSTOCK'].includes(marketKey) && prefix[1] !== marketKey) return ''
       symbol = symbol.slice(prefix[0].length)
     }
-    if (marketKey === 'HKSTOCK' && /^(?:HK\.)?\d{1,5}(?:\.HK)?$/.test(symbol)) {
-      return symbol.replace(/^HK\./, '').replace(/\.HK$/, '').padStart(5, '0') + '.HK'
+    if (marketKey === 'HKSTOCK' && /^(?:HK\.?)?\d{1,5}(?:\.HK)?$/.test(symbol)) {
+      return symbol.replace(/^HK\.?/, '').replace(/\.HK$/, '').padStart(5, '0') + '.HK'
     }
     if (marketKey === 'USSTOCK' && brokerId === 'alpaca') {
       return symbol.replace(/\//g, '.')

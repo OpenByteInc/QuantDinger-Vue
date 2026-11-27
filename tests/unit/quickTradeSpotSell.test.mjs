@@ -6,6 +6,21 @@ import { stockQuantityPrecision } from '../../src/utils/forthright.js'
 import { quantityFromAmount } from '../../src/utils/orderQuantity.mjs'
 import { stockSymbolsMatch } from '../../src/utils/stockSymbol.mjs'
 
+test('HK-prefixed quick-trade requests use the same code as numeric selection', () => {
+  const panel = options('components/QuickTradePanel/QuickTradePanel.vue')
+  for (const symbol of ['07709', 'HK07709', 'HK.07709', '7709.HK']) {
+    assert.equal(panel.methods.normalizeBrokerSymbol.call({ normalizedMarket: 'HKStock' }, symbol), '07709')
+  }
+  assert.equal(panel.methods.normalizeBrokerSymbol.call({ normalizedMarket: 'USStock' }, 'BRK.B'), 'BRK.B')
+  assert.equal(panel.methods.normalizeBrokerSymbol.call({ normalizedMarket: 'Futures' }, 'HSIZ26'), 'HSIZ26')
+})
+
+test('trade authorization is above account tabs and appears only once', () => {
+  const source = fs.readFileSync(new URL('../../src/views/broker-accounts/components/BrokerPanel.vue', import.meta.url), 'utf8')
+  assert.equal(source.match(/<forthright-unlock /g).length, 1)
+  assert.ok(source.indexOf('<forthright-unlock ') < source.indexOf('<a-tabs '))
+})
+
 test('stock sell availability excludes shares frozen by the broker', () => {
   const panel = options('components/QuickTradePanel/QuickTradePanel.vue')
   const state = {isSpotCashOrder:true, currentPositions:[{side:'long',quantity:100,size:100,salable_qty:0}]}
@@ -30,7 +45,7 @@ test('stock history keeps execution shares distinct from cash turnover', async (
 
 test('HK chart symbols retain broker fills, open orders and positions across code formats', async () => {
   const panel = options('components/QuickTradePanel/QuickTradePanel.vue')
-  for (const symbol of ['00700', '700', '00700.HK', 'HKStock:00700']) {
+  for (const symbol of ['00700', '700', '00700.HK', 'HKStock:00700', 'HK00700']) {
     const state = {
       isStockMarket: true, normalizedMarket: 'HKStock', effectiveMarketType: 'spot',
       selectedCredentialId: 18, currentSymbol: symbol,

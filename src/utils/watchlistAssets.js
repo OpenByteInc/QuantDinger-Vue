@@ -1,4 +1,6 @@
 export function watchlistAssetKey (item = {}) {
+  const hk = String(item.symbol || '').trim().toUpperCase().match(/^(?:HKSTOCK:)?(?:HK\.?)?(\d{1,5})(?:\.HK)?$/)
+  if (item.market === 'HKStock' && hk) return `HKStock:${hk[1].padStart(5, '0')}:${item.product_type || 'hkstock'}`
   const assetId = Number(item.asset_id || item.assetId || 0)
   if (assetId > 0) return `asset:${assetId}`
   const market = String(item.market || '')

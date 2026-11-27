@@ -33,6 +33,14 @@ const stockPerpetual = Object.freeze({
 })
 const modalSource = read('src/components/Watchlist/AddWatchlistModal.vue')
 
+test('HK aliases share selection identity even when saved catalog IDs differ', () => {
+  const current = { asset_id: 101, market: 'HKStock', symbol: '07709', product_type: 'hkstock' }
+  const legacy = { ...current, asset_id: 202, symbol: 'HK07709' }
+  assert.equal(watchlistAssetKey(current), watchlistAssetKey(legacy))
+  assert.equal(groupWatchlistAssets([current, legacy]).length, 1)
+  assert.deepEqual(watchlistPayload(legacy), { asset_id: 202 })
+})
+
 function modal (api = {}) {
   const script = modalSource
     .match(/<script>([\s\S]*?)<\/script>/)[1]

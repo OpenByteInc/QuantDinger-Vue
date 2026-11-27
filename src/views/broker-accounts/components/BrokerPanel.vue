@@ -58,11 +58,12 @@
       :message="$t('brokerAccounts.cloudBlockedAlert', { broker: $t('brokerAccounts.' + broker.id + '.name') })"
     />
 
+    <forthright-unlock v-if="broker.id === 'forthright' && credentialId" :credential-id="credentialId" :is-dark="isDarkTheme" />
+
     <a-tabs v-model="innerTab" class="bp-inner-tabs">
       <!-- Connect form -->
       <a-tab-pane key="connect" :tab="$t('brokerAccounts.tabConnect')">
         <div class="bp-form-wrapper">
-          <forthright-unlock v-if="broker.id === 'forthright' && credentialId" :credential-id="credentialId" :is-dark="isDarkTheme" />
           <component
             :is="formComponent"
             ref="connectForm"

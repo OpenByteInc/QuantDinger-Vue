@@ -1972,7 +1972,9 @@ export default {
       return !!(res && (res.success === true || res.code === 1 || (res.data && res.data.success === true)))
     },
     normalizeBrokerSymbol (symbol) {
-      return String(symbol || '').replace(/^(?:USStock|HKStock):/i, '').trim()
+      const value = String(symbol || '').replace(/^(?:USStock|HKStock):/i, '').trim()
+      const hk = this.normalizedMarket === 'HKStock' && value.match(/^(?:HK\.?)?(\d{1,5})(?:\.HK)?$/i)
+      return hk ? hk[1].padStart(5, '0') : value
     },
     resetBalance () {
       this.balance = {
