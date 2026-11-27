@@ -12,7 +12,7 @@ function messages (values) {
   return Object.fromEntries(keys.map((key, index) => [key, values[index]]))
 }
 
-export default {
+const translations = {
   'en-US': messages([
     'Maker order defaults', 'Used only when an order selects maker-then-market without its own values. Strategy and order settings take priority; restart the trading worker after saving.', 'Strategy setting wins',
     'Maker-to-market wait (seconds)', 'How long a maker limit order waits before it is cancelled and replaced by a market order.',
@@ -69,3 +69,74 @@ export default {
     'إزاحة سعر Maker (نقطة أساس)', 'المسافة بين السعر المحدد والسعر المرجعي. يكون الشراء أقل والبيع أعلى.'
   ])
 }
+
+const quoteKeys = [
+  'settings.trading.quoteFreshnessSection',
+  'settings.field.EQUITY_QUOTE_MAX_AGE_MINUTES',
+  'settings.desc.EQUITY_QUOTE_MAX_AGE_MINUTES',
+  'settings.invalidEquityQuoteMaxAge'
+]
+
+const quoteCopy = {
+  'en-US': [
+    'Equity execution quotes', 'Maximum quote age (minutes)',
+    'Applies to live equity entries, rebalancing and locally monitored exits. Default: 16 minutes (range 1–60), allowing for 15-minute delayed quotes. Delayed prices can delay stops and differ from execution prices. Quotes must still belong to the current trading session. Restart trading workers after saving.',
+    'Enter a whole number from 1 to 60 minutes.'
+  ],
+  'zh-CN': [
+    '股票执行报价', '报价最大允许延迟（分钟）',
+    '用于股票实盘开仓、调仓及本地监测的止盈止损。默认 16 分钟，可设 1–60 分钟，兼容 15 分钟延迟行情。延迟报价可能使止损触发滞后，并与实际成交价存在差异；报价仍须属于当前交易时段。保存后需重启交易 Worker。',
+    '请输入 1–60 分钟之间的整数。'
+  ],
+  'zh-TW': [
+    '股票執行報價', '報價最大允許延遲（分鐘）',
+    '用於股票實盤開倉、調倉及本地監測的停利停損。預設 16 分鐘，可設 1–60 分鐘，相容 15 分鐘延遲行情。延遲報價可能使停損觸發落後，並與實際成交價有差異；報價仍須屬於目前交易時段。儲存後需重新啟動交易 Worker。',
+    '請輸入 1–60 分鐘之間的整數。'
+  ],
+  'ja-JP': [
+    '株式の執行用価格', '許容する価格の経過時間（分）',
+    '株式の実取引の新規注文、リバランス、ローカル監視の決済に適用。既定は16分、範囲は1～60分で、15分遅延の価格に対応します。遅延価格は損切りを遅らせ、約定価格と異なる場合があります。同じ取引時間帯の価格が必要です。保存後は取引Workerを再起動してください。',
+    '1～60分の整数を入力してください。'
+  ],
+  'ko-KR': [
+    '주식 주문용 시세', '최대 허용 시세 지연(분)',
+    '주식 실거래 진입, 리밸런싱 및 로컬 감시 청산에 적용됩니다. 기본값은 16분이며 1~60분으로 설정하여 15분 지연 시세를 허용할 수 있습니다. 지연 시세는 손절을 늦추고 체결가와 다를 수 있습니다. 시세는 현재 거래 시간대에 속해야 합니다. 저장 후 거래 Worker를 다시 시작하세요.',
+    '1~60분 사이의 정수를 입력하세요.'
+  ],
+  'de-DE': [
+    'Aktienkurse für die Ausführung', 'Maximales Kursalter (Minuten)',
+    'Gilt für Live-Aktienkäufe, Rebalancing und lokal überwachte Ausstiege. Standard: 16 Minuten (1–60), auch für 15 Minuten verzögerte Kurse. Verzögerungen können Stopps verzögern; Ausführungskurse können abweichen. Kurse müssen aus dem aktuellen Handelsabschnitt stammen. Nach dem Speichern die Trading-Worker neu starten.',
+    'Eine ganze Zahl von 1 bis 60 Minuten eingeben.'
+  ],
+  'fr-FR': [
+    'Cours utilisés pour les ordres sur actions', 'Âge maximal du cours (minutes)',
+    'S’applique aux entrées réelles sur actions, au rééquilibrage et aux sorties surveillées localement. Par défaut : 16 minutes (1–60), pour les cours différés de 15 minutes. Ces cours peuvent retarder les stops et différer du prix exécuté. Ils doivent appartenir à la plage de négociation en cours. Redémarrez les workers de trading après enregistrement.',
+    'Saisissez un nombre entier de 1 à 60 minutes.'
+  ],
+  'ru-RU': [
+    'Котировки для исполнения сделок с акциями', 'Максимальный возраст котировки (минуты)',
+    'Для реальных входов по акциям, ребалансировки и выходов под локальным контролем. По умолчанию 16 минут (1–60), включая котировки с задержкой 15 минут. Задержка может замедлить стопы; цена исполнения может отличаться. Котировка должна относиться к текущему торговому интервалу. После сохранения перезапустите торговые процессы.',
+    'Введите целое число от 1 до 60 минут.'
+  ],
+  'th-TH': [
+    'ราคาหุ้นสำหรับส่งคำสั่ง', 'อายุราคาสูงสุด (นาที)',
+    'ใช้กับการเปิดสถานะหุ้นจริง การปรับพอร์ต และการปิดสถานะที่ระบบเฝ้าดู ค่าเริ่มต้น 16 นาที (1–60) รองรับราคาล่าช้า 15 นาที ราคาล่าช้าอาจทำให้จุดตัดขาดทุนทำงานช้าและต่างจากราคาที่จับคู่ ต้องเป็นราคาจากช่วงซื้อขายปัจจุบัน รีสตาร์ต Worker ซื้อขายหลังบันทึก',
+    'กรอกจำนวนเต็มระหว่าง 1 ถึง 60 นาที'
+  ],
+  'vi-VN': [
+    'Giá cổ phiếu dùng để thực thi', 'Độ trễ giá tối đa (phút)',
+    'Áp dụng cho mở vị thế cổ phiếu thực, tái cân bằng và đóng vị thế do hệ thống giám sát. Mặc định 16 phút (1–60), hỗ trợ giá trễ 15 phút. Giá trễ có thể làm chậm cắt lỗ và khác giá khớp. Giá vẫn phải thuộc khoảng giao dịch hiện tại. Khởi động lại Worker giao dịch sau khi lưu.',
+    'Nhập số nguyên từ 1 đến 60 phút.'
+  ],
+  'ar-SA': [
+    'أسعار تنفيذ الأسهم', 'الحد الأقصى لعمر السعر (دقائق)',
+    'ينطبق على فتح صفقات الأسهم الفعلية وإعادة الموازنة والخروج المراقب محلياً. الافتراضي 16 دقيقة (1–60) لاستيعاب الأسعار المتأخرة 15 دقيقة. قد تؤخر الأسعار وقف الخسارة وتختلف عن سعر التنفيذ. يجب أن تنتمي الأسعار إلى فترة التداول الحالية. أعد تشغيل عمال التداول بعد الحفظ.',
+    'أدخل عدداً صحيحاً من 1 إلى 60 دقيقة.'
+  ]
+}
+
+for (const [locale, values] of Object.entries(quoteCopy)) {
+  Object.assign(translations[locale], Object.fromEntries(quoteKeys.map((key, index) => [key, values[index]])))
+}
+
+export default translations

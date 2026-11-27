@@ -142,6 +142,9 @@
                     <template v-else-if="entry.item.type === 'number'">
                       <a-input-number
                         v-decorator="[entry.item.key, { initialValue: getNumberValue(entry.groupKey, entry.item.key, entry.item.default) }]"
+                        :min="entry.item.min"
+                        :max="entry.item.max"
+                        :precision="entry.item.precision"
                         :placeholder="entry.item.default ? `${$t('settings.default')}: ${entry.item.default}` : ''"
                         style="width: 100%"
                       />
@@ -704,6 +707,9 @@
                         <template v-else-if="entry.item.type === 'number'">
                           <a-input-number
                             v-decorator="[entry.item.key, { initialValue: getNumberValue(activeGroupKey, entry.item.key, entry.item.default) }]"
+                            :min="entry.item.min"
+                            :max="entry.item.max"
+                            :precision="entry.item.precision"
                             :placeholder="entry.item.default ? `${$t('settings.default')}: ${entry.item.default}` : ''"
                             style="width: 100%"
                           />
@@ -943,6 +949,9 @@
                       <template v-else-if="entry.item.type === 'number'">
                         <a-input-number
                           v-decorator="[entry.item.key, { initialValue: getNumberValue(activeGroupKey, entry.item.key, entry.item.default) }]"
+                          :min="entry.item.min"
+                          :max="entry.item.max"
+                          :precision="entry.item.precision"
                           :placeholder="entry.item.default ? `${$t('settings.default')}: ${entry.item.default}` : ''"
                           :disabled="entry.item.readonly"
                           style="width: 100%"
@@ -2530,6 +2539,14 @@ export default {
     },
     tradingSectionDefinitions () {
       return [
+        {
+          key: 'equityQuotes',
+          title: this.$t('settings.trading.quoteFreshnessSection'),
+          icon: 'clock-circle',
+          tone: 'shared',
+          keys: ['EQUITY_QUOTE_MAX_AGE_MINUTES'],
+          advancedKeys: []
+        },
         {
           key: 'agentPermission',
           title: this.$t('settings.trading.agentPermissionSection'),

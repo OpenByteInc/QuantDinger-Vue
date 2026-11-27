@@ -21,12 +21,17 @@ const requiredKeys = [
   'settings.field.MAKER_WAIT_SEC',
   'settings.desc.MAKER_WAIT_SEC',
   'settings.field.MAKER_OFFSET_BPS',
-  'settings.desc.MAKER_OFFSET_BPS'
+  'settings.desc.MAKER_OFFSET_BPS',
+  'settings.trading.quoteFreshnessSection',
+  'settings.field.EQUITY_QUOTE_MAX_AGE_MINUTES',
+  'settings.desc.EQUITY_QUOTE_MAX_AGE_MINUTES',
+  'settings.invalidEquityQuoteMaxAge'
 ]
 
-test('live trading settings show only effective maker defaults without a disclosure', () => {
+test('live trading settings expose quote age and effective maker defaults', () => {
   assert.match(settingsSource, /tradingSectionDefinitions \(\)/)
   assert.match(settingsSource, /keys: \['MAKER_WAIT_SEC', 'MAKER_OFFSET_BPS'\]/)
+  assert.match(settingsSource, /keys: \['EQUITY_QUOTE_MAX_AGE_MINUTES'\]/)
   assert.match(settingsSource, /advancedKeys: \[\]/)
   assert.doesNotMatch(settingsSource, /ALLOW_LOCAL_DESKTOP_BROKERS/)
   assert.doesNotMatch(settingsSource, /ENABLE_PENDING_ORDER_WORKER/)
