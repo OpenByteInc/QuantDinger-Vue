@@ -4408,6 +4408,7 @@ const locale = {
   "quickTrade.errorHints.authError": "APIキーが無効であるか、権限が不足しています。Exchangeアカウントの設定をご確認ください。",
   "quickTrade.errorHints.exchangeMaintenance": "取引所は現在メンテナンス中です。しばらくしてから再度お試しください。",
   "quickTrade.errorHints.insufficientBalance": "証拠金が不足しています。入金いただくか、注文金額を減額してください。",
+  "quickTrade.errorHints.sizingUnavailable": "金額と価格から安全な注文数量を計算できません。注文は送信されていません。金額を確認し、価格情報が利用可能になってから再試行してください。",
   "quickTrade.errorHints.invalidPrice": "指値価格が許容範囲を超えています。価格をご確認ください。",
   "quickTrade.errorHints.invalidSize": "注文金額が交換条件を満たしていません（最小金額を下回っているか、精度が無効です）。金額を調整してください。",
   "quickTrade.errorHints.ipWhitelist": "API IP許可リスト",

@@ -4408,6 +4408,7 @@ const locale = {
   "quickTrade.errorHints.authError": "Der API-Schlüssel ist ungültig oder verfügt nicht über die erforderlichen Berechtigungen. Bitte überprüfen Sie die Einstellungen Ihres Exchange-Kontos.",
   "quickTrade.errorHints.exchangeMaintenance": "Die Börse wird derzeit gewartet. Bitte versuchen Sie es später erneut.",
   "quickTrade.errorHints.insufficientBalance": "Unzureichendes Guthaben. Bitte zahlen Sie Guthaben ein oder reduzieren Sie den Bestellwert.",
+  "quickTrade.errorHints.sizingUnavailable": "Aus Betrag und Preis konnte keine sichere Ordermenge berechnet werden. Es wurde keine Order übermittelt. Prüfen Sie den Betrag und versuchen Sie es erneut, sobald Kurse verfügbar sind.",
   "quickTrade.errorHints.invalidPrice": "Der Limitpreis überschreitet die zulässige Abweichung. Bitte überprüfen Sie den Preis.",
   "quickTrade.errorHints.invalidSize": "Die Bestellmenge erfüllt nicht die Umtauschbedingungen (zu niedrig oder falsche Genauigkeit). Bitte passen Sie die Menge an.",
   "quickTrade.errorHints.ipWhitelist": "API-IP-Zulassungsliste",

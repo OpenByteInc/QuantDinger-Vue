@@ -4408,6 +4408,7 @@ const locale = {
   "quickTrade.errorHints.authError": "คีย์ API ไม่ถูกต้องหรือไม่มีสิทธิ์ โปรดตรวจสอบการตั้งค่าบัญชีแลกเปลี่ยนของคุณ",
   "quickTrade.errorHints.exchangeMaintenance": "ขณะนี้ระบบกำลังอยู่ในระหว่างการปรับปรุง โปรดลองใหม่อีกครั้งในภายหลัง",
   "quickTrade.errorHints.insufficientBalance": "มาร์จิ้นที่มีอยู่ไม่เพียงพอ กรุณาเติมเงินหรือลดจำนวนเงินสั่งซื้อ",
+  "quickTrade.errorHints.sizingUnavailable": "ไม่สามารถคำนวณปริมาณคำสั่งซื้อขายที่ปลอดภัยจากจำนวนเงินและราคาได้ ยังไม่ได้ส่งคำสั่ง โปรดตรวจสอบจำนวนเงินและลองอีกครั้งเมื่อมีข้อมูลราคา",
   "quickTrade.errorHints.invalidPrice": "ราคาสูงสุดเกินกว่าค่าเบี่ยงเบนที่อนุญาต โปรดตรวจสอบราคา",
   "quickTrade.errorHints.invalidSize": "ขนาดคำสั่งซื้อไม่ตรงตามข้อกำหนดการแลกเปลี่ยน (ต่ำกว่าขั้นต่ำหรือความแม่นยำไม่ถูกต้อง) โปรดปรับจำนวนเงิน",
   "quickTrade.errorHints.ipWhitelist": "รายการอนุญาต IP ของ API",

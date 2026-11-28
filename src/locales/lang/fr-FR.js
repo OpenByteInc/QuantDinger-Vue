@@ -4408,6 +4408,7 @@ const locale = {
   "quickTrade.errorHints.authError": "La clé API est invalide ou ne dispose pas des autorisations nécessaires. Veuillez vérifier les paramètres de votre compte Exchange.",
   "quickTrade.errorHints.exchangeMaintenance": "La plateforme est en maintenance. Veuillez réessayer plus tard.",
   "quickTrade.errorHints.insufficientBalance": "Marge disponible insuffisante. Veuillez déposer des fonds ou réduire le montant de votre ordre.",
+  "quickTrade.errorHints.sizingUnavailable": "Impossible de calculer une quantité sûre à partir du montant et du prix. Aucun ordre n’a été envoyé. Vérifiez le montant et réessayez lorsque les cours seront disponibles.",
   "quickTrade.errorHints.invalidPrice": "Le prix limite dépasse la marge d'erreur autorisée. Veuillez vérifier le prix.",
   "quickTrade.errorHints.invalidSize": "La taille de votre commande ne répond pas aux exigences de change (montant inférieur au minimum requis ou précision insuffisante). Veuillez ajuster le montant.",
   "quickTrade.errorHints.ipWhitelist": "Liste blanche des adresses IP de l'API",

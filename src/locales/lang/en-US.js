@@ -5571,6 +5571,7 @@ const locale = {
   "quickTrade.tradeNow": "Trade Now",
   "quickTrade.errorHints.insufficientBalance": "Insufficient available margin. Please deposit funds or reduce the order amount.",
   "quickTrade.errorHints.invalidSize": "Order size does not meet exchange requirements (below minimum or invalid precision). Please adjust the amount.",
+  "quickTrade.errorHints.sizingUnavailable": "Unable to calculate a safe order quantity from the amount and price. No order was submitted. Check the amount and try again when quotes are available.",
   "quickTrade.errorHints.invalidPrice": "Limit price exceeds the allowed deviation. Please check the price.",
   "quickTrade.errorHints.rateLimit": "Too many requests. Please try again later.",
   "quickTrade.errorHints.okxAccountMode": "The OKX account is in Spot mode. In OKX Demo Trading, open Settings > Account mode and switch to Futures mode or Multi-currency margin mode, then retry.",

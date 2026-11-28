@@ -4408,6 +4408,7 @@ const locale = {
   "quickTrade.errorHints.authError": "مفتاح API غير صالح أو يفتقر إلى الصلاحيات. يرجى التحقق من إعدادات حساب Exchange الخاص بك.",
   "quickTrade.errorHints.exchangeMaintenance": "المنصة قيد الصيانة. يرجى المحاولة مرة أخرى لاحقاً.",
   "quickTrade.errorHints.insufficientBalance": "هامش الربح المتاح غير كافٍ. يرجى إيداع الأموال أو تخفيض مبلغ الطلب.",
+  "quickTrade.errorHints.sizingUnavailable": "تعذر حساب كمية أمر آمنة من المبلغ والسعر. لم يتم إرسال أي أمر. تحقق من المبلغ وحاول مجددًا عند توفر الأسعار.",
   "quickTrade.errorHints.invalidPrice": "السعر المحدد يتجاوز الانحراف المسموح به. يرجى التحقق من السعر.",
   "quickTrade.errorHints.invalidSize": "حجم الطلب لا يفي بشروط الاستبدال (أقل من الحد الأدنى أو دقة غير صالحة). يرجى تعديل المبلغ.",
   "quickTrade.errorHints.ipWhitelist": "قائمة عناوين IP المسموح بها لواجهة برمجة التطبيقات",

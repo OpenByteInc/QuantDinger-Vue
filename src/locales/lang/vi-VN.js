@@ -4408,6 +4408,7 @@ const locale = {
   "quickTrade.errorHints.authError": "Khóa API không hợp lệ hoặc thiếu quyền. Vui lòng kiểm tra cài đặt tài khoản Exchange của bạn.",
   "quickTrade.errorHints.exchangeMaintenance": "Hệ thống đang được bảo trì. Vui lòng thử lại sau.",
   "quickTrade.errorHints.insufficientBalance": "Số dư ký quỹ không đủ. Vui lòng nạp tiền hoặc giảm số lượng đơn hàng.",
+  "quickTrade.errorHints.sizingUnavailable": "Không thể tính khối lượng lệnh an toàn từ số tiền và giá. Chưa gửi lệnh nào. Hãy kiểm tra số tiền và thử lại khi có dữ liệu giá.",
   "quickTrade.errorHints.invalidPrice": "Giá trần vượt quá mức sai lệch cho phép. Vui lòng kiểm tra lại giá.",
   "quickTrade.errorHints.invalidSize": "Kích thước đơn hàng không đáp ứng yêu cầu đổi trả (dưới mức tối thiểu hoặc độ chính xác không hợp lệ). Vui lòng điều chỉnh số lượng.",
   "quickTrade.errorHints.ipWhitelist": "Danh sách IP được phép của API",

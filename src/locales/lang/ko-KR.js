@@ -4408,6 +4408,7 @@ const locale = {
   "quickTrade.errorHints.authError": "API 키가 유효하지 않거나 권한이 부족합니다. Exchange 계정 설정을 확인하십시오.",
   "quickTrade.errorHints.exchangeMaintenance": "거래소가 점검 중입니다. 잠시 후 다시 시도해 주세요.",
   "quickTrade.errorHints.insufficientBalance": "사용 가능한 마진이 부족합니다. 자금을 입금하시거나 주문 금액을 줄여주세요.",
+  "quickTrade.errorHints.sizingUnavailable": "금액과 가격으로 안전한 주문 수량을 계산할 수 없습니다. 주문이 제출되지 않았습니다. 금액을 확인하고 시세를 이용할 수 있을 때 다시 시도하세요.",
   "quickTrade.errorHints.invalidPrice": "제한 가격이 허용 오차 범위를 초과했습니다. 가격을 확인해 주세요.",
   "quickTrade.errorHints.invalidSize": "주문 수량이 교환 요건을 충족하지 않습니다(최소 수량 미달 또는 잘못된 정밀도). 수량을 조정해 주십시오.",
   "quickTrade.errorHints.ipWhitelist": "API IP 허용 목록",

@@ -4678,6 +4678,7 @@ const locale = {
   "quickTrade.errorHints.authError": "API Key 无效或权限不足，请检查交易所账户配置",
   "quickTrade.errorHints.exchangeMaintenance": "交易所正在维护中，请稍后再试",
   "quickTrade.errorHints.insufficientBalance": "账户可用保证金不足，请充值或减小下单金额",
+  "quickTrade.errorHints.sizingUnavailable": "无法根据金额和价格安全计算下单数量，本次未提交订单。请检查金额，待行情可用后重试。",
   "quickTrade.errorHints.invalidPrice": "限价价格超出交易所允许的偏差范围，请检查价格",
   "quickTrade.errorHints.invalidSize": "下单数量不符合交易所要求（低于最小值或精度不对），请调整金额",
   "quickTrade.errorHints.ipWhitelist": "API IP 白名单限制",
