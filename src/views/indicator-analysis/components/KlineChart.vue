@@ -565,12 +565,14 @@ export default {
     const indicatorTables = ref([])
     const indicatorContextCache = new Map()
     let indicatorRenderSeq = 0
+    let klineCorrectionRevision = 0
 
     const getIndicatorDataSignature = () => {
       const rows = klineData.value || []
       const first = rows[0]
       const last = rows[rows.length - 1]
       return [
+        klineCorrectionRevision,
         rows.length,
         Number(first && first.timestamp) || 0,
         Number(last && last.timestamp) || 0
@@ -720,7 +722,7 @@ export default {
       const next = Number(nextTimestamp)
       const interval = getTimeframeMs()
       if (!interval || !Number.isFinite(prev) || !Number.isFinite(next) || next <= prev) return false
-      const maxIntervals = isCryptoMarket() ? 3 : 80
+      const maxIntervals = isCryptoMarket() ? 1 : 80
       return (next - prev) > interval * maxIntervals
     }
 
@@ -1633,6 +1635,7 @@ export default {
         payload.market_type,
         payload.instrument_id,
         payload.base_count,
+        klineCorrectionRevision,
         firstTime,
         lastTime,
         payload.requests
@@ -3055,6 +3058,7 @@ registerOverlay({
       ])
       if (loading.value && contextKey === activeLoadContextKey) return
       const generation = ++loadGeneration
+      realtimeFetchInFlight.value = false
       activeLoadContextKey = contextKey
 
       indicatorRenderSeq += 1
@@ -3352,6 +3356,9 @@ registerOverlay({
         return
       }
       realtimeFetchInFlight.value = true
+      const requestGeneration = loadGeneration
+      const requestLast = klineData.value[klineData.value.length - 1]
+      const requestLastKey = klineBarSnapshotKey(requestLast)
 
       try {
         const response = await request({
@@ -3360,6 +3367,7 @@ registerOverlay({
           params: marketRequestParams({ limit: 3 }),
           timeout: 12000
         })
+        if (requestGeneration !== loadGeneration) return
 
         if (response.code === 1 && response.data && Array.isArray(response.data) && response.data.length > 0) {
           const newData = formatKlineData(response.data)
@@ -3376,24 +3384,48 @@ registerOverlay({
             }
 
             const existingTimestamps = new Set(existingData.map(item => item.timestamp))
-            const mergedData = normalizeKlineSequence([...existingData, ...newData])
+            // REST repairs closed candles; a newer live tick owns the current candle.
+            const liveTailChanged = existingLast.timestamp !== requestLast.timestamp || klineBarSnapshotKey(existingLast) !== requestLastKey
+            const corrections = new Map(newData
+              .filter(item => !(liveTailChanged && item.timestamp === existingLast.timestamp))
+              .map(item => [item.timestamp, item]))
+            const mergedData = normalizeKlineSequence([
+              ...existingData.filter(item => !corrections.has(item.timestamp)),
+              ...corrections.values()
+            ])
             const mergedLast = mergedData[mergedData.length - 1]
             const hasAppendedBars = mergedData.some(item => !existingTimestamps.has(item.timestamp))
+            const existingByTime = new Map(existingData.map(item => [item.timestamp, item]))
+            const historyChanged = (hasAppendedBars && (pendingWsBar != null || realtimeChartRafId != null)) || mergedData.some(item => item.timestamp < mergedLast.timestamp && (
+              !existingTimestamps.has(item.timestamp) ||
+              klineBarSnapshotKey(item) !== klineBarSnapshotKey(existingByTime.get(item.timestamp))
+            ))
             const lastChanged = mergedLast && (
               mergedLast.timestamp !== existingLast.timestamp ||
               klineBarSnapshotKey(mergedLast) !== klineBarSnapshotKey(existingLast)
             )
 
-            if (!hasAppendedBars && !lastChanged && lastNew.timestamp <= existingLast.timestamp) {
+            if (!historyChanged && !hasAppendedBars && !lastChanged && lastNew.timestamp <= existingLast.timestamp) {
               return
             }
 
+            if (realtimeChartRafId != null) cancelAnimationFrame(realtimeChartRafId)
+            if (wsTickRafId != null) cancelAnimationFrame(wsTickRafId)
+            realtimeChartRafId = null
+            wsTickRafId = null
+            pendingWsBar = null
             klineData.value = mergedData
 
             const internalData = convertToInternalFormat(klineData.value)
             updatePricePanel(internalData, { force: hasAppendedBars })
 
-            if (hasAppendedBars) {
+            if (historyChanged) {
+              klineCorrectionRevision += 1
+              replaceChartData(chartDisplayData(), {
+                preserveViewport: true,
+                onComplete: () => maybeUpdateIndicators({ force: true, reason: 'correction' })
+              })
+            } else if (hasAppendedBars) {
               const appendBars = mergedData.filter(item => !existingTimestamps.has(item.timestamp))
               appendRealtimeBarsToChart(appendBars)
               maybeUpdateIndicators({ reason: 'realtime' })
@@ -3418,15 +3450,16 @@ registerOverlay({
           }
         }
       } catch (err) {
+        // Keep current candles; the next poll or bar boundary retries.
       } finally {
-        realtimeFetchInFlight.value = false
+        if (requestGeneration === loadGeneration) realtimeFetchInFlight.value = false
       }
     }
 
     const runRestRealtimeUpdate = () => {
       if (typeof document !== 'undefined' && document.hidden) return
       if (!loading.value && props.symbol && klineData.value && klineData.value.length > 0) {
-        updateKlineRealtime()
+        updateKlineRealtime().catch(() => {})
       }
     }
 
@@ -3557,6 +3590,7 @@ registerOverlay({
 
         appendRealtimeBarsToChart([normalizedBar])
         maybeUpdateIndicators({ reason: 'realtime' })
+        updateKlineRealtime().catch(() => {})
       }
     }
 
