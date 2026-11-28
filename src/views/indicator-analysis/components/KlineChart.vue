@@ -3450,6 +3450,7 @@ registerOverlay({
           }
         }
       } catch (err) {
+        // Keep current candles; the next poll or bar boundary retries.
       } finally {
         if (requestGeneration === loadGeneration) realtimeFetchInFlight.value = false
       }
@@ -3458,7 +3459,7 @@ registerOverlay({
     const runRestRealtimeUpdate = () => {
       if (typeof document !== 'undefined' && document.hidden) return
       if (!loading.value && props.symbol && klineData.value && klineData.value.length > 0) {
-        updateKlineRealtime()
+        updateKlineRealtime().catch(() => {})
       }
     }
 
@@ -3589,7 +3590,7 @@ registerOverlay({
 
         appendRealtimeBarsToChart([normalizedBar])
         maybeUpdateIndicators({ reason: 'realtime' })
-        updateKlineRealtime()
+        updateKlineRealtime().catch(() => {})
       }
     }
 
