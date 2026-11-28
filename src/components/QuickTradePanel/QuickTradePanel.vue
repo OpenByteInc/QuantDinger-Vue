@@ -2569,7 +2569,7 @@ export default {
               order_type: 'fill',
               exchange_order_id: o.exchange_order_id || o.order_id || '',
               status: 'filled',
-              commission: parseFloat(o.commission ?? o.fee_amount ?? 0) || 0,
+              commission: Number.parseFloat(o.commission ?? o.fee_amount ?? 0) || 0,
               commission_ccy: o.commission_ccy || o.fee_currency || o.currency || '',
               commission_quote: o.commission_quote === null || o.commission_quote === undefined
                 ? null

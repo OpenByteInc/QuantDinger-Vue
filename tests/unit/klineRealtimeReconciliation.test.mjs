@@ -8,11 +8,11 @@ const functionSource = source.slice(source.indexOf('    const updateKlineRealtim
 const candle = (timestamp, close = 100) => ({ timestamp, open: 100, high: Math.max(100, close), low: Math.min(100, close), close, volume: 1 })
 
 function runtime (rows) {
-  let respond
+  let respond; let reject
   const replacements = []; const ticks = []; const appended = []; const indicators = []; const cancelled = []
   const context = vm.createContext({
     props: { symbol: 'BTC/USDT' }, klineData: { value: rows }, realtimeFetchInFlight: { value: false },
-    loadGeneration: 1, request: () => new Promise(resolve => { respond = resolve }), marketRequestParams: x => x,
+    loadGeneration: 1, request: () => new Promise((resolve, fail) => { respond = resolve; reject = fail }), marketRequestParams: x => x,
     formatKlineData: x => x, normalizeKlineSequence: x => x.sort((a, b) => a.timestamp - b.timestamp),
     klineBarSnapshotKey: x => JSON.stringify(x), isRealtimeAppendGapSuspicious: () => false,
     scheduleRealtimeKlineResync: () => {}, convertToInternalFormat: x => x, updatePricePanel: () => {},
@@ -23,8 +23,24 @@ function runtime (rows) {
     realtimeChartRafId: 7, wsTickRafId: 8, pendingWsBar: rows.at(-1), klineCorrectionRevision: 0
   })
   vm.runInContext(`${functionSource}\nthis.update = updateKlineRealtime`, context)
-  return { context, replacements, ticks, appended, indicators, cancelled, reply: data => respond({ code: 1, data }) }
+  return { context, replacements, ticks, appended, indicators, cancelled, reply: data => respond({ code: 1, data }), reject: error => reject(error) }
 }
+
+test('a rejected background refresh preserves candles and releases the lock for the next refresh', async () => {
+  const run = runtime([candle(60000)])
+  const pending = run.context.update()
+  run.reject(new Error('offline'))
+  await assert.doesNotReject(pending)
+  assert.equal(run.context.klineData.value[0].close, 100)
+  assert.equal(run.context.realtimeFetchInFlight.value, false)
+  assert.equal(run.replacements.length + run.ticks.length + run.appended.length, 0)
+
+  const retry = run.context.update()
+  run.reply([candle(60000, 105)])
+  await retry
+  assert.equal(run.context.klineData.value[0].close, 105)
+  assert.equal(run.context.realtimeFetchInFlight.value, false)
+})
 
 test('REST correction redraws closed candles even when the latest candle is unchanged', async () => {
   const run = runtime([candle(60000), candle(120000)])
