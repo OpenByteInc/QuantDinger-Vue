@@ -1214,6 +1214,7 @@ export default {
       selectedCredentialId: undefined,
       credLoading: false,
       balanceLoading: false,
+      balanceSnapshotContext: '',
       balanceRequestId: 0,
       quickTradeWarmupTimer: null,
       balance: {
@@ -1977,6 +1978,7 @@ export default {
       return hk ? hk[1].padStart(5, '0') : value
     },
     resetBalance () {
+      this.balanceSnapshotContext = ''
       this.balance = {
         available: 0,
         total: 0,
@@ -2352,16 +2354,18 @@ export default {
       await this.loadBalance()
       await this.loadPosition()
     },
-    async loadBalance (fresh = false) {
+    async loadBalance (fresh = false, background = false) {
       if (this.normalizedMarket === 'Futures') { this.stopPolling(); return }
       if (!this.selectedCredentialId) return
+      if (background && this.balanceLoading) return
       const credentialId = this.selectedCredentialId
       const marketType = this.effectiveMarketType
       const symbolContext = this.currentSymbol
+      const snapshotContext = JSON.stringify([credentialId, this.normalizedMarket, marketType, symbolContext, this.leverage, this.marginMode])
       const requestId = (this.balanceRequestId || 0) + 1
       this.balanceRequestId = requestId
       const isCurrent = () => this.selectedCredentialId === credentialId && this.currentSymbol === symbolContext && this.effectiveMarketType === marketType && this.balanceRequestId === requestId
-      this.balanceLoading = true
+      this.balanceLoading = !(background && this.balanceSnapshotContext === snapshotContext && !this.balance.error)
       try {
         if (this.isStockMarket) {
           if (this.isHKStock) {
@@ -2386,6 +2390,7 @@ export default {
             swap: { available: 0, total: 0 },
             spot: { available, total }
           }
+          this.balanceSnapshotContext = snapshotContext
           return
         }
         const params = {
@@ -2426,6 +2431,7 @@ export default {
             error_hint_key: d.error_hint_key || '',
             request_ip: d.request_ip || ''
           }
+          this.balanceSnapshotContext = snapshotContext
           if (d.error && this.$message) {
             this.$message.warning(this.balanceErrorMessage || d.error, 6)
           }
@@ -3064,7 +3070,7 @@ export default {
         await Promise.allSettled([this.loadPosition(false), this.loadHistory()])
         if (Date.now() - (this.lastBalancePoll || 0) > 8000) {
           this.lastBalancePoll = Date.now()
-          await this.loadBalance(false)
+          await this.loadBalance(false, true)
         }
       }, this.floatingConsole ? 2000 : 15000, { immediate: false })
       this.pricePoller.start()

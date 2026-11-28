@@ -1027,6 +1027,45 @@ test('balance refresh ignores responses from another account, market or an older
   assert.equal(state.balance.available, 432)
 })
 
+test('periodic balance refresh stays interactive only after a successful matching snapshot', async () => {
+  let release
+  const component = options('components/QuickTradePanel/QuickTradePanel.vue', {
+    getQuickTradeBalance: () => new Promise(resolve => { release = resolve })
+  })
+  const state = { selectedCredentialId: 7, selectedCredential: {}, normalizedMarket: 'Crypto',
+    effectiveMarketType: 'swap', currentSymbol: 'BTC/USDT', leverage: 5, marginMode: 'cross',
+    tradableMarketSupported: true, isSwapMode: true, balance: {}, $t: key => key }
+  const ready = () => component.computed.submitContextReady.call({
+    ...state, balanceErrorMessage: state.balance.error || ''
+  })
+  const result = available => ({ code: 1, data: { swap: { available }, total: 500 } })
+  let pending = component.methods.loadBalance.call(state, false, true)
+  assert.equal(ready(), false)
+  release(result(400)); await pending
+  assert.equal(ready(), true)
+  pending = component.methods.loadBalance.call(state, false, true)
+  assert.equal(ready(), true)
+  assert.equal(state.balance.available, 400)
+  release(result(390)); await pending
+  assert.equal(state.balance.available, 390)
+  pending = component.methods.loadBalance.call(state, false, true)
+  release({ code: 0, msg: 'offline' }); await pending
+  assert.equal(ready(), false)
+  pending = component.methods.loadBalance.call(state, false, true)
+  assert.equal(ready(), false)
+  release(result(380)); await pending
+  assert.equal(ready(), true)
+  for (const [key, value] of [['selectedCredentialId', 8], ['currentSymbol', 'ETH/USDT'], ['effectiveMarketType', 'spot'], ['leverage', 10]]) {
+    state[key] = value
+    pending = component.methods.loadBalance.call(state, false, true)
+    assert.equal(ready(), false, key)
+    release(result(370)); await pending
+  }
+  pending = component.methods.loadBalance.call(state, true)
+  assert.equal(ready(), false, 'post-trade refresh remains blocking')
+  release(result(360)); await pending
+})
+
 test('leverage input clamps blank, fractional and out-of-range values', () => {
   const component = options('components/QuickTradePanel/QuickTradePanel.vue')
   for (const [input, expected] of [[null, 1], [0, 1], [500, 125], [5.6, 6], [20, 20]]) {
@@ -1237,7 +1276,7 @@ test('post-trade account refresh is bounded instead of forcing every poll to hit
   assert.match(source, /accountRefreshUntil = Date\.now\(\) \+ 4000/)
   assert.match(source, /\}, 1200\)/)
   assert.match(source, /loadPosition\(false\)/)
-  assert.match(source, /loadBalance\(false\)/)
+  assert.match(source, /loadBalance\(false, true\)/)
   assert.doesNotMatch(source, /fresh = this\.floatingConsole/)
 })
 
