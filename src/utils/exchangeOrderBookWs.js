@@ -389,7 +389,7 @@ export default class ExchangeOrderBookWs {
     }
 
     this.connectTimer = setTimeout(() => {
-      if (generation !== this.generation || this.closed || this.everLive) return
+      if (generation !== this.generation || this.closed || (this.socket && this.socket.readyState === WebSocket.OPEN)) return
       this._failSocket()
     }, 8000)
 
@@ -512,6 +512,11 @@ export default class ExchangeOrderBookWs {
 
   _scheduleReconnect () {
     if (this.closed || this.reconnectTimer) return
+    this.generation += 1
+    this._clearTimer('connectTimer')
+    this._clearTimer('emitTimer')
+    this.pendingSnapshot = null
+    this.everLive = false
     this.reconnectAttempts += 1
     this.book = new LocalOrderBook()
     this.lastDataAt = 0

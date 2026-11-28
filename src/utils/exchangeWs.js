@@ -326,7 +326,6 @@ export default class ExchangeKlineWs {
     this._onReconnecting = null
     this._onReconnected = null
     this._reconnectAttempts = 0
-    this._maxReconnectAttempts = 20
     this._reconnectTimer = null
     this._pingTimer = null
     this._closed = false
@@ -340,6 +339,7 @@ export default class ExchangeKlineWs {
     this._dataTimeout = null
     this._openGen = 0
     this._gotData = false
+    this._awaitingPongAt = 0
   }
 
   /**
@@ -444,9 +444,7 @@ export default class ExchangeKlineWs {
         clearTimeout(this._connectTimeout)
         this._connectTimeout = null
       }
-      const wasReconnect = this._everConnected
       this._everConnected = true
-      this._reconnectAttempts = 0
       this._gotData = false
       this._startPing()
 
@@ -461,22 +459,13 @@ export default class ExchangeKlineWs {
 
       // If no data arrives within 12s after open, the connection or subscription
       // likely failed silently, so the caller must continue same-venue REST polling.
-      if (!this._fallbackUsed) {
-        this._dataTimeout = setTimeout(() => {
-          if (myGen !== this._openGen) return
-          if (!this._gotData && !this._closed) {
-            console.warn(`[ExchangeWs] ${this._exchangeId} connected but no data received`)
-            this._ws.onclose = null
-            try { this._ws.close() } catch (_) {}
-            this._ws = null
-            this._tryFallback()
-          }
-        }, 12000)
-      }
-
-      if (wasReconnect && this._onReconnected) {
-        this._onReconnected()
-      }
+      this._dataTimeout = setTimeout(() => {
+        if (myGen !== this._openGen) return
+        if (!this._gotData && !this._closed) {
+          console.warn(`[ExchangeWs] ${this._exchangeId} connected but no data received`)
+          this._tryFallback()
+        }
+      }, 12000)
     }
 
     this._ws.onmessage = (evt) => {
@@ -487,30 +476,30 @@ export default class ExchangeKlineWs {
     this._ws.onerror = () => {}
 
     this._ws.onclose = () => {
-      if (myGen !== this._openGen) return
-      if (this._connectTimeout) {
-        clearTimeout(this._connectTimeout)
-        this._connectTimeout = null
-      }
-      this._clearPing()
-      if (!this._closed) {
-        if (!this._everConnected && !this._fallbackUsed) {
-          this._tryFallback()
-        } else {
-          if (this._everConnected && this._onReconnecting) {
-            this._onReconnecting()
-          }
-          this._scheduleReconnect()
-        }
-      }
+      if (myGen !== this._openGen || this._closed) return
+      this._tryFallback()
     }
   }
 
-  _tryFallback () {
+  _tryFallback (retry = true) {
+    this._openGen++
     this._fallbackUsed = true
-    this._closed = true
     this._clearTimers()
-    if (this._onError) this._onError()
+    if (this._ws) {
+      this._ws.onclose = null
+      this._ws.onmessage = null
+      this._ws.onerror = null
+      this._ws.onopen = null
+      try { this._ws.close() } catch (_) {}
+      this._ws = null
+    }
+    if (!retry) {
+      this._closed = true
+      if (this._onError) this._onError()
+      return
+    }
+    if (this._onReconnecting) this._onReconnecting()
+    this._scheduleReconnect()
   }
 
   async _decodeMessage (raw) {
@@ -536,10 +525,14 @@ export default class ExchangeKlineWs {
       return
     }
     if (generation !== this._openGen || this._closed) return
-    if (raw === 'pong' || raw === '') return
+    if (raw === 'pong') { this._awaitingPongAt = 0; return }
+    if (raw === '') return
 
     let data
     try { data = JSON.parse(raw) } catch (_) { return }
+    if (!data || typeof data !== 'object' || Array.isArray(data)) return
+
+    if (String(data.channel || '').endsWith('.pong')) { this._awaitingPongAt = 0; return }
 
     if (data.ping !== undefined) {
       try { this._ws.send(JSON.stringify({ pong: data.ping })) } catch (_) {}
@@ -559,11 +552,11 @@ export default class ExchangeKlineWs {
           try { this._ws.close() } catch (_) {}
           this._ws = null
         }
-        this._tryFallback()
+        this._tryFallback(false)
       }
       return
     }
-    if (data.event === 'pong' || data.ret_msg === 'pong') return
+    if (data.event === 'pong' || data.op === 'pong' || data.ret_msg === 'pong') { this._awaitingPongAt = 0; return }
 
     let parsed
     try {
@@ -571,10 +564,14 @@ export default class ExchangeKlineWs {
     } catch (_) {
       return
     }
-    if (!parsed) return
+    if (!parsed || ![parsed.timestamp, parsed.open, parsed.high, parsed.low, parsed.close, parsed.volume].every(Number.isFinite) ||
+      parsed.timestamp <= 0 || parsed.close <= 0 || parsed.volume < 0) return
 
     if (!this._gotData) {
       this._gotData = true
+      this._reconnectAttempts = 0
+      if (this._fallbackUsed && this._onReconnected) this._onReconnected()
+      this._fallbackUsed = false
       if (this._dataTimeout) {
         clearTimeout(this._dataTimeout)
         this._dataTimeout = null
@@ -602,11 +599,7 @@ export default class ExchangeKlineWs {
   _scheduleReconnect () {
     if (this._closed) return
     this._reconnectAttempts++
-    if (this._reconnectAttempts > this._maxReconnectAttempts) {
-      if (this._onError) this._onError()
-      return
-    }
-    const delay = Math.min(1000 * Math.pow(2, this._reconnectAttempts - 1), 30000)
+    const delay = Math.min(5000 * Math.pow(2, Math.min(this._reconnectAttempts - 1, 4)), 60000)
     this._reconnectTimer = setTimeout(() => {
       this._reconnectTimer = null
       this._open()
@@ -619,12 +612,18 @@ export default class ExchangeKlineWs {
     if (!interval || typeof this._exchangeConf.ping !== 'function') return
     this._pingTimer = setInterval(() => {
       if (this._ws && this._ws.readyState === WebSocket.OPEN) {
-        this._exchangeConf.ping(this._ws, this._context())
+        if (this._awaitingPongAt && Date.now() - this._awaitingPongAt > 45000) {
+          this._tryFallback()
+          return
+        }
+        if (!this._awaitingPongAt) this._awaitingPongAt = Date.now()
+        try { this._exchangeConf.ping(this._ws, this._context()) } catch (_) { this._tryFallback() }
       }
     }, interval)
   }
 
   _clearPing () {
+    this._awaitingPongAt = 0
     if (this._pingTimer) {
       clearInterval(this._pingTimer)
       this._pingTimer = null

@@ -768,7 +768,11 @@ export default {
       }
     }
 
+    let quickTradeOverlaySignature = ''
+    let quickTradeOverlayChart = null
     const clearQuickTradePositionOverlays = () => {
+      quickTradeOverlaySignature = ''
+      quickTradeOverlayChart = null
       removeSignalOverlayBatch(addedQuickTradeOverlayIds.value)
       addedQuickTradeOverlayIds.value = []
     }
@@ -781,10 +785,19 @@ export default {
     }
 
     const renderQuickTradePositionOverlays = () => {
-      clearQuickTradePositionOverlays()
       const chart = chartRef.value
       const rows = Array.isArray(klineData.value) ? klineData.value : []
       const positions = Array.isArray(props.quickTradePositions) ? props.quickTradePositions : []
+      const signature = JSON.stringify([
+        props.timeframe, rows[0] && rows[0].timestamp, rows[rows.length - 1] && rows[rows.length - 1].timestamp,
+        positions.map(position => position && [
+          position.entryPrice, position.entryTimestamp, position.side, position.costLabel, position.entryLabel
+        ])
+      ])
+      if (quickTradeOverlayChart === chart && quickTradeOverlaySignature === signature) return
+      clearQuickTradePositionOverlays()
+      quickTradeOverlayChart = chart
+      quickTradeOverlaySignature = signature
       if (!chart || typeof chart.createOverlay !== 'function' || rows.length === 0 || positions.length === 0) return
 
       const firstTimestamp = Number(rows[0] && rows[0].timestamp)
@@ -3531,6 +3544,10 @@ registerOverlay({
         }
 
         stopRestPolling()
+        if (wsTickRafId != null) {
+          cancelAnimationFrame(wsTickRafId)
+          flushWsTick()
+        }
         arr.push(normalizedBar)
         if (arr.length > 500) {
           arr.splice(0, arr.length - 500)
