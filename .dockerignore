@@ -53,3 +53,12 @@ docker-compose*.yml
 # OS junk
 .DS_Store
 Thumbs.db
+
+# Local design references, generation notes, and visual QA output
+docs/design-references/
+public/**/*.prompt.txt
+audits/
+design-qa*/
+screenshots/
+playwright-report/
+test-results/

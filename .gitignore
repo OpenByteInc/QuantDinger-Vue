@@ -35,3 +35,5 @@ package-lock.json
 /screenshots/
 /playwright-report/
 /test-results/
+/docs/design-references/
+/public/**/*.prompt.txt
